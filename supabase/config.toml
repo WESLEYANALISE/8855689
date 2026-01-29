@@ -1,19 +1,1 @@
 project_id = "izspjvegxdfgkgibpyst"
-
-[functions.gerar-capa-dominando-area]
-verify_jwt = false
-
-[functions.gerar-conteudo-conceitos]
-verify_jwt = false
-
-[functions.gerar-conteudo-dominando]
-verify_jwt = false
-
-[functions.processar-videoaula-oab]
-verify_jwt = false
-
-[functions.reset-conceitos-topicos]
-verify_jwt = false
-
-[functions.formatar-lei-push-unica]
-verify_jwt = false
