@@ -301,23 +301,29 @@ serve(async (req) => {
   }
 
   try {
-    const { videoaulaId } = await req.json();
+    const body = await req.json();
+    const { videoaulaId, tabela, id, videoId: rawVideoId, titulo: rawTitulo } = body;
     
-    if (!videoaulaId) {
-      throw new Error("videoaulaId is required");
+    // Support both old format (videoaulaId) and new format (tabela + id)
+    const isNewFormat = tabela && id;
+    const targetId = isNewFormat ? id : videoaulaId;
+    const targetTabela = isNewFormat ? tabela : "VIDEO AULAS-NOVO";
+    
+    if (!targetId) {
+      throw new Error("videoaulaId or (tabela + id) is required");
     }
 
-    console.log(`[processar-videoaula-oab] Starting processing for ID: ${videoaulaId}`);
+    console.log(`[processar-videoaula-oab] Starting processing for ID: ${targetId} in table: ${targetTabela}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch videoaula from VIDEO AULAS-NOVO table
+    // Fetch videoaula from appropriate table
     const { data: videoaula, error: fetchError } = await supabase
-      .from("VIDEO AULAS-NOVO")
+      .from(targetTabela)
       .select("*")
-      .eq("id", videoaulaId)
+      .eq("id", targetId)
       .single();
 
     if (fetchError || !videoaula) {
@@ -327,12 +333,22 @@ serve(async (req) => {
 
     console.log(`Processing videoaula OAB: ${videoaula.titulo}`);
 
-    // Extract video ID from link field
-    const videoId = extractVideoId(videoaula.link || '');
-    if (!videoId) {
-      throw new Error("Could not extract video ID from link");
+    // Extract video ID - handle different column names
+    let videoId: string;
+    if (rawVideoId) {
+      videoId = rawVideoId;
+    } else if (videoaula.video_id) {
+      videoId = videoaula.video_id;
+    } else if (videoaula.link) {
+      videoId = extractVideoId(videoaula.link);
+    } else {
+      throw new Error("Could not find video ID");
     }
-    console.log(`Extracted video ID: ${videoId}`);
+    
+    if (!videoId) {
+      throw new Error("Could not extract video ID");
+    }
+    console.log(`Using video ID: ${videoId}`);
 
     // Step 1: Fetch transcript from YouTube
     console.log("Fetching YouTube transcript...");
@@ -344,7 +360,8 @@ serve(async (req) => {
     } catch (transcriptError) {
       console.error("Failed to fetch transcript:", transcriptError);
       // Use title as fallback context
-      transcricao = `Aula sobre: ${videoaula.titulo}. Esta é uma aula da 2ª Fase da OAB sobre ${videoaula.area || 'direito'}. O conteúdo aborda aspectos práticos e teóricos relevantes para a prova prático-profissional.`;
+      const area = videoaula.area || 'direito';
+      transcricao = `Aula sobre: ${videoaula.titulo}. Esta é uma aula da OAB sobre ${area}. O conteúdo aborda aspectos práticos e teóricos relevantes para a prova.`;
       console.log("Using fallback context from title");
     }
 
@@ -365,21 +382,21 @@ serve(async (req) => {
 
     // Save to database
     const { error: updateError } = await supabase
-      .from("VIDEO AULAS-NOVO")
+      .from(targetTabela)
       .update({
         transcricao,
         sobre_aula: sobreAula,
         flashcards,
         questoes,
       })
-      .eq("id", videoaulaId);
+      .eq("id", targetId);
 
     if (updateError) {
       console.error("Update error:", updateError);
       throw new Error(`Failed to update: ${updateError.message}`);
     }
 
-    console.log(`[processar-videoaula-oab] Successfully processed videoaula ${videoaulaId}`);
+    console.log(`[processar-videoaula-oab] Successfully processed videoaula ${targetId}`);
 
     return new Response(
       JSON.stringify({
