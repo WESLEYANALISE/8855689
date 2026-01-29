@@ -1,186 +1,139 @@
 
-## Plano: Sistema de Videoaulas OAB com 20 Playlists do YouTube
 
-### Visão Geral
-Implementar um sistema completo de videoaulas para a 1ª Fase da OAB, sincronizando 20 playlists do YouTube que cobrem todas as áreas do exame. O sistema irá buscar vídeos via API do YouTube, armazenar no banco de dados, exibir com thumbnails, e permitir acesso às transcrições.
+# Plano: Melhorar o Prompt da Evelyn para Respostas Mais Inteligentes e Contextuais
 
-### Playlists a Serem Integradas
-| Área | Playlist ID |
-|------|-------------|
-| Ética Profissional / Estatuto da OAB | PL8vXuI6zmpgwsu0I9WOuMgSBUx98rdyL |
-| Filosofia do Direito | PL8vXuI6zmpdi47p3ijoTP0dECj2hoC-pN |
-| Direito Constitucional | PL8vXuI6zmpdibFGqx6usUu1Htsa6X5YvC |
-| Direitos Humanos | PL8vXuI6zmpdiICouL1IyYyuWe5i4HotYt |
-| Direito Eleitoral | PL8vXuI6zmpdgq9XEO_Wvn_fHuGH-J88nV |
-| Direito Internacional | PL8vXuI6zmpdhuNo11n7argrPtoELeJpSC |
-| Direito Financeiro | PL2CHFA_bGrZ9HRF4DQ6Y_ct0DwOBAS2cw |
-| Direito Tributário | PL8vXuI6zmpdi4O_2o3z6FLQ3b0F4PxhLx |
-| Direito Administrativo | PL8vXuI6zmpdhX27XZG8wqPSgtMy7MSUcq |
-| Direito Ambiental | PL8vXuI6zmpdhSq3aFFLkGtF43bg7Yo13y |
-| Direito Civil | PL8vXuI6zmpdhX8g2wnvM0lqk7pdHhpCUU |
-| ECA | PL8vXuI6zmpdjLxIns5TqSwJtrm3krojzQ |
-| Direito do Consumidor | PL8vXuI6zmpdg1NC8BKKXnkqWGr2KiMTut |
-| Direito Empresarial | PL8vXuI6zmpdiJcZ5w36q-Fl1LNNwkuM8E |
-| Processo Civil | PL8vXuI6zmpdhOjBmtGiCcerDadAn-Xu2c |
-| Direito Penal | PL8vXuI6zmpdh8CF2fer38Uosf1phfUbH8 |
-| Processo Penal | PL8vXuI6zmpdi6eQjQBgY0u_VNEl6f9p8Y |
-| Direito Previdenciário | PL8vXuI6zmpdgKdvgqV9QVKp7COhTva5cJ |
-| Direito do Trabalho | PL8vXuI6zmpdiUdKYB4fI89MnKd6FWYeJq |
-| Processo do Trabalho | PL8vXuI6zmpdiUdKYB4fI89MnKd6FWYeJq |
+## Objetivo
+Aprimorar o prompt da assistente jurídica Evelyn para que ela responda de forma mais inteligente, contextual e didática, especialmente quando o usuário pedir explicações.
 
 ---
 
-### Arquitetura da Solução
+## Análise Atual
+
+O prompt atual da Evelyn (`SYSTEM_PROMPT_BASE`) tem regras de comunicação, mas precisa de melhorias para:
+
+1. **Explicações mais contextualizadas** - Falta orientação sobre como conectar conceitos
+2. **Exemplos do cotidiano** - Precisa de mais ênfase em situações práticas reais
+3. **Analogias didáticas** - Ajudar quem não é do Direito a entender
+4. **Conexões entre temas** - Relacionar conceitos com outros já discutidos
+5. **Perguntas de verificação** - Confirmar se o usuário entendeu
+
+---
+
+## Mudanças Propostas
+
+### 1. Prompt Principal Aprimorado
+
+Será reescrito o `SYSTEM_PROMPT_BASE` (linhas 114-164) com as seguintes melhorias:
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                         │
-├─────────────────────────────────────────────────────────────────┤
-│  VideoaulasOABPrimeiraFase.tsx  ← Nova página principal         │
-│  VideoaulasOABAreaPrimeiraFase.tsx ← Lista de vídeos por área   │
-│  VideoaulasOABViewPrimeiraFase.tsx ← Player + Conteúdo          │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    EDGE FUNCTIONS (Deno)                        │
-├─────────────────────────────────────────────────────────────────┤
-│  sincronizar-videoaulas-oab-primeira-fase  ← Sincroniza todas   │
-│  processar-videoaula-oab (existente)       ← Gera conteúdo      │
-│  buscar-videos-playlist (existente)        ← Busca vídeos       │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    BANCO DE DADOS (Supabase)                    │
-├─────────────────────────────────────────────────────────────────┤
-│  videoaulas_oab_primeira_fase ← Nova tabela para vídeos         │
-│  Campos: id, video_id, playlist_id, area, titulo, descricao,    │
-│          thumbnail, duracao, ordem, transcricao, sobre_aula,    │
-│          flashcards, questoes, publicado_em, created_at         │
-└─────────────────────────────────────────────────────────────────┘
+VERSÃO MELHORADA:
+
+Você é a Evelyn, uma assistente jurídica brasileira inteligente, acolhedora e extremamente didática.
+
+PERSONALIDADE:
+- Simpática, profissional e paciente
+- Explica como se estivesse dando aula particular
+- Tom acolhedor mas não excessivamente formal
+- Português brasileiro natural e acessível
+
+REGRAS CRÍTICAS DE COMUNICAÇÃO:
+- NUNCA se apresente ou diga seu nome
+- Vá DIRETO ao ponto
+- NÃO repita informações já ditas na conversa
+
+REGRA CRÍTICA - EXPLICAÇÕES INTELIGENTES E CONTEXTUAIS:
+
+Quando o usuário pedir explicação, você DEVE:
+
+1. *Começar com uma analogia do dia a dia*
+   Ex: "Pense na prescrição como um prazo de validade..."
+   
+2. *Explicar o conceito em linguagem simples ANTES do juridiquês*
+   Primeiro o que significa na prática, depois o termo técnico
+   
+3. *Citar a lei com EXPLICAÇÃO do que significa*
+   Não apenas "Art. 206, CC" - explique O QUE esse artigo diz e POR QUE existe
+   
+4. *Dar exemplos práticos do cotidiano brasileiro*
+   Use situações reais: compras online, aluguel, acidente de trânsito, demissão, etc.
+   
+5. *Fazer conexões com outros temas quando relevante*
+   "Isso se relaciona com X que você perguntou antes..." ou "Isso é diferente de Y porque..."
+   
+6. *Antecipar dúvidas comuns*
+   "Uma dúvida comum aqui é..." ou "Muita gente confunde isso com..."
+   
+7. *Dar a aplicação prática*
+   "Na prática, se isso acontecer com você, o passo é..."
+
+ESTRUTURA PARA EXPLICAÇÕES (USE SEMPRE):
+
+📌 *Resumo Rápido*
+[1-2 frases simples sobre o que é]
+
+📖 *Explicação Detalhada*
+[Conceito completo com analogias e linguagem acessível]
+
+⚖️ *Base Legal*
+[Artigos + explicação do que cada um significa]
+
+💡 *Exemplo Prático*
+[Situação real do dia a dia brasileiro]
+
+⚠️ *Pontos de Atenção*
+[Exceções, pegadinhas, erros comuns]
+
+🎯 *O Que Fazer na Prática*
+[Passos concretos se a pessoa estiver nessa situação]
+
+REGRAS DE INTELIGÊNCIA CONTEXTUAL:
+- Se o usuário mencionar uma situação pessoal, ajude com ELA especificamente
+- Se perguntar sobre um termo, primeiro explique em português, depois o sentido jurídico
+- Se enviar um documento, analise E explique o que significa para a vida dele
+- Se estiver confuso, reformule a explicação de outro jeito
+- Se for estudante, inclua dicas para prova/concurso
+
+TAMANHO DAS RESPOSTAS:
+- Explicações jurídicas: MÍNIMO 400 palavras (seja completo!)
+- Dúvidas simples: 100-200 palavras
+- Análise de documentos: MÍNIMO 300 palavras
+
+FORMATO PARA WHATSAPP:
+- Use *negrito* para termos importantes
+- Use _itálico_ para exemplos e citações
+- Quebras duplas entre parágrafos
+- Listas com • quando apropriado
+- Máximo 1-2 emojis por seção
 ```
 
----
+### 2. Prompts Específicos para Mídia
 
-### Etapas de Implementação
+Também serão melhorados os prompts para análise de áudio, imagem e documento (linhas 1556-1616):
 
-#### Etapa 1: Criar Nova Tabela no Banco de Dados
-Criar a tabela `videoaulas_oab_primeira_fase` com estrutura otimizada:
-- `id` (serial primary key)
-- `video_id` (text, unique) - ID do vídeo no YouTube
-- `playlist_id` (text) - ID da playlist de origem
-- `area` (text) - Área do direito (ex: "Direito Constitucional")
-- `titulo` (text) - Título do vídeo
-- `descricao` (text) - Descrição do vídeo
-- `thumbnail` (text) - URL da thumbnail
-- `duracao` (text) - Duração formatada
-- `ordem` (integer) - Posição na playlist
-- `transcricao` (text) - Transcrição do vídeo
-- `sobre_aula` (text) - Resumo gerado por IA
-- `flashcards` (jsonb) - Cards de estudo
-- `questoes` (jsonb) - Questões de revisão
-- `publicado_em` (timestamptz) - Data de publicação no YouTube
-- `created_at` (timestamptz) - Data de inserção
+- **Áudio**: Ouvir, transcrever e responder contextualizando o que foi perguntado
+- **Imagem/Documento**: Analisar e explicar O QUE SIGNIFICA para a vida da pessoa
 
-#### Etapa 2: Criar Edge Function de Sincronização
-Nova função `sincronizar-videoaulas-oab-primeira-fase` que:
-1. Itera sobre as 20 playlists configuradas
-2. Usa a API do YouTube para buscar todos os vídeos de cada playlist
-3. Mapeia cada vídeo para a área correspondente
-4. Faz upsert no banco (insere novos, atualiza existentes)
-5. Retorna estatísticas de sincronização
+### 3. Prompts de Aprofundamento e Resumo
 
-#### Etapa 3: Criar Páginas do Frontend
-
-**Página Principal (VideoaulasOABPrimeiraFase.tsx)**
-- Lista as 20 áreas como cards visuais
-- Mostra quantidade de aulas por área
-- Barra de pesquisa para filtrar áreas
-- Design consistente com o tema vermelho da OAB
-
-**Página de Área (VideoaulasOABAreaPrimeiraFase.tsx)**
-- Lista todos os vídeos da área selecionada
-- Layout responsivo (sidebar no desktop, lista no mobile)
-- Thumbnails de alta qualidade
-- Pesquisa dentro da área
-
-**Página de Visualização (VideoaulasOABViewPrimeiraFase.tsx)**
-- Player de vídeo embedado do YouTube
-- Tabs: Sobre | Flashcards | Questões
-- Botão para gerar conteúdo via IA
-- Navegação entre aulas (anterior/próxima)
-
-#### Etapa 4: Configurar Rotas
-Adicionar novas rotas no App.tsx:
-- `/videoaulas-oab-1fase` → Página principal
-- `/videoaulas/oab-1fase/:area` → Lista de vídeos por área
-- `/videoaulas/oab-1fase/:area/:id` → Visualização de vídeo
-
-#### Etapa 5: Integração com Processamento de Conteúdo
-Reutilizar a edge function existente `processar-videoaula-oab` adaptada para:
-- Buscar transcrição do YouTube
-- Gerar resumo "Sobre esta aula" via Gemini
-- Criar flashcards automaticamente
-- Gerar questões de revisão
+Melhorar as funções `aprofundarExplicacao` e `gerarResumoCompacto` (linhas 622-699) para manter a mesma qualidade didática.
 
 ---
 
-### Detalhes Técnicos
+## Arquivos a Modificar
 
-#### Mapeamento de Playlists
-Será criado um objeto de configuração com o mapeamento:
-```text
-PLAYLISTS_OAB = [
-  { area: "Ética Profissional / Estatuto da OAB", playlistId: "PL8vXuI6zmpgwsu0I9WOuMgSBUx98rdyL" },
-  { area: "Filosofia do Direito", playlistId: "PL8vXuI6zmpdi47p3ijoTP0dECj2hoC-pN" },
-  ... (20 playlists)
-]
-```
-
-#### Chave da API do YouTube
-O sistema já usa `YOUTUBE_API_KEY` em outras funções. Será verificado se está configurada e disponível para uso.
-
-#### Sincronização Incremental
-A função de sincronização fará:
-- Buscar vídeos existentes no banco
-- Comparar com vídeos da API do YouTube
-- Inserir novos vídeos
-- Atualizar metadados de existentes (título, thumbnail, etc.)
-- Manter conteúdo gerado (transcrição, flashcards, questões)
-
-#### RLS (Row Level Security)
-A nova tabela será configurada com:
-- Leitura pública (qualquer usuário pode ver vídeos)
-- Escrita restrita a service role (apenas edge functions)
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/processar-mensagem-evelyn/index.ts` | Reescrever `SYSTEM_PROMPT_BASE` e prompts de mídia |
 
 ---
 
-### Arquivos a Serem Criados/Modificados
+## Resumo das Melhorias
 
-**Novos Arquivos:**
-1. `supabase/functions/sincronizar-videoaulas-oab-primeira-fase/index.ts`
-2. `src/pages/VideoaulasOABPrimeiraFase.tsx`
-3. `src/pages/VideoaulasOABAreaPrimeiraFase.tsx`
-4. `src/pages/VideoaulasOABViewPrimeiraFase.tsx`
+- Respostas mais didáticas com analogias do cotidiano
+- Explicações estruturadas em seções claras
+- Conexão entre conceitos e contexto da conversa
+- Exemplos práticos brasileiros reais
+- Antecipação de dúvidas comuns
+- Orientação prática do que fazer em cada situação
+- Mínimo de 400 palavras para explicações jurídicas
 
-**Arquivos Modificados:**
-1. `src/App.tsx` - Adicionar novas rotas
-2. `supabase/config.toml` - Registrar nova edge function
-3. `src/pages/oab/PrimeiraFase.tsx` - Atualizar link para nova página
-
----
-
-### Benefícios
-
-- **Conteúdo Centralizado**: Todas as 20 áreas da OAB em um só lugar
-- **Sincronização Automática**: Novos vídeos são detectados automaticamente
-- **Geração de Conteúdo por IA**: Transcrições, resumos, flashcards e questões
-- **Experiência Consistente**: Design unificado com as outras seções do app
-- **Performance**: Cache no banco evita chamadas repetidas à API do YouTube
-
----
-
-### Pré-requisitos
-- Verificar se `YOUTUBE_API_KEY` está configurada como secret no Supabase
-- Criar tabela `videoaulas_oab_primeira_fase` antes de rodar sincronização
