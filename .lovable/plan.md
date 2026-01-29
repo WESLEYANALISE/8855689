@@ -1,139 +1,193 @@
 
-
-# Plano: Melhorar o Prompt da Evelyn para Respostas Mais Inteligentes e Contextuais
+# Plano: Padronização das Videoaulas e Sistema de Progresso
 
 ## Objetivo
-Aprimorar o prompt da assistente jurídica Evelyn para que ela responda de forma mais inteligente, contextual e didática, especialmente quando o usuário pedir explicações.
+Padronizar as videoaulas da 1ª Fase da OAB para ficarem idênticas às videoaulas para iniciantes, adicionar botões de navegação no rodapé, implementar barra de progresso e sistema de "continuar de onde parou".
 
 ---
 
-## Análise Atual
+## 1. Comparativo Visual (Antes x Depois)
 
-O prompt atual da Evelyn (`SYSTEM_PROMPT_BASE`) tem regras de comunicação, mas precisa de melhorias para:
+### Lista de Aulas
+| Aspecto | Iniciante (modelo) | OAB 1ª Fase (atual) |
+|---------|-------------------|---------------------|
+| Thumbnail | 16:9, play centralizado | 16:9, play centralizado |
+| Número | Canto inferior esquerdo, vermelho | Canto inferior esquerdo, vermelho |
+| Layout | Card horizontal com descrição | Card horizontal sem descrição |
 
-1. **Explicações mais contextualizadas** - Falta orientação sobre como conectar conceitos
-2. **Exemplos do cotidiano** - Precisa de mais ênfase em situações práticas reais
-3. **Analogias didáticas** - Ajudar quem não é do Direito a entender
-4. **Conexões entre temas** - Relacionar conceitos com outros já discutidos
-5. **Perguntas de verificação** - Confirmar se o usuário entendeu
+**Mudança necessária**: Adicionar descrição na lista OAB (se disponível)
+
+### Player de Vídeo
+| Aspecto | Iniciante (modelo) | OAB 1ª Fase (atual) |
+|---------|-------------------|---------------------|
+| Estado inicial | Thumbnail com botão play | Iframe direto (autoplay) |
+| Botões nav | Cards abaixo do vídeo | Barra inline acima das tabs |
+| Progresso | Não existe | Não existe |
+
+**Mudanças necessárias**:
+- Trocar iframe por thumbnail clicável (igual conceitos)
+- Mover navegação para rodapé fixo
+- Adicionar barra de progresso
 
 ---
 
-## Mudanças Propostas
+## 2. Alterações no Banco de Dados
 
-### 1. Prompt Principal Aprimorado
+### Nova Tabela: `videoaulas_progresso`
 
-Será reescrito o `SYSTEM_PROMPT_BASE` (linhas 114-164) com as seguintes melhorias:
-
-```text
-VERSÃO MELHORADA:
-
-Você é a Evelyn, uma assistente jurídica brasileira inteligente, acolhedora e extremamente didática.
-
-PERSONALIDADE:
-- Simpática, profissional e paciente
-- Explica como se estivesse dando aula particular
-- Tom acolhedor mas não excessivamente formal
-- Português brasileiro natural e acessível
-
-REGRAS CRÍTICAS DE COMUNICAÇÃO:
-- NUNCA se apresente ou diga seu nome
-- Vá DIRETO ao ponto
-- NÃO repita informações já ditas na conversa
-
-REGRA CRÍTICA - EXPLICAÇÕES INTELIGENTES E CONTEXTUAIS:
-
-Quando o usuário pedir explicação, você DEVE:
-
-1. *Começar com uma analogia do dia a dia*
-   Ex: "Pense na prescrição como um prazo de validade..."
-   
-2. *Explicar o conceito em linguagem simples ANTES do juridiquês*
-   Primeiro o que significa na prática, depois o termo técnico
-   
-3. *Citar a lei com EXPLICAÇÃO do que significa*
-   Não apenas "Art. 206, CC" - explique O QUE esse artigo diz e POR QUE existe
-   
-4. *Dar exemplos práticos do cotidiano brasileiro*
-   Use situações reais: compras online, aluguel, acidente de trânsito, demissão, etc.
-   
-5. *Fazer conexões com outros temas quando relevante*
-   "Isso se relaciona com X que você perguntou antes..." ou "Isso é diferente de Y porque..."
-   
-6. *Antecipar dúvidas comuns*
-   "Uma dúvida comum aqui é..." ou "Muita gente confunde isso com..."
-   
-7. *Dar a aplicação prática*
-   "Na prática, se isso acontecer com você, o passo é..."
-
-ESTRUTURA PARA EXPLICAÇÕES (USE SEMPRE):
-
-📌 *Resumo Rápido*
-[1-2 frases simples sobre o que é]
-
-📖 *Explicação Detalhada*
-[Conceito completo com analogias e linguagem acessível]
-
-⚖️ *Base Legal*
-[Artigos + explicação do que cada um significa]
-
-💡 *Exemplo Prático*
-[Situação real do dia a dia brasileiro]
-
-⚠️ *Pontos de Atenção*
-[Exceções, pegadinhas, erros comuns]
-
-🎯 *O Que Fazer na Prática*
-[Passos concretos se a pessoa estiver nessa situação]
-
-REGRAS DE INTELIGÊNCIA CONTEXTUAL:
-- Se o usuário mencionar uma situação pessoal, ajude com ELA especificamente
-- Se perguntar sobre um termo, primeiro explique em português, depois o sentido jurídico
-- Se enviar um documento, analise E explique o que significa para a vida dele
-- Se estiver confuso, reformule a explicação de outro jeito
-- Se for estudante, inclua dicas para prova/concurso
-
-TAMANHO DAS RESPOSTAS:
-- Explicações jurídicas: MÍNIMO 400 palavras (seja completo!)
-- Dúvidas simples: 100-200 palavras
-- Análise de documentos: MÍNIMO 300 palavras
-
-FORMATO PARA WHATSAPP:
-- Use *negrito* para termos importantes
-- Use _itálico_ para exemplos e citações
-- Quebras duplas entre parágrafos
-- Listas com • quando apropriado
-- Máximo 1-2 emojis por seção
+```sql
+CREATE TABLE videoaulas_progresso (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  video_id TEXT NOT NULL,
+  tabela TEXT NOT NULL, -- 'videoaulas_iniciante' ou 'videoaulas_oab_primeira_fase'
+  registro_id TEXT NOT NULL, -- ID do registro na tabela
+  tempo_atual INTEGER DEFAULT 0, -- segundos assistidos
+  duracao_total INTEGER DEFAULT 0, -- duração total em segundos
+  percentual NUMERIC DEFAULT 0, -- % assistido
+  assistido BOOLEAN DEFAULT false, -- marcado como completo (>90%)
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, tabela, registro_id)
+);
 ```
 
-### 2. Prompts Específicos para Mídia
+---
 
-Também serão melhorados os prompts para análise de áudio, imagem e documento (linhas 1556-1616):
+## 3. Arquivos a Modificar
 
-- **Áudio**: Ouvir, transcrever e responder contextualizando o que foi perguntado
-- **Imagem/Documento**: Analisar e explicar O QUE SIGNIFICA para a vida da pessoa
+### 3.1 Lista OAB 1ª Fase
+**Arquivo**: `src/pages/VideoaulasOABAreaPrimeiraFase.tsx`
 
-### 3. Prompts de Aprofundamento e Resumo
+Mudanças:
+- Manter o formato atual (já está similar)
+- Adicionar ícone de porcentagem assistida (se houver progresso)
 
-Melhorar as funções `aprofundarExplicacao` e `gerarResumoCompacto` (linhas 622-699) para manter a mesma qualidade didática.
+### 3.2 Player OAB 1ª Fase
+**Arquivo**: `src/pages/VideoaulasOABViewPrimeiraFase.tsx`
+
+Mudanças:
+- Trocar iframe direto por thumbnail clicável com botão play (igual `VideoaulaInicianteView.tsx`)
+- Adicionar barra de progresso abaixo do vídeo
+- Mover botões anterior/próximo para rodapé fixo
+- Implementar modal "Continuar de onde parou?"
+- Salvar progresso no banco a cada 10 segundos
+
+### 3.3 Player Iniciante (Conceitos)
+**Arquivo**: `src/pages/VideoaulaInicianteView.tsx`
+
+Mudanças:
+- Mover botões anterior/próximo para rodapé fixo
+- Adicionar barra de progresso abaixo do vídeo
+- Implementar modal "Continuar de onde parou?"
+- Salvar progresso no banco
+
+### 3.4 Novo Componente: Rodapé de Navegação de Vídeo
+**Arquivo**: `src/components/videoaulas/VideoNavigationFooter.tsx` (novo)
+
+Componente reutilizável:
+```text
++--------------------------------------------------+
+| < Anterior      Aula 4 de 16       Próxima >     |
++--------------------------------------------------+
+```
+
+### 3.5 Novo Hook: Gerenciamento de Progresso
+**Arquivo**: `src/hooks/useVideoProgress.tsx` (novo)
+
+Funcionalidades:
+- Buscar progresso salvo do usuário
+- Salvar progresso periodicamente (a cada 10s)
+- Marcar como completo quando >90%
+- Retornar último tempo para continuar
 
 ---
 
-## Arquivos a Modificar
+## 4. Fluxo do Sistema de Progresso
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/processar-mensagem-evelyn/index.ts` | Reescrever `SYSTEM_PROMPT_BASE` e prompts de mídia |
+```text
+Usuário abre vídeo
+       |
+       v
+Buscar progresso salvo (se existir)
+       |
+       v
+Se tempo > 0 -> Modal "Continuar de onde parou?"
+       |                      |
+       v                      v
+   Sim (seek)           Não (início)
+       |                      |
+       +----------+-----------+
+                  |
+                  v
+         Iniciar reprodução
+                  |
+                  v
+   A cada 10s: salvar progresso no banco
+                  |
+                  v
+        Se >90%: marcar como assistido
+```
 
 ---
 
-## Resumo das Melhorias
+## 5. Componente de Barra de Progresso
 
-- Respostas mais didáticas com analogias do cotidiano
-- Explicações estruturadas em seções claras
-- Conexão entre conceitos e contexto da conversa
-- Exemplos práticos brasileiros reais
-- Antecipação de dúvidas comuns
-- Orientação prática do que fazer em cada situação
-- Mínimo de 400 palavras para explicações jurídicas
+Localização: Abaixo do player de vídeo
 
+Visual:
+```text
++--------------------------------------------------+
+|  [===========================                  ] |
+|  18:32 / 45:00                           41%     |
++--------------------------------------------------+
+```
+
+Características:
+- Barra vermelha gradiente
+- Tempo atual / duração total
+- Porcentagem à direita
+- Atualiza em tempo real com o vídeo
+
+---
+
+## 6. Modal "Continuar de Onde Parou"
+
+Exibido quando:
+- Usuário tem progresso salvo (>30 segundos)
+- Progresso < 90% (não completou)
+
+Visual:
+```text
++----------------------------------------+
+|     Continuar de onde parou?           |
+|                                        |
+|  Você assistiu até 18:32 (41%)         |
+|                                        |
+|  [Começar do Início]  [Continuar]      |
++----------------------------------------+
+```
+
+---
+
+## 7. Exibição de Progresso na Lista
+
+Na lista de aulas, cada item mostrará:
+- Porcentagem assistida (ex: "45%")
+- Check verde se completou (>90%)
+- Barra de progresso mini abaixo do título
+
+---
+
+## Resumo de Arquivos
+
+| Arquivo | Ação |
+|---------|------|
+| `src/pages/VideoaulasOABAreaPrimeiraFase.tsx` | Adicionar indicador de progresso |
+| `src/pages/VideoaulasOABViewPrimeiraFase.tsx` | Refatorar player + rodapé + progresso |
+| `src/pages/VideoaulaInicianteView.tsx` | Adicionar rodapé + progresso |
+| `src/components/videoaulas/VideoNavigationFooter.tsx` | Criar (novo) |
+| `src/components/videoaulas/VideoProgressBar.tsx` | Criar (novo) |
+| `src/components/videoaulas/ContinueWatchingModal.tsx` | Criar (novo) |
+| `src/hooks/useVideoProgress.tsx` | Criar (novo) |
+| Supabase | Criar tabela `videoaulas_progresso` |
