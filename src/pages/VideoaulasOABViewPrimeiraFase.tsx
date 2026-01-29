@@ -209,7 +209,7 @@ const VideoaulasOABViewPrimeiraFase = () => {
       <div className="px-4 pb-24">
         <div className="max-w-lg mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-2 mb-4 bg-neutral-800/80">
+            <TabsList className="w-full grid grid-cols-3 mb-4 bg-neutral-800/80">
               <TabsTrigger value="sobre" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
                 <BookOpen className="w-4 h-4" />
                 Sobre
@@ -217,6 +217,10 @@ const VideoaulasOABViewPrimeiraFase = () => {
               <TabsTrigger value="flashcards" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
                 <Sparkles className="w-4 h-4" />
                 Flashcards
+              </TabsTrigger>
+              <TabsTrigger value="questoes" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
+                <HelpCircle className="w-4 h-4" />
+                Questões
               </TabsTrigger>
             </TabsList>
 
@@ -244,6 +248,19 @@ const VideoaulasOABViewPrimeiraFase = () => {
                 <EmptyContent 
                   title="Flashcards não gerados" 
                   description="Clique no botão abaixo para gerar flashcards desta aula"
+                  onGenerate={() => generateMutation.mutate()}
+                  isGenerating={generateMutation.isPending}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="questoes">
+              {video.questoes && video.questoes.length > 0 ? (
+                <QuestoesView questoes={video.questoes} />
+              ) : (
+                <EmptyContent 
+                  title="Questões não geradas" 
+                  description="Clique no botão abaixo para gerar questões desta aula"
                   onGenerate={() => generateMutation.mutate()}
                   isGenerating={generateMutation.isPending}
                 />
@@ -360,6 +377,87 @@ const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
+    </div>
+  );
+};
+
+// Questões
+const QuestoesView = ({ questoes }: { questoes: any[] }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showResult, setShowResult] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const questao = questoes[currentIndex];
+  const alternativas = questao?.alternativas || questao?.options || [];
+  const respostaCorreta = questao?.resposta_correta ?? questao?.correct ?? questao?.correta ?? 0;
+
+  const handleSelect = (index: number) => {
+    if (showResult) return;
+    setSelectedAnswer(index);
+    setShowResult(true);
+    if (index === respostaCorreta) {
+      setScore(s => s + 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < questoes.length - 1) {
+      setCurrentIndex(i => i + 1);
+      setSelectedAnswer(null);
+      setShowResult(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between text-sm text-muted-foreground mb-2">
+        <span>Questão {currentIndex + 1} de {questoes.length}</span>
+        <span>Acertos: {score}</span>
+      </div>
+
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <p className="font-medium mb-4">{questao?.pergunta || questao?.question || questao?.enunciado}</p>
+        
+        <div className="space-y-2">
+          {alternativas.map((alt: string, idx: number) => (
+            <button
+              key={idx}
+              onClick={() => handleSelect(idx)}
+              disabled={showResult}
+              className={cn(
+                "w-full text-left p-3 rounded-lg border transition-all text-sm",
+                showResult && idx === respostaCorreta
+                  ? "bg-green-500/20 border-green-500/50 text-green-400"
+                  : showResult && idx === selectedAnswer
+                  ? "bg-red-500/20 border-red-500/50 text-red-400"
+                  : "bg-neutral-800/50 border-white/10 hover:border-white/20"
+              )}
+            >
+              <span className="font-bold mr-2">{String.fromCharCode(65 + idx)}.</span>
+              {alt}
+            </button>
+          ))}
+        </div>
+
+        {showResult && questao?.explicacao && (
+          <div className={cn(
+            "mt-4 p-3 rounded-lg border",
+            selectedAnswer === respostaCorreta
+              ? "bg-green-500/10 border-green-500/30"
+              : "bg-red-500/10 border-red-500/30"
+          )}>
+            <p className="text-sm text-muted-foreground">{questao.explicacao}</p>
+          </div>
+        )}
+      </div>
+
+      {showResult && currentIndex < questoes.length - 1 && (
+        <Button onClick={handleNext} className="w-full bg-red-600 hover:bg-red-700">
+          Próxima questão
+          <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      )}
     </div>
   );
 };
