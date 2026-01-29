@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Video, Loader2, ChevronLeft, ChevronRight, Sparkles, BookOpen, HelpCircle, CheckCircle2, RotateCcw, Lightbulb } from "lucide-react";
+import { ArrowLeft, Video, Loader2, Sparkles, BookOpen, HelpCircle, CheckCircle2, RotateCcw, Lightbulb, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
@@ -11,6 +11,11 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ReactCardFlip from "react-card-flip";
+import VideoNavigationFooter from "@/components/videoaulas/VideoNavigationFooter";
+import VideoProgressBar from "@/components/videoaulas/VideoProgressBar";
+import ContinueWatchingModal from "@/components/videoaulas/ContinueWatchingModal";
+import { useVideoProgress } from "@/hooks/useVideoProgress";
+
 interface VideoaulaOAB {
   id: number;
   video_id: string;
@@ -53,6 +58,12 @@ const VideoaulasOABViewPrimeiraFase = () => {
   const videoId = parseInt(id || "0");
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sobre");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<any>(null);
+  const seekToTimeRef = useRef<number | null>(null);
 
   // Buscar vídeo atual
   const { data: video, isLoading } = useQuery({
@@ -86,10 +97,129 @@ const VideoaulasOABViewPrimeiraFase = () => {
     enabled: !!decodedArea,
   });
 
+  // Hook de progresso
+  const {
+    progress,
+    showContinueModal,
+    dismissContinueModal,
+    saveProgress,
+    startAutoSave,
+    stopAutoSave,
+  } = useVideoProgress({
+    tabela: "videoaulas_oab_primeira_fase",
+    registroId: String(videoId),
+    videoId: video?.video_id || "",
+    enabled: !!video,
+  });
+
   // Navegação
   const currentIndex = allVideos?.findIndex(v => v.id === videoId) ?? -1;
   const prevVideo = currentIndex > 0 ? allVideos?.[currentIndex - 1] : null;
   const nextVideo = currentIndex < (allVideos?.length || 0) - 1 ? allVideos?.[currentIndex + 1] : null;
+
+  // YouTube API callbacks
+  const getPlayerTime = useCallback(() => {
+    if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+      return {
+        current: playerRef.current.getCurrentTime() || 0,
+        duration: playerRef.current.getDuration() || 0,
+      };
+    }
+    return null;
+  }, []);
+
+  // Iniciar vídeo
+  const handlePlayClick = useCallback((seekTo?: number) => {
+    if (seekTo !== undefined) {
+      seekToTimeRef.current = seekTo;
+    }
+    setIsPlaying(true);
+  }, []);
+
+  // Handler para continuar de onde parou
+  const handleContinue = useCallback(() => {
+    if (progress?.tempo_atual) {
+      handlePlayClick(progress.tempo_atual);
+    } else {
+      handlePlayClick();
+    }
+  }, [progress, handlePlayClick]);
+
+  // Handler para começar do início
+  const handleStartOver = useCallback(() => {
+    handlePlayClick(0);
+  }, [handlePlayClick]);
+
+  // Configurar YouTube player quando iframe carregar
+  useEffect(() => {
+    if (!isPlaying || !video) return;
+
+    // Carregar YouTube API se não estiver carregada
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+
+    const initPlayer = () => {
+      if (!iframeRef.current) return;
+      
+      playerRef.current = new window.YT.Player(iframeRef.current, {
+        events: {
+          onReady: (event: any) => {
+            // Seek se necessário
+            if (seekToTimeRef.current !== null && seekToTimeRef.current > 0) {
+              event.target.seekTo(seekToTimeRef.current, true);
+              seekToTimeRef.current = null;
+            }
+            
+            // Iniciar auto-save
+            startAutoSave(getPlayerTime);
+            
+            // Atualizar tempo periodicamente para a barra de progresso
+            const updateTime = setInterval(() => {
+              if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+                setCurrentTime(playerRef.current.getCurrentTime() || 0);
+                setDuration(playerRef.current.getDuration() || 0);
+              }
+            }, 1000);
+            
+            return () => clearInterval(updateTime);
+          },
+          onStateChange: (event: any) => {
+            // Quando o vídeo pausar ou terminar, salvar progresso
+            if (event.data === window.YT.PlayerState.PAUSED || 
+                event.data === window.YT.PlayerState.ENDED) {
+              const time = getPlayerTime();
+              if (time) {
+                saveProgress(time.current, time.duration, true);
+              }
+            }
+          }
+        }
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      initPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initPlayer;
+    }
+
+    return () => {
+      stopAutoSave();
+    };
+  }, [isPlaying, video, startAutoSave, stopAutoSave, getPlayerTime, saveProgress]);
+
+  // Reset quando muda de vídeo
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    seekToTimeRef.current = null;
+    playerRef.current = null;
+  }, [videoId]);
 
   // Mutation para gerar conteúdo
   const generateMutation = useMutation({
@@ -145,8 +275,18 @@ const VideoaulasOABViewPrimeiraFase = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
-      {/* Header com Voltar - estilo igual à página de áreas */}
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5 pb-20">
+      {/* Modal Continuar de Onde Parou */}
+      <ContinueWatchingModal
+        isOpen={showContinueModal && !isPlaying}
+        onClose={dismissContinueModal}
+        onContinue={handleContinue}
+        onStartOver={handleStartOver}
+        savedTime={progress?.tempo_atual || 0}
+        percentage={progress?.percentual || 0}
+      />
+
+      {/* Header com Voltar */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-3">
           <button 
@@ -181,51 +321,56 @@ const VideoaulasOABViewPrimeiraFase = () => {
         </div>
       </div>
 
-      {/* Player */}
-      <div className="px-4 mb-4">
+      {/* Player - Igual ao VideoaulaInicianteView */}
+      <div className="px-4 mb-2">
         <div className="max-w-lg mx-auto">
-          <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
-            <iframe
-              src={`https://www.youtube.com/embed/${video.video_id}?rel=0`}
-              title={video.titulo}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
+          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-2xl">
+            {isPlaying ? (
+              <iframe
+                ref={iframeRef}
+                id="youtube-player"
+                src={`https://www.youtube.com/embed/${video.video_id}?rel=0&autoplay=1&enablejsapi=1&origin=${window.location.origin}`}
+                title={video.titulo}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <button
+                onClick={() => handlePlayClick(progress?.tempo_atual)}
+                className="absolute inset-0 w-full h-full group cursor-pointer"
+              >
+                {/* Thumbnail */}
+                <img
+                  src={video.thumbnail || `https://img.youtube.com/vi/${video.video_id}/maxresdefault.jpg`}
+                  alt={video.titulo}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg`;
+                  }}
+                />
+                {/* Overlay escuro */}
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
+                {/* Botão Play */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-12 bg-red-600 rounded-xl flex items-center justify-center group-hover:bg-red-700 group-hover:scale-110 transition-all shadow-lg">
+                    <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                  </div>
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Navegação */}
-      <div className="px-4 mb-4">
-        <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-between py-3 px-4 bg-card rounded-xl border border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!prevVideo}
-              onClick={() => prevVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${prevVideo.id}`)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Anterior
-            </Button>
-            <span className="text-sm text-muted-foreground font-medium">
-              {currentIndex + 1} de {allVideos?.length || 0}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!nextVideo}
-              onClick={() => nextVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${nextVideo.id}`)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Próxima
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+      {/* Barra de Progresso */}
+      {isPlaying && duration > 0 && (
+        <div className="px-4 mb-4">
+          <div className="max-w-lg mx-auto">
+            <VideoProgressBar currentTime={currentTime} duration={duration} />
           </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs de conteúdo */}
       <div className="px-4 pb-24">
@@ -329,6 +474,16 @@ const VideoaulasOABViewPrimeiraFase = () => {
           </div>
         </div>
       </div>
+
+      {/* Rodapé de Navegação Fixo */}
+      <VideoNavigationFooter
+        currentIndex={currentIndex}
+        totalVideos={allVideos?.length || 0}
+        hasPrevious={!!prevVideo}
+        hasNext={!!nextVideo}
+        onPrevious={() => prevVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${prevVideo.id}`)}
+        onNext={() => nextVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${nextVideo.id}`)}
+      />
     </div>
   );
 };
@@ -442,7 +597,7 @@ const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
         </ReactCardFlip>
       </div>
 
-      {/* Exemplo prático - só aparece quando virado e se tiver exemplo */}
+      {/* Exemplo prático */}
       {isFlipped && exemplo && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -454,24 +609,24 @@ const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between pt-2">
         <Button
           variant="outline"
+          size="sm"
           onClick={handlePrev}
           disabled={currentIndex === 0}
-          className="flex-1 gap-2"
+          className="gap-1"
         >
-          <ChevronLeft className="w-4 h-4" />
           Anterior
         </Button>
         <Button
           variant="outline"
+          size="sm"
           onClick={handleNext}
           disabled={currentIndex === flashcards.length - 1}
-          className="flex-1 gap-2"
+          className="gap-1"
         >
           Próximo
-          <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>
@@ -483,19 +638,17 @@ const QuestoesView = ({ questoes }: { questoes: any[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [score, setScore] = useState(0);
 
   const questao = questoes[currentIndex];
-  const alternativas = questao?.alternativas || questao?.options || [];
-  const respostaCorreta = questao?.resposta_correta ?? questao?.correct ?? questao?.correta ?? 0;
+  const pergunta = questao?.pergunta || questao?.enunciado || "";
+  const alternativas = questao?.alternativas || [];
+  const correta = questao?.correta ?? questao?.resposta_correta ?? 0;
+  const explicacao = questao?.explicacao || "";
 
-  const handleSelect = (index: number) => {
+  const handleAnswer = (index: number) => {
     if (showResult) return;
     setSelectedAnswer(index);
     setShowResult(true);
-    if (index === respostaCorreta) {
-      setScore(s => s + 1);
-    }
   };
 
   const handleNext = () => {
@@ -506,57 +659,103 @@ const QuestoesView = ({ questoes }: { questoes: any[] }) => {
     }
   };
 
+  const handleReset = () => {
+    setCurrentIndex(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between text-sm text-muted-foreground mb-2">
+      {/* Progress */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>Questão {currentIndex + 1} de {questoes.length}</span>
-        <span>Acertos: {score}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="gap-1.5 text-xs"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Reiniciar
+        </Button>
       </div>
 
-      <div className="bg-card rounded-xl p-4 border border-border">
-        <p className="font-medium mb-4">{questao?.pergunta || questao?.question || questao?.enunciado}</p>
-        
-        <div className="space-y-2">
-          {alternativas.map((alt: string, idx: number) => (
+      {/* Progress bar */}
+      <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-300"
+          style={{ width: `${((currentIndex + 1) / questoes.length) * 100}%` }}
+        />
+      </div>
+
+      {/* Pergunta */}
+      <div className="bg-neutral-800/50 rounded-xl p-4">
+        <p className="text-sm text-foreground leading-relaxed">{pergunta}</p>
+      </div>
+
+      {/* Alternativas */}
+      <div className="space-y-2">
+        {alternativas.map((alt: string, index: number) => {
+          const isCorrect = index === correta;
+          const isSelected = selectedAnswer === index;
+          
+          let bgClass = "bg-neutral-800/50 hover:bg-neutral-700/50 border-neutral-700";
+          if (showResult) {
+            if (isCorrect) {
+              bgClass = "bg-emerald-500/20 border-emerald-500/50";
+            } else if (isSelected && !isCorrect) {
+              bgClass = "bg-red-500/20 border-red-500/50";
+            }
+          }
+
+          return (
             <button
-              key={idx}
-              onClick={() => handleSelect(idx)}
+              key={index}
+              onClick={() => handleAnswer(index)}
               disabled={showResult}
               className={cn(
-                "w-full text-left p-3 rounded-lg border transition-all text-sm",
-                showResult && idx === respostaCorreta
-                  ? "bg-green-500/20 border-green-500/50 text-green-400"
-                  : showResult && idx === selectedAnswer
-                  ? "bg-red-500/20 border-red-500/50 text-red-400"
-                  : "bg-neutral-800/50 border-white/10 hover:border-white/20"
+                "w-full text-left p-3 rounded-xl border transition-all text-sm",
+                bgClass
               )}
             >
-              <span className="font-bold mr-2">{String.fromCharCode(65 + idx)}.</span>
+              <span className="font-bold mr-2">{String.fromCharCode(65 + index)}.</span>
               {alt}
             </button>
-          ))}
-        </div>
-
-        {showResult && questao?.explicacao && (
-          <div className={cn(
-            "mt-4 p-3 rounded-lg border",
-            selectedAnswer === respostaCorreta
-              ? "bg-green-500/10 border-green-500/30"
-              : "bg-red-500/10 border-red-500/30"
-          )}>
-            <p className="text-sm text-muted-foreground">{questao.explicacao}</p>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {showResult && currentIndex < questoes.length - 1 && (
-        <Button onClick={handleNext} className="w-full bg-red-600 hover:bg-red-700">
-          Próxima questão
-          <ChevronRight className="w-4 h-4 ml-1" />
-        </Button>
+      {/* Explicação */}
+      {showResult && explicacao && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+          <p className="text-xs font-semibold text-blue-400 mb-2">Explicação</p>
+          <p className="text-sm text-foreground leading-relaxed">{explicacao}</p>
+        </div>
+      )}
+
+      {/* Navigation */}
+      {showResult && (
+        <div className="flex justify-end">
+          <Button
+            onClick={handleNext}
+            disabled={currentIndex === questoes.length - 1}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Próxima Questão
+          </Button>
+        </div>
       )}
     </div>
   );
 };
+
+// Declare YouTube types
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 export default VideoaulasOABViewPrimeiraFase;

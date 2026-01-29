@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,8 @@ import { ChevronRight, Video, ArrowLeft, Loader2, Layers, Play, Search, CheckCir
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
+import { useMultipleVideoProgress } from "@/hooks/useVideoProgress";
+import { Progress } from "@/components/ui/progress";
 interface VideoaulaOAB {
   id: number;
   video_id: string;
@@ -70,6 +71,10 @@ const VideoaulasOABAreaPrimeiraFase = () => {
     },
     enabled: !!decodedArea,
   });
+
+  // Buscar progresso de todos os vídeos
+  const registroIds = useMemo(() => videoaulas?.map(v => String(v.id)) || [], [videoaulas]);
+  const { progressMap } = useMultipleVideoProgress("videoaulas_oab_primeira_fase", registroIds);
 
   const filteredVideos = useMemo(() => {
     if (!videoaulas) return [];
@@ -178,6 +183,7 @@ const VideoaulasOABAreaPrimeiraFase = () => {
                   index={index}
                   area={decodedArea}
                   originalIndex={videoaulas?.findIndex(v => v.id === video.id) ?? index}
+                  progress={progressMap[String(video.id)]}
                 />
               ))}
             </div>
@@ -200,16 +206,20 @@ const VideoListItem = ({
   video, 
   index, 
   area,
-  originalIndex 
+  originalIndex,
+  progress
 }: { 
   video: VideoaulaOAB; 
   index: number; 
   area: string;
   originalIndex: number;
+  progress?: { percentual: number; assistido: boolean };
 }) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
   const temConteudo = !!video.sobre_aula;
+  const percentual = progress?.percentual || 0;
+  const assistido = progress?.assistido || false;
 
   return (
     <motion.button
@@ -261,14 +271,38 @@ const VideoListItem = ({
         {/* Conteúdo */}
         <div className="flex-1 min-w-0 px-3 py-2">
           <div className="flex items-start gap-2">
-            <h3 className="text-sm font-medium leading-snug text-neutral-100 flex-1">
-              {extractCleanTitle(video.titulo)}
-            </h3>
-            {temConteudo && (
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-medium leading-snug text-neutral-100">
+                {extractCleanTitle(video.titulo)}
+              </h3>
+              {/* Barra de progresso mini */}
+              {percentual > 0 && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-neutral-700 rounded-full overflow-hidden">
+                    <div 
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        assistido ? "bg-green-500" : "bg-red-500"
+                      )}
+                      style={{ width: `${percentual}%` }}
+                    />
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-medium",
+                    assistido ? "text-green-400" : "text-red-400"
+                  )}>
+                    {percentual}%
+                  </span>
+                </div>
+              )}
+            </div>
+            {assistido ? (
+              <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+            ) : temConteudo && percentual === 0 ? (
               <div className="flex items-center gap-1 text-xs text-green-400 flex-shrink-0">
                 <CheckCircle2 className="w-3 h-3" />
               </div>
-            )}
+            ) : null}
           </div>
         </div>
         

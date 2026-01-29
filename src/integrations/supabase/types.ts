@@ -19134,6 +19134,48 @@ export type Database = {
         }
         Relationships: []
       }
+      videoaulas_progresso: {
+        Row: {
+          assistido: boolean | null
+          created_at: string | null
+          duracao_total: number | null
+          id: string
+          percentual: number | null
+          registro_id: string
+          tabela: string
+          tempo_atual: number | null
+          updated_at: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          assistido?: boolean | null
+          created_at?: string | null
+          duracao_total?: number | null
+          id?: string
+          percentual?: number | null
+          registro_id: string
+          tabela: string
+          tempo_atual?: number | null
+          updated_at?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          assistido?: boolean | null
+          created_at?: string | null
+          duracao_total?: number | null
+          id?: string
+          percentual?: number | null
+          registro_id?: string
+          tabela?: string
+          tempo_atual?: number | null
+          updated_at?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       videos_resumo_dia: {
         Row: {
           area: string

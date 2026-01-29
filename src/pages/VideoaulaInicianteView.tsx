@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, BookOpen, Loader2, Play, Sparkles, ListChecks, Layers } from "lucide-react";
+import { BookOpen, Loader2, Play, Sparkles, ListChecks, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,10 @@ import { toast } from "sonner";
 import VideoaulaQuestoes from "@/components/videoaulas/VideoaulaQuestoes";
 import StandardPageHeader from "@/components/StandardPageHeader";
 import VideoaulaFlashcards from "@/components/videoaulas/VideoaulaFlashcards";
+import VideoNavigationFooter from "@/components/videoaulas/VideoNavigationFooter";
+import VideoProgressBar from "@/components/videoaulas/VideoProgressBar";
+import ContinueWatchingModal from "@/components/videoaulas/ContinueWatchingModal";
+import { useVideoProgress } from "@/hooks/useVideoProgress";
 
 interface VideoaulaIniciante {
   id: string;
@@ -31,6 +35,11 @@ const VideoaulaInicianteView = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sobre");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<any>(null);
+  const seekToTimeRef = useRef<number | null>(null);
 
   // Buscar a aula atual
   const { data: aula, isLoading } = useQuery({
@@ -48,32 +57,138 @@ const VideoaulaInicianteView = () => {
     enabled: !!id,
   });
 
-  // Buscar aula anterior e próxima
-  const { data: navegacao } = useQuery({
-    queryKey: ["videoaula-iniciante-nav", aula?.ordem],
+  // Buscar total de aulas e navegação
+  const { data: allAulas } = useQuery({
+    queryKey: ["videoaulas-iniciante-all"],
     queryFn: async () => {
-      if (!aula?.ordem) return { anterior: null, proxima: null };
-
-      const [anteriorRes, proximaRes] = await Promise.all([
-        supabase
-          .from("videoaulas_iniciante")
-          .select("id, titulo, ordem")
-          .eq("ordem", aula.ordem - 1)
-          .maybeSingle(),
-        supabase
-          .from("videoaulas_iniciante")
-          .select("id, titulo, ordem")
-          .eq("ordem", aula.ordem + 1)
-          .maybeSingle(),
-      ]);
-
-      return {
-        anterior: anteriorRes.data,
-        proxima: proximaRes.data,
-      };
+      const { data, error } = await supabase
+        .from("videoaulas_iniciante")
+        .select("id, titulo, ordem")
+        .order("ordem", { ascending: true });
+      
+      if (error) throw error;
+      return data;
     },
-    enabled: !!aula?.ordem,
   });
+
+  // Navegação
+  const currentIndex = allAulas?.findIndex(a => a.id === id) ?? -1;
+  const prevAula = currentIndex > 0 ? allAulas?.[currentIndex - 1] : null;
+  const nextAula = currentIndex < (allAulas?.length || 0) - 1 ? allAulas?.[currentIndex + 1] : null;
+
+  // Hook de progresso
+  const {
+    progress,
+    showContinueModal,
+    dismissContinueModal,
+    saveProgress,
+    startAutoSave,
+    stopAutoSave,
+  } = useVideoProgress({
+    tabela: "videoaulas_iniciante",
+    registroId: id || "",
+    videoId: aula?.video_id || "",
+    enabled: !!aula,
+  });
+
+  // YouTube API callbacks
+  const getPlayerTime = useCallback(() => {
+    if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+      return {
+        current: playerRef.current.getCurrentTime() || 0,
+        duration: playerRef.current.getDuration() || 0,
+      };
+    }
+    return null;
+  }, []);
+
+  // Iniciar vídeo
+  const handlePlayClick = useCallback((seekTo?: number) => {
+    if (seekTo !== undefined) {
+      seekToTimeRef.current = seekTo;
+    }
+    setIsPlaying(true);
+  }, []);
+
+  // Handler para continuar de onde parou
+  const handleContinue = useCallback(() => {
+    if (progress?.tempo_atual) {
+      handlePlayClick(progress.tempo_atual);
+    } else {
+      handlePlayClick();
+    }
+  }, [progress, handlePlayClick]);
+
+  // Handler para começar do início
+  const handleStartOver = useCallback(() => {
+    handlePlayClick(0);
+  }, [handlePlayClick]);
+
+  // Configurar YouTube player
+  useEffect(() => {
+    if (!isPlaying || !aula) return;
+
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+
+    const initPlayer = () => {
+      if (!iframeRef.current) return;
+      
+      playerRef.current = new window.YT.Player(iframeRef.current, {
+        events: {
+          onReady: (event: any) => {
+            if (seekToTimeRef.current !== null && seekToTimeRef.current > 0) {
+              event.target.seekTo(seekToTimeRef.current, true);
+              seekToTimeRef.current = null;
+            }
+            
+            startAutoSave(getPlayerTime);
+            
+            const updateTime = setInterval(() => {
+              if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+                setCurrentTime(playerRef.current.getCurrentTime() || 0);
+                setDuration(playerRef.current.getDuration() || 0);
+              }
+            }, 1000);
+            
+            return () => clearInterval(updateTime);
+          },
+          onStateChange: (event: any) => {
+            if (event.data === window.YT.PlayerState.PAUSED || 
+                event.data === window.YT.PlayerState.ENDED) {
+              const time = getPlayerTime();
+              if (time) {
+                saveProgress(time.current, time.duration, true);
+              }
+            }
+          }
+        }
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      initPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initPlayer;
+    }
+
+    return () => {
+      stopAutoSave();
+    };
+  }, [isPlaying, aula, startAutoSave, stopAutoSave, getPlayerTime, saveProgress]);
+
+  // Reset quando muda de aula
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    seekToTimeRef.current = null;
+    playerRef.current = null;
+  }, [id]);
 
   // Mutation para processar a videoaula
   const processarMutation = useMutation({
@@ -103,7 +218,6 @@ const VideoaulaInicianteView = () => {
       return;
     }
 
-    // Verifica se falta conteúdo (flashcards ou questões)
     const needsContent = !aula.flashcards || aula.flashcards.length === 0 || 
                          !aula.questoes || aula.questoes.length === 0;
 
@@ -138,10 +252,18 @@ const VideoaulaInicianteView = () => {
     );
   }
 
-  const hasContent = aula.sobre_aula || aula.questoes;
-
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-20">
+      {/* Modal Continuar de Onde Parou */}
+      <ContinueWatchingModal
+        isOpen={showContinueModal && !isPlaying}
+        onClose={dismissContinueModal}
+        onContinue={handleContinue}
+        onStartOver={handleStartOver}
+        savedTime={progress?.tempo_atual || 0}
+        percentage={progress?.percentual || 0}
+      />
+
       <StandardPageHeader 
         title="Videoaulas" 
         subtitle={`Aula ${aula.ordem}`}
@@ -150,11 +272,13 @@ const VideoaulaInicianteView = () => {
 
       <ScrollArea className="h-[calc(100vh-140px)]">
         <div className="p-4 space-y-4">
-          {/* Player de Vídeo / Thumbnail - Menor no desktop */}
+          {/* Player de Vídeo / Thumbnail */}
           <div className="relative w-full max-w-2xl mx-auto aspect-video rounded-xl overflow-hidden bg-black shadow-2xl">
             {isPlaying ? (
               <iframe
-                src={`https://www.youtube.com/embed/${aula.video_id}?rel=0&autoplay=1`}
+                ref={iframeRef}
+                id="youtube-player-iniciante"
+                src={`https://www.youtube.com/embed/${aula.video_id}?rel=0&autoplay=1&enablejsapi=1&origin=${window.location.origin}`}
                 title={aula.titulo}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -162,7 +286,7 @@ const VideoaulaInicianteView = () => {
               />
             ) : (
               <button
-                onClick={() => setIsPlaying(true)}
+                onClick={() => handlePlayClick(progress?.tempo_atual)}
                 className="absolute inset-0 w-full h-full group cursor-pointer"
               >
                 {/* Thumbnail */}
@@ -185,6 +309,13 @@ const VideoaulaInicianteView = () => {
               </button>
             )}
           </div>
+
+          {/* Barra de Progresso */}
+          {isPlaying && duration > 0 && (
+            <div className="max-w-2xl mx-auto">
+              <VideoProgressBar currentTime={currentTime} duration={duration} />
+            </div>
+          )}
 
           {/* Info da Aula */}
           <div className="bg-neutral-900/80 border border-white/5 rounded-xl p-4">
@@ -320,48 +451,28 @@ const VideoaulaInicianteView = () => {
               </div>
             </TabsContent>
           </Tabs>
-
-          {/* Navegação entre aulas */}
-          <div className="grid grid-cols-2 gap-3">
-            {navegacao?.anterior ? (
-              <button
-                onClick={() => navigate(`/videoaulas/iniciante/${navegacao.anterior.id}`)}
-                className="bg-neutral-900/80 hover:bg-neutral-800 border border-white/5 hover:border-red-500/30 rounded-xl p-3 text-left transition-all group"
-              >
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Aula anterior</span>
-                </div>
-                <p className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-red-400 transition-colors">
-                  Aula {navegacao.anterior.ordem}
-                </p>
-              </button>
-            ) : (
-              <div />
-            )}
-
-            {navegacao?.proxima ? (
-              <button
-                onClick={() => navigate(`/videoaulas/iniciante/${navegacao.proxima.id}`)}
-                className="bg-neutral-900/80 hover:bg-neutral-800 border border-white/5 hover:border-red-500/30 rounded-xl p-3 text-right transition-all group"
-              >
-                <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground mb-1">
-                  <span>Próxima aula</span>
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-                <p className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-red-400 transition-colors">
-                  Aula {navegacao.proxima.ordem}
-                </p>
-              </button>
-            ) : (
-              <div />
-            )}
-          </div>
-
         </div>
       </ScrollArea>
+
+      {/* Rodapé de Navegação Fixo */}
+      <VideoNavigationFooter
+        currentIndex={currentIndex}
+        totalVideos={allAulas?.length || 0}
+        hasPrevious={!!prevAula}
+        hasNext={!!nextAula}
+        onPrevious={() => prevAula && navigate(`/videoaulas/iniciante/${prevAula.id}`)}
+        onNext={() => nextAula && navigate(`/videoaulas/iniciante/${nextAula.id}`)}
+      />
     </div>
   );
 };
+
+// Declare YouTube types
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 export default VideoaulaInicianteView;
