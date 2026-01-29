@@ -29,7 +29,7 @@ const itensEstudos = [
   { id: "vade-mecum", title: "Vade Mecum", titleHighlight: "Comentado", description: "Legislação comentada e atualizada", icon: Scale, route: "/vade-mecum" },
   { id: "biblioteca", title: "Biblioteca", description: "Acervo completo de livros", icon: Library, route: "/bibliotecas" },
   { id: "resumos", title: "Resumos Jurídicos", description: "Conteúdo objetivo e direto", icon: FileCheck2, route: "/resumos-juridicos" },
-  { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo", icon: Video, route: "/tela" },
+  { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo", icon: Video, route: "/videoaulas" },
   { id: "flashcards", title: "Flashcards", description: "Memorização eficiente", icon: Sparkles, route: "/flashcards/areas" },
   { id: "questoes", title: "Questões", description: "Pratique com questões reais", icon: Target, route: "/questoes" },
 ];

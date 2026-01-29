@@ -340,7 +340,7 @@ const DocumentariosJuridicos = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => isDirectCategory ? navigate('/tela') : navigate('/?tab=iniciante')}
+                onClick={() => isDirectCategory ? navigate('/videoaulas') : navigate('/?tab=iniciante')}
                 className="shrink-0 bg-black/80 backdrop-blur-sm hover:bg-black border border-white/20 rounded-full"
               >
                 <ArrowLeft className="w-5 h-5 text-white" />

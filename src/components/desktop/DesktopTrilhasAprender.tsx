@@ -104,7 +104,7 @@ export const DesktopTrilhasAprender = () => {
   const recursos = [
     { title: "Flashcards", icon: <Brain className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/flashcards/areas") },
     { title: "Questões", icon: <Target className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/questoes") },
-    { title: "Videoaulas", icon: <Video className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/tela") },
+    { title: "Videoaulas", icon: <Video className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/videoaulas") },
     { title: "Biblioteca", icon: <Library className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/bibliotecas") },
   ];
 
