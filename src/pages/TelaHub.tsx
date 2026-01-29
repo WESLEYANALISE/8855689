@@ -3,21 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clapperboard, Video, GraduationCap, BookOpen, Flame, Users, Heart, Footprints, Scale, FileText, Loader2, Play } from "lucide-react";
+import { ArrowLeft, Clapperboard, Video, BookOpen, Flame, Users, Heart, Footprints, Scale, FileText, Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import telaBackground from "@/assets/tela-background.jpg";
 
 // Thumbnails geradas para cada categoria de videoaulas
 import conceitosThumb from "@/assets/thumbnails/conceitos-thumb.jpg";
 import areasThumb from "@/assets/thumbnails/areas-thumb.jpg";
-import faculdadeThumb from "@/assets/thumbnails/faculdade-thumb.jpg";
 import oabPrimeiraThumb from "@/assets/thumbnails/oab-primeira-fase-thumb.jpg";
 import oabSegundaThumb from "@/assets/thumbnails/oab-segunda-fase-thumb.jpg";
 // Mapa de thumbnails estáticas para videoaulas
 const videoaulasThumbnails: Record<string, string> = {
   conceitos: conceitosThumb,
   areas: areasThumb,
-  faculdade: faculdadeThumb,
   'oab-primeira': oabPrimeiraThumb,
   'oab-segunda': oabSegundaThumb,
 };
@@ -34,7 +32,7 @@ const getYouTubeThumbnail = (url: string | null | undefined) => {
 
 type TabType = "videoaulas" | "documentarios";
 
-const TelaHub = () => {
+const VideoaulasHub = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>("videoaulas");
 
@@ -66,8 +64,7 @@ const TelaHub = () => {
   const categoriasVideoaulas = useMemo(() => [
     { id: "conceitos", title: "Conceitos", icon: BookOpen, route: "/videoaulas/iniciante" },
     { id: "areas", title: "Áreas", icon: Scale, route: "/videoaulas/oab-primeira-fase" },
-    { id: "faculdade", title: "Faculdade", icon: GraduationCap, route: "/videoaulas/faculdade" },
-    { id: "oab-primeira", title: "OAB 1ª Fase", icon: Scale, route: "/videoaulas/oab-primeira-fase" },
+    { id: "oab-primeira", title: "OAB 1ª Fase", icon: Scale, route: "/videoaulas-oab-1fase" },
     { id: "oab-segunda", title: "OAB 2ª Fase", icon: FileText, route: "/videoaulas/oab" },
   ], []);
 
@@ -101,7 +98,7 @@ const TelaHub = () => {
               <ArrowLeft className="w-5 h-5 text-red-500" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white">Tela</h1>
+              <h1 className="text-xl font-bold text-white">Videoaulas</h1>
               <p className="text-sm text-white/70">Conteúdo audiovisual</p>
             </div>
           </div>
@@ -287,4 +284,4 @@ const TelaHub = () => {
   );
 };
 
-export default TelaHub;
+export default VideoaulasHub;

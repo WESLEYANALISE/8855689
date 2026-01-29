@@ -675,7 +675,7 @@ const App = () => {
             <Route path="/pesquisar/categoria/:categoriaId" element={<PesquisarCategoria />} />
               <Route path="/chat-professora" element={<ChatProfessora />} />
               <Route path="/professora" element={<ProfessoraChatPage />} />
-              <Route path="/tela" element={<TelaHub />} />
+              <Route path="/videoaulas" element={<TelaHub />} />
               <Route path="/aula-interativa" element={<AulaInterativaV2 />} />
               <Route path="/ferramentas" element={<Ferramentas />} />
               <Route path="/leitura-dinamica" element={<LeituraDinamica />} />
