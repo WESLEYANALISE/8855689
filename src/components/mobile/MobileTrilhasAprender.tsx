@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Landmark, Gavel, Scale, ChevronRight, Footprints } from "lucide-react";
+import { Landmark, Scale, ChevronRight, Footprints } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface TrilhaCardProps {
@@ -44,19 +44,11 @@ export const MobileTrilhasAprender = () => {
       color: "#f59e0b",
     },
     {
-      title: "Dominando",
-      subtitle: "Profundidade",
-      icon: <Gavel className="w-6 h-6 text-amber-400" />,
-      onClick: () => navigate("/dominando"),
-      position: 'right' as const,
-      color: "#ef4444",
-    },
-    {
       title: "Temática",
       subtitle: "Por Área",
       icon: <Scale className="w-6 h-6 text-amber-400" />,
       onClick: () => navigate("/biblioteca-tematica"),
-      position: 'left' as const,
+      position: 'right' as const,
       color: "#8b5cf6",
     },
   ];
