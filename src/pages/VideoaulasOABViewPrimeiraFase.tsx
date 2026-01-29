@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import ReactCardFlip from "react-card-flip";
 interface VideoaulaOAB {
   id: number;
@@ -255,7 +256,7 @@ const VideoaulasOABViewPrimeiraFase = () => {
                     prose-li:text-gray-300 prose-li:marker:text-red-400
                     prose-ul:space-y-1 prose-ol:space-y-1
                   ">
-                    <ReactMarkdown>{video.sobre_aula}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{video.sobre_aula}</ReactMarkdown>
                   </div>
                 </div>
               ) : (
