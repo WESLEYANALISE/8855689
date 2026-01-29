@@ -1,12 +1,11 @@
+import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Video, Loader2, Search, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronRight, Video, ArrowLeft, Loader2, Layers, Play, Search, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useDeviceType } from "@/hooks/use-device-type";
 
 interface VideoaulaOAB {
   id: number;
@@ -22,7 +21,6 @@ const VideoaulasOABAreaPrimeiraFase = () => {
   const { area } = useParams();
   const decodedArea = decodeURIComponent(area || "");
   const [search, setSearch] = useState("");
-  const { isDesktop } = useDeviceType();
 
   const { data: videoaulas, isLoading } = useQuery({
     queryKey: ["videoaulas-oab-1fase-area", decodedArea],
@@ -39,227 +37,210 @@ const VideoaulasOABAreaPrimeiraFase = () => {
     enabled: !!decodedArea,
   });
 
-  const filteredVideos = videoaulas?.filter(v =>
-    v.titulo.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredVideos = useMemo(() => {
+    if (!videoaulas) return [];
+    if (!search.trim()) return videoaulas;
+    return videoaulas.filter(v =>
+      v.titulo.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [videoaulas, search]);
+
+  const totalVideos = videoaulas?.length || 0;
+  const comConteudo = videoaulas?.filter(v => v.sobre_aula).length || 0;
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar no desktop */}
-      {isDesktop && (
-        <div className="w-80 bg-card border-r border-border flex flex-col h-screen sticky top-0">
-          <div className="p-4 border-b border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/videoaulas-oab-1fase")}
-              className="mb-2 -ml-2"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-            <h2 className="text-lg font-bold text-foreground">{decodedArea}</h2>
-            <p className="text-sm text-muted-foreground">
-              {videoaulas?.length || 0} aulas
-            </p>
-          </div>
-
-          <div className="p-3 border-b border-border">
-            <div className="relative">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-lg mx-auto px-4 py-3">
+          <button 
+            onClick={() => navigate('/videoaulas-oab-1fase')}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+        </div>
+      </div>
+      
+      {/* Header da Área */}
+      <div className="pt-4 pb-4 px-4">
+        <div className="max-w-lg mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                  OAB 1ª FASE
+                </span>
+                <h1 className="text-lg font-bold mt-1">{decodedArea}</h1>
+              </div>
+            </div>
+            
+            {/* Barra de progresso */}
+            {totalVideos > 0 && (
+              <div className="bg-card rounded-xl p-4 border border-border mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Videoaulas</span>
+                  </div>
+                  <span className="text-sm font-medium">{totalVideos} aulas</span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }} 
+                    animate={{ width: `${(comConteudo / totalVideos) * 100}%` }} 
+                    transition={{ duration: 0.5 }} 
+                    className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400"
+                  />
+                </div>
+                {comConteudo > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {comConteudo} aula(s) com conteúdo gerado por IA
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Barra de pesquisa */}
+            <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Pesquisar aula..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 text-sm bg-secondary/50"
+                className="pl-10 bg-secondary/50"
               />
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin text-red-500" />
-              </div>
-            ) : (
-              filteredVideos?.map((video, index) => (
-                <SidebarVideoItem key={video.id} video={video} index={index} area={decodedArea} />
-              ))
-            )}
-          </div>
+          </motion.div>
         </div>
-      )}
+      </div>
 
-      {/* Conteúdo principal */}
-      <div className="flex-1">
-        {/* Header mobile */}
-        {!isDesktop && (
-          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
-            <div className="px-4 py-4">
-              <div className="flex items-center gap-3 mb-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/videoaulas-oab-1fase")}
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div>
-                  <h1 className="text-lg font-bold text-foreground">{decodedArea}</h1>
-                  <p className="text-sm text-muted-foreground">
-                    {videoaulas?.length || 0} aulas
-                  </p>
-                </div>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Pesquisar aula..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 bg-secondary/50"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Lista de vídeos (mobile) ou mensagem de seleção (desktop) */}
-        <div className="p-4">
-          {isDesktop ? (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-              <Video className="w-20 h-20 text-muted-foreground/30 mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                Selecione uma aula
-              </h2>
-              <p className="text-muted-foreground max-w-md">
-                Escolha uma videoaula na lista lateral para começar a assistir
-              </p>
-            </div>
-          ) : isLoading ? (
-            <div className="flex items-center justify-center h-64">
+      {/* Lista de Vídeos */}
+      <div className="px-4 pb-24">
+        <div className="max-w-lg mx-auto">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+            <Video className="w-4 h-4" />
+            Lista de Aulas
+          </h2>
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-red-500" />
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredVideos?.map((video, index) => (
-                <MobileVideoCard key={video.id} video={video} index={index} area={decodedArea} />
+            <div className="space-y-2">
+              {filteredVideos.map((video, index) => (
+                <VideoListItem
+                  key={video.id}
+                  video={video}
+                  index={index}
+                  area={decodedArea}
+                  originalIndex={videoaulas?.findIndex(v => v.id === video.id) ?? index}
+                />
               ))}
             </div>
           )}
+          
+          {!isLoading && filteredVideos.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>{search ? "Nenhuma aula encontrada" : "Nenhuma videoaula disponível"}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// Item da sidebar (desktop)
-const SidebarVideoItem = ({ video, index, area }: { video: VideoaulaOAB; index: number; area: string }) => {
+// Componente de item da lista
+const VideoListItem = ({ 
+  video, 
+  index, 
+  area,
+  originalIndex 
+}: { 
+  video: VideoaulaOAB; 
+  index: number; 
+  area: string;
+  originalIndex: number;
+}) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const temConteudo = !!video.sobre_aula;
 
   return (
-    <button
+    <motion.button
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.02 }}
       onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(area)}/${video.id}`)}
-      className="w-full flex gap-2 p-2 rounded-lg transition-all group text-left hover:bg-secondary/80 border border-transparent hover:border-red-500/30"
+      className="w-full text-left border rounded-xl transition-all overflow-hidden bg-neutral-800/90 hover:bg-neutral-700/90 border-neutral-700/50 hover:border-red-500/30"
     >
-      {/* Thumbnail */}
-      <div className="shrink-0 relative w-24 aspect-video rounded overflow-hidden bg-neutral-800">
-        {video.thumbnail ? (
-          <img
-            src={video.thumbnail}
-            alt={video.titulo}
-            className={cn(
-              "w-full h-full object-cover transition-opacity",
-              imageLoaded ? "opacity-100" : "opacity-0"
-            )}
-            loading="lazy"
-            onLoad={() => setImageLoaded(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Video className="w-4 h-4 text-muted-foreground" />
-          </div>
-        )}
-        {/* Play overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
-          <div className="w-6 h-6 rounded-full bg-red-600/70 group-hover:bg-red-600 flex items-center justify-center">
-            <Play className="w-3 h-3 text-white ml-0.5" fill="white" />
-          </div>
-        </div>
-        {/* Número */}
-        <div className="absolute bottom-0 left-0 px-1 py-0.5 text-[9px] font-bold bg-neutral-900 text-white/80 rounded-tr">
-          {String(index + 1).padStart(2, '0')}
-        </div>
-      </div>
-
-      {/* Título */}
-      <div className="flex-1 min-w-0 py-0.5">
-        <h3 className="text-xs font-medium line-clamp-2 leading-tight text-foreground group-hover:text-red-400 transition-colors">
-          {video.titulo}
-        </h3>
-        {video.sobre_aula && (
-          <span className="text-[10px] text-green-500 mt-1 block">✓ Conteúdo gerado</span>
-        )}
-      </div>
-    </button>
-  );
-};
-
-// Card mobile
-const MobileVideoCard = ({ video, index, area }: { video: VideoaulaOAB; index: number; area: string }) => {
-  const navigate = useNavigate();
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  return (
-    <div
-      onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(area)}/${video.id}`)}
-      className="cursor-pointer group"
-    >
-      <div className="flex gap-3 p-3 rounded-xl bg-card border border-border hover:border-red-500/40 transition-all">
+      <div className="flex items-center">
         {/* Thumbnail */}
-        <div className="shrink-0 relative w-32 aspect-video rounded-lg overflow-hidden bg-neutral-800">
+        <div className="relative w-24 h-16 flex-shrink-0 bg-neutral-800 rounded-l-xl overflow-hidden">
           {video.thumbnail ? (
-            <img
-              src={video.thumbnail}
-              alt={video.titulo}
-              className={cn(
-                "w-full h-full object-cover",
-                imageLoaded ? "opacity-100" : "opacity-0"
-              )}
-              loading="lazy"
-              onLoad={() => setImageLoaded(true)}
-            />
+            <>
+              <div className={cn(
+                "absolute inset-0 bg-neutral-700 animate-pulse transition-opacity",
+                imageLoaded ? "opacity-0" : "opacity-100"
+              )} />
+              <img 
+                src={video.thumbnail} 
+                alt={video.titulo}
+                className={cn(
+                  "w-full h-full object-cover transition-opacity",
+                  imageLoaded ? "opacity-100" : "opacity-0"
+                )}
+                loading="lazy"
+                onLoad={() => setImageLoaded(true)}
+              />
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Video className="w-6 h-6 text-muted-foreground" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-700 to-neutral-800">
+              <Video className="w-6 h-6 text-neutral-500" />
             </div>
           )}
+          
           {/* Play overlay */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-red-600/80 flex items-center justify-center">
               <Play className="w-4 h-4 text-white ml-0.5" fill="white" />
             </div>
           </div>
+          
           {/* Número */}
-          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 text-[10px] font-bold bg-black/80 text-white rounded">
-            {String(index + 1).padStart(2, '0')}
+          <div className="absolute bottom-0 left-0 bg-red-600/90 text-white text-xs font-bold px-2 py-0.5 rounded-tr-lg">
+            {String(originalIndex + 1).padStart(2, '0')}
           </div>
         </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <h3 className="text-sm font-medium line-clamp-2 text-foreground group-hover:text-red-400 transition-colors">
-            {video.titulo}
-          </h3>
-          {video.sobre_aula && (
-            <span className="text-xs text-green-500 mt-1">✓ Conteúdo gerado</span>
-          )}
+        
+        {/* Conteúdo */}
+        <div className="flex-1 min-w-0 px-3 py-2">
+          <div className="flex items-start gap-2">
+            <h3 className="text-sm font-medium leading-snug text-neutral-100 flex-1">
+              {video.titulo}
+            </h3>
+            {temConteudo && (
+              <div className="flex items-center gap-1 text-xs text-green-400 flex-shrink-0">
+                <CheckCircle2 className="w-3 h-3" />
+              </div>
+            )}
+          </div>
         </div>
+        
+        <ChevronRight className="w-4 h-4 text-neutral-500 flex-shrink-0 mr-3" />
       </div>
-    </div>
+    </motion.button>
   );
 };
 
