@@ -24,6 +24,27 @@ interface VideoaulaOAB {
   questoes: any[] | null;
 }
 
+// Extrai apenas o título limpo da aula (remove prefixos como "Direito X | OAB - ")
+const extractCleanTitle = (fullTitle: string): string => {
+  let title = fullTitle.replace(/\s*\|\s*CURSO GRATUITO\s*$/i, '');
+  const oabMatch = title.match(/\|\s*OAB\s*-\s*(.+)$/i);
+  if (oabMatch) return oabMatch[1].trim();
+  const lastDashMatch = title.match(/^[^-]+-\s*(.+)$/);
+  if (lastDashMatch && !title.includes('|')) return lastDashMatch[1].trim();
+  return title.trim();
+};
+
+// Função para simplificar nome da área
+const simplifyAreaName = (areaName: string): string => {
+  const prefixesToRemove = ['Direito ', 'Legislação '];
+  for (const prefix of prefixesToRemove) {
+    if (areaName.startsWith(prefix)) {
+      return areaName.replace(prefix, '');
+    }
+  }
+  return areaName;
+};
+
 const VideoaulasOABViewPrimeiraFase = () => {
   const navigate = useNavigate();
   const { area, id } = useParams();
@@ -150,9 +171,9 @@ const VideoaulasOABViewPrimeiraFase = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
-                  {decodedArea}
+                  {simplifyAreaName(decodedArea)}
                 </span>
-                <h1 className="text-base font-bold mt-1 leading-snug">{video.titulo}</h1>
+                <h1 className="text-base font-bold mt-1 leading-snug">{extractCleanTitle(video.titulo)}</h1>
               </div>
             </div>
           </motion.div>
@@ -289,10 +310,10 @@ const VideoaulasOABViewPrimeiraFase = () => {
                     : "bg-neutral-800/50 hover:bg-neutral-700/50 border border-transparent text-foreground"
                 )}
               >
-                <span className="font-bold text-muted-foreground w-6 text-center">
+                <span className="font-bold text-muted-foreground w-6 text-center flex-shrink-0">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <span className="flex-1 line-clamp-2 leading-snug">{v.titulo}</span>
+                <span className="flex-1 line-clamp-2 leading-snug">{extractCleanTitle(v.titulo)}</span>
                 {v.sobre_aula && (
                   <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
                 )}

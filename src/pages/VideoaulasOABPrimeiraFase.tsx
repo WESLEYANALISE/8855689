@@ -9,9 +9,21 @@ import videoaulasBackground from "@/assets/videoaulas-oab-background.jpg";
 
 interface AreaStats {
   area: string;
+  displayName: string; // Nome simplificado para exibição
   count: number;
   thumbnail: string | null;
 }
+
+// Função para simplificar nome da área (remove "Direito" do início)
+const simplifyAreaName = (areaName: string): string => {
+  const prefixesToRemove = ['Direito ', 'Legislação '];
+  for (const prefix of prefixesToRemove) {
+    if (areaName.startsWith(prefix)) {
+      return areaName.replace(prefix, '');
+    }
+  }
+  return areaName;
+};
 
 const VideoaulasOABPrimeiraFase = () => {
   const navigate = useNavigate();
@@ -33,7 +45,8 @@ const VideoaulasOABPrimeiraFase = () => {
       (data || []).forEach((v: any) => {
         if (!areaMap[v.area]) {
           areaMap[v.area] = { 
-            area: v.area, 
+            area: v.area,
+            displayName: simplifyAreaName(v.area),
             count: 0, 
             thumbnail: v.thumbnail 
           };
@@ -42,7 +55,7 @@ const VideoaulasOABPrimeiraFase = () => {
       });
       
       return Object.values(areaMap).sort((a, b) => 
-        a.area.localeCompare(b.area, 'pt-BR')
+        a.displayName.localeCompare(b.displayName, 'pt-BR')
       );
     },
     staleTime: 1000 * 60 * 10,
@@ -169,7 +182,7 @@ const VideoaulasOABPrimeiraFase = () => {
                         {/* Nome */}
                         <div className="p-3">
                           <h3 className="text-sm font-semibold text-white text-center leading-tight">
-                            {area.area}
+                            {area.displayName}
                           </h3>
                         </div>
                       </motion.div>
@@ -238,7 +251,7 @@ const VideoaulasOABPrimeiraFase = () => {
                         {/* Nome */}
                         <div className="p-3">
                           <h3 className="text-sm font-semibold text-white text-center leading-tight">
-                            {area.area}
+                            {area.displayName}
                           </h3>
                         </div>
                       </motion.div>

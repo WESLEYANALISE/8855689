@@ -16,6 +16,40 @@ interface VideoaulaOAB {
   sobre_aula: string | null;
 }
 
+// Extrai apenas o título limpo da aula (remove prefixos como "Direito X | OAB - ")
+const extractCleanTitle = (fullTitle: string): string => {
+  // Padrão: "Direito Administrativo | OAB - Atos Administrativos I | CURSO GRATUITO"
+  // Queremos: "Atos Administrativos I"
+  
+  // Remove "| CURSO GRATUITO" no final se existir
+  let title = fullTitle.replace(/\s*\|\s*CURSO GRATUITO\s*$/i, '');
+  
+  // Se tem formato "X | OAB - Y", pega só o Y
+  const oabMatch = title.match(/\|\s*OAB\s*-\s*(.+)$/i);
+  if (oabMatch) {
+    return oabMatch[1].trim();
+  }
+  
+  // Se tem formato "X - Y", pode ser "OAB - Título", pega só depois do último hífen
+  const lastDashMatch = title.match(/^[^-]+-\s*(.+)$/);
+  if (lastDashMatch && !title.includes('|')) {
+    return lastDashMatch[1].trim();
+  }
+  
+  return title.trim();
+};
+
+// Função para simplificar nome da área (remove "Direito" do início)
+const simplifyAreaName = (areaName: string): string => {
+  const prefixesToRemove = ['Direito ', 'Legislação '];
+  for (const prefix of prefixesToRemove) {
+    if (areaName.startsWith(prefix)) {
+      return areaName.replace(prefix, '');
+    }
+  }
+  return areaName;
+};
+
 const VideoaulasOABAreaPrimeiraFase = () => {
   const navigate = useNavigate();
   const { area } = useParams();
@@ -78,7 +112,7 @@ const VideoaulasOABAreaPrimeiraFase = () => {
                 <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
                   OAB 1ª FASE
                 </span>
-                <h1 className="text-lg font-bold mt-1">{decodedArea}</h1>
+                <h1 className="text-lg font-bold mt-1">{simplifyAreaName(decodedArea)}</h1>
               </div>
             </div>
             
@@ -228,7 +262,7 @@ const VideoListItem = ({
         <div className="flex-1 min-w-0 px-3 py-2">
           <div className="flex items-start gap-2">
             <h3 className="text-sm font-medium leading-snug text-neutral-100 flex-1">
-              {video.titulo}
+              {extractCleanTitle(video.titulo)}
             </h3>
             {temConteudo && (
               <div className="flex items-center gap-1 text-xs text-green-400 flex-shrink-0">

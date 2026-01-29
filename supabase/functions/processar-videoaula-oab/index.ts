@@ -176,54 +176,67 @@ function parseXmlTranscript(xml: string): string {
   return texts.join(" ");
 }
 
-async function generateSobreAula(titulo: string, transcricao: string): Promise<string> {
-  const prompt = `Você é um professor de Direito especializado em criar resumos didáticos para a 2ª Fase da OAB.
+async function generateSobreAula(titulo: string, transcricao: string, fase: string = "1ª"): Promise<string> {
+  const prompt = `Você é um professor de Direito especializado em criar resumos didáticos para a ${fase} Fase da OAB.
 
-Com base no título e transcrição da videoaula abaixo, crie um texto "Sobre esta aula" que:
-1. Liste ESPECIFICAMENTE os pontos/dicas/conceitos ensinados na aula (ex: se o título menciona "8 dicas", liste as 8 dicas)
-2. Explique brevemente cada ponto mencionado na aula
-3. Destaque a aplicação prática de cada dica/conceito
-4. Tenha entre 200-300 palavras
+Com base no título e transcrição da videoaula abaixo, crie um resumo estruturado em Markdown:
 
-IMPORTANTE: Extraia o conteúdo REAL da transcrição. Se a aula fala sobre "dicas", liste cada dica. Se fala sobre "técnicas", liste cada técnica. Seja específico!
+## 🎯 Tema Principal
+[Qual o assunto central da aula]
+
+## 📚 Tópicos Abordados
+- [Liste os principais tópicos, conceitos e pontos ensinados]
+- [Se menciona "dicas", liste cada uma]
+- [Se menciona "técnicas", liste cada uma]
+
+## 💡 Conceitos-Chave
+- [Destaque definições e conceitos importantes]
+
+## 📖 Aplicação Prática  
+- [Exemplos práticos mencionados na aula]
+- [Como aplicar na prova da OAB]
+
+## ⭐ Pontos de Destaque
+- [Principais aprendizados e pontos de atenção]
+
+IMPORTANTE: Extraia o conteúdo REAL da transcrição. Seja específico e detalhado.
 
 TÍTULO: ${titulo}
 
 TRANSCRIÇÃO:
-${transcricao.substring(0, 8000)}
+${transcricao.substring(0, 10000)}
 
-Responda APENAS com o texto resumindo os pontos específicos ensinados, sem títulos ou formatação especial.`;
+Responda APENAS com o Markdown formatado.`;
 
   return await callGeminiWithFallback(prompt);
 }
 
-async function generateQuestoes(titulo: string, transcricao: string, tentativa = 1): Promise<any[]> {
-  const prompt = `Você é um professor de Direito criando questões para testar o aprendizado de estudantes da 2ª Fase da OAB.
+async function generateQuestoes(titulo: string, transcricao: string, fase: string = "1ª", tentativa = 1): Promise<any[]> {
+  const prompt = `Você é um professor de Direito criando questões objetivas no estilo da ${fase} Fase da OAB.
 
 TÍTULO: ${titulo}
 
 TRANSCRIÇÃO:
 ${transcricao.substring(0, 12000)}
 
-VOCÊ DEVE CRIAR EXATAMENTE 12 QUESTÕES. NÃO CRIE MENOS QUE 10.
+VOCÊ DEVE CRIAR EXATAMENTE 10 QUESTÕES objetivas de múltipla escolha.
 
 Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
 [
   {
     "id": 1,
     "pergunta": "Pergunta específica sobre conceito da aula",
-    "alternativas": ["A) Opção A", "B) Opção B", "C) Opção C", "D) Opção D"],
+    "alternativas": ["Opção A", "Opção B", "Opção C", "Opção D"],
     "resposta_correta": 0,
-    "explicacao": "Explicação detalhada."
-  },
-  ... (continue até ter 12 questões)
+    "explicacao": "Explicação detalhada do porquê a resposta está correta."
+  }
 ]
 
 REGRAS OBRIGATÓRIAS:
-1. MÍNIMO 10 questões, IDEAL 12 questões
+1. Crie 10 questões objetivas
 2. Cada questão deve cobrir um aspecto DIFERENTE da aula
-3. Perguntas específicas sobre: requisitos, prazos, fundamentos, procedimentos, dicas práticas
-4. Alternativas plausíveis mas só uma correta
+3. Perguntas sobre: conceitos, requisitos, prazos, fundamentos, procedimentos
+4. 4 alternativas plausíveis mas só uma correta
 5. resposta_correta é índice 0-3
 6. NÃO pergunte "qual o tema da aula" - pergunte sobre CONTEÚDO específico
 7. Retorne APENAS o JSON`;
@@ -237,45 +250,42 @@ REGRAS OBRIGATÓRIAS:
   
   const questoes = JSON.parse(jsonMatch[0]);
   
-  // Se gerou menos de 10 e ainda não tentou 2 vezes, tenta novamente
-  if (questoes.length < 10 && tentativa < 2) {
+  // Se gerou menos de 5 e ainda não tentou 2 vezes, tenta novamente
+  if (questoes.length < 5 && tentativa < 2) {
     console.log(`Only ${questoes.length} questions generated, retrying...`);
-    return generateQuestoes(titulo, transcricao, tentativa + 1);
+    return generateQuestoes(titulo, transcricao, fase, tentativa + 1);
   }
   
   return questoes;
 }
 
-async function generateFlashcards(titulo: string, transcricao: string, tentativa = 1): Promise<any[]> {
-  const prompt = `Você é um professor de Direito criando flashcards para memorização da 2ª Fase da OAB.
+async function generateFlashcards(titulo: string, transcricao: string, fase: string = "1ª", tentativa = 1): Promise<any[]> {
+  const prompt = `Você é um professor de Direito criando flashcards para memorização da ${fase} Fase da OAB.
 
 TÍTULO: ${titulo}
 
 TRANSCRIÇÃO:
 ${transcricao.substring(0, 12000)}
 
-VOCÊ DEVE CRIAR EXATAMENTE 12 FLASHCARDS. NÃO CRIE MENOS QUE 10.
+VOCÊ DEVE CRIAR 10 FLASHCARDS para memorização.
 
 Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
 [
   {
     "id": 1,
     "frente": "Conceito ou pergunta específica",
-    "verso": "Resposta/explicação detalhada",
-    "exemplo": "Exemplo prático de aplicação"
-  },
-  ... (continue até ter 12 flashcards)
+    "verso": "Resposta/explicação detalhada"
+  }
 ]
 
 REGRAS OBRIGATÓRIAS:
-1. MÍNIMO 10 flashcards, IDEAL 12 flashcards
+1. Crie 10 flashcards
 2. Cada flashcard deve cobrir um conceito DIFERENTE
-3. Cubra: definições, requisitos, prazos, procedimentos, dicas, armadilhas comuns
+3. Cubra: definições, requisitos, prazos, procedimentos, armadilhas comuns
 4. A "frente" deve ser uma pergunta ou conceito-chave
 5. O "verso" deve ser a explicação completa
-6. O "exemplo" deve mostrar aplicação prática
-7. NÃO crie cards genéricos como "tema da aula"
-8. Retorne APENAS o JSON`;
+6. NÃO crie cards genéricos como "tema da aula"
+7. Retorne APENAS o JSON`;
 
   const response = await callGeminiWithFallback(prompt);
   
@@ -286,10 +296,10 @@ REGRAS OBRIGATÓRIAS:
   
   const flashcards = JSON.parse(jsonMatch[0]);
   
-  // Se gerou menos de 10 e ainda não tentou 2 vezes, tenta novamente
-  if (flashcards.length < 10 && tentativa < 2) {
+  // Se gerou menos de 5 e ainda não tentou 2 vezes, tenta novamente
+  if (flashcards.length < 5 && tentativa < 2) {
     console.log(`Only ${flashcards.length} flashcards generated, retrying...`);
-    return generateFlashcards(titulo, transcricao, tentativa + 1);
+    return generateFlashcards(titulo, transcricao, fase, tentativa + 1);
   }
   
   return flashcards;
@@ -365,19 +375,23 @@ serve(async (req) => {
       console.log("Using fallback context from title");
     }
 
+    // Determinar fase (1ª ou 2ª) baseado na tabela
+    const fase = targetTabela.includes("primeira") ? "1ª" : "2ª";
+    console.log(`Processing for OAB ${fase} Fase`);
+
     // Step 2: Generate "Sobre esta aula"
     console.log("Generating 'Sobre esta aula'...");
-    const sobreAula = await generateSobreAula(videoaula.titulo, transcricao);
+    const sobreAula = await generateSobreAula(videoaula.titulo, transcricao, fase);
     console.log("'Sobre esta aula' generated, length:", sobreAula.length);
 
     // Step 3: Generate flashcards
     console.log("Generating flashcards...");
-    const flashcards = await generateFlashcards(videoaula.titulo, transcricao);
+    const flashcards = await generateFlashcards(videoaula.titulo, transcricao, fase);
     console.log("Flashcards generated:", flashcards.length);
 
     // Step 4: Generate questions
     console.log("Generating questions...");
-    const questoes = await generateQuestoes(videoaula.titulo, transcricao);
+    const questoes = await generateQuestoes(videoaula.titulo, transcricao, fase);
     console.log("Questions generated:", questoes.length);
 
     // Save to database
