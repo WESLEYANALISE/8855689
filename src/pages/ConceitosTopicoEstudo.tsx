@@ -52,6 +52,7 @@ const ConceitosTopicoEstudo = () => {
   // Enquanto a chamada da Edge Function estiver em execução, precisamos continuar
   // fazendo polling do tópico para refletir o progresso (status/progresso) no UI.
   const [isInvocandoGeracao, setIsInvocandoGeracao] = useState(false);
+  const invokeStartedAtRef = useRef<number | null>(null);
   
   // Buscar tópico com matéria - com polling quando está gerando
   const { data: topico, isLoading, refetch } = useQuery({
@@ -82,6 +83,9 @@ const ConceitosTopicoEstudo = () => {
       if (data?.status === "gerando" || data?.status === "na_fila") {
         return 2000;
       }
+      // Se caiu em erro, ainda fazemos polling por um curto período para garantir
+      // que o UI reflita atualizações (ex: reset automático / tentativas).
+      if (data?.status === "erro") return 5000;
       return false;
     },
   });
@@ -113,11 +117,13 @@ const ConceitosTopicoEstudo = () => {
     },
     onMutate: async () => {
       setIsInvocandoGeracao(true);
+      invokeStartedAtRef.current = Date.now();
       // já começa a puxar o registro atualizado (status/progresso)
       refetch();
     },
     onSuccess: (data) => {
       setIsInvocandoGeracao(false);
+      invokeStartedAtRef.current = null;
       refetch();
       if (data?.queued) {
         toast.info(`Adicionado à fila de geração (posição ${data.position})`);
@@ -127,14 +133,35 @@ const ConceitosTopicoEstudo = () => {
     },
     onError: (error) => {
       setIsInvocandoGeracao(false);
+      invokeStartedAtRef.current = null;
       refetch();
       toast.error("Erro ao gerar conteúdo. Tente novamente.");
       console.error(error);
     },
     onSettled: () => {
       setIsInvocandoGeracao(false);
+      invokeStartedAtRef.current = null;
     },
   });
+
+  // Watchdog: se a invocação ficar pendente por muito tempo, força refetch e solta o UI
+  // (evita tela travada caso a mutation não resolva por algum motivo de rede/runtime).
+  useEffect(() => {
+    if (!isInvocandoGeracao) return;
+    const interval = setInterval(() => {
+      const startedAt = invokeStartedAtRef.current;
+      if (!startedAt) return;
+      const elapsedMs = Date.now() - startedAt;
+      // 90s: suficiente para detectar travamento sem atrapalhar execuções normais.
+      if (elapsedMs > 90_000) {
+        console.warn("[Conceitos UI] Watchdog: invocação demorou demais, liberando UI e refazendo fetch");
+        setIsInvocandoGeracao(false);
+        invokeStartedAtRef.current = null;
+        refetch();
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isInvocandoGeracao, refetch]);
 
   // Gerar conteúdo automaticamente se não existir
   useEffect(() => {
@@ -231,9 +258,10 @@ const ConceitosTopicoEstudo = () => {
   }
 
   // Quando o usuário clica em "Tentar novamente" (mutation pending), a UI não deve mostrar o bloco de erro ao mesmo tempo.
-  const isGerando = topico?.status === "gerando" || gerarConteudoMutation.isPending;
-  const isNaFila = topico?.status === "na_fila";
+  // Não deixe a mutation pendente mascarar um status=erro vindo do banco.
   const isErro = topico?.status === "erro";
+  const isGerando = !isErro && (topico?.status === "gerando" || isInvocandoGeracao || gerarConteudoMutation.isPending);
+  const isNaFila = topico?.status === "na_fila";
   const progresso = topico?.progresso || 0;
 
   return (
