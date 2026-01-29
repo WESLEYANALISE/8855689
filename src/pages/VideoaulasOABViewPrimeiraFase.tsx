@@ -1,15 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Video, Loader2, ChevronLeft, ChevronRight, Sparkles, BookOpen, HelpCircle, Play, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Video, Loader2, ChevronLeft, ChevronRight, Sparkles, BookOpen, HelpCircle, CheckCircle2, RotateCcw, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-
+import ReactCardFlip from "react-card-flip";
 interface VideoaulaOAB {
   id: number;
   video_id: string;
@@ -144,7 +144,19 @@ const VideoaulasOABViewPrimeiraFase = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5 pt-4">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
+      {/* Header com Voltar */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-lg mx-auto px-4 py-3">
+          <button 
+            onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}`)}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+        </div>
+      </div>
 
       {/* Header do Vídeo */}
       <div className="pt-4 pb-2 px-4">
@@ -235,8 +247,14 @@ const VideoaulasOABViewPrimeiraFase = () => {
 
             <TabsContent value="sobre">
               {video.sobre_aula ? (
-                <div className="bg-card rounded-xl p-4 border border-border">
-                  <div className="prose prose-sm prose-invert max-w-none">
+                <div className="bg-card rounded-xl p-5 border border-border">
+                  <div className="prose prose-sm prose-invert max-w-none 
+                    prose-headings:text-red-400 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                    prose-p:text-gray-300 prose-p:leading-relaxed
+                    prose-strong:text-white
+                    prose-li:text-gray-300 prose-li:marker:text-red-400
+                    prose-ul:space-y-1 prose-ol:space-y-1
+                  ">
                     <ReactMarkdown>{video.sobre_aula}</ReactMarkdown>
                   </div>
                 </div>
@@ -345,44 +363,113 @@ const EmptyContent = ({ title, description, onGenerate, isGenerating }: {
   </div>
 );
 
-// Flashcards
+// Flashcards com flip animation
 const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   const card = flashcards[currentIndex];
+  const frente = card?.pergunta || card?.front || card?.frente || "";
+  const verso = card?.resposta || card?.back || card?.verso || "";
+  const exemplo = card?.exemplo || "";
+
+  const handleNext = () => {
+    if (currentIndex < flashcards.length - 1) {
+      setIsFlipped(false);
+      setTimeout(() => setCurrentIndex(i => i + 1), 100);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setIsFlipped(false);
+      setTimeout(() => setCurrentIndex(i => i - 1), 100);
+    }
+  };
+
+  const handleReset = () => {
+    setIsFlipped(false);
+    setCurrentIndex(0);
+  };
 
   return (
     <div className="space-y-4">
-      <div 
-        onClick={() => setFlipped(!flipped)}
-        className="cursor-pointer min-h-[200px] bg-gradient-to-br from-red-900/20 to-background border border-red-500/30 rounded-xl p-6 flex items-center justify-center text-center transition-all hover:border-red-500/50"
-      >
-        <p className="text-lg font-medium">
-          {flipped ? card?.resposta || card?.back || card?.verso : card?.pergunta || card?.front || card?.frente}
-        </p>
+      {/* Progress indicator */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>Card {currentIndex + 1} de {flashcards.length}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="gap-1.5 text-xs"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Reiniciar
+        </Button>
       </div>
-      <p className="text-xs text-center text-muted-foreground">
-        Clique para virar o card
-      </p>
-      <div className="flex items-center justify-between">
+
+      {/* Progress bar */}
+      <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-300"
+          style={{ width: `${((currentIndex + 1) / flashcards.length) * 100}%` }}
+        />
+      </div>
+
+      {/* Flashcard with flip */}
+      <div className="py-4">
+        <ReactCardFlip isFlipped={isFlipped} flipDirection="horizontal">
+          {/* Front */}
+          <button
+            onClick={() => setIsFlipped(true)}
+            className="w-full min-h-[200px] bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-red-500/50 transition-colors"
+          >
+            <p className="text-xs text-red-400 mb-3 font-medium uppercase">Pergunta</p>
+            <p className="text-lg font-medium text-foreground leading-relaxed">{frente}</p>
+            <p className="text-xs text-muted-foreground mt-4">Toque para ver a resposta</p>
+          </button>
+
+          {/* Back */}
+          <button
+            onClick={() => setIsFlipped(false)}
+            className="w-full min-h-[200px] bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-emerald-500/50 transition-colors"
+          >
+            <p className="text-xs text-emerald-400 mb-3 font-medium uppercase">Resposta</p>
+            <p className="text-base text-foreground leading-relaxed">{verso}</p>
+            <p className="text-xs text-muted-foreground mt-4">Toque para voltar à pergunta</p>
+          </button>
+        </ReactCardFlip>
+      </div>
+
+      {/* Exemplo prático - só aparece quando virado e se tiver exemplo */}
+      {isFlipped && exemplo && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            <p className="text-sm font-semibold text-amber-500">Exemplo Prático</p>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{exemplo}</p>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between gap-3">
         <Button
           variant="outline"
-          size="sm"
+          onClick={handlePrev}
           disabled={currentIndex === 0}
-          onClick={() => { setCurrentIndex(i => i - 1); setFlipped(false); }}
+          className="flex-1 gap-2"
         >
           <ChevronLeft className="w-4 h-4" />
+          Anterior
         </Button>
-        <span className="text-sm text-muted-foreground">
-          {currentIndex + 1} de {flashcards.length}
-        </span>
         <Button
           variant="outline"
-          size="sm"
+          onClick={handleNext}
           disabled={currentIndex === flashcards.length - 1}
-          onClick={() => { setCurrentIndex(i => i + 1); setFlipped(false); }}
+          className="flex-1 gap-2"
         >
+          Próximo
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>

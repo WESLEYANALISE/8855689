@@ -217,9 +217,9 @@ async function generateQuestoes(titulo: string, transcricao: string, fase: strin
 TÍTULO: ${titulo}
 
 TRANSCRIÇÃO:
-${transcricao.substring(0, 12000)}
+${transcricao.substring(0, 15000)}
 
-VOCÊ DEVE CRIAR EXATAMENTE 10 QUESTÕES objetivas de múltipla escolha.
+VOCÊ DEVE CRIAR O MÁXIMO DE QUESTÕES POSSÍVEL (entre 15 a 25 questões) objetivas de múltipla escolha.
 
 Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
 [
@@ -233,13 +233,14 @@ Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
 ]
 
 REGRAS OBRIGATÓRIAS:
-1. Crie 10 questões objetivas
+1. Crie entre 15 a 25 questões objetivas - quanto mais, melhor!
 2. Cada questão deve cobrir um aspecto DIFERENTE da aula
-3. Perguntas sobre: conceitos, requisitos, prazos, fundamentos, procedimentos
+3. Perguntas sobre: conceitos, requisitos, prazos, fundamentos, procedimentos, exceções, hipóteses
 4. 4 alternativas plausíveis mas só uma correta
 5. resposta_correta é índice 0-3
 6. NÃO pergunte "qual o tema da aula" - pergunte sobre CONTEÚDO específico
-7. Retorne APENAS o JSON`;
+7. Crie questões de diferentes níveis de dificuldade (fácil, médio, difícil)
+8. Retorne APENAS o JSON`;
 
   const response = await callGeminiWithFallback(prompt);
   
@@ -250,8 +251,8 @@ REGRAS OBRIGATÓRIAS:
   
   const questoes = JSON.parse(jsonMatch[0]);
   
-  // Se gerou menos de 5 e ainda não tentou 2 vezes, tenta novamente
-  if (questoes.length < 5 && tentativa < 2) {
+  // Se gerou menos de 10 e ainda não tentou 2 vezes, tenta novamente
+  if (questoes.length < 10 && tentativa < 2) {
     console.log(`Only ${questoes.length} questions generated, retrying...`);
     return generateQuestoes(titulo, transcricao, fase, tentativa + 1);
   }
@@ -265,27 +266,30 @@ async function generateFlashcards(titulo: string, transcricao: string, fase: str
 TÍTULO: ${titulo}
 
 TRANSCRIÇÃO:
-${transcricao.substring(0, 12000)}
+${transcricao.substring(0, 15000)}
 
-VOCÊ DEVE CRIAR 10 FLASHCARDS para memorização.
+VOCÊ DEVE CRIAR O MÁXIMO DE FLASHCARDS POSSÍVEL (entre 15 a 20 flashcards) para memorização.
 
 Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
 [
   {
     "id": 1,
     "frente": "Conceito ou pergunta específica",
-    "verso": "Resposta/explicação detalhada"
+    "verso": "Resposta/explicação detalhada",
+    "exemplo": "Exemplo prático de aplicação no dia a dia ou em provas"
   }
 ]
 
 REGRAS OBRIGATÓRIAS:
-1. Crie 10 flashcards
-2. Cada flashcard deve cobrir um conceito DIFERENTE
-3. Cubra: definições, requisitos, prazos, procedimentos, armadilhas comuns
-4. A "frente" deve ser uma pergunta ou conceito-chave
-5. O "verso" deve ser a explicação completa
-6. NÃO crie cards genéricos como "tema da aula"
-7. Retorne APENAS o JSON`;
+1. Crie entre 15 a 20 flashcards - quanto mais, melhor!
+2. Cada flashcard DEVE ter os 3 campos: frente, verso e exemplo
+3. Cada flashcard deve cobrir um conceito DIFERENTE
+4. Cubra: definições, requisitos, prazos, procedimentos, armadilhas comuns, exceções
+5. A "frente" deve ser uma pergunta ou conceito-chave
+6. O "verso" deve ser a explicação completa
+7. O "exemplo" deve ser um caso prático, situação real ou como cai em prova
+8. NÃO crie cards genéricos como "tema da aula"
+9. Retorne APENAS o JSON`;
 
   const response = await callGeminiWithFallback(prompt);
   
@@ -296,8 +300,8 @@ REGRAS OBRIGATÓRIAS:
   
   const flashcards = JSON.parse(jsonMatch[0]);
   
-  // Se gerou menos de 5 e ainda não tentou 2 vezes, tenta novamente
-  if (flashcards.length < 5 && tentativa < 2) {
+  // Se gerou menos de 10 e ainda não tentou 2 vezes, tenta novamente
+  if (flashcards.length < 10 && tentativa < 2) {
     console.log(`Only ${flashcards.length} flashcards generated, retrying...`);
     return generateFlashcards(titulo, transcricao, fase, tentativa + 1);
   }
