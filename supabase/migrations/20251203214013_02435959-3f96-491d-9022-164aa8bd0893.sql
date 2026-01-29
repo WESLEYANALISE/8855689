@@ -1,0 +1,1 @@
+ALTER TABLE "QUESTOES_GERADAS" ADD COLUMN IF NOT EXISTS url_imagem_exemplo text;

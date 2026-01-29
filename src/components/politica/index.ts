@@ -1,0 +1,14 @@
+export { PoliticaOrientacaoModal } from './PoliticaOrientacaoModal';
+export { PoliticaLivros } from './PoliticaLivros';
+export { PoliticaSeguir } from './PoliticaSeguir';
+export { PoliticaBlogOrientacao } from './PoliticaBlogOrientacao';
+export { PoliticaDocumentarios } from './PoliticaDocumentarios';
+export { NoticiasPorOrientacao } from './NoticiasPorOrientacao';
+export { PoliticaArtigoModal } from './PoliticaArtigoModal';
+export { EstudosPoliticosSection } from './EstudosPoliticosSection';
+export { NoticiaPoliticaWebView } from './NoticiaPoliticaWebView';
+export { PoliticaComentariosSection } from './PoliticaComentariosSection';
+export { ComentarioForm } from './ComentarioForm';
+export { ComentarioItem } from './ComentarioItem';
+export { DocumentarioReacoes } from './DocumentarioReacoes';
+export { DocumentarioComentarios } from './DocumentarioComentarios';

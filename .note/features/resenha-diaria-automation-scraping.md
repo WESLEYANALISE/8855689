@@ -1,0 +1,3 @@
+# Memory: features/resenha-diaria-automation-scraping
+
+The 'raspar-resenha-diaria' function (which scrapes all act types: Decrees, Complementary Laws, Provisional Measures, etc.) is now the primary automated scraping tool, replacing 'raspar-leis-push'. It is scheduled via pg_cron to run three times daily (8h, 14h, and 20h BRT) with job names 'raspar-resenha-diaria-8h', 'raspar-resenha-diaria-14h', and 'raspar-resenha-diaria-20h'. After successful scraping, it automatically triggers 'automacao-formatacao-leis' to ensure all new legal acts are formatted without manual intervention. The NovasLeis page now auto-selects the last day with publications instead of defaulting to today (which may have no publications on weekends/holidays).

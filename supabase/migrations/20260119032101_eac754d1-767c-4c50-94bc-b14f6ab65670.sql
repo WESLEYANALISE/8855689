@@ -1,0 +1,1 @@
+UPDATE "RESUMO" SET url_imagem_resumo = NULL WHERE id = 5041;

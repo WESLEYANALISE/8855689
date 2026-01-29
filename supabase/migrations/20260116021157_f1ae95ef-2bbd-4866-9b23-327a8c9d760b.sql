@@ -1,0 +1,1 @@
+DELETE FROM oab_trilhas_subtopicos WHERE tema_id = '20678140-8841-40ea-add0-27568514527d';

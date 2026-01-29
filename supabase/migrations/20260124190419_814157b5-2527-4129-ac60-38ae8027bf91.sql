@@ -1,0 +1,1 @@
+UPDATE "RESUMO" SET conteudo_gerado = NULL WHERE id = 6818

@@ -1,0 +1,5 @@
+ALTER TABLE "RESUMO" 
+ADD COLUMN IF NOT EXISTS url_imagem_resumo TEXT,
+ADD COLUMN IF NOT EXISTS url_imagem_exemplo_1 TEXT,
+ADD COLUMN IF NOT EXISTS url_imagem_exemplo_2 TEXT,
+ADD COLUMN IF NOT EXISTS url_imagem_exemplo_3 TEXT;

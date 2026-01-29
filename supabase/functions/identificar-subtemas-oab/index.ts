@@ -1,0 +1,308 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { topicoId, areaNome, temaNome } = await req.json();
+
+    if (!topicoId) {
+      throw new Error("topicoId é obrigatório");
+    }
+
+    console.log(`[OAB] Identificando subtemas para tópico ${topicoId} - Área: ${areaNome}, Tema: ${temaNome}`);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Buscar páginas do tópico
+    const { data: paginas, error: paginasError } = await supabase
+      .from('oab_trilhas_topico_paginas')
+      .select('pagina, conteudo')
+      .eq('topico_id', topicoId)
+      .order('pagina');
+
+    if (paginasError || !paginas?.length) {
+      throw new Error("Nenhum conteúdo encontrado para análise. Por favor, extraia o PDF primeiro.");
+    }
+
+    const totalPaginas = paginas.length;
+    console.log(`📚 Analisando ${totalPaginas} páginas do tópico`);
+
+    // Criar mapa de páginas para acesso rápido
+    const paginasMap = new Map<number, string>();
+    paginas.forEach(p => {
+      if (p.conteudo) {
+        paginasMap.set(p.pagina, p.conteudo);
+      }
+    });
+
+    // Detectar páginas do índice
+    const paginasIndice = paginas.filter(p => {
+      const texto = (p.conteudo || '').toUpperCase();
+      return texto.includes('ÍNDICE') || 
+             texto.includes('SUMÁRIO') ||
+             /\d+\.\s+[A-Z].*\.{3,}\s*\d+/.test(p.conteudo || '');
+    });
+
+    // Limite dinâmico
+    const limitePorPagina = totalPaginas > 100 ? 300 
+                          : totalPaginas > 50 ? 500 
+                          : totalPaginas > 30 ? 800 
+                          : 2000;
+
+    const conteudoAnalise = paginas
+      .map(p => {
+        const ehPaginaIndice = paginasIndice.some(pi => pi.pagina === p.pagina);
+        const limite = ehPaginaIndice ? 8000 : limitePorPagina;
+        return `--- PÁGINA ${p.pagina} ${ehPaginaIndice ? '(ÍNDICE)' : ''} ---\n${p.conteudo?.substring(0, limite) || ''}`;
+      })
+      .join('\n\n');
+
+    const prompt = `Você é um especialista em análise de materiais de estudo para OAB.
+
+CONTEXTO:
+- Área: ${areaNome}
+- Tema: ${temaNome}
+
+CONTEÚDO (${paginas.length} páginas):
+${conteudoAnalise}
+
+## 🎯 SUA TAREFA: EXTRAIR OS SUBTEMAS (SEÇÕES) DESTE MATERIAL
+
+Analise o material e extraia os SUBTEMAS principais que serão salvos como tópicos de estudo.
+Cada subtema será um item de estudo separado na tabela RESUMO.
+
+## FORMATO DE RESPOSTA:
+
+{
+  "subtemas": [
+    {
+      "ordem": 1,
+      "titulo": "Nome do Subtema",
+      "pagina_inicial": 1,
+      "pagina_final": 5
+    }
+  ]
+}
+
+## REGRAS:
+
+1. Extraia entre 3 a 10 subtemas dependendo do tamanho do material
+2. Cada subtema deve ser uma seção lógica do conteúdo
+3. Use títulos claros e descritivos
+4. Mantenha a ordem sequencial das páginas
+5. O último subtema deve terminar na página ${totalPaginas}
+6. Se o material for curto (< 10 páginas), pode ter menos subtemas
+
+RESPONDA APENAS COM JSON válido, sem texto adicional:`;
+
+    // Obter chaves Gemini
+    const geminiKeys = [
+      Deno.env.get('GEMINI_KEY_1'),
+      Deno.env.get('GEMINI_KEY_2'),
+      Deno.env.get('GEMINI_KEY_3')
+    ].filter(Boolean) as string[];
+
+    if (!geminiKeys.length) {
+      throw new Error("Nenhuma chave Gemini configurada");
+    }
+
+    let geminiResponse: Response | null = null;
+    let lastError = "";
+
+    for (const geminiKey of geminiKeys) {
+      console.log("Tentando chave Gemini...");
+
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 4096
+              }
+            })
+          }
+        );
+
+        if (response.ok) {
+          geminiResponse = response;
+          console.log("✅ Gemini respondeu com sucesso");
+          break;
+        } else {
+          lastError = await response.text();
+          console.error(`Erro com chave (${response.status}):`, lastError.substring(0, 200));
+        }
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
+        console.error("Erro de conexão:", lastError);
+      }
+    }
+
+    if (!geminiResponse) {
+      throw new Error(`Todas as chaves Gemini falharam: ${lastError.substring(0, 100)}`);
+    }
+
+    const geminiData = await geminiResponse.json();
+    let textResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Limpar JSON
+    textResponse = textResponse
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+
+    console.log("Resposta Gemini:", textResponse.substring(0, 500));
+
+    let parsed: any;
+    let subtemas: any[] = [];
+
+    if (textResponse.startsWith('{')) {
+      try {
+        parsed = JSON.parse(textResponse);
+        subtemas = parsed.subtemas || [];
+      } catch (parseError) {
+        console.error("Erro ao parsear JSON:", parseError);
+      }
+    }
+
+    if (!subtemas.length) {
+      const jsonMatch = textResponse.match(/\{[\s\S]*"subtemas"[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+          subtemas = parsed.subtemas || [];
+          console.log("JSON extraído de texto misto");
+        } catch (e) {
+          console.error("Falha ao extrair JSON embutido");
+        }
+      }
+    }
+
+    // Fallback se não conseguiu extrair
+    if (!subtemas.length) {
+      console.log("⚠️ Gemini não retornou JSON válido. Criando estrutura básica.");
+      const subtemasEstimados = Math.min(5, Math.max(2, Math.ceil(totalPaginas / 5)));
+      const paginasPorSubtema = Math.ceil(totalPaginas / subtemasEstimados);
+      
+      for (let i = 0; i < subtemasEstimados; i++) {
+        subtemas.push({
+          ordem: i + 1,
+          titulo: `Seção ${i + 1}`,
+          pagina_inicial: i * paginasPorSubtema + 1,
+          pagina_final: Math.min((i + 1) * paginasPorSubtema, totalPaginas)
+        });
+      }
+    }
+
+    // Validar e normalizar subtemas
+    const subtemasValidados = subtemas.map((s: any, idx: number) => ({
+      ordem: idx + 1,
+      titulo: s.titulo,
+      pagina_inicial: Math.max(1, s.pagina_inicial || 1),
+      pagina_final: Math.min(totalPaginas, s.pagina_final || totalPaginas)
+    }));
+
+    console.log(`✅ ${subtemasValidados.length} subtemas identificados`);
+
+    // =========================================
+    // NOVA LÓGICA: Salvar conteúdo na tabela conteudo_oab_revisao
+    // =========================================
+    console.log("📝 Salvando conteúdo extraído por subtema na tabela conteudo_oab_revisao...");
+
+    // Deletar registros antigos para este tema
+    await supabase
+      .from('conteudo_oab_revisao')
+      .delete()
+      .eq('tema', temaNome);
+
+    // Inserir conteúdo de cada subtema
+    for (const subtema of subtemasValidados) {
+      let conteudoDoSubtema = '';
+      
+      for (let pag = subtema.pagina_inicial; pag <= subtema.pagina_final; pag++) {
+        const conteudoPagina = paginasMap.get(pag);
+        if (conteudoPagina) {
+          conteudoDoSubtema += `\n\n--- PÁGINA ${pag} ---\n\n${conteudoPagina}`;
+        }
+      }
+      
+      conteudoDoSubtema = conteudoDoSubtema.trim();
+      
+      if (conteudoDoSubtema.length > 0) {
+        const { error: upsertError } = await supabase
+          .from('conteudo_oab_revisao')
+          .upsert({
+            tema: temaNome,
+            subtema: subtema.titulo,
+            pagina_inicial: subtema.pagina_inicial,
+            pagina_final: subtema.pagina_final,
+            conteudo_original: conteudoDoSubtema,
+            area: areaNome,
+            topico_id: topicoId
+          }, { onConflict: 'tema,subtema' });
+
+        if (upsertError) {
+          console.error(`Erro ao salvar subtema "${subtema.titulo}":`, upsertError);
+        } else {
+          console.log(`  ✓ Subtema "${subtema.titulo}": ${conteudoDoSubtema.length} chars (págs ${subtema.pagina_inicial}-${subtema.pagina_final})`);
+        }
+      } else {
+        console.warn(`  ⚠️ Subtema "${subtema.titulo}" sem conteúdo!`);
+      }
+    }
+
+    console.log("✅ Conteúdo salvo na tabela conteudo_oab_revisao");
+
+    // Log dos subtemas identificados
+    subtemasValidados.forEach((s: any) => {
+      console.log(`  ${s.ordem}. ${s.titulo} (págs ${s.pagina_inicial}-${s.pagina_final})`);
+    });
+
+    // Atualizar tópico com subtemas identificados
+    await supabase
+      .from('oab_trilhas_topicos')
+      .update({ 
+        status: 'aguardando_confirmacao',
+        subtemas_identificados: subtemasValidados
+      })
+      .eq('id', topicoId);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        subtemas: subtemasValidados,
+        message: `${subtemasValidados.length} subtemas identificados e conteúdo salvo`
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error("Erro na identificação:", error);
+
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});

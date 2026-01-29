@@ -1,0 +1,3 @@
+-- Adicionar coluna url_audio na tabela QUESTOES_GERADAS
+ALTER TABLE "QUESTOES_GERADAS" 
+ADD COLUMN IF NOT EXISTS url_audio TEXT;

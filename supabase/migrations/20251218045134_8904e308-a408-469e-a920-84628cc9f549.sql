@@ -1,0 +1,1 @@
+UPDATE public."BLOGGER_JURIDICO" SET url_capa = NULL;

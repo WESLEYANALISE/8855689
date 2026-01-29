@@ -1,0 +1,1 @@
+UPDATE advogado_blog SET url_audio = NULL;

@@ -1,0 +1,1 @@
+UPDATE oab_geracao_templates SET ativo = false WHERE id = 9;

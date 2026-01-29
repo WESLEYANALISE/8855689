@@ -1,0 +1,1 @@
+UPDATE conceitos_topicos SET status = 'pendente', tentativas = 0, progresso = 0, updated_at = now() WHERE id = 527;

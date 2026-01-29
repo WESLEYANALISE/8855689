@@ -1,0 +1,2 @@
+ALTER TABLE "RESUMOS_ARTIGOS_LEI" 
+ADD COLUMN IF NOT EXISTS url_imagem_exemplo_3 text;

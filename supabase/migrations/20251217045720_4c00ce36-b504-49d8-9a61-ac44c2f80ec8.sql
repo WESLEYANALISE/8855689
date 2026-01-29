@@ -1,0 +1,1 @@
+DELETE FROM questoes_grifos_cache WHERE tabela_codigo = 'CC - Código Civil';

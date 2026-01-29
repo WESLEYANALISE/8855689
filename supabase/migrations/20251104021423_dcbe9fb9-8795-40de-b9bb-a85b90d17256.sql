@@ -1,0 +1,3 @@
+UPDATE "NOVIDADES" 
+SET "Dia" = '04/11/2025' 
+WHERE "Dia" = '14/11/2024';

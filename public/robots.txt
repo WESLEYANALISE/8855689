@@ -1,0 +1,18 @@
+# Direito Premium - Robots.txt
+# https://direitopremium.com.br
+
+User-agent: *
+Allow: /
+
+# Áreas restritas (não indexar)
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth
+Disallow: /_
+Disallow: /supabase/
+
+# Sitemap
+Sitemap: https://direitopremium.com.br/sitemap.xml
+
+# Crawl-delay para não sobrecarregar o servidor
+Crawl-delay: 1

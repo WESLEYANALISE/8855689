@@ -1,0 +1,280 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Modelos de imagem disponíveis (ordem de prioridade)
+const MODELOS_IMAGEM = [
+  'gemini-2.0-flash-exp-image-generation',
+  'gemini-2.5-flash-image',
+  'gemini-2.5-flash-preview-image-generation'
+];
+
+// Comprimir e converter para WebP usando TinyPNG
+async function comprimirParaWebP(imageBytes: Uint8Array, apiKey: string): Promise<Uint8Array> {
+  console.log(`[compressao] Comprimindo ${imageBytes.length} bytes e convertendo para WebP...`)
+  
+  const shrinkResponse = await fetch('https://api.tinify.com/shrink', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`api:${apiKey}`)}`,
+      'Content-Type': 'application/octet-stream'
+    },
+    body: new Blob([new Uint8Array(imageBytes)])
+  })
+
+  if (!shrinkResponse.ok) {
+    console.error('[compressao] TinyPNG falhou')
+    return imageBytes
+  }
+
+  const result = await shrinkResponse.json()
+  if (!result.output?.url) {
+    return imageBytes
+  }
+
+  const convertResponse = await fetch(result.output.url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`api:${apiKey}`)}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ convert: { type: 'image/webp' } })
+  })
+
+  if (!convertResponse.ok) {
+    const fallbackResponse = await fetch(result.output.url)
+    return new Uint8Array(await fallbackResponse.arrayBuffer())
+  }
+
+  const webpBytes = new Uint8Array(await convertResponse.arrayBuffer())
+  console.log(`[compressao] WebP: ${imageBytes.length} -> ${webpBytes.length} bytes (${Math.round((1 - webpBytes.length / imageBytes.length) * 100)}% menor)`)
+  return webpBytes
+}
+
+// Upload para Supabase Storage
+async function uploadParaSupabase(
+  supabase: any, 
+  bytes: Uint8Array, 
+  bucket: string, 
+  path: string, 
+  contentType: string
+): Promise<string> {
+  console.log(`[upload] Enviando para Supabase Storage: ${bucket}/${path}`)
+  
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, bytes, { contentType, upsert: true })
+  
+  if (error) {
+    console.error('[upload] Erro:', error)
+    throw new Error(`Erro no upload: ${error.message}`)
+  }
+  
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+  console.log(`[upload] URL pública: ${data.publicUrl}`)
+  return data.publicUrl
+}
+
+// Função para gerar imagem com Gemini - suporta múltiplos modelos
+async function gerarImagemComGemini(prompt: string, apiKey: string, modelo: string): Promise<string> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["image", "text"],
+          responseMimeType: "text/plain"
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[gerar-capa-blogger] Erro na API Gemini (${modelo}): ${response.status}`, errorText.substring(0, 200));
+    throw new Error(`GEMINI_ERROR_${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  
+  for (const part of parts) {
+    if (part.inlineData?.mimeType?.startsWith('image/')) {
+      return part.inlineData.data;
+    }
+  }
+  
+  throw new Error('Imagem não gerada pela IA');
+}
+
+// Função com fallback multi-modelo e multi-chave
+async function gerarImagemComFallback(prompt: string, apiKeys: string[]): Promise<string> {
+  console.log(`[gerar-capa-blogger] ${apiKeys.length} chaves, ${MODELOS_IMAGEM.length} modelos disponíveis`);
+  
+  let lastError = '';
+  
+  for (const modelo of MODELOS_IMAGEM) {
+    console.log(`[gerar-capa-blogger] 🎨 Tentando modelo: ${modelo}`);
+    let modeloFalhouPor404 = false;
+    
+    for (let i = 0; i < apiKeys.length; i++) {
+      try {
+        console.log(`[gerar-capa-blogger] Tentando GEMINI_KEY_${i + 1} com ${modelo}...`);
+        const result = await gerarImagemComGemini(prompt, apiKeys[i], modelo);
+        console.log(`[gerar-capa-blogger] ✅ Sucesso com GEMINI_KEY_${i + 1} no modelo ${modelo}`);
+        return result;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        lastError = errorMessage;
+        console.log(`[gerar-capa-blogger] ❌ GEMINI_KEY_${i + 1} falhou: ${errorMessage.substring(0, 150)}`);
+        
+        // Se modelo não existe (404), pular para próximo modelo
+        if (errorMessage.includes('404')) {
+          console.log(`[gerar-capa-blogger] Modelo ${modelo} não disponível, tentando próximo...`);
+          modeloFalhouPor404 = true;
+          break;
+        }
+        
+        // Se for erro 429 (quota), continuar para próxima chave
+        if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+          continue;
+        }
+      }
+    }
+    
+    if (!modeloFalhouPor404) {
+      console.log(`[gerar-capa-blogger] ⚠️ Todas as chaves falharam no modelo ${modelo}, tentando próximo modelo...`);
+    }
+  }
+  
+  throw new Error(`Todas as ${apiKeys.length} chaves falharam em todos os ${MODELOS_IMAGEM.length} modelos. Último erro: ${lastError}`);
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { categoria, ordem, titulo } = await req.json();
+
+    if (!categoria || !ordem || !titulo) {
+      return new Response(
+        JSON.stringify({ error: 'Categoria, ordem e título são obrigatórios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Coletar chaves disponíveis
+    const apiKeys = [
+      Deno.env.get('GEMINI_KEY_1'),
+      Deno.env.get('GEMINI_KEY_2'),
+      Deno.env.get('GEMINI_KEY_3'),
+      Deno.env.get('DIREITO_PREMIUM_API_KEY'),
+    ].filter(Boolean) as string[];
+    
+    const TINYPNG_API_KEY = Deno.env.get('TINYPNG_API_KEY');
+    
+    if (apiKeys.length === 0) {
+      throw new Error('Nenhuma chave API configurada');
+    }
+
+    console.log(`[gerar-capa-blogger] ${apiKeys.length} chaves disponíveis`);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Descrições visuais por categoria
+    const imagensCategoria: Record<string, string> = {
+      advogado: 'Brazilian lawyer in modern office, legal books, elegant law firm environment',
+      prf: 'Brazilian Federal Highway Police officer, PRF vehicle, Brazilian highway, blue PRF uniform',
+      pf: 'Brazilian Federal Police agent, PF badge, police operation, black PF uniform',
+      juiz: 'Brazilian judge in courtroom, black robe, gavel, majestic courtroom',
+      delegado: 'Brazilian police delegate, police station, criminal investigation, police badge',
+      filosofos: 'ancient Greek philosopher, classical architecture, philosophical atmosphere, ancient wisdom',
+      curiosidades: 'intriguing legal mystery, scales of justice, ancient legal documents, curiosity theme',
+      iniciando: 'law student studying, law books, graduation cap, learning environment',
+      casos: 'famous court case, dramatic courtroom scene, historic trial, legal drama',
+      historia: 'historical legal scene, ancient laws, historical documents, evolution of law',
+      termos: 'legal terminology, law dictionary, legal definitions, scholarly atmosphere'
+    };
+
+    const contextoVisual = imagensCategoria[categoria] || 'Brazilian legal professional';
+
+    // Prompt focado no título específico do artigo
+    const promptImagem = `Create an artistic illustration for: "${titulo}"
+
+CRITICAL: Generate an image that represents the SPECIFIC topic "${titulo}". 
+${categoria === 'filosofos' ? `If this is about a philosopher (like Aristotle, Plato, Kant, etc.), show a representation of THAT specific philosopher with their characteristic appearance and era.` : ''}
+${categoria === 'curiosidades' ? `Show a visual representation of this specific legal curiosity.` : ''}
+${categoria === 'casos' ? `Illustrate this specific famous legal case in Brazil.` : ''}
+${categoria === 'historia' ? `Show this specific historical moment in legal history.` : ''}
+
+Visual context: ${contextoVisual}
+
+STRICT REQUIREMENTS:
+- ABSOLUTELY NO TEXT, LETTERS, WORDS, OR WRITING of any kind in the image
+- The image must visually represent "${titulo}" specifically
+- Professional artistic illustration style
+- Rich color palette appropriate for the subject
+- 16:9 aspect ratio, suitable as blog header
+- High quality, detailed illustration
+- NO text overlays, NO captions, NO watermarks`;
+
+    console.log('[gerar-capa-blogger] Gerando capa para:', titulo);
+
+    const imageBase64 = await gerarImagemComFallback(promptImagem, apiKeys);
+
+    // Converter base64 para Uint8Array
+    const binaryString = atob(imageBase64);
+    let bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    console.log(`[gerar-capa-blogger] Imagem gerada: ${bytes.length} bytes`);
+
+    // Comprimir e converter para WebP
+    if (TINYPNG_API_KEY) {
+      bytes = new Uint8Array(await comprimirParaWebP(bytes, TINYPNG_API_KEY));
+    }
+
+    // Upload para Supabase Storage como WebP
+    const timestamp = Date.now();
+    const path = `capas-blog/${categoria}_${ordem}_${timestamp}.webp`;
+    const urlCapa = await uploadParaSupabase(supabase, bytes, 'imagens', path, 'image/webp');
+
+    console.log('[gerar-capa-blogger] Capa WebP gerada:', urlCapa);
+
+    // Salvar no banco de dados
+    const { error: updateError } = await supabase
+      .from('BLOGGER_JURIDICO')
+      .update({ url_capa: urlCapa })
+      .eq('categoria', categoria)
+      .eq('ordem', ordem);
+
+    if (updateError) {
+      console.error('[gerar-capa-blogger] Erro ao salvar URL da capa:', updateError);
+    }
+
+    return new Response(
+      JSON.stringify({ url_capa: urlCapa }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[gerar-capa-blogger] Erro:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

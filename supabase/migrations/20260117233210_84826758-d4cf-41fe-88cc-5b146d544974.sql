@@ -1,0 +1,1 @@
+UPDATE conceitos_materias SET capa_url = NULL;

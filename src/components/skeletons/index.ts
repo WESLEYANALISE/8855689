@@ -1,0 +1,10 @@
+export { FlashcardsSkeleton } from './FlashcardsSkeleton';
+export { CursosSkeleton } from './CursosSkeleton';
+export { NoticiasSkeleton } from './NoticiasSkeleton';
+export { SimulacaoSkeleton } from './SimulacaoSkeleton';
+export { BibliotecaSkeleton } from './BibliotecaSkeleton';
+export { JogosSkeleton } from './JogosSkeleton';
+export { VideoaulasSkeleton } from './VideoaulasSkeleton';
+export { FerramentasSkeleton } from './FerramentasSkeleton';
+export { PesquisarSkeleton } from './PesquisarSkeleton';
+export { MapaMentalSkeleton } from './MapaMentalSkeleton';

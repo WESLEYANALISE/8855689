@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Direito X - Aprovação OAB | Vade Mecum, Questões e Videoaulas para OAB</title>
+    
+    <!-- Preconnect para recursos críticos -->
+    <link rel="preconnect" href="https://gnrwodxqoppoobwuakgd.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- DNS Prefetch para recursos secundários -->
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    
+    
+    <!-- Preload de recursos críticos - ALTA PRIORIDADE -->
+    <link rel="preload" href="/lovable-uploads/aa3a3884-d32b-4fa8-9508-9b5cd6592e6b.png" as="image" type="image/png" fetchpriority="high" />
+    
+    <!-- Logo do Header - SUPER CRÍTICO para exibição instantânea -->
+    <link rel="preload" href="/logo.webp" as="image" type="image/webp" fetchpriority="high" />
+    
+    <!-- Hero banners da Home - Preload das 3 opções -->
+    <link rel="preload" href="/hero-banner-themis-advogado-v2.webp" as="image" type="image/webp" />
+    <link rel="preload" href="/hero-banner-themis-chorando.webp" as="image" type="image/webp" />
+    <link rel="preload" href="/hero-banner-tribunal.webp" as="image" type="image/webp" />
+    
+    <!-- Cards políticos (Política > Estudos) - Preload antes do JS -->
+    <link rel="preload" href="/src/assets/politico-esquerda.png" as="image" type="image/png" />
+    <link rel="preload" href="/src/assets/politico-centro.png" as="image" type="image/png" />
+    <link rel="preload" href="/src/assets/politico-direita.png" as="image" type="image/png" />
+    
+    <!-- Estudos background -->
+    <link rel="preload" href="/src/assets/estudos-background.jpg" as="image" type="image/jpeg" />
+    
+    <!-- Fonts com estratégia de carregamento otimizada -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Cinzel:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=Playfair+Display:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Cinzel:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=Playfair+Display:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+    </noscript>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Direito X" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Plataforma completa para aprovação na OAB com Vade Mecum atualizado, questões comentadas, videoaulas e ferramentas para futuros advogados. Aprovação OAB!" />
+    <meta name="keywords" content="OAB, exame de ordem, prova OAB, questões OAB, vade mecum, primeira fase OAB, segunda fase OAB, aprovação OAB, estudos jurídicos, direito" />
+    <meta name="author" content="Direito X" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://direitopremium.com.br/" />
+    
+    <!-- Geo Tags para SEO Brasil -->
+    <meta name="geo.region" content="BR" />
+    <meta name="geo.placename" content="Brasil" />
+    <meta http-equiv="content-language" content="pt-BR" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/lovable-uploads/aa3a3884-d32b-4fa8-9508-9b5cd6592e6b.png" />
+    <link rel="apple-touch-icon" href="/lovable-uploads/aa3a3884-d32b-4fa8-9508-9b5cd6592e6b.png" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://direitopremium.com.br/" />
+    <meta property="og:title" content="Direito X - Aprovação OAB" />
+    <meta property="og:description" content="Plataforma completa para aprovação na OAB com Vade Mecum, questões, videoaulas e ferramentas para futuros advogados." />
+    <meta property="og:image" content="https://gnrwodxqoppoobwuakgd.supabase.co/storage/v1/object/public/imagens//logo-dp.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Direito X" />
+    <meta property="og:locale" content="pt_BR" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://direitopremium.com.br/" />
+    <meta name="twitter:title" content="Direito X - Aprovação OAB" />
+    <meta name="twitter:description" content="Plataforma completa para aprovação na OAB com Vade Mecum, questões, videoaulas e ferramentas para futuros advogados." />
+    <meta name="twitter:image" content="https://gnrwodxqoppoobwuakgd.supabase.co/storage/v1/object/public/imagens//logo-dp.png" />
+    
+    <!-- Structured Data: WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Direito X",
+      "description": "Plataforma completa para aprovação na OAB com Vade Mecum atualizado, questões comentadas e ferramentas para futuros advogados.",
+      "url": "https://direitopremium.com.br",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Direito X"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250"
+      }
+    }
+    </script>
+    
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Direito X",
+      "url": "https://direitopremium.com.br",
+      "logo": "https://gnrwodxqoppoobwuakgd.supabase.co/storage/v1/object/public/imagens//logo-dp.png",
+      "description": "Plataforma completa para aprovação na OAB. Aprovação OAB!",
+      "sameAs": [],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "availableLanguage": ["Portuguese"]
+      }
+    }
+    </script>
+    
+    <!-- Structured Data: EducationalOrganization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "Direito X",
+      "url": "https://direitopremium.com.br",
+      "description": "Plataforma educacional focada na aprovação para o Exame de Ordem da OAB.",
+      "areaServed": {
+        "@type": "Country",
+        "name": "Brasil"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Cursos e Materiais de Direito",
+        "itemListElement": [
+          {
+            "@type": "Course",
+            "name": "Vade Mecum Digital",
+            "description": "Acesso completo a toda legislação brasileira atualizada"
+          },
+          {
+            "@type": "Course",
+            "name": "Cursos de Direito",
+            "description": "Videoaulas e materiais para diversas áreas do Direito"
+          },
+          {
+            "@type": "Course",
+            "name": "Questões Comentadas",
+            "description": "Banco de questões de concursos e OAB com comentários"
+          }
+        ]
+      }
+    }
+    </script>
+    
+    <!-- Structured Data: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "O que é o Direito X?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Direito X é uma plataforma focada na aprovação para o Exame de Ordem da OAB, oferecendo Vade Mecum atualizado, questões comentadas, videoaulas e diversas ferramentas para futuros advogados."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O Vade Mecum do Direito X é atualizado?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim, nosso Vade Mecum digital é constantemente atualizado com as últimas alterações legislativas relevantes para o Exame da OAB."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O Direito X tem questões de provas anteriores?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim, temos um banco completo de questões de exames anteriores da OAB, com comentários e explicações detalhadas."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O Direito X prepara para a 1ª e 2ª fase?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim, oferecemos materiais completos tanto para a primeira fase (prova objetiva) quanto para a segunda fase (prova prático-profissional) do Exame de Ordem."
+          }
+        }
+      ]
+    }
+    </script>
+    
+    <!-- Critical CSS inline para FCP mais rápido -->
+    <style>
+      :root {
+        --background: 0 0% 8%;
+        --foreground: 0 0% 98%;
+      }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: hsl(0, 0%, 8%);
+        color: hsl(0, 0%, 98%);
+        margin: 0;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      #root {
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      /* Loading skeleton */
+      .loading-skeleton {
+        background: linear-gradient(90deg, hsl(0, 0%, 10%) 25%, hsl(0, 0%, 14%) 50%, hsl(0, 0%, 10%) 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+      }
+      @keyframes skeleton-loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Carregamento assíncrono de scripts não-críticos -->
+    <script>
+      // Google Analytics (carrega após interação do usuário)
+      function loadGA() {
+        if (window.gaLoaded) return;
+        window.gaLoaded = true;
+        
+        var ga = document.createElement('script');
+        ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX';
+        ga.async = true;
+        document.head.appendChild(ga);
+        
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+      }
+      
+      // Carrega GA na primeira interação
+      ['click', 'scroll', 'keydown', 'touchstart'].forEach(function(event) {
+        document.addEventListener(event, loadGA, { once: true, passive: true });
+      });
+      
+      // Ou após 5 segundos
+      setTimeout(loadGA, 5000);
+    </script>
+  </body>
+</html>

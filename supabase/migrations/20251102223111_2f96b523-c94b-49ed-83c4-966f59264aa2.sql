@@ -1,0 +1,18 @@
+-- Inserir súmulas STJ 661-676 (mais recentes)
+INSERT INTO public."SUMULAS STJ" (id, "Título da Súmula", "Texto da Súmula", "Data de Aprovação") VALUES
+(661, 'Súmula 661', 'Os honorários advocatícios, nas ações de indenização por danos morais, devem ser fixados em percentual sobre o valor da condenação, nos termos do art. 85, § 2º, do CPC/2015.', '08/06/2023'),
+(662, 'Súmula 662', 'Os depósitos recursais previstos no art. 899 da CLT devem ser atualizados monetariamente, com base no IPCA-E, a partir da data da realização.', '22/06/2023'),
+(663, 'Súmula 663', 'É vedada a cobrança de tarifa de cadastro nas operações de financiamento realizadas por instituições financeiras.', '06/09/2023'),
+(664, 'Súmula 664', 'O segurado especial que, anteriormente ao requerimento do benefício, tenha prestado serviços, de forma descontínua e habitual, a outro segurado especial ou a produtor rural pessoa física, mantém a qualidade de segurado especial.', '20/09/2023'),
+(665, 'Súmula 665', 'A pretensão de compensar honorários advocatícios sucumbenciais, fixados em favor de partes patrocinadas por advogados diversos, não encontra amparo no CPC.', '04/10/2023'),
+(666, 'Súmula 666', 'É vedada a aplicação retroativa da lei nova que reduza o prazo prescricional em relação às ações ajuizadas antes de sua vigência.', '18/10/2023'),
+(667, 'Súmula 667', 'Nas ações de cobrança de seguro DPVAT, proposta por advogado com procuração ad judicia apenas, é dispensável a juntada de procuração com poderes especiais para receber e dar quitação.', '08/11/2023'),
+(668, 'Súmula 668', 'A cobrança de tarifa por liquidação antecipada de mútuo bancário é abusiva.', '22/11/2023'),
+(669, 'Súmula 669', 'É vedada a atribuição de efeitos modificativos a recurso especial interposto exclusivamente pela alínea "c" do permissivo constitucional.', '06/12/2023'),
+(670, 'Súmula 670', 'O servidor público tem direito à aposentadoria especial se demonstrar tempo de efetivo exercício em condições prejudiciais à saúde ou à integridade física.', '13/12/2023'),
+(671, 'Súmula 671', 'Nos contratos bancários na modalidade de conta-corrente, a cobrança de juros remuneratórios não está limitada em 12% ao ano ou a outra taxa, salvo expressa previsão legal específica.', '14/02/2024'),
+(672, 'Súmula 672', 'Admite-se a incidência de juros de mora sobre os juros compensatórios em desapropriação indireta, desde que observado o trânsito em julgado da decisão que reconheça a mora.', '28/02/2024'),
+(673, 'Súmula 673', 'O registro da separação judicial ou divórcio de ambos os cônjuges no Registro de Imóveis, com a devida averbação, não é causa de nulidade da penhora realizada sobre o imóvel do casal.', '13/03/2024'),
+(674, 'Súmula 674', 'Nas ações envolvendo planos econômicos (Bresser, Verão, Collor I e Collor II), deve ser observado o prazo prescricional de vinte anos previsto no art. 177 do Código Civil de 1916, aplicável até 10/01/2003, e, após, o prazo de dez anos, previsto no art. 205 do novo Código Civil.', '27/03/2024'),
+(675, 'Súmula 675', 'O prazo para o exercício do direito de arrependimento previsto no art. 49 do CDC aplica-se a todas as compras realizadas fora do estabelecimento comercial, inclusive às efetuadas por telefone.', '10/04/2024'),
+(676, 'Súmula 676', 'O terceiro prejudicado que não foi parte no processo de execução tem legitimidade para ajuizar ação autônoma de embargos à execução.', '24/04/2024')

@@ -1,0 +1,202 @@
+import { useNavigate } from "react-router-dom";
+import { Loader2, Search, BookOpen } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { LivroCard } from "@/components/LivroCard";
+import { useState, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useContentLimit } from "@/hooks/useContentLimit";
+import { LockedContentListItem } from "@/components/LockedContentCard";
+import { PremiumFloatingCard } from "@/components/PremiumFloatingCard";
+import { BibliotecaSortToggle, BibliotecaSortMode, ORDEM_LEITURA_CLASSICOS } from "@/components/biblioteca/BibliotecaSortToggle";
+import { BibliotecaSobreCard, BIBLIOTECA_SOBRE_TEXTS } from "@/components/biblioteca/BibliotecaSobreCard";
+
+interface BibliotecaItem {
+  id: number;
+  area: string | null;
+  livro: string | null;
+  autor: string | null;
+  link: string | null;
+  imagem: string | null;
+  sobre: string | null;
+  beneficios: string | null;
+  download: string | null;
+  "Capa-area": string | null;
+}
+
+const BibliotecaClassicos = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showPremiumCard, setShowPremiumCard] = useState(false);
+  const [sortMode, setSortMode] = useState<BibliotecaSortMode>("recomendada");
+
+  const { data: capa } = useQuery({
+    queryKey: ["capa-biblioteca-classicos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("CAPA-BIBILIOTECA")
+        .select("*")
+        .eq("Biblioteca", "Biblioteca Clássicos")
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: items, isLoading } = useQuery({
+    queryKey: ["biblioteca-classicos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("BIBLIOTECA-CLASSICOS")
+        .select("*")
+        .order("id");
+      if (error) throw error;
+      return data as any as BibliotecaItem[];
+    }
+  });
+
+  // Filtrar e ordenar livros
+  const livrosFiltrados = useMemo(() => {
+    if (!items) return [];
+    
+    let filtered = items.filter(
+      (livro) =>
+        (livro.livro || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (livro.autor || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Ordenação
+    if (sortMode === "alfabetica") {
+      filtered = [...filtered].sort((a, b) => 
+        (a.livro || "").localeCompare(b.livro || "", 'pt-BR')
+      );
+    } else if (sortMode === "recomendada") {
+      // Ordem de leitura recomendada (iniciante -> avançado)
+      filtered = [...filtered].sort((a, b) => {
+        const ordemA = ORDEM_LEITURA_CLASSICOS[a.id] || 999;
+        const ordemB = ORDEM_LEITURA_CLASSICOS[b.id] || 999;
+        return ordemA - ordemB;
+      });
+    }
+
+    return filtered;
+  }, [items, searchTerm, sortMode]);
+
+  // Aplicar limite de conteúdo premium (20%)
+  const { visibleItems, lockedItems, isPremiumRequired } = useContentLimit(livrosFiltrados, 'classicos');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  const sobreTexts = BIBLIOTECA_SOBRE_TEXTS.classicos;
+
+  return (
+    <div className="min-h-screen pb-20">
+      {/* Header com Capa - mais compacto */}
+      <div className="relative h-48 md:h-56 overflow-hidden">
+        {/* Imagem de fundo */}
+        {capa?.capa && (
+          <img
+            src={capa.capa}
+            alt="Biblioteca Clássicos"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        
+        {/* Gradiente escuro para legibilidade */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/80" />
+        {/* Conteúdo sobre a imagem */}
+        <div className="absolute bottom-6 left-6 right-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-primary/90 rounded-lg">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">Biblioteca Clássicos</h1>
+              <p className="text-sm text-white/90 mt-1">
+                {items?.length} {items?.length === 1 ? "livro disponível" : "livros disponíveis"}
+                {isPremiumRequired && (
+                  <span className="text-amber-400 ml-2">
+                    • {visibleItems.length} liberados
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo Principal */}
+      <div className="px-3 py-6 max-w-4xl mx-auto animate-fade-in">
+        {/* Barra de Pesquisa */}
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar livro..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="text-base"
+              />
+              <Button variant="outline" size="icon" className="shrink-0">
+                <Search className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Toggle de Ordenação */}
+        <div className="mb-6">
+          <BibliotecaSortToggle mode={sortMode} setMode={setSortMode} />
+        </div>
+
+        {/* Conteúdo baseado no modo */}
+        {sortMode === "sobre" ? (
+          <BibliotecaSobreCard {...sobreTexts} />
+        ) : (
+          <div className="space-y-4">
+            {/* Livros visíveis */}
+            {visibleItems.map((livro) => (
+              <LivroCard
+                key={livro.id}
+                titulo={livro.livro || "Sem título"}
+                autor={livro.autor || undefined}
+                capaUrl={livro.imagem}
+                sobre={livro.sobre}
+                onClick={() => navigate(`/biblioteca-classicos/${livro.id}`)}
+              />
+            ))}
+            
+            {/* Livros bloqueados */}
+            {lockedItems.map((livro) => (
+              <LockedContentListItem
+                key={livro.id}
+                title={livro.livro || "Sem título"}
+                subtitle={livro.autor || undefined}
+                imageUrl={livro.imagem || undefined}
+                onClick={() => setShowPremiumCard(true)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Premium Card */}
+      <PremiumFloatingCard
+        isOpen={showPremiumCard}
+        onClose={() => setShowPremiumCard(false)}
+        title="Conteúdo Premium"
+        description="Desbloqueie todos os livros desta biblioteca assinando um dos nossos planos."
+      />
+    </div>
+  );
+};
+
+export default BibliotecaClassicos;
