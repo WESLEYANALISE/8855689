@@ -114,15 +114,15 @@ export const BottomNav = () => {
             </button>
           ) : (
             <button
-              onClick={() => navigate("/tela")}
+              onClick={() => navigate("/videoaulas")}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
-                isActive("/tela")
+                isActive("/videoaulas")
                   ? "text-primary bg-primary/15 ring-1 ring-primary/20"
                   : "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
             >
-              <Monitor className={cn("w-6 h-6 transition-transform", isActive("/tela") && "scale-110")} />
+              <Monitor className={cn("w-6 h-6 transition-transform", isActive("/videoaulas") && "scale-110")} />
               <span className="text-[10px] font-medium leading-tight text-center">Desktop</span>
             </button>
           )}

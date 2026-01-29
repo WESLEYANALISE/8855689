@@ -88,7 +88,7 @@ const VideoaulasOAB = () => {
         <div className="sticky top-0 z-20 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm pb-4">
           <div className="flex items-center gap-4 p-4">
             <button
-              onClick={() => navigate("/tela")}
+              onClick={() => navigate("/videoaulas")}
               className="p-2.5 rounded-xl bg-red-700/15 hover:bg-red-700/25 transition-all duration-300 border border-red-700/40"
             >
               <ArrowLeft className="w-5 h-5 text-red-500" />

@@ -103,7 +103,7 @@ const HIDE_HEADER_ROUTES = new Set([
   "/juriflix",
   "/tres-poderes",
   "/tematica-juridica",
-  "/tela",
+  "/videoaulas",
   "/videoaulas-oab",
   "/estudos",
   "/dominando",
