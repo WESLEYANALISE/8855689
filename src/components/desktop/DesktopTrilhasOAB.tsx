@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Scale, ScrollText, Briefcase, FileQuestion, ChevronRight, Target, Library, Video, BookOpen, ArrowLeft } from "lucide-react";
+import { Scale, ScrollText, ChevronRight, ArrowLeft, BookOpen, Briefcase } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PhaseCardProps {
@@ -62,38 +62,52 @@ const PhaseCard = ({ title, subtitle, description, icon, features, onClick, dela
   </motion.button>
 );
 
-// Recurso OAB card
-interface RecursoOABCardProps {
+// Guia OAB card (Blog + Carreira unidos)
+interface GuiaOABCardProps {
   title: string;
+  description: string;
   icon: React.ReactNode;
   onClick: () => void;
   delay?: number;
 }
 
-const RecursoOABCard = ({ title, icon, onClick, delay = 0 }: RecursoOABCardProps) => (
+const GuiaOABCard = ({ title, description, icon, onClick, delay = 0 }: GuiaOABCardProps) => (
   <motion.button
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3, delay }}
     onClick={onClick}
-    className="group flex items-center gap-3 px-5 py-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all"
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-br from-amber-900/30 to-amber-800/20 backdrop-blur-sm border border-amber-500/30 hover:border-amber-400/50 hover:bg-amber-900/40 transition-all"
   >
-    <div className="p-2 rounded-lg bg-white/10 group-hover:bg-white/20 transition-colors">
+    <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 group-hover:border-amber-400/50 transition-colors">
       {icon}
     </div>
-    <span className="text-white font-medium text-sm">{title}</span>
-    <ChevronRight className="w-4 h-4 text-white/50 group-hover:text-white/80 ml-auto transition-colors" />
+    <div className="text-left flex-1">
+      <span className="text-amber-100 font-semibold text-base">{title}</span>
+      <p className="text-amber-200/60 text-sm mt-0.5">{description}</p>
+    </div>
+    <ChevronRight className="w-5 h-5 text-amber-400/70 group-hover:text-amber-300 group-hover:translate-x-1 transition-all" />
   </motion.button>
 );
 
 export const DesktopTrilhasOAB = () => {
   const navigate = useNavigate();
 
-  const recursos = [
-    { title: "Carreira de Advogado", icon: <Briefcase className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/advogado") },
-    { title: "Simulados", icon: <FileQuestion className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/ferramentas/simulados") },
-    { title: "Questões OAB", icon: <Target className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/ferramentas/questoes") },
-    { title: "Biblioteca OAB", icon: <Library className="w-5 h-5 text-amber-300" />, onClick: () => navigate("/biblioteca-oab") },
+  const guias = [
+    { 
+      title: "Blog OAB", 
+      description: "Artigos e dicas para aprovação",
+      icon: <BookOpen className="w-6 h-6 text-amber-400" />, 
+      onClick: () => navigate("/blogger-juridico/artigos?tipo=carreiras&carreira=advogado") 
+    },
+    { 
+      title: "Carreira de Advogado", 
+      description: "Guia completo para iniciantes",
+      icon: <Briefcase className="w-6 h-6 text-amber-400" />, 
+      onClick: () => navigate("/oab/carreira") 
+    },
   ];
 
   // Função para voltar ao Destaque
@@ -162,24 +176,25 @@ export const DesktopTrilhasOAB = () => {
         />
       </div>
 
-      {/* Recursos OAB */}
+      {/* Guias OAB - Blog + Carreira */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="w-full max-w-4xl"
+        className="w-full max-w-3xl"
       >
         <h3 className="text-center text-white/80 text-sm font-medium mb-4 uppercase tracking-wide">
-          Recursos para OAB
+          Guias para OAB
         </h3>
-        <div className="grid grid-cols-4 gap-3">
-          {recursos.map((recurso, index) => (
-            <RecursoOABCard
-              key={recurso.title}
-              title={recurso.title}
-              icon={recurso.icon}
-              onClick={recurso.onClick}
-              delay={0.5 + index * 0.05}
+        <div className="grid grid-cols-2 gap-4">
+          {guias.map((guia, index) => (
+            <GuiaOABCard
+              key={guia.title}
+              title={guia.title}
+              description={guia.description}
+              icon={guia.icon}
+              onClick={guia.onClick}
+              delay={0.5 + index * 0.1}
             />
           ))}
         </div>
