@@ -1,162 +1,186 @@
 
-# Plano: Corrigir Parser JSON para Alinhar com OAB Trilhas
+## Plano: Sistema de Videoaulas OAB com 20 Playlists do YouTube
 
-## Diagnóstico do Problema
+### Visão Geral
+Implementar um sistema completo de videoaulas para a 1ª Fase da OAB, sincronizando 20 playlists do YouTube que cobrem todas as áreas do exame. O sistema irá buscar vídeos via API do YouTube, armazenar no banco de dados, exibir com thumbnails, e permitir acesso às transcrições.
 
-Os logs mostram erros de parse JSON nas posições 703, 2981, e 6683:
-```
-SyntaxError: Expected ',' or '}' after property value in JSON at position 6683
-```
-
-Isso indica que **newlines literais estão fora das strings JSON** (entre propriedades), não dentro. A função `escaparNewlinesEmStrings` só escapa dentro de strings, mas o problema está **fora delas**.
-
----
-
-## Diferença entre OAB Trilhas (funciona) e Conceitos (quebra)
-
-| Aspecto | OAB Trilhas | Conceitos Atual |
-|---------|-------------|-----------------|
-| Estratégia | Substituição global ANTES do parse | Iteração caractere a caractere |
-| Newlines | `replace(/[\x00-\x1F\x7F]/g, ...)` | `escaparNewlinesEmStrings()` |
-| Onde atua | Em TODO o JSON | Apenas DENTRO de strings |
-| Resultado | Funciona | Quebra com newlines entre propriedades |
-
----
-
-## Solução
-
-Reescrever o parser JSON do Conceitos para usar a **mesma lógica simples** do OAB Trilhas:
-
-1. **Remover** a função `escaparNewlinesEmStrings()` complexa
-2. **Usar** substituição global igual ao OAB Trilhas
-3. **Simplificar** para apenas 2 estágios (direto → correção simples)
+### Playlists a Serem Integradas
+| Área | Playlist ID |
+|------|-------------|
+| Ética Profissional / Estatuto da OAB | PL8vXuI6zmpgwsu0I9WOuMgSBUx98rdyL |
+| Filosofia do Direito | PL8vXuI6zmpdi47p3ijoTP0dECj2hoC-pN |
+| Direito Constitucional | PL8vXuI6zmpdibFGqx6usUu1Htsa6X5YvC |
+| Direitos Humanos | PL8vXuI6zmpdiICouL1IyYyuWe5i4HotYt |
+| Direito Eleitoral | PL8vXuI6zmpdgq9XEO_Wvn_fHuGH-J88nV |
+| Direito Internacional | PL8vXuI6zmpdhuNo11n7argrPtoELeJpSC |
+| Direito Financeiro | PL2CHFA_bGrZ9HRF4DQ6Y_ct0DwOBAS2cw |
+| Direito Tributário | PL8vXuI6zmpdi4O_2o3z6FLQ3b0F4PxhLx |
+| Direito Administrativo | PL8vXuI6zmpdhX27XZG8wqPSgtMy7MSUcq |
+| Direito Ambiental | PL8vXuI6zmpdhSq3aFFLkGtF43bg7Yo13y |
+| Direito Civil | PL8vXuI6zmpdhX8g2wnvM0lqk7pdHhpCUU |
+| ECA | PL8vXuI6zmpdjLxIns5TqSwJtrm3krojzQ |
+| Direito do Consumidor | PL8vXuI6zmpdg1NC8BKKXnkqWGr2KiMTut |
+| Direito Empresarial | PL8vXuI6zmpdiJcZ5w36q-Fl1LNNwkuM8E |
+| Processo Civil | PL8vXuI6zmpdhOjBmtGiCcerDadAn-Xu2c |
+| Direito Penal | PL8vXuI6zmpdh8CF2fer38Uosf1phfUbH8 |
+| Processo Penal | PL8vXuI6zmpdi6eQjQBgY0u_VNEl6f9p8Y |
+| Direito Previdenciário | PL8vXuI6zmpdgKdvgqV9QVKp7COhTva5cJ |
+| Direito do Trabalho | PL8vXuI6zmpdiUdKYB4fI89MnKd6FWYeJq |
+| Processo do Trabalho | PL8vXuI6zmpdiUdKYB4fI89MnKd6FWYeJq |
 
 ---
 
-## Mudanças no Arquivo
+### Arquitetura da Solução
 
-**Arquivo:** `supabase/functions/gerar-conteudo-conceitos/index.ts`
-
-### Remover (linhas ~590-636)
-- Toda a função `escaparNewlinesEmStrings`
-
-### Substituir bloco de parse (linhas ~639-733)
-
-Trocar por lógica simples igual OAB Trilhas:
-
-```typescript
-// Parse JSON com sanitização igual OAB Trilhas
-let conteudoGerado;
-try {
-  // Sanitizar caracteres de controle ANTES do parse (como OAB Trilhas)
-  const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-    if (char === '\n') return '\\n';
-    if (char === '\r') return '\\r';
-    if (char === '\t') return '\\t';
-    return '';
-  });
-  conteudoGerado = JSON.parse(sanitizedJson);
-  console.log("[Conceitos] ✅ JSON parseado diretamente");
-} catch (parseError) {
-  console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
-  
-  // Sanitizar + adicionar fechamentos faltantes (igual OAB Trilhas)
-  let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-    if (char === '\n') return '\\n';
-    if (char === '\r') return '\\r';
-    if (char === '\t') return '\\t';
-    return '';
-  });
-  
-  // Adicionar fechamentos faltantes
-  const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
-  const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
-  const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
-  const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
-  
-  for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
-    jsonCorrigido += "]";
-  }
-  for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
-    jsonCorrigido += "}";
-  }
-  
-  // Remover vírgula antes de fechamento
-  jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
-  
-  try {
-    conteudoGerado = JSON.parse(jsonCorrigido);
-    console.log("[Conceitos] ✅ JSON corrigido com sucesso");
-  } catch (finalError) {
-    console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
-    await supabase.from("conceitos_topicos")
-      .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
-      .eq("id", topico_id);
-    throw new Error("Falha ao processar resposta da IA");
-  }
-}
-```
-
-### Atualizar complemento de páginas (linhas ~790-820)
-
-Usar a mesma sanitização simples no complemento:
-
-```typescript
-try {
-  const sanitizedComp = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char) => {
-    if (char === '\n') return '\\n';
-    if (char === '\r') return '\\r';
-    if (char === '\t') return '\\t';
-    return '';
-  });
-  complemento = JSON.parse(sanitizedComp);
-} catch {
-  // Limpeza adicional se falhar
-  let jsonLimpo = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char) => {
-    if (char === '\n') return '\\n';
-    if (char === '\r') return '\\r';
-    if (char === '\t') return '\\t';
-    return '';
-  }).replace(/,(\s*[}\]])/g, "$1");
-  complemento = JSON.parse(jsonLimpo);
-}
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        FRONTEND (React)                         │
+├─────────────────────────────────────────────────────────────────┤
+│  VideoaulasOABPrimeiraFase.tsx  ← Nova página principal         │
+│  VideoaulasOABAreaPrimeiraFase.tsx ← Lista de vídeos por área   │
+│  VideoaulasOABViewPrimeiraFase.tsx ← Player + Conteúdo          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    EDGE FUNCTIONS (Deno)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  sincronizar-videoaulas-oab-primeira-fase  ← Sincroniza todas   │
+│  processar-videoaula-oab (existente)       ← Gera conteúdo      │
+│  buscar-videos-playlist (existente)        ← Busca vídeos       │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    BANCO DE DADOS (Supabase)                    │
+├─────────────────────────────────────────────────────────────────┤
+│  videoaulas_oab_primeira_fase ← Nova tabela para vídeos         │
+│  Campos: id, video_id, playlist_id, area, titulo, descricao,    │
+│          thumbnail, duracao, ordem, transcricao, sobre_aula,    │
+│          flashcards, questoes, publicado_em, created_at         │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Também Necessário
+### Etapas de Implementação
 
-### Adicionar config.toml
+#### Etapa 1: Criar Nova Tabela no Banco de Dados
+Criar a tabela `videoaulas_oab_primeira_fase` com estrutura otimizada:
+- `id` (serial primary key)
+- `video_id` (text, unique) - ID do vídeo no YouTube
+- `playlist_id` (text) - ID da playlist de origem
+- `area` (text) - Área do direito (ex: "Direito Constitucional")
+- `titulo` (text) - Título do vídeo
+- `descricao` (text) - Descrição do vídeo
+- `thumbnail` (text) - URL da thumbnail
+- `duracao` (text) - Duração formatada
+- `ordem` (integer) - Posição na playlist
+- `transcricao` (text) - Transcrição do vídeo
+- `sobre_aula` (text) - Resumo gerado por IA
+- `flashcards` (jsonb) - Cards de estudo
+- `questoes` (jsonb) - Questões de revisão
+- `publicado_em` (timestamptz) - Data de publicação no YouTube
+- `created_at` (timestamptz) - Data de inserção
 
-A função `gerar-conteudo-conceitos` não está no `config.toml`, o que pode causar problemas de autenticação:
+#### Etapa 2: Criar Edge Function de Sincronização
+Nova função `sincronizar-videoaulas-oab-primeira-fase` que:
+1. Itera sobre as 20 playlists configuradas
+2. Usa a API do YouTube para buscar todos os vídeos de cada playlist
+3. Mapeia cada vídeo para a área correspondente
+4. Faz upsert no banco (insere novos, atualiza existentes)
+5. Retorna estatísticas de sincronização
 
-```toml
-[functions.gerar-conteudo-conceitos]
-verify_jwt = false
-```
+#### Etapa 3: Criar Páginas do Frontend
 
-### Reset dos tópicos com erro
+**Página Principal (VideoaulasOABPrimeiraFase.tsx)**
+- Lista as 20 áreas como cards visuais
+- Mostra quantidade de aulas por área
+- Barra de pesquisa para filtrar áreas
+- Design consistente com o tema vermelho da OAB
 
-```sql
-UPDATE conceitos_topicos 
-SET status = 'pendente', tentativas = 0, progresso = 0, updated_at = NOW()
-WHERE materia_id = 58 AND status = 'erro';
-```
+**Página de Área (VideoaulasOABAreaPrimeiraFase.tsx)**
+- Lista todos os vídeos da área selecionada
+- Layout responsivo (sidebar no desktop, lista no mobile)
+- Thumbnails de alta qualidade
+- Pesquisa dentro da área
+
+**Página de Visualização (VideoaulasOABViewPrimeiraFase.tsx)**
+- Player de vídeo embedado do YouTube
+- Tabs: Sobre | Flashcards | Questões
+- Botão para gerar conteúdo via IA
+- Navegação entre aulas (anterior/próxima)
+
+#### Etapa 4: Configurar Rotas
+Adicionar novas rotas no App.tsx:
+- `/videoaulas-oab-1fase` → Página principal
+- `/videoaulas/oab-1fase/:area` → Lista de vídeos por área
+- `/videoaulas/oab-1fase/:area/:id` → Visualização de vídeo
+
+#### Etapa 5: Integração com Processamento de Conteúdo
+Reutilizar a edge function existente `processar-videoaula-oab` adaptada para:
+- Buscar transcrição do YouTube
+- Gerar resumo "Sobre esta aula" via Gemini
+- Criar flashcards automaticamente
+- Gerar questões de revisão
 
 ---
 
-## Resumo das Alterações
+### Detalhes Técnicos
 
-1. **Simplificar parser JSON** → Usar substituição global igual OAB Trilhas
-2. **Remover `escaparNewlinesEmStrings`** → Função complexa que não resolve o problema real
-3. **Manter `extrairJsonBalanceado`** → Continua útil para limpar texto antes/depois do JSON
-4. **Adicionar ao config.toml** → Garantir que a função está configurada
-5. **Reset tópicos** → Permitir nova geração
+#### Mapeamento de Playlists
+Será criado um objeto de configuração com o mapeamento:
+```text
+PLAYLISTS_OAB = [
+  { area: "Ética Profissional / Estatuto da OAB", playlistId: "PL8vXuI6zmpgwsu0I9WOuMgSBUx98rdyL" },
+  { area: "Filosofia do Direito", playlistId: "PL8vXuI6zmpdi47p3ijoTP0dECj2hoC-pN" },
+  ... (20 playlists)
+]
+```
+
+#### Chave da API do YouTube
+O sistema já usa `YOUTUBE_API_KEY` em outras funções. Será verificado se está configurada e disponível para uso.
+
+#### Sincronização Incremental
+A função de sincronização fará:
+- Buscar vídeos existentes no banco
+- Comparar com vídeos da API do YouTube
+- Inserir novos vídeos
+- Atualizar metadados de existentes (título, thumbnail, etc.)
+- Manter conteúdo gerado (transcrição, flashcards, questões)
+
+#### RLS (Row Level Security)
+A nova tabela será configurada com:
+- Leitura pública (qualquer usuário pode ver vídeos)
+- Escrita restrita a service role (apenas edge functions)
 
 ---
 
-## Resultado Esperado
+### Arquivos a Serem Criados/Modificados
 
-- Parse JSON funcionará igual ao OAB Trilhas (que está gerando corretamente)
-- Os tópicos "Surgimento do Direito", "Direito Romano" e outros serão gerados com sucesso
-- A fila continuará processando automaticamente
+**Novos Arquivos:**
+1. `supabase/functions/sincronizar-videoaulas-oab-primeira-fase/index.ts`
+2. `src/pages/VideoaulasOABPrimeiraFase.tsx`
+3. `src/pages/VideoaulasOABAreaPrimeiraFase.tsx`
+4. `src/pages/VideoaulasOABViewPrimeiraFase.tsx`
+
+**Arquivos Modificados:**
+1. `src/App.tsx` - Adicionar novas rotas
+2. `supabase/config.toml` - Registrar nova edge function
+3. `src/pages/oab/PrimeiraFase.tsx` - Atualizar link para nova página
+
+---
+
+### Benefícios
+
+- **Conteúdo Centralizado**: Todas as 20 áreas da OAB em um só lugar
+- **Sincronização Automática**: Novos vídeos são detectados automaticamente
+- **Geração de Conteúdo por IA**: Transcrições, resumos, flashcards e questões
+- **Experiência Consistente**: Design unificado com as outras seções do app
+- **Performance**: Cache no banco evita chamadas repetidas à API do YouTube
+
+---
+
+### Pré-requisitos
+- Verificar se `YOUTUBE_API_KEY` está configurada como secret no Supabase
+- Criar tabela `videoaulas_oab_primeira_fase` antes de rodar sincronização
