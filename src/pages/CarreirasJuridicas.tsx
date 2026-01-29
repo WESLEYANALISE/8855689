@@ -71,18 +71,29 @@ const CarreirasJuridicas = () => {
           {carreiras.map((carreira, index) => (
             <motion.button
               key={carreira.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                delay: index * 0.08,
+                type: "spring",
+                stiffness: 200,
+                damping: 20
+              }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigate(`/estudo-carreira/${carreira.id}`)}
               className="relative h-40 rounded-2xl overflow-hidden group shadow-xl"
             >
               {/* Background Image ou Gradient */}
               {carreira.capa ? (
-                <img 
+                <motion.img 
                   src={carreira.capa} 
                   alt={carreira.nome}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  initial={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.6, delay: index * 0.08 }}
+                  whileHover={{ scale: 1.1 }}
                 />
               ) : (
                 <div className={`absolute inset-0 bg-gradient-to-br ${carreira.cor}`} />
@@ -93,7 +104,14 @@ const CarreirasJuridicas = () => {
               
               {/* Content - Título alinhado à esquerda na parte inferior */}
               <div className="relative z-10 h-full flex flex-col justify-end p-4">
-                <h3 className="text-lg font-bold text-white text-left">{carreira.nome}</h3>
+                <motion.h3 
+                  className="text-lg font-bold text-white text-left"
+                  initial={{ x: -10, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: index * 0.08 + 0.2 }}
+                >
+                  {carreira.nome}
+                </motion.h3>
               </div>
             </motion.button>
           ))}

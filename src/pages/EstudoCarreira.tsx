@@ -4,6 +4,7 @@ import {
   Library, Calendar, Headphones, Scale
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 
 // Importar TODAS as imagens locais
 import advogadoCapa from '@/assets/carreira-advogado.webp';
@@ -249,19 +250,31 @@ const EstudoCarreira = () => {
             {FUNCIONALIDADES.map((func, index) => {
               const Icon = func.icon;
               return (
-                <div
+                <motion.div
                   key={func.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 30}ms` }}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    delay: index * 0.05,
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 20
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <Card
                     onClick={() => handleFuncionalidade(func.id)}
                     className="p-3 cursor-pointer hover:bg-card/80 transition-all duration-300 border-border/30 group h-full"
                   >
                     <div className="flex items-center gap-3 h-full">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${func.color} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform flex-shrink-0`}>
+                      <motion.div 
+                        className={`w-10 h-10 rounded-lg bg-gradient-to-br ${func.color} flex items-center justify-center shadow-md flex-shrink-0`}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
                         <Icon className="w-5 h-5 text-white" />
-                      </div>
+                      </motion.div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-foreground text-sm leading-tight">
                           {func.titulo}
@@ -272,7 +285,7 @@ const EstudoCarreira = () => {
                       </div>
                     </div>
                   </Card>
-                </div>
+                </motion.div>
               );
             })}
           </div>
