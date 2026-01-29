@@ -144,19 +144,7 @@ const VideoaulasOABViewPrimeiraFase = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-3">
-          <button 
-            onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}`)}
-            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Voltar</span>
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5 pt-4">
 
       {/* Header do Vídeo */}
       <div className="pt-4 pb-2 px-4">
