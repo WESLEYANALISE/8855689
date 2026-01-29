@@ -316,6 +316,9 @@ import VideoaulasAreas from "./pages/VideoaulasAreas";
 import VideoaulasOAB from "./pages/VideoaulasOAB";
 import VideoaulasOABArea from "./pages/VideoaulasOABArea";
 import VideoaulasOABView from "./pages/VideoaulasOABView";
+import VideoaulasOABPrimeiraFase from "./pages/VideoaulasOABPrimeiraFase";
+import VideoaulasOABAreaPrimeiraFase from "./pages/VideoaulasOABAreaPrimeiraFase";
+import VideoaulasOABViewPrimeiraFase from "./pages/VideoaulasOABViewPrimeiraFase";
 import VideoaulasPlaylists from "./pages/VideoaulasPlaylists";
 import VideoaulasArea from "./pages/VideoaulasArea";
 import VideoaulasPlayer from "./pages/VideoaulasPlayer";
@@ -851,6 +854,9 @@ const App = () => {
               <Route path="/videoaulas-oab" element={<VideoaulasOAB />} />
               <Route path="/videoaulas/oab/:area" element={<VideoaulasOABArea />} />
               <Route path="/videoaulas/oab/:area/:id" element={<VideoaulasOABView />} />
+              <Route path="/videoaulas-oab-1fase" element={<VideoaulasOABPrimeiraFase />} />
+              <Route path="/videoaulas/oab-1fase/:area" element={<VideoaulasOABAreaPrimeiraFase />} />
+              <Route path="/videoaulas/oab-1fase/:area/:id" element={<VideoaulasOABViewPrimeiraFase />} />
               <Route path="/simulados" element={<SimuladosHub />} />
               <Route path="/simulados/tjsp" element={<SimuladoTJSPMaterias />} />
               <Route path="/simulados/tjsp/resolver" element={<SimuladoTJSP />} />

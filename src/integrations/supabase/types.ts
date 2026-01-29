@@ -19077,6 +19077,63 @@ export type Database = {
         }
         Relationships: []
       }
+      videoaulas_oab_primeira_fase: {
+        Row: {
+          area: string
+          created_at: string
+          descricao: string | null
+          duracao: string | null
+          flashcards: Json | null
+          id: number
+          ordem: number | null
+          playlist_id: string
+          publicado_em: string | null
+          questoes: Json | null
+          sobre_aula: string | null
+          thumbnail: string | null
+          titulo: string
+          transcricao: string | null
+          updated_at: string
+          video_id: string
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          descricao?: string | null
+          duracao?: string | null
+          flashcards?: Json | null
+          id?: number
+          ordem?: number | null
+          playlist_id: string
+          publicado_em?: string | null
+          questoes?: Json | null
+          sobre_aula?: string | null
+          thumbnail?: string | null
+          titulo: string
+          transcricao?: string | null
+          updated_at?: string
+          video_id: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          descricao?: string | null
+          duracao?: string | null
+          flashcards?: Json | null
+          id?: number
+          ordem?: number | null
+          playlist_id?: string
+          publicado_em?: string | null
+          questoes?: Json | null
+          sobre_aula?: string | null
+          thumbnail?: string | null
+          titulo?: string
+          transcricao?: string | null
+          updated_at?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       videos_resumo_dia: {
         Row: {
           area: string

@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.gerar-definicao-termo]
 verify_jwt = false
+
+[functions.sincronizar-videoaulas-oab-primeira-fase]
+verify_jwt = false
