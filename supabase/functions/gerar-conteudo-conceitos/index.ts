@@ -601,50 +601,72 @@ Termine com o fechamento correto do JSON.`;
          .replace(/[\u2028\u2029]/g, "\n"); // separadores de linha unicode → \n
      };
 
-     // Escapa apenas quebras de linha/TABs que estejam *dentro de strings JSON*.
-     // Importante: NÃO mexe em newlines fora de strings (whitespace estrutural válido do JSON).
+     // Escapa caracteres de controle dentro de strings JSON E corrige sequências inválidas.
+     // Trata o caso onde a IA gera uma barra invertida seguida de newline literal (\\\n)
      const escaparControlesDentroDeStrings = (input: string) => {
        let out = "";
        let inString = false;
-       let escape = false;
+       let i = 0;
 
-       for (let i = 0; i < input.length; i++) {
+       while (i < input.length) {
          const ch = input[i];
+         const nextCh = input[i + 1];
 
-         if (escape) {
-           out += ch;
-           escape = false;
-           continue;
-         }
-
+         // Detectar barra invertida
          if (ch === "\\") {
+           // Se estamos dentro de uma string e o próximo char é um newline literal,
+           // isso é um erro da IA - ela gerou \ seguido de newline real em vez de \\n
+           if (inString && (nextCh === "\n" || nextCh === "\r")) {
+             // Converter \ + newline literal em \\n (escape correto)
+             out += "\\n";
+             i += 2; // pular \ e o newline
+             if (nextCh === "\r" && input[i] === "\n") {
+               i++; // pular \r\n
+             }
+             continue;
+           }
+           
+           // Se o próximo é um char de escape válido, copiar ambos
+           if (nextCh && "nrtbf\"\\/u".includes(nextCh)) {
+             out += ch + nextCh;
+             i += 2;
+             continue;
+           }
+           
+           // Barra invertida sozinha ou seguida de char inválido
            out += ch;
-           escape = true;
+           i++;
            continue;
          }
 
          if (ch === '"') {
            inString = !inString;
            out += ch;
+           i++;
            continue;
          }
 
+         // Dentro de string: escapar caracteres de controle literais
          if (inString) {
            if (ch === "\n") {
              out += "\\n";
+             i++;
              continue;
            }
            if (ch === "\r") {
              out += "\\r";
+             i++;
              continue;
            }
            if (ch === "\t") {
              out += "\\t";
+             i++;
              continue;
            }
          }
 
          out += ch;
+         i++;
        }
 
        return out;
