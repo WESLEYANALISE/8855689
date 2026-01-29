@@ -13,7 +13,7 @@ const PrimeiraFase = () => {
 
   const materiaisItems = [
     { id: "biblioteca", title: "Biblioteca II", description: "Livros e materiais OAB", icon: BookOpen, route: "/biblioteca-oab" },
-    { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo por área", icon: Video, route: "/videoaulas-oab" },
+    { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo por área", icon: Video, route: "/videoaulas-oab-1fase" },
     { id: "resumos", title: "Resumos", description: "Conteúdo resumido", icon: Scroll, route: "/resumos-juridicos" },
     { id: "flashcards", title: "Flashcards", description: "Fixe conceitos com cartões", icon: Sparkles, route: "/flashcards" },
     { id: "questoes", title: "Questões", description: "Pratique com questões", icon: Target, route: "/ferramentas/questoes" },
