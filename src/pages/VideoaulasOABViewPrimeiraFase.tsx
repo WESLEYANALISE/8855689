@@ -1,12 +1,12 @@
+import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Video, Loader2, ChevronLeft, ChevronRight, Sparkles, BookOpen, HelpCircle, Play } from "lucide-react";
+import { ArrowLeft, Video, Loader2, ChevronLeft, ChevronRight, Sparkles, BookOpen, HelpCircle, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useDeviceType } from "@/hooks/use-device-type";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
@@ -29,7 +29,6 @@ const VideoaulasOABViewPrimeiraFase = () => {
   const { area, id } = useParams();
   const decodedArea = decodeURIComponent(area || "");
   const videoId = parseInt(id || "0");
-  const { isDesktop } = useDeviceType();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sobre");
 
@@ -55,7 +54,7 @@ const VideoaulasOABViewPrimeiraFase = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("videoaulas_oab_primeira_fase")
-        .select("id, titulo, ordem")
+        .select("id, titulo, ordem, sobre_aula")
         .eq("area", decodedArea)
         .order("ordem", { ascending: true });
       
@@ -124,95 +123,109 @@ const VideoaulasOABViewPrimeiraFase = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar desktop */}
-      {isDesktop && (
-        <VideoSidebar 
-          area={decodedArea} 
-          currentId={videoId} 
-          videos={allVideos || []} 
-        />
-      )}
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-lg mx-auto px-4 py-3">
+          <button 
+            onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}`)}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+        </div>
+      </div>
 
-      {/* Conteúdo principal */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}`)}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-sm font-semibold text-foreground truncate">
-                {video.titulo}
-              </h1>
-              <p className="text-xs text-muted-foreground">{decodedArea}</p>
+      {/* Header do Vídeo */}
+      <div className="pt-4 pb-2 px-4">
+        <div className="max-w-lg mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
+                <Video className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                  {decodedArea}
+                </span>
+                <h1 className="text-base font-bold mt-1 leading-snug">{video.titulo}</h1>
+              </div>
             </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Player */}
+      <div className="px-4 mb-4">
+        <div className="max-w-lg mx-auto">
+          <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
+            <iframe
+              src={`https://www.youtube.com/embed/${video.video_id}?rel=0`}
+              title={video.titulo}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
           </div>
         </div>
+      </div>
 
-        {/* Player */}
-        <div className="w-full aspect-video bg-black">
-          <iframe
-            src={`https://www.youtube.com/embed/${video.video_id}?rel=0`}
-            title={video.titulo}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full h-full"
-          />
+      {/* Navegação */}
+      <div className="px-4 mb-4">
+        <div className="max-w-lg mx-auto">
+          <div className="flex items-center justify-between py-3 px-4 bg-card rounded-xl border border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!prevVideo}
+              onClick={() => prevVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${prevVideo.id}`)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground font-medium">
+              {currentIndex + 1} de {allVideos?.length || 0}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!nextVideo}
+              onClick={() => nextVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${nextVideo.id}`)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Próxima
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         </div>
+      </div>
 
-        {/* Navegação */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!prevVideo}
-            onClick={() => prevVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${prevVideo.id}`)}
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Anterior
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {currentIndex + 1} de {allVideos?.length || 0}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!nextVideo}
-            onClick={() => nextVideo && navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${nextVideo.id}`)}
-          >
-            Próxima
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-
-        {/* Tabs de conteúdo */}
-        <div className="flex-1 p-4">
+      {/* Tabs de conteúdo */}
+      <div className="px-4 pb-24">
+        <div className="max-w-lg mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3 mb-4">
-              <TabsTrigger value="sobre" className="gap-2">
+            <TabsList className="w-full grid grid-cols-2 mb-4 bg-neutral-800/80">
+              <TabsTrigger value="sobre" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
                 <BookOpen className="w-4 h-4" />
                 Sobre
               </TabsTrigger>
-              <TabsTrigger value="flashcards" className="gap-2">
+              <TabsTrigger value="flashcards" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
                 <Sparkles className="w-4 h-4" />
                 Flashcards
-              </TabsTrigger>
-              <TabsTrigger value="questoes" className="gap-2">
-                <HelpCircle className="w-4 h-4" />
-                Questões
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="sobre">
               {video.sobre_aula ? (
-                <div className="prose prose-sm prose-invert max-w-none">
-                  <ReactMarkdown>{video.sobre_aula}</ReactMarkdown>
+                <div className="bg-card rounded-xl p-4 border border-border">
+                  <div className="prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown>{video.sobre_aula}</ReactMarkdown>
+                  </div>
                 </div>
               ) : (
                 <EmptyContent 
@@ -236,54 +249,40 @@ const VideoaulasOABViewPrimeiraFase = () => {
                 />
               )}
             </TabsContent>
-
-            <TabsContent value="questoes">
-              {video.questoes && video.questoes.length > 0 ? (
-                <QuestoesView questoes={video.questoes} />
-              ) : (
-                <EmptyContent 
-                  title="Questões não geradas" 
-                  description="Clique no botão abaixo para gerar questões de revisão"
-                  onGenerate={() => generateMutation.mutate()}
-                  isGenerating={generateMutation.isPending}
-                />
-              )}
-            </TabsContent>
           </Tabs>
         </div>
       </div>
-    </div>
-  );
-};
 
-// Sidebar de vídeos
-const VideoSidebar = ({ area, currentId, videos }: { area: string; currentId: number; videos: any[] }) => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="w-80 bg-card border-r border-border flex flex-col h-screen sticky top-0">
-      <div className="p-4 border-b border-border">
-        <h2 className="text-sm font-bold text-foreground">{area}</h2>
-        <p className="text-xs text-muted-foreground">{videos.length} aulas</p>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {videos.map((v, index) => (
-          <button
-            key={v.id}
-            onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(area)}/${v.id}`)}
-            className={cn(
-              "w-full text-left p-2 rounded-lg transition-all text-xs",
-              v.id === currentId
-                ? "bg-red-500/20 border border-red-500/40 text-red-400"
-                : "hover:bg-secondary/80 border border-transparent text-foreground"
-            )}
-          >
-            <span className="font-bold mr-2 text-muted-foreground">
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span className="line-clamp-2">{v.titulo}</span>
-          </button>
-        ))}
+      {/* Lista de Aulas (Mini Sidebar) */}
+      <div className="px-4 pb-24">
+        <div className="max-w-lg mx-auto">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+            <Video className="w-4 h-4" />
+            Outras Aulas
+          </h2>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {allVideos?.map((v, index) => (
+              <button
+                key={v.id}
+                onClick={() => navigate(`/videoaulas/oab-1fase/${encodeURIComponent(decodedArea)}/${v.id}`)}
+                className={cn(
+                  "w-full text-left p-3 rounded-xl transition-all text-sm flex items-center gap-3",
+                  v.id === videoId
+                    ? "bg-red-500/20 border border-red-500/40 text-red-400"
+                    : "bg-neutral-800/50 hover:bg-neutral-700/50 border border-transparent text-foreground"
+                )}
+              >
+                <span className="font-bold text-muted-foreground w-6 text-center">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="flex-1 line-clamp-2 leading-snug">{v.titulo}</span>
+                {v.sobre_aula && (
+                  <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -296,10 +295,10 @@ const EmptyContent = ({ title, description, onGenerate, isGenerating }: {
   onGenerate: () => void;
   isGenerating: boolean;
 }) => (
-  <div className="flex flex-col items-center justify-center py-12 text-center">
+  <div className="flex flex-col items-center justify-center py-12 text-center bg-card rounded-xl border border-border">
     <Sparkles className="w-12 h-12 text-muted-foreground/30 mb-4" />
     <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
-    <p className="text-sm text-muted-foreground mb-6 max-w-sm">{description}</p>
+    <p className="text-sm text-muted-foreground mb-6 max-w-sm px-4">{description}</p>
     <Button
       onClick={onGenerate}
       disabled={isGenerating}
@@ -334,7 +333,7 @@ const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
         className="cursor-pointer min-h-[200px] bg-gradient-to-br from-red-900/20 to-background border border-red-500/30 rounded-xl p-6 flex items-center justify-center text-center transition-all hover:border-red-500/50"
       >
         <p className="text-lg font-medium">
-          {flipped ? card?.resposta || card?.back : card?.pergunta || card?.front}
+          {flipped ? card?.resposta || card?.back || card?.verso : card?.pergunta || card?.front || card?.frente}
         </p>
       </div>
       <p className="text-xs text-center text-muted-foreground">
@@ -361,57 +360,6 @@ const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
-    </div>
-  );
-};
-
-// Questões
-const QuestoesView = ({ questoes }: { questoes: any[] }) => {
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [showResults, setShowResults] = useState(false);
-
-  return (
-    <div className="space-y-6">
-      {questoes.map((q, index) => (
-        <div key={index} className="bg-card border border-border rounded-xl p-4">
-          <p className="font-medium mb-3">{q.pergunta || q.enunciado}</p>
-          <div className="space-y-2">
-            {(q.alternativas || q.opcoes || []).map((alt: any, altIndex: number) => {
-              const letra = String.fromCharCode(65 + altIndex);
-              const texto = typeof alt === 'string' ? alt : alt.texto;
-              const isSelected = answers[index] === letra;
-              const isCorrect = showResults && (q.correta === letra || q.resposta_correta === letra);
-              const isWrong = showResults && isSelected && !isCorrect;
-
-              return (
-                <button
-                  key={altIndex}
-                  onClick={() => !showResults && setAnswers(prev => ({ ...prev, [index]: letra }))}
-                  className={cn(
-                    "w-full text-left p-3 rounded-lg border transition-all text-sm",
-                    isCorrect && "bg-green-500/20 border-green-500",
-                    isWrong && "bg-red-500/20 border-red-500",
-                    isSelected && !showResults && "bg-red-500/20 border-red-500",
-                    !isSelected && !showResults && "border-border hover:border-red-500/50"
-                  )}
-                  disabled={showResults}
-                >
-                  <span className="font-bold mr-2">{letra})</span>
-                  {texto}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-      
-      <Button
-        onClick={() => setShowResults(true)}
-        disabled={showResults || Object.keys(answers).length !== questoes.length}
-        className="w-full bg-red-600 hover:bg-red-700"
-      >
-        Verificar Respostas
-      </Button>
     </div>
   );
 };
