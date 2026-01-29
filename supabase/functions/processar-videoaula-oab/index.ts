@@ -177,36 +177,56 @@ function parseXmlTranscript(xml: string): string {
 }
 
 async function generateSobreAula(titulo: string, transcricao: string, fase: string = "1ª"): Promise<string> {
-  const prompt = `Você é um professor de Direito especializado em criar resumos didáticos para a ${fase} Fase da OAB.
+  const prompt = `Você é um professor de Direito especializado em preparar alunos para a ${fase} Fase da OAB.
 
-Com base no título e transcrição da videoaula abaixo, crie um resumo estruturado em Markdown:
+Analise a transcrição desta videoaula e crie um resumo COMPLETO E DIDÁTICO do conteúdo.
 
-## 🎯 Tema Principal
-[Qual o assunto central da aula]
+**IMPORTANTE**: Extraia informações ESPECÍFICAS da transcrição. Não invente conteúdo genérico.
 
-## 📚 Tópicos Abordados
-- [Liste os principais tópicos, conceitos e pontos ensinados]
-- [Se menciona "dicas", liste cada uma]
-- [Se menciona "técnicas", liste cada uma]
+Estruture assim:
 
-## 💡 Conceitos-Chave
-- [Destaque definições e conceitos importantes]
+## 🎯 Sobre Esta Aula
+[Explique em 2-3 frases o que o aluno vai aprender nesta aula. Seja específico sobre o tema abordado.]
 
-## 📖 Aplicação Prática  
-- [Exemplos práticos mencionados na aula]
-- [Como aplicar na prova da OAB]
+## 📚 O Que Você Vai Aprender
+[Liste TODOS os tópicos, conceitos e assuntos abordados na aula. Seja detalhado!]
+- Tópico 1: [descrição breve]
+- Tópico 2: [descrição breve]
+- [Continue listando todos os tópicos mencionados]
 
-## ⭐ Pontos de Destaque
-- [Principais aprendizados e pontos de atenção]
+## 💡 Conceitos Importantes
+[Explique os principais conceitos jurídicos ensinados na aula]
+- **Conceito X**: [definição conforme explicado na aula]
+- **Conceito Y**: [definição conforme explicado na aula]
 
-IMPORTANTE: Extraia o conteúdo REAL da transcrição. Seja específico e detalhado.
+## 📖 Aplicação na OAB
+[Como esse conteúdo aparece na prova da OAB ${fase} Fase]
+- Tipos de questões que podem cair
+- Pegadinhas comuns que o professor menciona
+- Dicas específicas para a prova
 
-TÍTULO: ${titulo}
+## ⭐ Destaques da Aula
+[Pontos mais importantes que o aluno PRECISA memorizar]
+- Ponto-chave 1
+- Ponto-chave 2
+- Ponto-chave 3
 
-TRANSCRIÇÃO:
-${transcricao.substring(0, 10000)}
+---
 
-Responda APENAS com o Markdown formatado.`;
+TÍTULO DA AULA: ${titulo}
+
+TRANSCRIÇÃO COMPLETA:
+${transcricao.substring(0, 12000)}
+
+---
+
+REGRAS:
+1. Extraia informações REAIS da transcrição - não invente
+2. Seja ESPECÍFICO e DETALHADO
+3. Se o professor menciona dicas, liste TODAS
+4. Se menciona prazos, valores ou requisitos, inclua EXATAMENTE
+5. Use linguagem clara e objetiva
+6. Responda APENAS com o Markdown formatado, sem explicações adicionais`;
 
   return await callGeminiWithFallback(prompt);
 }
