@@ -145,7 +145,7 @@ const VideoaulasOABViewPrimeiraFase = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
-      {/* Header com Voltar */}
+      {/* Header com Voltar - estilo igual à página de áreas */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-3">
           <button 
