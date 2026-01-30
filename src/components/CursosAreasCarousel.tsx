@@ -5,7 +5,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useCursosCache } from "@/hooks/useCursosCache";
 import { cn } from "@/lib/utils";
-import { preloadImages, isImagePreloaded } from "@/hooks/useInstantCache";
+import { preloadImages } from "@/hooks/useInstantCache";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 interface AulaPreview {
   area: string;
@@ -50,12 +51,6 @@ const getOrChooseArea = (areas: string[]): string | null => {
 // Card individual no mesmo formato do NoticiaCarouselCard
 const CursoAulaCard = ({ aula, priority = false }: { aula: AulaPreview; priority?: boolean }) => {
   const navigate = useNavigate();
-  
-  // Verificar se imagem já está no cache de imagens para evitar skeleton desnecessário
-  const [isLoading, setIsLoading] = useState(() => {
-    if (!aula.capaAula) return false;
-    return !isImagePreloaded(aula.capaAula);
-  });
 
   return (
     <div 
@@ -63,29 +58,16 @@ const CursoAulaCard = ({ aula, priority = false }: { aula: AulaPreview; priority
       className="flex-shrink-0 w-[240px] cursor-pointer group"
     >
       <div className="flex flex-col rounded-xl bg-card border border-border shadow-lg overflow-hidden h-full">
-        {/* Imagem - proporção 16:9 com skeleton shimmer */}
+        {/* Imagem - proporção 16:9 com UniversalImage */}
         <div className="relative w-full aspect-[16/9] overflow-hidden flex-shrink-0">
-          {/* Skeleton shimmer enquanto carrega */}
-          <div 
-            className={cn(
-              "absolute inset-0 skeleton-shimmer transition-opacity duration-300",
-              isLoading ? "opacity-100" : "opacity-0"
-            )}
-          />
-          
           {aula.capaAula ? (
-            <img 
-              src={aula.capaAula} 
+            <UniversalImage
+              src={aula.capaAula}
               alt={aula.tema}
-              loading={priority ? "eager" : "lazy"}
-              decoding={priority ? "sync" : "async"}
-              fetchPriority={priority ? "high" : "auto"}
-              className={cn(
-                "w-full h-full object-cover transition-all duration-300 group-hover:scale-105",
-                isLoading ? "opacity-0" : "opacity-100"
-              )}
-              onLoad={() => setIsLoading(false)}
-              onError={() => setIsLoading(false)}
+              priority={priority}
+              blurCategory="course"
+              containerClassName="w-full h-full"
+              className="group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/40 via-background to-background">

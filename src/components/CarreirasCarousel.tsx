@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { UniversalImage } from '@/components/ui/universal-image';
 
 // Imagens locais para PRF e PF
 import prfCapa from '@/assets/prf-capa.jpg';
@@ -32,12 +33,14 @@ const CarreiraCard = memo(({
   carreira, 
   capaUrl, 
   isGenerating,
-  onClick 
+  onClick,
+  priority = false
 }: { 
   carreira: Carreira;
   capaUrl?: string;
   isGenerating: boolean;
   onClick: () => void;
+  priority?: boolean;
 }) => {
   const imagemFinal = carreira.capaLocal || capaUrl;
 
@@ -53,11 +56,12 @@ const CarreiraCard = memo(({
         }}
       >
         {imagemFinal ? (
-          <img
+          <UniversalImage
             src={imagemFinal}
             alt={carreira.nome}
-            className="w-full h-full object-cover"
-            loading="lazy"
+            priority={priority}
+            blurCategory="career"
+            containerClassName="w-full h-full"
           />
         ) : isGenerating ? (
           <div className="w-full h-full bg-gradient-to-br from-red-900 to-red-950 flex flex-col items-center justify-center gap-2">
@@ -71,8 +75,8 @@ const CarreiraCard = memo(({
         )}
         
         {/* Overlay com título */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-3">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
           <h3 className="text-white font-bold text-sm leading-tight drop-shadow-lg">
             {carreira.nome}
           </h3>
@@ -160,13 +164,14 @@ export const CarreirasCarousel = () => {
   return (
     <div className="overflow-hidden -mx-1 px-1" ref={emblaRef}>
       <div className="flex gap-3">
-        {CARREIRAS.map((carreira) => (
+        {CARREIRAS.map((carreira, index) => (
           <CarreiraCard
             key={carreira.id}
             carreira={carreira}
             capaUrl={capas[carreira.id]}
             isGenerating={gerando.has(carreira.id)}
             onClick={() => navigate(`/carreira/${carreira.id}`)}
+            priority={index < 3}
           />
         ))}
       </div>

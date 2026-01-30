@@ -3,6 +3,7 @@ import { Search, GraduationCap, ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { DesktopAuthButtons } from "@/components/DesktopAuthButtons";
 import { motion } from "framer-motion";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 // Hero images em /public para preload instantâneo via index.html
 const HERO_IMAGES = [
@@ -36,10 +37,14 @@ export const DesktopTopNav = () => {
     <header className="w-full relative z-10">
       {/* Top Bar com Hero Banner */}
       <div className="relative h-28 overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroBanner})` }}
+        {/* Background Image com UniversalImage */}
+        <UniversalImage
+          src={heroBanner}
+          alt="Hero Banner"
+          priority={true}
+          blurCategory="hero"
+          containerClassName="absolute inset-0"
+          className="object-cover object-center"
         />
         {/* Overlay gradient suave - imagem levemente visível */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a0a0a]/90 via-[#1a0a0a]/70 to-[#1a0a0a]/90" />

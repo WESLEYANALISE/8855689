@@ -1,15 +1,16 @@
 import { memo } from "react";
 import { Card } from "@/components/ui/card";
-import { isImagePreloaded, markImageLoaded } from "@/hooks/useInstantCache";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 interface LivroCarouselCardProps {
   titulo: string;
   capaUrl: string | null;
   onClick: () => void;
   numero?: number;
+  priority?: boolean;
 }
 
-export const LivroCarouselCard = memo(({ titulo, capaUrl, onClick, numero }: LivroCarouselCardProps) => {
+export const LivroCarouselCard = memo(({ titulo, capaUrl, onClick, numero, priority = false }: LivroCarouselCardProps) => {
   return (
     <Card
       onClick={onClick}
@@ -24,16 +25,13 @@ export const LivroCarouselCard = memo(({ titulo, capaUrl, onClick, numero }: Liv
           </div>
         )}
         {capaUrl ? (
-          <img
+          <UniversalImage
             src={capaUrl}
             alt={titulo}
-            className="absolute inset-0 w-full h-full object-cover"
-            loading={isImagePreloaded(capaUrl) ? "eager" : "lazy"}
-            decoding={isImagePreloaded(capaUrl) ? "sync" : "async"}
-            onLoad={() => capaUrl && markImageLoaded(capaUrl)}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
+            priority={priority}
+            blurCategory="book"
+            containerClassName="absolute inset-0"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center">
@@ -42,10 +40,10 @@ export const LivroCarouselCard = memo(({ titulo, capaUrl, onClick, numero }: Liv
         )}
         
         {/* Gradient overlay - dark from bottom fading to transparent top */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
         
         {/* Title overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
+        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
           <h4 className="text-sm md:text-base font-condensed font-light text-white line-clamp-3 drop-shadow-lg leading-tight tracking-wide">
             {titulo}
           </h4>
@@ -58,6 +56,7 @@ export const LivroCarouselCard = memo(({ titulo, capaUrl, onClick, numero }: Liv
   return (
     prevProps.titulo === nextProps.titulo &&
     prevProps.capaUrl === nextProps.capaUrl &&
-    prevProps.numero === nextProps.numero
+    prevProps.numero === nextProps.numero &&
+    prevProps.priority === nextProps.priority
   );
 });

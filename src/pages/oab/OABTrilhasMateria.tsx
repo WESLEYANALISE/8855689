@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { useOABTrilhasAutoGeneration } from "@/hooks/useOABTrilhasAutoGeneration";
 import { OABTrilhasProgressBadge } from "@/components/oab/OABTrilhasProgressBadge";
 import { toast } from "sonner";
+import { InstantBackground } from "@/components/ui/instant-background";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 const OABTrilhasMateria = () => {
   const { materiaId } = useParams<{ materiaId: string }>();
@@ -144,21 +146,19 @@ const OABTrilhasMateria = () => {
     },
   });
 
-  // REMOVIDO: Geração automática de capa ao abrir lista
-  // A capa deve vir da matéria (area.capa_url) e não ser gerada automaticamente
-
   const totalMaterias = materias?.length || 0;
   const totalTopicos = Object.values(subtemasCount || {}).reduce((a, b) => a + b, 0);
   const isLoading = loadingArea || loadingMaterias;
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${bgMateriasOab})` }}
+      {/* Background com InstantBackground */}
+      <InstantBackground
+        src={bgMateriasOab}
+        alt="OAB"
+        blurCategory="oab"
+        gradientClassName="bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]"
       />
-      <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]" />
       
       {/* Content */}
       <div className="relative z-10">
@@ -210,8 +210,6 @@ const OABTrilhasMateria = () => {
               <span>{totalTopicos} tópicos</span>
             </div>
           </div>
-          
-          {/* Banner de geração removido conforme solicitado */}
 
           {/* Banner de conclusão */}
           {!isGenerating && concluidos === totalTopicosGerados && totalTopicosGerados > 0 && pendentes === 0 && (
@@ -294,13 +292,12 @@ const OABTrilhasMateria = () => {
                           <div className="h-20 w-full overflow-hidden relative flex-shrink-0">
                             {(temCapa || area?.capa_url) ? (
                               <>
-                                <img 
-                                  src={materia.capa_url || area?.capa_url || ''} 
+                                <UniversalImage
+                                  src={materia.capa_url || area?.capa_url || ''}
                                   alt={materia.titulo}
-                                  className="w-full h-full object-cover"
-                                  loading="eager"
-                                  fetchPriority="high"
-                                  decoding="sync"
+                                  priority={index < 4}
+                                  blurCategory="oab"
+                                  containerClassName="w-full h-full"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
                               </>

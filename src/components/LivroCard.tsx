@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
-import { isImagePreloaded, markImageLoaded } from "@/hooks/useInstantCache";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 interface LivroCardProps {
   titulo: string;
@@ -11,9 +11,10 @@ interface LivroCardProps {
   onClick: () => void;
   numero?: number; // Número de sequência do livro
   ano?: number; // Ano de atualização
+  priority?: boolean; // Se deve carregar com prioridade alta
 }
 
-export const LivroCard = ({ titulo, autor, subtitulo, capaUrl, sobre, onClick, numero, ano = 2026 }: LivroCardProps) => {
+export const LivroCard = ({ titulo, autor, subtitulo, capaUrl, sobre, onClick, numero, ano = 2026, priority = false }: LivroCardProps) => {
   return (
     <Card
       className="cursor-pointer hover:shadow-2xl transition-all duration-300 overflow-hidden bg-card/50 backdrop-blur-sm border border-accent/20 hover:border-accent/40 hover:scale-[1.02] group animate-fade-in"
@@ -22,16 +23,13 @@ export const LivroCard = ({ titulo, autor, subtitulo, capaUrl, sobre, onClick, n
       <div className="flex gap-4 p-4">
         <div className="relative w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-accent/20 to-accent/5 shadow-lg group-hover:shadow-accent/50 transition-shadow">
           {capaUrl ? (
-            <img
+            <UniversalImage
               src={capaUrl}
               alt={titulo}
-              loading={isImagePreloaded(capaUrl) ? "eager" : "lazy"}
-              decoding={isImagePreloaded(capaUrl) ? "sync" : "async"}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              onLoad={() => capaUrl && markImageLoaded(capaUrl)}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
+              priority={priority}
+              blurCategory="book"
+              containerClassName="w-full h-full"
+              className="group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
