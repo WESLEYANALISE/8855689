@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const REVISION = "v2.5.2";
+const REVISION = "v3.0.0";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
@@ -9,12 +9,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// 🔑 USANDO AS MESMAS CHAVES DA PROFESSORA COM FALLBACK
+// 🔑 Pool de chaves com fallback
 const API_KEYS = [
   Deno.env.get('GEMINI_KEY_1'),
   Deno.env.get('GEMINI_KEY_2'),
   Deno.env.get('GEMINI_KEY_3'),
 ].filter(Boolean) as string[];
+
+// 📊 Configuração de tokens por nível
+const TOKEN_CONFIG = {
+  super_resumido: { maxTokens: 1000, chunkSize: 10000, maxChunks: 1 },
+  resumido: { maxTokens: 3000, chunkSize: 12000, maxChunks: 1 },
+  detalhado: { maxTokens: 8000, chunkSize: 15000, maxChunks: 3 },
+};
 
 async function chamarGemini(messages: any[], config: any): Promise<any> {
   if (API_KEYS.length === 0) {
@@ -59,22 +66,19 @@ async function chamarGemini(messages: any[], config: any): Promise<any> {
   throw lastError || new Error('Todas as chaves API falharam');
 }
 
-// 📄 Extrair texto do PDF usando unpdf (biblioteca robusta para serverless)
+// 📄 Extrair texto do PDF usando unpdf
 async function extrairTextoPDF(base64Data: string): Promise<string> {
   console.log("📄 [UNPDF] Iniciando extração com unpdf...");
   
   try {
-    // Importar dinamicamente para evitar erros de tipo
-    const { extractText, getDocumentProxy } = await import('https://esm.sh/unpdf@0.11.0');
+    const { extractText } = await import('https://esm.sh/unpdf@0.11.0');
     
-    // Converter base64 para Uint8Array
     const binaryString = atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
     
-    // Extrair texto de todas as páginas
     const result = await extractText(bytes, { mergePages: true });
     
     console.log(`✅ [UNPDF] Extração completa: ${result.text.length} caracteres de ${result.totalPages} páginas`);
@@ -86,8 +90,36 @@ async function extrairTextoPDF(base64Data: string): Promise<string> {
   }
 }
 
+// 📦 Dividir texto em chunks para processamento
+function dividirEmChunks(texto: string, chunkSize: number): string[] {
+  const chunks: string[] = [];
+  let inicio = 0;
+  
+  while (inicio < texto.length) {
+    let fim = inicio + chunkSize;
+    
+    // Tentar quebrar em um ponto natural (parágrafo ou sentença)
+    if (fim < texto.length) {
+      const proximoParrafo = texto.indexOf('\n\n', fim - 500);
+      if (proximoParrafo !== -1 && proximoParrafo < fim + 500) {
+        fim = proximoParrafo;
+      } else {
+        const proximoPonto = texto.indexOf('. ', fim - 200);
+        if (proximoPonto !== -1 && proximoPonto < fim + 200) {
+          fim = proximoPonto + 1;
+        }
+      }
+    }
+    
+    chunks.push(texto.substring(inicio, fim).trim());
+    inicio = fim;
+  }
+  
+  return chunks;
+}
+
 serve(async (req) => {
-  console.log(`📍 Function: gerar-resumo@${REVISION} | Model: ${MODEL} | PDF: pdf-parse`);
+  console.log(`📍 Function: gerar-resumo@${REVISION} | Model: ${MODEL}`);
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,7 +138,6 @@ serve(async (req) => {
     if (tipo === "texto") {
       textoParaResumir = conteudo;
     } else if (tipo === "pdf") {
-      // 📄 PDF: Usar pdf-parse para extração robusta
       if (!arquivo) {
         throw new Error("Arquivo PDF não fornecido");
       }
@@ -124,7 +155,6 @@ serve(async (req) => {
       }
       
     } else if (tipo === "imagem") {
-      // 🖼️ Imagem: Usar Gemini Vision
       if (!arquivo) {
         throw new Error("Arquivo de imagem não fornecido");
       }
@@ -148,7 +178,7 @@ serve(async (req) => {
       while (extractionAttempts < maxAttempts) {
         try {
           extractionAttempts++;
-          console.log(`🔄 [EXTRAÇÃO] Tentativa ${extractionAttempts}/${maxAttempts} de extração de texto da imagem`);
+          console.log(`🔄 [EXTRAÇÃO] Tentativa ${extractionAttempts}/${maxAttempts}`);
           
           const visionData = await chamarGemini(extractionMessages, {
             temperature: 0.1,
@@ -158,17 +188,16 @@ serve(async (req) => {
           textoParaResumir = visionData.candidates?.[0]?.content?.parts?.[0]?.text || '';
           
           if (!textoParaResumir) {
-            console.error("Resposta da API sem conteúdo:", JSON.stringify(visionData));
             throw new Error("A API não retornou conteúdo extraído");
           }
           
-          console.log(`✅ [SUCESSO] Texto extraído da imagem (tentativa ${extractionAttempts}) - ${textoParaResumir.length} caracteres`);
+          console.log(`✅ [SUCESSO] Texto extraído - ${textoParaResumir.length} caracteres`);
           break;
           
         } catch (error) {
           console.error(`Tentativa ${extractionAttempts} falhou:`, error);
           if (extractionAttempts >= maxAttempts) {
-            throw new Error(`Falha na extração após ${maxAttempts} tentativas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+            throw new Error(`Falha na extração após ${maxAttempts} tentativas`);
           }
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
@@ -191,13 +220,75 @@ serve(async (req) => {
       throw new Error("Não foi possível extrair conteúdo suficiente do arquivo");
     }
 
-    // Preparar prompt e mensagens para o resumo (com níveis)
     const nivelEscolhido = (nivel === "resumido" || nivel === "super_resumido") ? nivel : "detalhado";
+    const config = TOKEN_CONFIG[nivelEscolhido as keyof typeof TOKEN_CONFIG];
 
-    let promptTexto = "";
+    console.log(`📊 Configuração: ${nivelEscolhido} | maxTokens: ${config.maxTokens} | chunkSize: ${config.chunkSize}`);
+
+    // 🔄 GERAÇÃO EM PARTES para conteúdo grande
+    let resumoFinal = "";
     
-    if (nivelEscolhido === "super_resumido") {
-      promptTexto = `Você é um especialista em criar resumos jurídicos SUPER RESUMIDOS.
+    if (textoParaResumir.length > config.chunkSize && nivelEscolhido === "detalhado") {
+      console.log(`📦 Conteúdo grande (${textoParaResumir.length} chars) - dividindo em chunks...`);
+      
+      const chunks = dividirEmChunks(textoParaResumir, config.chunkSize);
+      const chunksToProcess = chunks.slice(0, config.maxChunks);
+      
+      console.log(`📦 ${chunksToProcess.length} chunks para processar (de ${chunks.length} total)`);
+      
+      const resumosParciais: string[] = [];
+      
+      for (let i = 0; i < chunksToProcess.length; i++) {
+        const chunk = chunksToProcess[i];
+        console.log(`🔄 Processando chunk ${i + 1}/${chunksToProcess.length} (${chunk.length} chars)`);
+        
+        const promptChunk = `Você é um especialista em criar resumos jurídicos SUPER DETALHADOS.
+
+NÍVEL: DETALHADO MÁXIMO - ANÁLISE COMPLETA (Parte ${i + 1} de ${chunksToProcess.length})
+
+CONTEÚDO A RESUMIR:
+${chunk}
+
+INSTRUÇÕES OBRIGATÓRIAS:
+- Crie 4-6 parágrafos COMPLETOS para esta seção
+- Cada parágrafo deve ter 5-8 linhas (100-150 palavras)
+- Desenvolva CADA conceito com exemplos práticos
+- Cite TODOS os artigos/leis relevantes com explicação detalhada
+- Explique TODOS os termos técnicos de forma didática
+- Use analogias para facilitar a compreensão
+- Inclua jurisprudência quando aplicável
+- Use negrito (**texto**) para termos importantes
+- NÃO inclua introdução ou conclusão genérica
+- NÃO gere imagens, ilustrações ou placeholders de imagem
+- Foque APENAS no conteúdo técnico e jurídico
+
+ESTRUTURA:
+## 📋 Análise Detalhada (Parte ${i + 1})
+
+[Parágrafos completos e detalhados...]`;
+
+        const messages = [{ role: "user", parts: [{ text: promptChunk }] }];
+        
+        const aiData = await chamarGemini(messages, {
+          temperature: 0.2,
+          maxOutputTokens: config.maxTokens,
+        });
+
+        const resumoChunk = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (resumoChunk) {
+          resumosParciais.push(resumoChunk);
+        }
+      }
+      
+      // Concatenar partes
+      resumoFinal = `# 📄 Resumo Jurídico Detalhado\n\n${resumosParciais.join('\n\n---\n\n')}`;
+      
+    } else {
+      // Processamento normal (texto pequeno ou níveis resumido/super_resumido)
+      let promptTexto = "";
+      
+      if (nivelEscolhido === "super_resumido") {
+        promptTexto = `Você é um especialista em criar resumos jurídicos SUPER RESUMIDOS.
 
 NÍVEL: SUPER RESUMIDO - MÁXIMA CONCISÃO
 
@@ -211,6 +302,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 - Inclua emojis relevantes em cada bullet
 - NÃO crie parágrafos, APENAS bullets
 - Cite artigos/leis APENAS quando essencial
+- NÃO gere imagens ou ilustrações
 
 FORMATO EXATO:
 # 📄 Resumo Jurídico
@@ -220,8 +312,8 @@ FORMATO EXATO:
 • [Emoji] [Ponto principal 3 em 10-15 palavras]
 • [Emoji] [Ponto principal 4 em 10-15 palavras]`;
 
-    } else if (nivelEscolhido === "resumido") {
-      promptTexto = `Você é um especialista em criar resumos jurídicos RESUMIDOS.
+      } else if (nivelEscolhido === "resumido") {
+        promptTexto = `Você é um especialista em criar resumos jurídicos RESUMIDOS.
 
 NÍVEL: RESUMIDO - EQUILÍBRIO ENTRE CONCISÃO E INFORMAÇÃO
 
@@ -235,6 +327,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 - Inclua emojis profissionais nos cabeçalhos
 - Cite artigos/leis quando relevante
 - Seja objetivo e direto
+- NÃO gere imagens ou ilustrações
 
 ESTRUTURA OBRIGATÓRIA:
 # 📄 Resumo Jurídico
@@ -251,71 +344,79 @@ ESTRUTURA OBRIGATÓRIA:
 ## 📌 Conclusão
 [1 parágrafo de 2-3 linhas]`;
 
-    } else {
-      promptTexto = `Você é um especialista em criar resumos jurídicos DETALHADOS e COMPLETOS.
+      } else {
+        promptTexto = `Você é um especialista em criar resumos jurídicos SUPER DETALHADOS e COMPLETOS.
 
-NÍVEL: DETALHADO - ANÁLISE APROFUNDADA
+NÍVEL: DETALHADO MÁXIMO - ANÁLISE APROFUNDADA
 
 CONTEÚDO A RESUMIR:
 ${textoParaResumir}
 
 INSTRUÇÕES OBRIGATÓRIAS:
-- Crie 2-3 parágrafos COMPLETOS por tópico principal
-- Cada parágrafo deve ter 3-5 linhas (60-100 palavras)
-- Desenvolva cada conceito com profundidade
+- Crie 4-6 parágrafos COMPLETOS por tópico principal
+- Cada parágrafo deve ter 5-8 linhas (100-150 palavras)
+- Desenvolva CADA conceito com exemplos práticos brasileiros
+- Cite TODOS os artigos/leis relevantes COM explicação detalhada
+- Explique TODOS os termos técnicos de forma didática
+- Use analogias do dia a dia para facilitar compreensão
+- Inclua jurisprudência relevante quando aplicável
 - Use negrito (**texto**), listas e citações quando apropriado
 - Inclua emojis profissionais nos cabeçalhos
-- Cite artigos/leis com contexto e explicação
-- Explique termos técnicos quando necessário
+- Seja EXTREMAMENTE detalhado e didático
+- NÃO gere imagens, ilustrações ou placeholders de imagem
 
 ESTRUTURA OBRIGATÓRIA:
 # 📄 Resumo Jurídico Detalhado
 
-## 🎯 Visão Geral
-[2-3 parágrafos de 3-5 linhas cada, apresentando o contexto geral]
+## 🎯 Visão Geral e Contexto
+[4-6 parágrafos de 5-8 linhas cada, apresentando o contexto histórico, social e jurídico]
 
-## 📋 Pontos Principais
-[2-3 parágrafos de 3-5 linhas cada, desenvolvendo os pontos essenciais]
+## 📋 Pontos Principais e Conceitos
+[4-6 parágrafos de 5-8 linhas cada, desenvolvendo cada ponto com profundidade]
 
-## ⚖️ Fundamentos Legais
-[2-3 parágrafos de 3-5 linhas cada, explicando a base legal]
+## ⚖️ Fundamentos Legais e Normativos
+[4-6 parágrafos de 5-8 linhas cada, explicando a base legal com citações]
 
-## 🔍 Conceitos-Chave
-[2-3 parágrafos de 3-5 linhas cada, detalhando conceitos importantes]
+## 🔍 Análise Detalhada dos Conceitos-Chave
+[4-6 parágrafos de 5-8 linhas cada, aprofundando em cada conceito]
 
-## 📌 Conclusão
-[2-3 parágrafos de 3-5 linhas cada, sintetizando e concluindo]`;
+## 💡 Aplicações Práticas e Exemplos
+[4-6 parágrafos de 5-8 linhas cada, com casos práticos e exemplos]
+
+## 📌 Síntese e Conclusões
+[4-6 parágrafos de 5-8 linhas cada, sintetizando e concluindo]`;
+      }
+
+      let messages: any[] = [];
+      if (tipo === "imagem" && ((textoParaResumir?.trim().length || 0) < 50) && arquivo && base64Data && mimeType) {
+        messages = [{
+          role: "user",
+          parts: [
+            { text: `Analise a imagem e gere um resumo jurídico no nível: ${nivelEscolhido}. NÃO gere imagens ou ilustrações.` },
+            { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+          ]
+        }];
+      } else {
+        messages = [{ role: "user", parts: [{ text: promptTexto }] }];
+      }
+
+      console.log("🤖 [GEMINI] Gerando resumo | Nível:", nivelEscolhido, "| Caracteres:", textoParaResumir.length);
+
+      const aiData = await chamarGemini(messages, {
+        temperature: 0.2,
+        maxOutputTokens: config.maxTokens,
+      });
+
+      resumoFinal = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
 
-    let messages: any[] = [];
-    if (tipo === "imagem" && ((textoParaResumir?.trim().length || 0) < 50) && arquivo && base64Data && mimeType) {
-      messages = [{
-        role: "user",
-        parts: [
-          { text: `Analise a imagem a seguir e gere um resumo jurídico no nível: ${nivelEscolhido}. Quando houver texto, considere-o; caso contrário, descreva de forma objetiva o conteúdo visual e sua relevância jurídica quando aplicável.` },
-          { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-        ]
-      }];
-    } else {
-      messages = [{ role: "user", parts: [{ text: promptTexto }] }];
-    }
-
-    console.log("🤖 [GEMINI] Gerando resumo estruturado | Nível:", nivelEscolhido, "| Caracteres:", textoParaResumir.length);
-
-    const aiData = await chamarGemini(messages, {
-      temperature: 0.2,
-      maxOutputTokens: 2500,
-    });
-
-    const resumo = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    console.log("✨ [SUCESSO] Resumo gerado! Tamanho:", resumo.length, "| Tokens usados:", aiData.usage?.total_tokens || 0);
+    console.log("✨ [SUCESSO] Resumo gerado! Tamanho:", resumoFinal.length);
 
     return new Response(
       JSON.stringify({
-        resumo,
-        tokens_usados: aiData.usage?.total_tokens || 0,
-        tempo_processamento: Date.now(),
+        resumo: resumoFinal,
+        chars_fonte: textoParaResumir.length,
+        chars_resumo: resumoFinal.length,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
