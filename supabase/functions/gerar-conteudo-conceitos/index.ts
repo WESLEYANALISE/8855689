@@ -179,6 +179,9 @@ serve(async (req) => {
       console.log(`[Conceitos] 🔁 Reiniciando geração (force/stale) para topico_id=${topico_id}`);
     }
 
+    // Se o usuário pediu force_restart, permitimos recomeçar do zero (inclusive após 3/3)
+    const tentativasBase = shouldForceRestart ? 0 : (topico.tentativas || 0);
+
     // Marcar como gerando com progresso inicial, limpar posição da fila
     const posicaoRemovida = topico.posicao_fila;
     
@@ -187,6 +190,7 @@ serve(async (req) => {
       .update({ 
         status: "gerando", 
         progresso: 5,
+        tentativas: tentativasBase,
         posicao_fila: null,
         updated_at: new Date().toISOString() 
       })
@@ -222,7 +226,7 @@ serve(async (req) => {
 
     const materiaNome = topico.materia?.nome || "";
     const topicoTitulo = topico.titulo;
-    const tentativasAtuais = topico.tentativas || 0;
+    const tentativasAtuais = tentativasBase;
 
     console.log(`[Conceitos] Gerando conteúdo para: ${materiaNome} - ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
 
@@ -569,6 +573,30 @@ Termine com o fechamento correto do JSON.`;
     
     // Remover marcadores de código duplicados se houver
     jsonStr = jsonStr.replace(/```json/g, "").replace(/```/g, "");
+
+    // Escolher o melhor candidato de JSON (evita pegar um "{" que apareça dentro do markdown)
+    function pickBestJsonCandidate(text: string) {
+      const hay = text;
+      const candidates: { start: number; score: number }[] = [];
+      for (let i = 0; i < hay.length; i++) {
+        if (hay[i] !== "{") continue;
+        const window = hay.slice(i, i + 800);
+        // Heurística: JSON real deve conter "paginas" muito cedo.
+        const hasPaginas = window.includes('"paginas"') || window.includes('"páginas"');
+        const hasQuestoes = window.includes('"questoes"') || window.includes('"questões"');
+        if (!hasPaginas) continue;
+        const score = (hasPaginas ? 5 : 0) + (hasQuestoes ? 2 : 0);
+        candidates.push({ start: i, score });
+      }
+      if (candidates.length === 0) return hay;
+      candidates.sort((a, b) => b.score - a.score || a.start - b.start);
+      const best = candidates[0];
+      const tail = hay.slice(best.start);
+      const end = tail.lastIndexOf("}");
+      return end !== -1 ? tail.slice(0, end + 1) : tail;
+    }
+
+    jsonStr = pickBestJsonCandidate(jsonStr);
     
     // Encontrar o JSON principal
     const jsonStart = jsonStr.indexOf("{");
@@ -576,28 +604,107 @@ Termine com o fechamento correto do JSON.`;
     if (jsonStart !== -1 && jsonEnd !== -1) {
       jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
     }
+
+    // Debug para entender falhas de parse (primeiros chars + seus códigos)
+    const head = jsonStr.slice(0, 80);
+    const headCodes = head.split("").map((c) => c.charCodeAt(0));
+    console.log("[Conceitos] JSON head:", head);
+    console.log("[Conceitos] JSON head codes:", headCodes);
     
-    // Tentar corrigir JSON truncado se necessário - IGUAL À OAB
+    function normalizeJsonLoose(input: string) {
+      let s = input.trim();
+
+      // Remove BOM
+      s = s.replace(/^\uFEFF/, "");
+
+      // Normaliza aspas “inteligentes”
+      s = s
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'");
+
+      // Se a IA devolveu algo como { paginas: [...] }, coloca aspas nas chaves
+      // ({, ou ,) + key + :  ->  "key":
+      s = s.replace(/([\{,]\s*)([A-Za-z_][A-Za-z0-9_\-]*)\s*:/g, '$1"$2":');
+
+      // Troca strings com aspas simples por aspas duplas quando parecer JSON (conservador)
+      // Ex: 'paginas' -> "paginas"
+      s = s.replace(/'([A-Za-z_][A-Za-z0-9_\-]*)'/g, '"$1"');
+
+      // Remove vírgula antes de fechamento
+      s = s.replace(/,\s*([}\]])/g, "$1");
+
+      return s;
+    }
+
+    // Escapa \n/\r/\t SOMENTE quando estiver dentro de strings JSON.
+    // Fora de strings, mantém newlines como whitespace (válido em JSON).
+    function escapeControlsInStringsOnly(input: string) {
+      let out = "";
+      let inStr = false;
+      let esc = false;
+
+      for (let i = 0; i < input.length; i++) {
+        const c = input[i];
+        const code = c.charCodeAt(0);
+
+        if (!inStr) {
+          if (c === '"') {
+            inStr = true;
+            out += c;
+            continue;
+          }
+          // Fora de string: mantém whitespace normal (\n/\r/\t) e remove outros controles.
+          if (code < 32 && c !== "\n" && c !== "\r" && c !== "\t") continue;
+          out += c;
+          continue;
+        }
+
+        // Dentro de string
+        if (esc) {
+          out += c;
+          esc = false;
+          continue;
+        }
+        if (c === "\\") {
+          out += c;
+          esc = true;
+          continue;
+        }
+        if (c === '"') {
+          out += c;
+          inStr = false;
+          continue;
+        }
+        if (c === "\n") {
+          out += "\\n";
+          continue;
+        }
+        if (c === "\r") {
+          out += "\\r";
+          continue;
+        }
+        if (c === "\t") {
+          out += "\\t";
+          continue;
+        }
+        if (code < 32) continue;
+        out += c;
+      }
+
+      return out;
+    }
+
+    // Tentar corrigir JSON truncado se necessário - IGUAL À OAB + normalização extra
     let conteudoGerado;
     try {
       // Sanitizar caracteres de controle antes do parse
-      const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return ''; // Remove outros caracteres de controle
-      });
+      const sanitizedJson = escapeControlsInStringsOnly(normalizeJsonLoose(jsonStr));
       conteudoGerado = JSON.parse(sanitizedJson);
     } catch (parseError) {
       console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
       
       // Sanitizar caracteres de controle
-      let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return '';
-      });
+      let jsonCorrigido = escapeControlsInStringsOnly(normalizeJsonLoose(jsonStr));
       
       // Adicionar fechamentos faltantes
       const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
