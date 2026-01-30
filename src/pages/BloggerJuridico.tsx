@@ -8,7 +8,7 @@ import { useImagePreload } from '@/hooks/useImagePreload';
 import { CachedImage } from '@/components/ui/cached-image';
 import { motion } from 'framer-motion';
 import { BlogJuridicoTimeline } from '@/components/BlogJuridicoTimeline';
-import heroBlogJuridico from "@/assets/hero-blog-juridico.webp";
+import heroBlogJuridico from "@/assets/hero-blog-juridico-opt.webp";
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { PremiumFloatingCard } from '@/components/PremiumFloatingCard';
 

@@ -11,7 +11,8 @@ import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PoliticaComentariosSection } from '@/components/politica';
-import backgroundMusic from '@/assets/audio/politica-background-music.mp3';
+// Background music URL (hosted externally to reduce bundle size)
+const backgroundMusic = "https://cdn.pixabay.com/audio/2024/02/14/audio_3d0ab4d36e.mp3";
 
 const getOrientacaoConfig = (orientacao: string) => {
   switch (orientacao) {

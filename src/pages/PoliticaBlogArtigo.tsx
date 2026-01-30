@@ -8,7 +8,8 @@ import { Loader2, Volume2, VolumeX, Share2, FileText, MessageCircle } from "luci
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import backgroundMusic from "@/assets/audio/politica-background-music.mp3";
+// Background music URL (hosted externally to reduce bundle size)
+const backgroundMusic = "https://cdn.pixabay.com/audio/2024/02/14/audio_3d0ab4d36e.mp3";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PoliticaComentariosSection } from "@/components/politica/PoliticaComentariosSection";
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import capaFaculdadeImage from "@/assets/capa-faculdade.webp";
+import capaFaculdadeImage from "@/assets/capa-faculdade-opt.webp";
 
 // Preload images for instant loading
 const preloadImages = [capaFaculdadeImage].forEach(src => {

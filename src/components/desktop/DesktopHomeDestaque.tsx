@@ -14,7 +14,7 @@ import carreiraJuiz from "@/assets/carreira-juiz.webp";
 import carreiraDelegado from "@/assets/carreira-delegado.webp";
 import carreiraPromotor from "@/assets/carreira-promotor.webp";
 import carreiraPrf from "@/assets/carreira-prf.webp";
-import carreiraPf from "@/assets/pf-004.jpg";
+import carreiraPf from "@/assets/pf-004-opt.webp";
 
 // Itens Em Alta
 const itensFerramentas = [
