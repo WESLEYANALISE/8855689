@@ -1,87 +1,87 @@
 
-# Plano: Corrigir Geração de Conteúdo das Trilhas de Conceitos
+Objetivo: fazer a Edge Function `gerar-conteudo-conceitos` parar de retornar 500 (“Falha ao processar resposta da IA”), garantindo que ela (1) use as GEMINI_KEY_1/2/3 com fallback de verdade, (2) produza/extraia JSON válido de forma robusta e (3) registre logs suficientes para sabermos exatamente o que o Gemini está devolvendo quando falha.
 
-## Diagnóstico do Problema
+O que eu já observei (e por que isso não é “tamanho de token” neste caso específico)
+- O erro atual acontece no parse do JSON: `SyntaxError: Expected property name or '}' in JSON at position 1`.
+- Esse erro, na prática, quase sempre significa que o texto começa com `{` e logo em seguida vem algo que NÃO é um nome de propriedade JSON válido (ex.: `{paginas: ...}` com chave sem aspas, ou `{'paginas': ...}` com aspas simples, ou algum lixo/label antes da chave).
+- Para o tópico que você citou/está tentando (ex.: `topico_id=533`), o recorte do PDF (páginas 3 a 6) tem ~8.6k caracteres — isso é pequeno. Então não parece ser limite de tokens/contexto aqui. O problema mais provável é “formato de saída não-JSON estrito”.
 
-O erro identificado nos logs é:
-```
-ERROR [Conceitos] ❌ Falha definitiva no parse JSON: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
-```
+Causa raiz mais provável
+1) Mesmo com `responseMimeType: "application/json"`, o modelo ainda pode retornar pseudo-JSON (chaves sem aspas) em alguns cenários, especialmente quando o prompt contém muitas regras “não use aspas duplas” e exemplos de JSON/markdown misturados.
+2) O normalizador atual corrige aspas curvas e (às vezes) aspas simples, mas NÃO corrige chaves sem aspas (`{paginas: ...}`), que é um formato JS, não JSON.
+3) O fluxo atual escolhe uma chave aleatória e não faz fallback (do jeito que você quer e como está no `gemini-chat`).
 
-### Causa Raiz
-O sistema de continuação da Edge Function `gerar-conteudo-conceitos` concatena múltiplas respostas do Gemini diretamente:
-```javascript
-textoCompleto += responseText;
-```
+Plano de implementação (mudanças de código)
+1) Garantir fallback real das chaves GEMINI (1 → 2 → 3)
+   - Substituir a escolha aleatória por uma função `generateContentWithFallback(prompt)` que:
+     - tenta GEMINI_KEY_1, depois 2, depois 3
+     - em caso de rate limit/temporário (429/503) tenta a próxima
+     - em caso de erro permanente (400/401/403 etc.) loga e tenta a próxima, mas com logging claro de qual chave falhou
+     - se todas falharem, retorna erro explícito (e atualiza `conceitos_topicos.status = "erro"` como já existe)
+   - Resultado: você tem o mesmo padrão de “fallback” que pediu.
 
-Quando o Gemini retorna uma "continuação", ele gera um JSON **completo novo**, não um fragmento. Isso resulta em:
-```
-{"paginas": [...]}{  // ← Início da continuação
-"paginas": [...]}    // ← JSON inválido!
-```
+2) Melhorar CORS (não resolve 500, mas evita problemas colaterais)
+   - Atualizar `corsHeaders` para incluir os headers recomendados pelo padrão do Supabase (x-supabase-client-*).
+   - Manter o OPTIONS handler retornando “ok”/null com headers.
 
-### Problemas Adicionais Encontrados
+3) Log de diagnóstico que realmente explique “por quê” o JSON falhou
+   - Antes de qualquer parse:
+     - logar um “preview” do começo da resposta do Gemini (ex.: primeiros 200–300 chars)
+     - logar os charCodes dos primeiros 30–50 chars
+     - logar metadados do Gemini (quando disponível): `finishReason`, tamanho, e se veio candidate vazio
+   - Importante: sem vazar o conteúdo inteiro, só um snippet inicial (para não poluir logs nem expor texto completo do PDF).
 
-1. **`config.toml` incompleto** - O arquivo perdeu todas as configurações de Edge Functions e agora contém apenas `project_id`. Isso pode estar impedindo algumas funções de funcionar corretamente.
+4) Tornar o parser resiliente a pseudo-JSON (principal correção do seu erro)
+   - Evoluir `normalizarJsonIA` para também corrigir chaves sem aspas:
+     - Transformar padrões tipo `{paginas: ...}` / `, paginas: ...` em `{"paginas": ...}` / `, "paginas": ...` quando detectado que há chaves “bare” (sem aspas).
+     - Fazer isso de forma conservadora (heurística), para não quebrar JSON já válido.
+   - Continuar mantendo:
+     - remoção de BOM / NBSP
+     - normalização de aspas curvas
+     - conversão de aspas simples para duplas quando não houver chaves com aspas duplas
+     - sanitização de caracteres de controle (padrão unificado que você já usa nas outras funções)
 
-2. **Lógica de continuação falha** - A detecção de "truncamento" e a fusão de respostas não funcionam quando `responseMimeType: "application/json"` está ativo.
+5) Ajustar a extração “balanceada” para não depender apenas de aspas duplas
+   - Hoje a state machine só alterna `inString` ao ver `"`.
+   - Se o Gemini devolve pseudo-JSON com strings em aspas simples, a extração pode interpretar `{`/`}` dentro de strings como estrutura e cortar errado.
+   - Atualizar a lógica de string para reconhecer tanto `"` quanto `'` (com cuidado para escapes) — ou, alternativamente, rodar um “pré-normalize” antes da extração para converter aspas simples em duplas (quando aplicável) e então extrair.
+   - Objetivo: `extrairJsonBalanceado()` sempre devolver um bloco bem formado.
 
----
+6) Ajuste de prompt para reduzir chance de pseudo-JSON
+   - Manter sua regra de “não usar aspas duplas no markdown” (se necessário), mas explicitar:
+     - “As chaves e strings do JSON devem usar aspas duplas conforme o padrão JSON.”
+     - “Dentro do campo markdown, evite aspas duplas.”
+   - Isso reduz o conflito interno do prompt (o modelo não “foge” das aspas duplas no JSON).
 
-## Solução Proposta
+7) (Opcional, mas recomendado) Reduzir superfície de erro do complemento (quando < 8 páginas)
+   - Se o parse do “complemento” falhar, manter logs equivalentes (preview + codes).
+   - Evitar que uma falha de complemento derrube tudo se já existem páginas suficientes.
 
-### 1. Restaurar `supabase/config.toml`
-Adicionar de volta as configurações de JWT das Edge Functions que foram perdidas.
+Plano de validação (como vamos confirmar que resolveu)
+1) Teste direto da Edge Function (controlado)
+   - Chamar `gerar-conteudo-conceitos` para `topico_id=533` e confirmar:
+     - status 200
+     - atualização em `conceitos_topicos`: `status="concluido"`, `progresso=100`, `conteudo_gerado` preenchido
+2) Teste pelo app (fluxo real)
+   - Na rota `/conceitos/topico/533`, disparar a geração pelo fluxo atual e confirmar que não há 500.
+3) Se ainda falhar
+   - Usar os novos logs (preview/codes/finishReason) para identificar exatamente o formato retornado (ex.: `{paginas:...}`, “Aqui está o JSON: ...”, HTML de erro, resposta vazia, etc.) e ajustar o normalizador com base em evidência.
 
-### 2. Corrigir a função `gerarComContinuacao`
+Arquivos que serão alterados
+- `supabase/functions/gerar-conteudo-conceitos/index.ts`
+  - Implementar fallback de chaves
+  - Melhorar CORS
+  - Reforçar normalização/extração/parsing
+  - Melhorar logs de diagnóstico
+- (Nenhuma mudança de schema prevista)
 
-**Estratégia principal**: Eliminar a lógica de continuação manual e confiar no modelo para gerar tudo de uma vez, ou implementar fusão inteligente de JSONs.
+Riscos / cuidados
+- Heurísticas de “consertar JSON” podem introduzir bugs se forem agressivas; por isso a estratégia será:
+  - detectar padrões antes de substituir
+  - só aplicar correções quando o parse falhar (ou quando sinais fortes de pseudo-JSON forem detectados)
+- Garantir que logs não exponham conteúdo completo do PDF (apenas snippet curto).
 
-**Abordagem recomendada - Simplificar para uma única chamada**:
-- Aumentar `maxOutputTokens` para 65.000 (já está)
-- Remover a lógica de continuação que concatena JSONs
-- Se a resposta vier incompleta, marcar como erro e permitir retry
-
-**Código corrigido**:
-```typescript
-async function gerarConteudo(promptInicial: string): Promise<string> {
-  console.log(`[Conceitos] Chamando Gemini...`);
-  
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: promptInicial }] }],
-    generationConfig: {
-      maxOutputTokens: 65000,
-      temperature: 0.3,
-      responseMimeType: "application/json",
-    },
-  });
-  
-  const responseText = result.response.text();
-  console.log(`[Conceitos] Resposta: ${responseText.length} chars`);
-  
-  return responseText;
-}
-```
-
-### 3. Melhorar o parsing de JSON com validação
-
-Se a resposta vier truncada, tentar completar os fechamentos automaticamente (já existe, mas precisa de ajustes).
-
----
-
-## Mudanças Técnicas
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/config.toml` | Restaurar configurações `[functions.xxx]` com `verify_jwt = false` |
-| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Simplificar `gerarComContinuacao` removendo concatenação de múltiplas respostas |
-
----
-
-## Resultado Esperado
-
-Após as correções:
-1. O Gemini retornará um JSON completo em uma única chamada
-2. Se truncado, o sistema tentará completar os fechamentos ou marcará como erro
-3. As Edge Functions terão suas configurações de JWT restauradas
-4. A geração de conteúdo das Trilhas de Conceitos funcionará corretamente
+Resultado esperado
+- A geração não falha mais em `{paginas: ...}` / pseudo-JSON.
+- As três chaves Gemini são usadas com fallback real.
+- Se ainda houver falha, teremos logs objetivos mostrando exatamente o que o Gemini devolveu no começo da resposta, permitindo ajuste rápido e certeiro.
