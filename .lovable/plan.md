@@ -1,136 +1,124 @@
 
-# Plano: Melhorias no Chat da Professora
+# Plano: Unificar Conceitos com a mesma mecânica da OAB Trilhas
 
-## Objetivo
-1. Simplificar menu de alternância para apenas 3 opções com tamanhos iguais
-2. Aumentar a quantidade de tokens nas respostas
-3. Adicionar quadros comparativos obrigatórios nas respostas
-4. Evitar truncamento de respostas
+## Problema Identificado
+
+A geração de conteúdo em Conceitos está apresentando erros (ícones vermelhos na UI) porque:
+
+1. **Sanitização de JSON diferente**: A função `gerar-conteudo-conceitos` foi alterada e agora não converte corretamente os caracteres de controle (`\n`, `\r`, `\t`) para escapes JSON (`\\n`, `\\r`, `\\t`), enquanto a OAB Trilhas faz isso corretamente
+2. **UI diferente**: A página de Conceitos mostra badges visuais em vermelho para erros, enquanto a OAB é mais discreta
+
+## Solução
+
+Copiar exatamente a lógica de sanitização e parsing de JSON da `gerar-conteudo-oab-trilhas` para a `gerar-conteudo-conceitos`.
 
 ---
 
-## 1. Menu de Alternância (3 opções iguais)
+## Mudanças Técnicas
 
-### Arquivo: `src/pages/ChatProfessora.tsx`
+### 1. Arquivo: `supabase/functions/gerar-conteudo-conceitos/index.ts`
 
-**Mudanças:**
-- Manter apenas 3 modos: `study`, `realcase`, `aula`
-- Usar `flex-1` para distribuir espaço igualmente
-- Remover scroll horizontal
+**Substituir a função `sanitizarJsonGlobal` pela lógica exata da OAB Trilhas:**
 
-**Antes:**
+A sanitização atual está errada porque não converte newlines literais para escapes JSON. A OAB Trilhas faz assim:
+
 ```typescript
-const MODES = [
-  { id: "study", label: "Estudar", icon: BookOpen },
-  { id: "realcase", label: "Caso Real", icon: Scale },
-  { id: "aula", label: "Criar Aula", icon: GraduationCap },
-  { id: "recommendation", label: "Indicações", icon: Lightbulb },
-  { id: "tcc", label: "TCC", icon: MessageCircle },
-];
+// ANTES (Conceitos - com problema):
+const sanitizarJsonGlobal = (input: string): string => {
+  return input
+    .replace(/\uFEFF/g, "")
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, " ")
+    .replace(/[\u2028\u2029]/g, "\n")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+};
+
+// DEPOIS (igual OAB Trilhas - funciona):
+const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+  if (char === '\n') return '\\n';
+  if (char === '\r') return '\\r';
+  if (char === '\t') return '\\t';
+  return '';
+});
 ```
 
-**Depois:**
+**Mudanças específicas:**
+
+| Item | Antes | Depois |
+|------|-------|--------|
+| Sanitização | Função customizada que não escapa `\n` | Mesma lógica da OAB que escapa `\n → \\n` |
+| Parse de JSON | Tenta parse direto, depois correções | Mesmo padrão da OAB Trilhas |
+| Tratamento de erro | Marca como erro e para | Igual OAB: marca erro e processa próximo |
+
+### 2. Bloco de código a ser substituído (linhas ~595-680)
+
+Remover a função `sanitizarJsonGlobal` e usar o padrão inline igual OAB:
+
 ```typescript
-const MODES = [
-  { id: "study", label: "Estudar", icon: BookOpen },
-  { id: "realcase", label: "Caso Real", icon: Scale },
-  { id: "aula", label: "Criar Aula", icon: GraduationCap },
-];
-```
-
-**CSS dos botões:**
-- Adicionar `flex-1` para cada botão ter o mesmo tamanho
-- Container com `flex w-full` para ocupar toda a largura
-
----
-
-## 2. Aumentar Tokens nas Respostas
-
-### Arquivo: `supabase/functions/chat-professora/index.ts`
-
-**Mudanças no `generationConfig`:**
-
-| Parâmetro | Valor Atual | Novo Valor |
-|-----------|-------------|------------|
-| `maxOutputTokens` | 8192 | 16384 |
-
-**Linha 512:**
-```typescript
-// ANTES
-maxOutputTokens: mode === 'aula' ? 32000 : 8192
-
-// DEPOIS
-maxOutputTokens: mode === 'aula' ? 32000 : 16384
-```
-
----
-
-## 3. Quadro Comparativo Obrigatório
-
-### Arquivo: `supabase/functions/chat-professora/index.ts`
-
-**Adicionar instrução no system prompt (modo study/default):**
-
-```text
-📊 QUADRO COMPARATIVO OBRIGATÓRIO:
-Em TODA resposta elaborada (mais de 400 palavras), inclua OBRIGATORIAMENTE 
-um quadro comparativo usando o formato:
-
-[COMPARAÇÃO: Título Descritivo]
-| Aspecto | Conceito A | Conceito B |
-|---------|------------|------------|
-| Definição | ... | ... |
-| Características | ... | ... |
-| Aplicação | ... | ... |
-| Exemplo | ... | ... |
-[/COMPARAÇÃO]
-
-Use este quadro para contrastar conceitos relacionados, 
-antes vs depois, teoria vs prática, etc.
+// PARSE JSON - Abordagem IDÊNTICA à OAB Trilhas
+let conteudoGerado;
+try {
+  // Sanitizar caracteres de controle antes do parse (IGUAL OAB)
+  const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+    if (char === '\n') return '\\n';
+    if (char === '\r') return '\\r';
+    if (char === '\t') return '\\t';
+    return ''; // Remove outros caracteres de controle
+  });
+  conteudoGerado = JSON.parse(sanitizedJson);
+  console.log("[Conceitos] ✅ JSON parseado diretamente");
+} catch (parseError) {
+  console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
+  
+  // Sanitizar caracteres de controle (igual OAB)
+  let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+    if (char === '\n') return '\\n';
+    if (char === '\r') return '\\r';
+    if (char === '\t') return '\\t';
+    return '';
+  });
+  
+  // Adicionar fechamentos faltantes
+  const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
+  const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
+  const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
+  const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
+  
+  for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
+    jsonCorrigido += "]";
+  }
+  for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
+    jsonCorrigido += "}";
+  }
+  
+  // Remover vírgula antes de fechamento
+  jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
+  
+  try {
+    conteudoGerado = JSON.parse(jsonCorrigido);
+    console.log("[Conceitos] ✅ JSON corrigido com sucesso");
+  } catch (finalError) {
+    console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
+    await supabase.from("conceitos_topicos")
+      .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
+      .eq("id", topico_id);
+    
+    await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
+    throw new Error("Falha ao processar resposta da IA");
+  }
+}
 ```
 
 ---
 
-## 4. Evitar Truncamento de Respostas
+## Resumo das Alterações
 
-### Arquivo: `supabase/functions/chat-professora/index.ts`
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Substituir sanitização de JSON pela mesma lógica exata da OAB Trilhas |
 
-**Adicionar instrução no prompt:**
+## Resultado Esperado
 
-```text
-⚠️ REGRA CRÍTICA - NUNCA TRUNCAR:
-- SEMPRE complete suas respostas integralmente
-- Se a resposta for longa, organize em seções claras
-- NUNCA termine uma resposta no meio de uma frase ou ideia
-- Caso o conteúdo seja extenso, priorize completar a explicação 
-  principal antes de adicionar exemplos extras
-- Finalize SEMPRE com uma conclusão ou pergunta de fechamento
-```
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Mudanças |
-|---------|----------|
-| `src/pages/ChatProfessora.tsx` | Reduzir para 3 modos, botões com tamanho igual |
-| `supabase/functions/chat-professora/index.ts` | Aumentar tokens, adicionar quadro comparativo, regra anti-truncamento |
-
----
-
-## Resumo Visual das Mudanças
-
-### Menu Atual (5 opções, scroll):
-```text
-[Estudar] [Caso Real] [Criar Aula] [Indicações] [TCC]
-```
-
-### Menu Novo (3 opções, tamanhos iguais):
-```text
-[   Estudar   ] [  Caso Real  ] [  Criar Aula  ]
-```
-
-### Resposta da Professora:
-- Mínimo 800+ palavras em respostas elaboradas
-- Quadro comparativo obrigatório em toda resposta elaborada
-- Respostas sempre completas, nunca truncadas
+- A geração de conteúdo em Conceitos funcionará 100% igual à OAB
+- Não haverá mais erros de parsing de JSON
+- Os ícones vermelhos de erro deixarão de aparecer
+- O fluxo de geração automática funcionará corretamente
