@@ -214,15 +214,6 @@ const ResumosPersonalizados = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Badge de limite diário flutuante */}
-      {!limitLoading && currentStep === "select-type" && (
-        <div className="fixed top-20 right-4 z-40 flex items-center gap-2 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
-          <FileText className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Resumos:</span>
-          <DailyLimitBadge feature="resumos-personalizados" />
-        </div>
-      )}
-
       {currentStep === "select-type" && (
         <StepSelectType onSelect={handleTypeSelect} />
       )}
