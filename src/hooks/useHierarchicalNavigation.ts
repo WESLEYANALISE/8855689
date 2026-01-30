@@ -153,8 +153,7 @@ export const getHierarchicalDestination = (pathname: string, search: string): st
   if (pathname === "/dicionario") return "/ferramentas";
   if (pathname === "/pesquisar") return "/ferramentas";
   if (pathname === "/ferramentas/questoes/resolver") return "/ferramentas/questoes/temas";
-  if (pathname === "/ferramentas/questoes/temas") return "/ferramentas/questoes/temas-hub";
-  if (pathname === "/ferramentas/questoes/temas-hub") return "/ferramentas/questoes";
+  if (pathname === "/ferramentas/questoes/temas") return "/ferramentas/questoes";
   if (pathname === "/ferramentas/questoes") return "/";
   if (pathname.match(/^\/ferramentas\/simulados\/[^/]+\/resultado$/)) {
     const parts = pathname.split("/");

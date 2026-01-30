@@ -438,7 +438,7 @@ import LeiMediacaoView from "./pages/LeiMediacaoView";
 import LeiADIADCView from "./pages/LeiADIADCView";
 import QuestoesFaculdade from "./pages/QuestoesFaculdade";
 import QuizFaculdade from "./pages/QuizFaculdade";
-import QuestoesAreas from "./pages/ferramentas/QuestoesAreas";
+
 import QuestoesHub from "./pages/ferramentas/QuestoesHub";
 import QuestoesTemas from "./pages/ferramentas/QuestoesTemas";
 import QuestoesResolver from "./pages/ferramentas/QuestoesResolver";
@@ -683,7 +683,6 @@ const App = () => {
               <Route path="/ferramentas/jurisprudencias-teste" element={<JurisprudenciasTeste />} />
               <Route path="/questoes" element={<Navigate to="/ferramentas/questoes" replace />} />
               <Route path="/ferramentas/questoes" element={<QuestoesHub />} />
-              <Route path="/ferramentas/questoes/temas-hub" element={<QuestoesAreas />} />
               <Route path="/ferramentas/questoes/temas" element={<QuestoesTemas />} />
               <Route path="/ferramentas/questoes/resolver" element={<QuestoesResolver />} />
               <Route path="/questoes/artigos-lei" element={<QuestoesEscolha />} />
