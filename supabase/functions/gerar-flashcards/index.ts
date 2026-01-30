@@ -1,13 +1,78 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
 
-const REVISION = "v3.3.0-lacunas-support";
+const REVISION = "v3.4.0-gemini-pool";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Pool de chaves API (1, 2, 3) - igual à professora
+const GEMINI_KEYS = [
+  Deno.env.get('GEMINI_KEY_1'),
+  Deno.env.get('GEMINI_KEY_2'),
+  Deno.env.get('GEMINI_KEY_3'),
+].filter(Boolean) as string[];
+
+async function callGeminiWithFallback(prompt: string, config: { temperature: number; maxOutputTokens: number }): Promise<string> {
+  console.log(`[gerar-flashcards] Iniciando com ${GEMINI_KEYS.length} chaves disponíveis`);
+  
+  for (let i = 0; i < GEMINI_KEYS.length; i++) {
+    const apiKey = GEMINI_KEYS[i];
+    console.log(`[gerar-flashcards] Tentando chave ${i + 1}...`);
+    
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: config,
+          }),
+        }
+      );
+
+      if (response.status === 429 || response.status === 503) {
+        console.log(`[gerar-flashcards] Chave ${i + 1} rate limited, tentando próxima...`);
+        continue;
+      }
+
+      if (response.status === 400) {
+        const errorText = await response.text();
+        if (errorText.includes('API key expired') || errorText.includes('INVALID_ARGUMENT')) {
+          console.log(`[gerar-flashcards] Chave ${i + 1} expirada/inválida, tentando próxima...`);
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[gerar-flashcards] Erro na chave ${i + 1}: ${response.status} - ${errorText.substring(0, 200)}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (text) {
+        console.log(`[gerar-flashcards] ✅ Sucesso com chave ${i + 1}`);
+        return text;
+      } else {
+        console.log(`[gerar-flashcards] Resposta vazia da chave ${i + 1}`);
+        continue;
+      }
+    } catch (error) {
+      console.error(`[gerar-flashcards] Exceção na chave ${i + 1}:`, error);
+      continue;
+    }
+  }
+  
+  throw new Error('Todas as chaves API esgotadas ou com erro');
+}
 
 serve(async (req) => {
   console.log(`📍 Function: gerar-flashcards@${REVISION}`);
@@ -19,15 +84,14 @@ serve(async (req) => {
   try {
     const { content, conteudo, tableName, numeroArtigo, area, artigo, tipo } = await req.json();
 
-    const DIREITO_PREMIUM_API_KEY = Deno.env.get("DIREITO_PREMIUM_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!DIREITO_PREMIUM_API_KEY) {
-      throw new Error("DIREITO_PREMIUM_API_KEY não configurada");
+    if (GEMINI_KEYS.length === 0) {
+      throw new Error("Nenhuma chave GEMINI_KEY_1/2/3 configurada");
     }
     
-    console.log("✅ DIREITO_PREMIUM_API_KEY configurada");
+    console.log(`✅ ${GEMINI_KEYS.length} chaves Gemini disponíveis`);
     console.log(`🤖 Usando modelo: ${MODEL}`);
     console.log(`📚 Tipo: ${tipo || 'flashcards'}, Área: ${area}, Artigo: ${numeroArtigo || artigo}`);
 
@@ -100,26 +164,7 @@ IMPORTANTE:
 
       console.log("🚀 Gerando exercício de lacunas...");
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${DIREITO_PREMIUM_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: lacunasPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 4000 }
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Erro da API Gemini:", response.status, errorText);
-        throw new Error(`Erro da API: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text = await callGeminiWithFallback(lacunasPrompt, { temperature: 0.3, maxOutputTokens: 4000 });
       
       // Parse JSON
       let jsonText = text;
@@ -253,52 +298,10 @@ JSON formato:
 
     console.log("🚀 Gerando flashcards com Gemini...");
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${DIREITO_PREMIUM_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `${systemPrompt}\n\n${userPrompt}`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 16000,
-          }
-        }),
-      }
+    const text = await callGeminiWithFallback(
+      `${systemPrompt}\n\n${userPrompt}`,
+      { temperature: 0.5, maxOutputTokens: 16000 }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Erro da API Gemini:", response.status, errorText);
-      return new Response(
-        JSON.stringify({
-          error: `Erro ao gerar flashcards: ${response.status}`,
-          provider: "google",
-          model: MODEL,
-          status: response.status,
-          message: errorText.substring(0, 200),
-        }),
-        {
-          status: response.status,
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "X-Function-Revision": REVISION,
-            "X-Model": MODEL,
-          },
-        }
-      );
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     console.log("📝 Resposta bruta recebida, processando...");
     
