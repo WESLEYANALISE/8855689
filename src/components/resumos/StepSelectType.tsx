@@ -12,7 +12,7 @@ interface StepSelectTypeProps {
 
 export const StepSelectType = ({ onSelect, onOpenHistory }: StepSelectTypeProps) => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <StandardPageHeader
         title="Resumo Personalizado"
         subtitle="Crie resumos de qualquer conteúdo"
@@ -23,7 +23,7 @@ export const StepSelectType = ({ onSelect, onOpenHistory }: StepSelectTypeProps)
               variant="ghost"
               size="icon"
               onClick={onOpenHistory}
-              className="rounded-full"
+              className="rounded-full hover:bg-accent/20"
             >
               <History className="w-5 h-5" />
             </Button>
@@ -31,36 +31,34 @@ export const StepSelectType = ({ onSelect, onOpenHistory }: StepSelectTypeProps)
         }
       />
 
-      <div className="flex-1 flex items-center justify-center px-3 py-6">
-        <div className="w-full max-w-2xl animate-fade-in">
-          <div className="text-center mb-6 md:mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full bg-accent/20 mb-3 md:mb-4">
-              <span className="text-2xl md:text-3xl">📚</span>
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-lg animate-fade-in">
+          {/* Título centralizado */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-accent/20 mb-4">
+              <span className="text-3xl">📚</span>
             </div>
-            <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">
+            <h1 className="text-2xl font-bold mb-2">
               Criar Resumo
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground">
+            <p className="text-muted-foreground">
               Escolha o formato do conteúdo
             </p>
           </div>
 
-          {/* Grid responsivo - 3 colunas sempre */}
-          <div className="grid grid-cols-3 gap-2 md:gap-4">
+          {/* Grid de opções - sempre 3 colunas */}
+          <div className="grid grid-cols-3 gap-3">
             <Card
-              className="cursor-pointer transition-all hover:shadow-lg hover:border-accent group active:scale-[0.98]"
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-accent group active:scale-[0.97] border-border/50"
               onClick={() => onSelect("texto")}
             >
-              <CardContent className="p-3 md:p-6 flex flex-col items-center text-center gap-2 md:gap-4">
-                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                  <FileText className="w-5 h-5 md:w-8 md:h-8 text-accent" />
+              <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                  <FileText className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm md:text-lg mb-0.5 md:mb-1">Texto</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
-                    Cole ou digite o texto diretamente
-                  </p>
-                  <p className="text-xs text-muted-foreground md:hidden">
+                  <h3 className="font-semibold text-sm mb-0.5">Texto</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
                     Cole ou digite
                   </p>
                 </div>
@@ -68,19 +66,16 @@ export const StepSelectType = ({ onSelect, onOpenHistory }: StepSelectTypeProps)
             </Card>
 
             <Card
-              className="cursor-pointer transition-all hover:shadow-lg hover:border-accent group active:scale-[0.98]"
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-accent group active:scale-[0.97] border-border/50"
               onClick={() => onSelect("pdf")}
             >
-              <CardContent className="p-3 md:p-6 flex flex-col items-center text-center gap-2 md:gap-4">
-                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                  <Upload className="w-5 h-5 md:w-8 md:h-8 text-accent" />
+              <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                  <Upload className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm md:text-lg mb-0.5 md:mb-1">PDF</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
-                    Faça upload de um arquivo PDF
-                  </p>
-                  <p className="text-xs text-muted-foreground md:hidden">
+                  <h3 className="font-semibold text-sm mb-0.5">PDF</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
                     Upload arquivo
                   </p>
                 </div>
@@ -88,19 +83,16 @@ export const StepSelectType = ({ onSelect, onOpenHistory }: StepSelectTypeProps)
             </Card>
 
             <Card
-              className="cursor-pointer transition-all hover:shadow-lg hover:border-accent group active:scale-[0.98]"
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-accent group active:scale-[0.97] border-border/50"
               onClick={() => onSelect("imagem")}
             >
-              <CardContent className="p-3 md:p-6 flex flex-col items-center text-center gap-2 md:gap-4">
-                <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                  <Image className="w-5 h-5 md:w-8 md:h-8 text-accent" />
+              <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                  <Image className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm md:text-lg mb-0.5 md:mb-1">Imagem</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
-                    Envie uma foto ou screenshot
-                  </p>
-                  <p className="text-xs text-muted-foreground md:hidden">
+                  <h3 className="font-semibold text-sm mb-0.5">Imagem</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
                     Envie foto
                   </p>
                 </div>
