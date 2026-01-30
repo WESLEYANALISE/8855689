@@ -7,7 +7,7 @@ import { isImageCached, markImageLoaded } from '@/hooks/useImagePreload';
 
 // Imagens locais para PRF e PF
 import prfCapa from '@/assets/prf-capa.jpg';
-import pfCapa from '@/assets/pf-004.jpg';
+import pfCapa from '@/assets/pf-004-opt.webp';
 
 interface Carreira {
   id: string;

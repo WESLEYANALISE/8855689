@@ -14,8 +14,8 @@ import CapaDocumentario from "@/components/documentarios/CapaDocumentario";
 import { preloadCapas, invalidateCapaCache } from "@/hooks/useCapaDocumentario";
 import { useInstantCache } from "@/hooks/useInstantCache";
 
-// Preload da imagem de fundo
-import heroBlogJuridico from "@/assets/hero-blog-juridico.webp";
+// Preload da imagem de fundo (optimized)
+import heroBlogJuridico from "@/assets/hero-blog-juridico-opt.webp";
 const preloadedImage = new Image();
 preloadedImage.src = heroBlogJuridico;
 

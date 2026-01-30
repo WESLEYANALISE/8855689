@@ -9,8 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-// Imagem de fundo do Blog Jurídico
-import heroBlogJuridico from "@/assets/hero-blog-juridico.webp";
+// Imagem de fundo do Blog Jurídico (optimized)
+import heroBlogJuridico from "@/assets/hero-blog-juridico-opt.webp";
 
 interface Obra {
   titulo: string;

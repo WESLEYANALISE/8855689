@@ -1,14 +1,14 @@
 import { motion, type Easing } from 'framer-motion';
 import { Book, Brain, GraduationCap, Library, Landmark, Newspaper, Film, Crown, Search, Star, MessageCircle, Scale, Users, Gavel, FileText, Sparkles, CheckCircle, Award, Target, BookOpen } from 'lucide-react';
 
-// Import images
+// Import images (optimized versions)
 import vadeMecumImg from '@/assets/landing/vade-mecum-section.webp';
 import evelynImg from '@/assets/landing/evelyn-ai-section.webp';
 import estudosImg from '@/assets/landing/estudos-section.webp';
-import bibliotecaImg from '@/assets/landing/biblioteca-section.webp';
-import politicaImg from '@/assets/landing/politica-section.webp';
-import noticiasImg from '@/assets/landing/noticias-section.webp';
-import juriflixImg from '@/assets/landing/juriflix-section.webp';
+import bibliotecaImg from '@/assets/landing/biblioteca-section-opt.webp';
+import politicaImg from '@/assets/landing/politica-section-opt.webp';
+import noticiasImg from '@/assets/landing/noticias-section-opt.webp';
+import juriflixImg from '@/assets/landing/juriflix-section-opt.webp';
 import ctaImg from '@/assets/landing/cta-section.webp';
 import oabImg from '@/assets/landing/oab-section.webp';
 import concursoImg from '@/assets/landing/concurso-section.webp';

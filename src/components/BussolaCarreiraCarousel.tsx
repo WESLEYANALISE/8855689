@@ -11,7 +11,7 @@ import delegadoCapa from '@/assets/carreira-delegado.webp';
 import promotorCapa from '@/assets/carreira-promotor.webp';
 import defensorCapa from '@/assets/carreira-defensor.webp';
 import procuradorCapa from '@/assets/carreira-procurador.webp';
-import pfCapa from '@/assets/pf-004.jpg';
+import pfCapa from '@/assets/pf-004-opt.webp';
 import prfCapa from '@/assets/carreira-prf.webp';
 import pcivilCapa from '@/assets/carreira-pcivil.webp';
 import pmilitarCapa from '@/assets/carreira-pmilitar.webp';
