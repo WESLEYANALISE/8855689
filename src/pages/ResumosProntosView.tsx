@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileDown, Sparkles, Search, ChevronRight, ArrowUp, Loader2, Scale, CheckCircle, ImageIcon, BookOpen } from "lucide-react";
+import { ArrowLeft, FileDown, Sparkles, Search, ChevronRight, ArrowUp, Loader2, Scale, ImageIcon, BookOpen } from "lucide-react";
 
 import { AudioPlayer } from "@/components/resumos/AudioPlayer";
 import { ImageWithZoom } from "@/components/resumos/ImageWithZoom";
@@ -800,10 +800,8 @@ const ResumosProntosView = () => {
                       <div className="flex-shrink-0 ml-2">
                         {gerandoResumoIds.has(resumo.id) ? (
                           <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
-                        ) : resumosGerados.has(resumo.id) ? (
-                          <CheckCircle className="w-5 h-5 text-amber-500" />
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-amber-500/50" />
+                          <ChevronRight className="w-5 h-5 text-amber-500/50 group-hover:text-amber-500" />
                         )}
                       </div>
                     </div>
