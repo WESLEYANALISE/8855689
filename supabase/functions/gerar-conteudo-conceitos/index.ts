@@ -449,72 +449,31 @@ IMPORTANTE:
 - MANTENHA O TOM ACOLHEDOR para iniciantes
 - Retorne APENAS o JSON válido, SEM texto adicional após o fechamento final`;
 
-    // 5. Função auxiliar para gerar e continuar se truncado - IGUAL OAB TRILHAS (SEM TIMEOUT, SEM RATE LIMITING)
-    async function gerarComContinuacao(promptInicial: string, maxTentativas = 3): Promise<string> {
-      let textoCompleto = "";
-      let tentativas = 0;
-      let promptAtual = promptInicial;
+    // 5. Função para gerar conteúdo - SIMPLIFICADA (SEM CONCATENAÇÃO PROBLEMÁTICA)
+    // A concatenação de múltiplas respostas JSON causava erro de parse
+    async function gerarConteudo(promptInicial: string): Promise<string> {
+      console.log(`[Conceitos] Chamando Gemini (chamada única)...`);
       
-      while (tentativas < maxTentativas) {
-        tentativas++;
-        console.log(`[Conceitos] Chamando Gemini (tentativa ${tentativas})...`);
-        
-         // CHAMADA EM MODO JSON: força saída como application/json (reduz erro de parse)
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: promptAtual }] }],
-          generationConfig: {
-            maxOutputTokens: 65000,
-            temperature: 0.3,
-             // @google/generative-ai: força resposta em JSON (sem markdown/fences)
-             responseMimeType: "application/json",
-          },
-        });
-        
-        const responseText = result.response.text();
-        textoCompleto += responseText;
-        console.log(`[Conceitos] Resposta ${tentativas}: ${responseText.length} chars`);
-        
-        // Verificar se a resposta está completa (tem o fechamento do JSON)
-        const temFechamento = textoCompleto.includes('"questoes"') && 
-                              textoCompleto.trim().endsWith("}") ||
-                              textoCompleto.includes("```") && textoCompleto.lastIndexOf("```") > textoCompleto.lastIndexOf("```json");
-        
-        // Verificar se parece truncado no meio de uma string ou array
-        const pareceTruncado = !temFechamento && (
-          responseText.trim().endsWith(",") ||
-          responseText.trim().endsWith('"') ||
-          responseText.trim().endsWith("[") ||
-          responseText.trim().endsWith("{") ||
-          !responseText.includes("questoes")
-        );
-        
-        if (!pareceTruncado) {
-          console.log(`[Conceitos] Resposta completa após ${tentativas} tentativa(s)`);
-          break;
-        }
-        
-        console.log(`[Conceitos] Resposta truncada, solicitando continuação...`);
-        
-        // Preparar prompt de continuação com contexto
-        const ultimasLinhas = responseText.slice(-500);
-        promptAtual = `CONTINUE exatamente de onde parou. A resposta anterior terminou com:
-
-"""
-${ultimasLinhas}
-"""
-
-Continue gerando o JSON a partir deste ponto. NÃO repita o que já foi gerado. 
-Mantenha a mesma estrutura e formato JSON.
-Complete TODAS as seções que faltam: correspondencias, exemplos, termos, flashcards, questoes.
-Termine com o fechamento correto do JSON.`;
-      }
+      // CHAMADA EM MODO JSON: força saída como application/json (reduz erro de parse)
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: promptInicial }] }],
+        generationConfig: {
+          maxOutputTokens: 65000,
+          temperature: 0.3,
+          // @google/generative-ai: força resposta em JSON (sem markdown/fences)
+          responseMimeType: "application/json",
+        },
+      });
       
-      return textoCompleto;
+      const responseText = result.response.text();
+      console.log(`[Conceitos] Resposta: ${responseText.length} chars`);
+      
+      return responseText;
     }
 
-    // Gerar conteúdo com lógica de continuação
+    // Gerar conteúdo em chamada única (sem concatenação problemática)
     await updateProgress(50);
-    const responseText = await gerarComContinuacao(prompt);
+    const responseText = await gerarConteudo(prompt);
     await updateProgress(70);
     console.log(`[Conceitos] Resposta final: ${responseText.length} chars`);
     
@@ -700,7 +659,7 @@ Retorne APENAS um JSON com o array "paginas" contendo as páginas faltantes:
 Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
 
         try {
-          const complementoText = await gerarComContinuacao(promptComplemento, 2);
+          const complementoText = await gerarConteudo(promptComplemento);
           let complementoJson = complementoText.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
           
           // Usar extração balanceada
@@ -718,7 +677,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
           // Parse com sanitização igual OAB Trilhas
           let complemento;
           try {
-            const sanitizedComp = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char) => {
+            const sanitizedComp = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char: string) => {
               if (char === '\n') return '\\n';
               if (char === '\r') return '\\r';
               if (char === '\t') return '\\t';
@@ -727,7 +686,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
             complemento = JSON.parse(sanitizedComp);
           } catch {
             // Limpeza adicional se falhar
-            let jsonLimpo = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char) => {
+            let jsonLimpo = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char: string) => {
               if (char === '\n') return '\\n';
               if (char === '\r') return '\\r';
               if (char === '\t') return '\\t';

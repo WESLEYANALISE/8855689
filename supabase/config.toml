@@ -1,1 +1,25 @@
 project_id = "izspjvegxdfgkgibpyst"
+
+[functions.gerar-conteudo-conceitos]
+verify_jwt = false
+
+[functions.gerar-conteudo-oab-trilhas]
+verify_jwt = false
+
+[functions.analisar-estrutura-conceitos]
+verify_jwt = false
+
+[functions.identificar-temas-conceitos]
+verify_jwt = false
+
+[functions.confirmar-temas-conceitos]
+verify_jwt = false
+
+[functions.gerar-capa-topico-conceitos]
+verify_jwt = false
+
+[functions.gerar-narracao-conceitos]
+verify_jwt = false
+
+[functions.reset-conceitos-topicos]
+verify_jwt = false
