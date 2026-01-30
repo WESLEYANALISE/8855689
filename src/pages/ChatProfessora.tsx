@@ -146,9 +146,12 @@ const ChatProfessora = () => {
   };
 
   // Calcular última mensagem do assistente para o botão flutuante
-  const lastAssistantMessage = useMemo(() => {
+  const { lastAssistantMessage, assistantMessageCount } = useMemo(() => {
     const assistantMessages = messages.filter(m => m.role === 'assistant' && m.content);
-    return assistantMessages.length > 0 ? assistantMessages[assistantMessages.length - 1].content : '';
+    return {
+      lastAssistantMessage: assistantMessages.length > 0 ? assistantMessages[assistantMessages.length - 1].content : '',
+      assistantMessageCount: assistantMessages.length
+    };
   }, [messages]);
 
   // Mostrar botão flutuante apenas quando há resposta do assistente e não está em streaming
@@ -291,6 +294,7 @@ const ChatProfessora = () => {
       <FloatingFlashcardsButton
         isVisible={showFloatingButton}
         lastAssistantMessage={lastAssistantMessage}
+        messageCount={assistantMessageCount}
       />
     </div>
   );
