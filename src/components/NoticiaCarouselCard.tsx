@@ -1,6 +1,7 @@
 import React, { memo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 interface NoticiaCarouselCardProps {
   noticia: {
@@ -109,32 +110,16 @@ const NoticiaCarouselCard = memo(({ noticia, priority = false }: NoticiaCarousel
       className="flex-shrink-0 w-[240px] cursor-pointer group"
     >
       <div className="flex flex-col rounded-xl bg-card border border-border shadow-lg overflow-hidden h-full">
-        {/* Imagem - proporção 16:9 com skeleton shimmer */}
+        {/* Imagem - proporção 16:9 com UniversalImage */}
         <div className="relative w-full aspect-[16/9] overflow-hidden flex-shrink-0">
-          {/* Skeleton shimmer enquanto carrega - sempre visível por baixo */}
-          <div 
-            className={cn(
-              "absolute inset-0 skeleton-shimmer transition-opacity duration-300",
-              isLoading ? "opacity-100" : "opacity-0"
-            )}
-          />
-          
           {currentImageUrl ? (
-            <img 
-              src={currentImageUrl} 
+            <UniversalImage
+              src={currentImageUrl}
               alt={noticia.titulo}
-              loading={priority ? "eager" : "lazy"}
-              decoding={priority ? "sync" : "async"}
-              fetchPriority={priority ? "high" : "auto"}
-              className={cn(
-                "w-full h-full object-cover transition-opacity duration-300",
-                isLoading ? "opacity-0" : "opacity-100"
-              )}
-              onLoad={() => setIsLoading(false)}
-              onError={() => {
-                handleImageError();
-                setIsLoading(false);
-              }}
+              priority={priority}
+              blurCategory="news"
+              containerClassName="w-full h-full"
+              onImageError={handleImageError}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/40 via-background to-background">

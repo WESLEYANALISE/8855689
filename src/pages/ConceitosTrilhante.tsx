@@ -6,6 +6,8 @@ import { ArrowLeft, BookOpen, Footprints, GraduationCap, Loader2, ImagePlus } fr
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import themisBackground from "@/assets/themis-estudos-background.webp";
+import { InstantBackground } from "@/components/ui/instant-background";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 const ConceitosTrilhante = () => {
   const navigate = useNavigate();
@@ -85,14 +87,13 @@ const ConceitosTrilhante = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${themisBackground})` }}
+      {/* Background Image com InstantBackground */}
+      <InstantBackground
+        src={themisBackground}
+        alt="Themis"
+        blurCategory="estudos"
+        gradientClassName="bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]"
       />
-      
-      {/* Dark gradient overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]" />
       
       {/* Content */}
       <div className="relative z-10">
@@ -209,10 +210,12 @@ const ConceitosTrilhante = () => {
                           <div className="h-20 w-full overflow-hidden relative flex-shrink-0">
                             {temCapa ? (
                               <>
-                                <img 
-                                  src={materia.capa_url!} 
+                                <UniversalImage
+                                  src={materia.capa_url!}
                                   alt={materia.nome}
-                                  className="w-full h-full object-cover"
+                                  priority={index < 4}
+                                  blurCategory="course"
+                                  containerClassName="w-full h-full"
                                 />
                                 {/* Gradiente escuro para destaque do texto */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />

@@ -6,6 +6,8 @@ import { ArrowLeft, Loader2, BookOpen, Sparkles, Play, CheckCircle2, Clock, Aler
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { InstantBackground } from "@/components/ui/instant-background";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 // Imagem de fundo para "O Caso dos Exploradores de Cavernas"
 import exploradoresCavernaBackground from "@/assets/backgrounds/exploradores-caverna.webp";
@@ -148,14 +150,13 @@ const BibliotecaClassicosAnalise = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
+      {/* Background Image com InstantBackground */}
+      <InstantBackground
+        src={backgroundImage}
+        alt={livro.livro || ''}
+        blurCategory="library"
+        gradientClassName="bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]"
       />
-      
-      {/* Dark gradient overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]" />
       
       {/* Content */}
       <div className="relative z-10">
@@ -318,10 +319,12 @@ const BibliotecaClassicosAnalise = () => {
                           {/* Capa do tema se disponível */}
                           {tema.capa_url && (
                             <div className="h-20 w-full overflow-hidden">
-                              <img 
-                                src={tema.capa_url} 
+                              <UniversalImage
+                                src={tema.capa_url}
                                 alt={tema.titulo}
-                                className="w-full h-full object-cover"
+                                priority={index < 4}
+                                blurCategory="book"
+                                containerClassName="w-full h-full"
                               />
                             </div>
                           )}

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useInstantCache, preloadImages } from "@/hooks/useInstantCache";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 interface AreaFlashcard {
   id: number;
@@ -99,12 +100,13 @@ export const FlashcardsEmAltaCarousel = () => {
               <div className="bg-secondary/30 rounded-xl overflow-hidden transition-all hover:bg-secondary/50 hover:scale-[1.02]">
                 <div className="relative aspect-[4/3] bg-secondary overflow-hidden">
                   {area.url_capa ? (
-                    <img
+                    <UniversalImage
                       src={area.url_capa}
                       alt={area.area}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
+                      priority={index < 4}
+                      blurCategory="flashcard"
+                      containerClassName="w-full h-full"
+                      className="group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
                     <div 

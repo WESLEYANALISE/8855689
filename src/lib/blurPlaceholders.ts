@@ -24,6 +24,24 @@ export const BLUR_PLACEHOLDERS = {
   politics: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP78/lD6UPpQ+lD6UPpQ+lD6UPpQ+lD6UAAAAA==', // vermelho escuro
   documentary: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP7+/kD+QP5A/kD+QP5A/kD+QP5A/kD+QAAAAA==', // azul escuro
   juridico: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP79/dz93P3c/dz93P3c/dz93P3c/dz93PAAAA==', // dourado
+  
+  // === NOVAS CATEGORIAS ===
+  // Capas de livros (tom âmbar/marrom clássico)
+  book: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP79/dj92P3Y/dj92P3Y/dj92P3Y/dj92PAAAA==',
+  // Carreiras jurídicas (azul profissional)
+  career: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP7+/kj+SP5I/kj+SP5I/kj+SP5I/kj+SAAAAA==',
+  // Cursos (vermelho educacional)
+  course: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP78/lT6VPpU+lT6VPpU+lT6VPpU+lT6VAAAAA==',
+  // Flashcards (roxo/magenta)
+  flashcard: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP7+/nD+cP5w/nD+cP5w/nD+cP5w/nD+cAAAAA==',
+  // Resumos (laranja/vermelho)
+  resume: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP78/lj+WP5Y/lj+WP5Y/lj+WP5Y/lj+WAAAAA==',
+  // OAB (vermelho escuro)
+  oab: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP78/lD6UPpQ+lD6UPpQ+lD6UPpQ+lD6UAAAAA==',
+  // Estudos (dourado/âmbar)
+  estudos: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP79/dz93P3c/dz93P3c/dz93P3c/dz93PAAAA==',
+  // Hero banners (escuro dramático)
+  hero: 'data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAADQAQCdASoKAAoAAUAmJQBOgB6O+N8AAP7+/lD+UP5Q/lD+UP5Q/lD+UP5Q/lD+UAAAAA==',
 } as const;
 
 // Blur placeholders específicos para assets estáticos importantes
@@ -132,4 +150,13 @@ export const CATEGORY_FALLBACK_COLORS: Record<BlurCategory, string> = {
   politics: '#7f1d1d',
   documentary: '#1e3a8a',
   juridico: '#78350f',
+  // Novas categorias
+  book: '#5c4033',
+  career: '#1e3a5f',
+  course: '#7f1d1d',
+  flashcard: '#581c87',
+  resume: '#9a3412',
+  oab: '#7f1d1d',
+  estudos: '#78350f',
+  hero: '#1a1a1a',
 };

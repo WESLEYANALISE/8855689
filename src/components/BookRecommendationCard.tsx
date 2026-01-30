@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, ExternalLink } from "lucide-react";
+import { UniversalImage } from "@/components/ui/universal-image";
 
 interface BookRecommendation {
   id: number;
@@ -26,10 +27,12 @@ const BookRecommendationCard = ({ book }: BookRecommendationCardProps) => {
       <div className="flex items-start gap-4">
         <div className="w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden shadow-lg">
           {book.cover ? (
-            <img 
-              src={book.cover} 
+            <UniversalImage
+              src={book.cover}
               alt={book.title}
-              className="w-full h-full object-cover"
+              priority={false}
+              blurCategory="book"
+              containerClassName="w-full h-full"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">

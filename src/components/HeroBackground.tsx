@@ -1,7 +1,11 @@
+import { UniversalImage } from '@/components/ui/universal-image';
+import type { BlurCategory } from '@/lib/blurPlaceholders';
+
 interface HeroBackgroundProps {
   imageSrc: string;
   imageAlt?: string;
   height?: string;
+  blurCategory?: BlurCategory;
   gradientOpacity?: {
     top: number;
     middle: number;
@@ -13,6 +17,7 @@ const HeroBackground = ({
   imageSrc, 
   imageAlt = '',
   height = '60vh',
+  blurCategory = 'hero',
   gradientOpacity = { top: 0.15, middle: 0.4, bottom: 1 }
 }: HeroBackgroundProps) => {
   return (
@@ -21,14 +26,15 @@ const HeroBackground = ({
       style={{ height }}
       aria-hidden="true"
     >
-      {/* Background Image - renders immediately without waiting for onload */}
-      <img
+      {/* Background Image com UniversalImage para blur placeholder */}
+      <UniversalImage
         src={imageSrc}
         alt={imageAlt}
-        className="w-full h-full object-cover"
-        loading="eager"
-        fetchPriority="high"
-        decoding="sync"
+        priority={true}
+        blurCategory={blurCategory}
+        disableBlur={false}
+        containerClassName="w-full h-full"
+        className="object-cover"
       />
       
       {/* Gradient Overlay */}

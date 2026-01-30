@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import themisBackground from "@/assets/themis-estudos-background.webp";
+import { InstantBackground } from "@/components/ui/instant-background";
 
 const ConceitosLivro = () => {
   const { trilha } = useParams<{ trilha: string }>();
@@ -172,12 +173,13 @@ const ConceitosLivro = () => {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background Image */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${themisBackground})` }}
+      {/* Background Image com InstantBackground */}
+      <InstantBackground
+        src={themisBackground}
+        alt="Themis"
+        blurCategory="estudos"
+        gradientClassName="bg-gradient-to-b from-black/70 via-black/60 to-black/80"
       />
-      <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
       
       {/* Content */}
       <div className="relative z-10 min-h-screen pb-24">
