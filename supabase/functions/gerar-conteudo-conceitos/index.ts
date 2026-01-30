@@ -481,6 +481,30 @@ IMPORTANTE:
     // EXTRAÇÃO DE JSON BALANCEADA (State Machine Parser)
     // Mais robusta que indexOf/lastIndexOf
     // ============================================
+
+    function normalizarJsonIA(text: string): string {
+      // 1) Remover BOM e espaços estranhos
+      let t = text.replace(/^\uFEFF/, "").replace(/\u00A0/g, " ");
+
+      // 2) Normalizar aspas “curvas” que quebram JSON.parse
+      t = t
+        .replace(/[\u201C\u201D]/g, '"') // “ ”
+        .replace(/[\u2018\u2019]/g, "'"); // ‘ ’
+
+      // 3) Heurística: se o modelo retornou pseudo-JSON com aspas simples
+      // Ex: {'paginas': [...]} -> {"paginas": [...]}
+      // Só aplicamos quando não há chaves com aspas duplas (evita corromper JSON válido)
+      const hasSingleQuotedKeys = /(^|[\s,{])'[^'\\]+'\s*:/.test(t);
+      const hasDoubleQuotedKeys = /(^|[\s,{])"[^"\\]+"\s*:/.test(t);
+      if (hasSingleQuotedKeys && !hasDoubleQuotedKeys) {
+        t = t.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, p1) => {
+          const inner = String(p1).replace(/"/g, '\\"');
+          return `"${inner}"`;
+        });
+      }
+
+      return t;
+    }
     function extrairJsonBalanceado(text: string): string | null {
       // Encontrar o início do JSON
       const startIndex = text.indexOf("{");
@@ -552,6 +576,8 @@ IMPORTANTE:
     let conteudoGerado;
     
     try {
+      jsonStr = normalizarJsonIA(jsonStr);
+
       // Sanitizar caracteres de controle antes do parse (IGUAL OAB Trilhas)
       const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
         if (char === '\n') return '\\n';
@@ -562,10 +588,16 @@ IMPORTANTE:
       conteudoGerado = JSON.parse(sanitizedJson);
       console.log("[Conceitos] ✅ JSON parseado diretamente");
     } catch (parseError) {
+      // Logs curtos para diagnosticar formato inválido (sem vazar conteúdo inteiro)
+      const preview = jsonStr.slice(0, 220);
+      const codes = Array.from(jsonStr.slice(0, 30)).map((c) => c.charCodeAt(0));
+      console.log("[Conceitos] JSON preview (220):", preview);
+      console.log("[Conceitos] JSON charCodes (30):", codes.join(","));
+
       console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
       
       // Sanitizar caracteres de controle (igual OAB)
-      let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+      let jsonCorrigido = normalizarJsonIA(jsonStr).replace(/[\x00-\x1F\x7F]/g, (char) => {
         if (char === '\n') return '\\n';
         if (char === '\r') return '\\r';
         if (char === '\t') return '\\t';
@@ -661,6 +693,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
         try {
           const complementoText = await gerarConteudo(promptComplemento);
           let complementoJson = complementoText.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
+          complementoJson = normalizarJsonIA(complementoJson);
           
           // Usar extração balanceada
           const compBalanceado = extrairJsonBalanceado(complementoJson);
@@ -677,7 +710,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
           // Parse com sanitização igual OAB Trilhas
           let complemento;
           try {
-            const sanitizedComp = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char: string) => {
+            const sanitizedComp = normalizarJsonIA(complementoJson).replace(/[\x00-\x1F\x7F]/g, (char: string) => {
               if (char === '\n') return '\\n';
               if (char === '\r') return '\\r';
               if (char === '\t') return '\\t';
@@ -686,7 +719,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
             complemento = JSON.parse(sanitizedComp);
           } catch {
             // Limpeza adicional se falhar
-            let jsonLimpo = complementoJson.replace(/[\x00-\x1F\x7F]/g, (char: string) => {
+            let jsonLimpo = normalizarJsonIA(complementoJson).replace(/[\x00-\x1F\x7F]/g, (char: string) => {
               if (char === '\n') return '\\n';
               if (char === '\r') return '\\r';
               if (char === '\t') return '\\t';
