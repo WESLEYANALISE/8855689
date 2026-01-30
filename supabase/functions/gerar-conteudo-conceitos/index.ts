@@ -1,19 +1,229 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
+// CORS Headers - PADRÃO SUPABASE (inclui x-supabase-client-*)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Constantes de configuração - ALINHADO COM OAB TRILHAS
+// Constantes de configuração
 const MIN_PAGINAS = 8;
-const MAX_TENTATIVAS = 1; // 1 tentativa conforme preferência do usuário
+
+// ============================================
+// POOL DE CHAVES GEMINI - FALLBACK REAL (1 → 2 → 3)
+// ============================================
+const GEMINI_KEYS = [
+  Deno.env.get("GEMINI_KEY_1"),
+  Deno.env.get("GEMINI_KEY_2"),
+  Deno.env.get("GEMINI_KEY_3"),
+].filter(Boolean) as string[];
+
+console.log(`[Conceitos] Iniciando com ${GEMINI_KEYS.length} chaves Gemini disponíveis`);
+
+// ============================================
+// FUNÇÃO PRINCIPAL: GERAR CONTEÚDO COM FALLBACK
+// ============================================
+async function generateContentWithFallback(prompt: string): Promise<{ text: string; finishReason: string | null; keyIndex: number }> {
+  console.log(`[Conceitos] generateContentWithFallback - ${GEMINI_KEYS.length} chaves disponíveis`);
+  
+  for (let i = 0; i < GEMINI_KEYS.length; i++) {
+    const apiKey = GEMINI_KEYS[i];
+    console.log(`[Conceitos] Tentando chave ${i + 1}/${GEMINI_KEYS.length}...`);
+    
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+              maxOutputTokens: 65000,
+              temperature: 0.3,
+              responseMimeType: "application/json",
+            },
+          }),
+        }
+      );
+
+      // Rate limit ou temporário - tentar próxima chave
+      if (response.status === 429 || response.status === 503) {
+        console.log(`[Conceitos] Chave ${i + 1} rate limited (${response.status}), tentando próxima...`);
+        continue;
+      }
+
+      // Outros erros HTTP - logar e tentar próxima
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Conceitos] Erro na chave ${i + 1}: ${response.status} - ${errorText.slice(0, 200)}`);
+        continue;
+      }
+
+      const data = await response.json();
+      
+      // Verificar se há resposta válida
+      const candidate = data.candidates?.[0];
+      if (!candidate) {
+        console.log(`[Conceitos] Chave ${i + 1} retornou sem candidates`);
+        continue;
+      }
+
+      const text = candidate.content?.parts?.[0]?.text;
+      const finishReason = candidate.finishReason || null;
+      
+      if (!text) {
+        console.log(`[Conceitos] Chave ${i + 1} retornou resposta vazia (finishReason: ${finishReason})`);
+        continue;
+      }
+
+      console.log(`[Conceitos] ✅ Sucesso com chave ${i + 1} - ${text.length} chars, finishReason: ${finishReason}`);
+      return { text, finishReason, keyIndex: i + 1 };
+      
+    } catch (error) {
+      console.error(`[Conceitos] Exceção na chave ${i + 1}:`, error);
+      continue;
+    }
+  }
+  
+  throw new Error("Todas as chaves Gemini esgotadas ou com erro");
+}
+
+// ============================================
+// NORMALIZAÇÃO DE JSON - RESILIENTE A PSEUDO-JSON
+// ============================================
+function normalizarJsonIA(text: string): string {
+  // 1) Remover BOM e NBSP
+  let t = text.replace(/^\uFEFF/, "").replace(/\u00A0/g, " ");
+
+  // 2) Normalizar aspas "curvas" que quebram JSON.parse
+  t = t
+    .replace(/[\u201C\u201D]/g, '"') // " "
+    .replace(/[\u2018\u2019]/g, "'"); // ' '
+
+  // 3) Detectar pseudo-JSON com chaves sem aspas: {paginas: ...} ou , paginas: ...
+  // Heurística: se existe padrão de chave sem aspas e não começa com aspas duplas
+  const hasBareKeys = /([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g.test(t);
+  const hasDoubleQuotedKeys = /([{,]\s*)"[^"\\]+"\s*:/.test(t);
+  
+  if (hasBareKeys && !hasDoubleQuotedKeys) {
+    // Transformar chaves sem aspas em chaves com aspas
+    // Ex: {paginas: [...]} -> {"paginas": [...]}
+    t = t.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+    console.log("[Conceitos] Aplicada correção de chaves sem aspas (bare keys)");
+  }
+
+  // 4) Heurística: se o modelo retornou pseudo-JSON com aspas simples
+  // Ex: {'paginas': [...]} -> {"paginas": [...]}
+  const hasSingleQuotedKeys = /([{,]\s*)'[^'\\]+'\s*:/.test(t);
+  const hasDoubleQuotedKeysAfter = /([{,]\s*)"[^"\\]+"\s*:/.test(t);
+  
+  if (hasSingleQuotedKeys && !hasDoubleQuotedKeysAfter) {
+    t = t.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, p1) => {
+      const inner = String(p1).replace(/"/g, '\\"');
+      return `"${inner}"`;
+    });
+    console.log("[Conceitos] Aplicada correção de aspas simples para duplas");
+  }
+
+  return t;
+}
+
+// ============================================
+// EXTRAÇÃO DE JSON BALANCEADA (State Machine Parser)
+// Atualizado para reconhecer strings com aspas simples e duplas
+// ============================================
+function extrairJsonBalanceado(text: string): string | null {
+  // Pré-normalizar aspas simples antes da extração para evitar confusão
+  let normalizedText = text;
+  
+  // Se detectar padrão de aspas simples em keys, converter antes
+  const hasSingleQuotedKeys = /([{,]\s*)'[^'\\]+'\s*:/.test(normalizedText);
+  const hasDoubleQuotedKeys = /([{,]\s*)"[^"\\]+"\s*:/.test(normalizedText);
+  
+  if (hasSingleQuotedKeys && !hasDoubleQuotedKeys) {
+    normalizedText = normalizedText.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, p1) => {
+      const inner = String(p1).replace(/"/g, '\\"');
+      return `"${inner}"`;
+    });
+  }
+  
+  // Encontrar o início do JSON
+  const startIndex = normalizedText.indexOf("{");
+  if (startIndex === -1) return null;
+  
+  let depth = 0;
+  let inString = false;
+  let stringChar: string | null = null;
+  let escape = false;
+  let endIndex = -1;
+  
+  for (let i = startIndex; i < normalizedText.length; i++) {
+    const char = normalizedText[i];
+    
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escape = true;
+      continue;
+    }
+    
+    // Detectar início/fim de string (aspas duplas ou simples)
+    if ((char === '"' || char === "'") && !escape) {
+      if (!inString) {
+        inString = true;
+        stringChar = char;
+      } else if (char === stringChar) {
+        inString = false;
+        stringChar = null;
+      }
+      continue;
+    }
+    
+    if (!inString) {
+      if (char === '{') depth++;
+      else if (char === '}') {
+        depth--;
+        if (depth === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+  }
+  
+  if (endIndex === -1) return null;
+  return normalizedText.slice(startIndex, endIndex + 1);
+}
+
+// ============================================
+// LOGS DIAGNÓSTICOS
+// ============================================
+function logDiagnostico(label: string, text: string) {
+  const preview = text.slice(0, 250);
+  const codes = Array.from(text.slice(0, 40)).map((c) => c.charCodeAt(0));
+  console.log(`[Conceitos] ${label} - Preview (250): ${preview}`);
+  console.log(`[Conceitos] ${label} - CharCodes (40): ${codes.join(",")}`);
+}
+
+// ============================================
+// SANITIZAÇÃO DE CARACTERES DE CONTROLE
+// Nota: NÃO escapa \n, \r, \t porque esses são válidos em JSON entre tokens
+// Apenas remove caracteres de controle inválidos (NUL, etc.)
+// ============================================
+function sanitizarControle(jsonStr: string): string {
+  // Apenas remove caracteres de controle problemáticos, NÃO \n, \r, \t
+  // \n (10), \r (13), \t (9) são válidos em JSON whitespace
+  return jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   // Guardar referências para o catch
@@ -232,20 +442,8 @@ serve(async (req) => {
 
     await updateProgress(30);
 
-    // 3. Configurar Gemini - SIMPLES, igual OAB Trilhas (escolher chave aleatória)
-    const geminiKeys = [
-      Deno.env.get("GEMINI_KEY_1"),
-      Deno.env.get("GEMINI_KEY_2"),
-      Deno.env.get("GEMINI_KEY_3"),
-    ].filter(Boolean) as string[];
-
-    const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
-    console.log(`[Conceitos] Usando chave Gemini aleatória (${geminiKeys.length} disponíveis)`);
-    
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    // 4. PROMPT PARA CONCEITOS - Foco em iniciantes de Direito
+    // 3. PROMPT PARA CONCEITOS - Foco em iniciantes de Direito
+    // IMPORTANTE: Ajustado para reforçar saída JSON com aspas duplas
     const prompt = `Você é um professor de Direito acolhedor e didático, especializado em ensinar INICIANTES.
 Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse ajudando alguém que está começando agora a estudar Direito.
 
@@ -271,7 +469,14 @@ Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como s
 - Explicações secas e diretas demais
 - Texto que pareça copiado de um livro jurídico
 - **NUNCA USE EMOJIS NO TEXTO**
-- **NUNCA USE ASPAS DUPLAS (\") NO MARKDOWN** (isso quebra o JSON). Se precisar destacar uma expressão, use aspas simples ('...') ou itálico (*...*).
+
+═══════════════════════════════════════════════════════════════════
+REGRAS DE FORMATO JSON - MUITO IMPORTANTE
+═══════════════════════════════════════════════════════════════════
+
+1. O JSON deve usar ASPAS DUPLAS (") para todas as chaves e valores de string. Isso é obrigatório pelo padrão JSON.
+2. DENTRO dos campos markdown, evite usar aspas duplas no texto. Use aspas simples (') ou itálico (*...*) para destacar.
+3. Não use chaves sem aspas como {paginas: ...}. Use {"paginas": ...}.
 
 ═══════════════════════════════════════════════════════════════════
 REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF
@@ -369,9 +574,8 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
 - "Vamos revisar rapidinho..."
 - Checklist do que você aprendeu
 
-### FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
+### FORMATO DE RESPOSTA (JSON OBRIGATÓRIO COM ASPAS DUPLAS):
 
-\`\`\`json
 {
   "paginas": [
     {
@@ -432,7 +636,6 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
     {"pergunta": "Enunciado", "alternativas": ["A)", "B)", "C)", "D)"], "correta": 0, "explicacao": "Explicação"}
   ]
 }
-\`\`\`
 
 ### QUANTIDADES OBRIGATÓRIAS:
 - Páginas: EXATAMENTE 8 páginas
@@ -447,107 +650,21 @@ IMPORTANTE:
 - Use TODO o conteúdo do PDF
 - NÃO invente artigos ou citações legais
 - MANTENHA O TOM ACOLHEDOR para iniciantes
-- Retorne APENAS o JSON válido, SEM texto adicional após o fechamento final`;
+- Retorne APENAS o JSON válido, SEM texto adicional`;
 
-    // 5. Função para gerar conteúdo - SIMPLIFICADA (SEM CONCATENAÇÃO PROBLEMÁTICA)
-    // A concatenação de múltiplas respostas JSON causava erro de parse
-    async function gerarConteudo(promptInicial: string): Promise<string> {
-      console.log(`[Conceitos] Chamando Gemini (chamada única)...`);
-      
-      // CHAMADA EM MODO JSON: força saída como application/json (reduz erro de parse)
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: promptInicial }] }],
-        generationConfig: {
-          maxOutputTokens: 65000,
-          temperature: 0.3,
-          // @google/generative-ai: força resposta em JSON (sem markdown/fences)
-          responseMimeType: "application/json",
-        },
-      });
-      
-      const responseText = result.response.text();
-      console.log(`[Conceitos] Resposta: ${responseText.length} chars`);
-      
-      return responseText;
-    }
-
-    // Gerar conteúdo em chamada única (sem concatenação problemática)
+    // 4. Gerar conteúdo com fallback real
     await updateProgress(50);
-    const responseText = await gerarConteudo(prompt);
+    
+    const { text: responseText, finishReason, keyIndex } = await generateContentWithFallback(prompt);
+    
+    console.log(`[Conceitos] Resposta final: ${responseText.length} chars, chave ${keyIndex}, finishReason: ${finishReason}`);
+    
     await updateProgress(70);
-    console.log(`[Conceitos] Resposta final: ${responseText.length} chars`);
     
     // ============================================
-    // EXTRAÇÃO DE JSON BALANCEADA (State Machine Parser)
-    // Mais robusta que indexOf/lastIndexOf
+    // LOG DIAGNÓSTICO ANTES DO PARSE
     // ============================================
-
-    function normalizarJsonIA(text: string): string {
-      // 1) Remover BOM e espaços estranhos
-      let t = text.replace(/^\uFEFF/, "").replace(/\u00A0/g, " ");
-
-      // 2) Normalizar aspas “curvas” que quebram JSON.parse
-      t = t
-        .replace(/[\u201C\u201D]/g, '"') // “ ”
-        .replace(/[\u2018\u2019]/g, "'"); // ‘ ’
-
-      // 3) Heurística: se o modelo retornou pseudo-JSON com aspas simples
-      // Ex: {'paginas': [...]} -> {"paginas": [...]}
-      // Só aplicamos quando não há chaves com aspas duplas (evita corromper JSON válido)
-      const hasSingleQuotedKeys = /(^|[\s,{])'[^'\\]+'\s*:/.test(t);
-      const hasDoubleQuotedKeys = /(^|[\s,{])"[^"\\]+"\s*:/.test(t);
-      if (hasSingleQuotedKeys && !hasDoubleQuotedKeys) {
-        t = t.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, p1) => {
-          const inner = String(p1).replace(/"/g, '\\"');
-          return `"${inner}"`;
-        });
-      }
-
-      return t;
-    }
-    function extrairJsonBalanceado(text: string): string | null {
-      // Encontrar o início do JSON
-      const startIndex = text.indexOf("{");
-      if (startIndex === -1) return null;
-      
-      let depth = 0;
-      let inString = false;
-      let escape = false;
-      let endIndex = -1;
-      
-      for (let i = startIndex; i < text.length; i++) {
-        const char = text[i];
-        
-        if (escape) {
-          escape = false;
-          continue;
-        }
-        
-        if (char === '\\') {
-          escape = true;
-          continue;
-        }
-        
-        if (char === '"' && !escape) {
-          inString = !inString;
-          continue;
-        }
-        
-        if (!inString) {
-          if (char === '{') depth++;
-          else if (char === '}') {
-            depth--;
-            if (depth === 0) {
-              endIndex = i;
-              break;
-            }
-          }
-        }
-      }
-      
-      if (endIndex === -1) return null;
-      return text.slice(startIndex, endIndex + 1);
-    }
+    logDiagnostico("Resposta bruta", responseText);
     
     // Extrair JSON da resposta
     let jsonStr = responseText;
@@ -571,45 +688,82 @@ IMPORTANTE:
     }
     
     // ============================================
-    // PARSE JSON - Abordagem IDÊNTICA à OAB Trilhas
+    // PARSE JSON - ROBUSTO COM MÚLTIPLAS TENTATIVAS
     // ============================================
     let conteudoGerado;
     
     try {
+      // Primeiro: normalizar e sanitizar
       jsonStr = normalizarJsonIA(jsonStr);
-
-      // Sanitizar caracteres de controle antes do parse (IGUAL OAB Trilhas)
-      const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return ''; // Remove outros caracteres de controle
-      });
+      const sanitizedJson = sanitizarControle(jsonStr);
       conteudoGerado = JSON.parse(sanitizedJson);
       console.log("[Conceitos] ✅ JSON parseado diretamente");
     } catch (parseError) {
-      // Logs curtos para diagnosticar formato inválido (sem vazar conteúdo inteiro)
-      const preview = jsonStr.slice(0, 220);
-      const codes = Array.from(jsonStr.slice(0, 30)).map((c) => c.charCodeAt(0));
-      console.log("[Conceitos] JSON preview (220):", preview);
-      console.log("[Conceitos] JSON charCodes (30):", codes.join(","));
+      // Logs diagnósticos detalhados
+      logDiagnostico("Falha no parse inicial", jsonStr);
+      console.log("[Conceitos] Erro no parse:", parseError);
+      console.log("[Conceitos] finishReason foi:", finishReason);
 
-      console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
+      console.log("[Conceitos] Tentando corrigir JSON truncado...");
       
-      // Sanitizar caracteres de controle (igual OAB)
-      let jsonCorrigido = normalizarJsonIA(jsonStr).replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return '';
-      });
+      // Se finishReason é MAX_TOKENS, o JSON está truncado no meio
+      // Precisamos de uma correção mais agressiva
+      let jsonCorrigido = normalizarJsonIA(jsonStr);
+      jsonCorrigido = sanitizarControle(jsonCorrigido);
       
-      // Adicionar fechamentos faltantes
+      // CORREÇÃO PARA JSON TRUNCADO:
+      // 1. Encontrar a última estrutura completa (objeto ou array fechado)
+      // 2. Fechar strings não terminadas
+      // 3. Fechar estruturas pendentes
+      
+      // Verificar se está no meio de uma string (aspas não fechadas)
+      let inString = false;
+      let lastValidPos = 0;
+      let depth = 0;
+      
+      for (let i = 0; i < jsonCorrigido.length; i++) {
+        const char = jsonCorrigido[i];
+        const prevChar = i > 0 ? jsonCorrigido[i - 1] : '';
+        
+        if (char === '"' && prevChar !== '\\') {
+          inString = !inString;
+        }
+        
+        if (!inString) {
+          if (char === '{' || char === '[') {
+            depth++;
+          } else if (char === '}' || char === ']') {
+            depth--;
+            if (depth >= 0) {
+              lastValidPos = i + 1;
+            }
+          }
+        }
+      }
+      
+      // Se terminou dentro de uma string, fechar a string
+      if (inString) {
+        console.log("[Conceitos] JSON truncado dentro de uma string, fechando...");
+        // Remover o conteúdo após a última estrutura válida
+        if (lastValidPos > 0 && lastValidPos < jsonCorrigido.length - 100) {
+          // Cortar no último ponto válido e completar
+          jsonCorrigido = jsonCorrigido.slice(0, lastValidPos);
+          console.log(`[Conceitos] Cortado em lastValidPos=${lastValidPos}`);
+        } else {
+          // Fechar a string atual e tentar reparar
+          jsonCorrigido += '"';
+        }
+      }
+      
+      // Contar aberturas/fechamentos após possível correção
       const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
       const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
       const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
       const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
       
+      console.log(`[Conceitos] Balanceamento: {=${aberturasObj}/${fechamentosObj}, [=${aberturasArr}/${fechamentosArr}`);
+      
+      // Adicionar fechamentos faltantes
       for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
         jsonCorrigido += "]";
       }
@@ -620,11 +774,16 @@ IMPORTANTE:
       // Remover vírgula antes de fechamento
       jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
       
+      // Remover vírgula no final antes de fechar
+      jsonCorrigido = jsonCorrigido.replace(/,\s*$/g, "");
+      
       try {
         conteudoGerado = JSON.parse(jsonCorrigido);
-        console.log("[Conceitos] ✅ JSON corrigido com sucesso");
+        console.log("[Conceitos] ✅ JSON corrigido com sucesso após reparo de truncamento");
       } catch (finalError) {
         console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
+        logDiagnostico("JSON após correção (falhou)", jsonCorrigido.slice(-500));
+        
         await supabase.from("conceitos_topicos")
           .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
           .eq("id", topico_id);
@@ -636,7 +795,7 @@ IMPORTANTE:
       }
     }
 
-    // 6. Processar o conteúdo das páginas
+    // 5. Processar o conteúdo das páginas
     let conteudoPrincipal = "";
     const numPaginas = conteudoGerado.paginas?.length || 0;
     
@@ -674,9 +833,10 @@ Já foram geradas ${numPaginas} páginas. Você precisa gerar EXATAMENTE as pág
 Páginas que já existem (NÃO REPETIR): ${tiposExistentes.join(", ")}
 Páginas que FALTAM (GERAR AGORA): ${tiposFaltantes.join(", ")}
 
+IMPORTANTE: Retorne JSON válido com aspas duplas em todas as chaves e strings.
+
 Retorne APENAS um JSON com o array "paginas" contendo as páginas faltantes:
 
-\`\`\`json
 {
   "paginas": [
     {
@@ -686,14 +846,16 @@ Retorne APENAS um JSON com o array "paginas" contendo as páginas faltantes:
     }
   ]
 }
-\`\`\`
 
 Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
 
         try {
-          const complementoText = await gerarConteudo(promptComplemento);
+          const { text: complementoText } = await generateContentWithFallback(promptComplemento);
+          
+          // Log diagnóstico do complemento
+          logDiagnostico("Complemento bruto", complementoText);
+          
           let complementoJson = complementoText.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
-          complementoJson = normalizarJsonIA(complementoJson);
           
           // Usar extração balanceada
           const compBalanceado = extrairJsonBalanceado(complementoJson);
@@ -707,24 +869,20 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
             }
           }
           
-          // Parse com sanitização igual OAB Trilhas
+          // Parse com normalização completa
           let complemento;
           try {
-            const sanitizedComp = normalizarJsonIA(complementoJson).replace(/[\x00-\x1F\x7F]/g, (char: string) => {
-              if (char === '\n') return '\\n';
-              if (char === '\r') return '\\r';
-              if (char === '\t') return '\\t';
-              return '';
-            });
+            complementoJson = normalizarJsonIA(complementoJson);
+            const sanitizedComp = sanitizarControle(complementoJson);
             complemento = JSON.parse(sanitizedComp);
           } catch {
             // Limpeza adicional se falhar
-            let jsonLimpo = normalizarJsonIA(complementoJson).replace(/[\x00-\x1F\x7F]/g, (char: string) => {
-              if (char === '\n') return '\\n';
-              if (char === '\r') return '\\r';
-              if (char === '\t') return '\\t';
-              return '';
-            }).replace(/,(\s*[}\]])/g, "$1");
+            console.log("[Conceitos] Falha no parse do complemento, tentando correção...");
+            logDiagnostico("Complemento falhou no parse", complementoJson);
+            
+            let jsonLimpo = normalizarJsonIA(complementoJson);
+            jsonLimpo = sanitizarControle(jsonLimpo);
+            jsonLimpo = jsonLimpo.replace(/,(\s*[}\]])/g, "$1");
             complemento = JSON.parse(jsonLimpo);
           }
           
@@ -741,7 +899,8 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
               .join("");
           }
         } catch (compError) {
-          console.log(`[Conceitos] ⚠️ Falha ao complementar páginas:`, compError);
+          console.log(`[Conceitos] ⚠️ Falha ao complementar páginas (não crítico):`, compError);
+          // Não derrubar a geração se o complemento falhar e já temos páginas suficientes
         }
       }
       
@@ -772,7 +931,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
       }
     }
 
-    // 7. VALIDAR correspondências antes de salvar
+    // 6. VALIDAR correspondências antes de salvar
     await updateProgress(85);
     let correspondenciasValidas = conteudoGerado.correspondencias || [];
     
@@ -823,7 +982,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
       correspondencias: correspondenciasValidas
     };
     
-    // 8. Salvar conteúdo
+    // 7. Salvar conteúdo
     const numPaginasFinal = conteudoGerado.paginas?.length || 0;
     
     const { error: updateError } = await supabase
@@ -847,7 +1006,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
     }
 
     console.log(`[Conceitos] ✅ Conteúdo salvo com sucesso: ${topicoTitulo}`);
-    console.log(`[Conceitos] Stats: ${numPaginasFinal} páginas, ${correspondenciasValidas.length} correspondências, ${conteudoGerado.flashcards?.length || 0} flashcards`);
+    console.log(`[Conceitos] Stats: ${numPaginasFinal} páginas, ${correspondenciasValidas.length} correspondências, ${conteudoGerado.flashcards?.length || 0} flashcards, chave ${keyIndex}`);
 
     // ============================================
     // PROCESSAR PRÓXIMO DA FILA
@@ -868,6 +1027,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
           termos: conteudoGerado.termos?.length || 0,
           flashcards: conteudoGerado.flashcards?.length || 0,
           questoes: conteudoGerado.questoes?.length || 0,
+          keyUsed: keyIndex,
         }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
