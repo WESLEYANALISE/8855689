@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap, Book, BookOpen, ChevronLeft, ChevronRight, List, LayoutGrid, ChevronRight as ArrowRight, Sparkles } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import heroBibliotecas from "@/assets/biblioteca-office-sunset.jpg";
-import capaEstudos from "@/assets/capa-estudos.jpg";
+import capaEstudos from "@/assets/capa-estudos-compressed.webp";
 import capaClassicos from "@/assets/capa-classicos.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
