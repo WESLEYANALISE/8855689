@@ -1,232 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
-// CORS Headers - PADRÃO SUPABASE (inclui x-supabase-client-*)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 // Constantes de configuração
 const MIN_PAGINAS = 8;
-
-// ============================================
-// POOL DE CHAVES GEMINI - FALLBACK REAL (1 → 2 → 3)
-// ============================================
-const GEMINI_KEYS = [
-  Deno.env.get("GEMINI_KEY_1"),
-  Deno.env.get("GEMINI_KEY_2"),
-  Deno.env.get("GEMINI_KEY_3"),
-].filter(Boolean) as string[];
-
-console.log(`[Conceitos] Iniciando com ${GEMINI_KEYS.length} chaves Gemini disponíveis`);
-
-// ============================================
-// FUNÇÃO PRINCIPAL: GERAR CONTEÚDO COM FALLBACK
-// ============================================
-async function generateContentWithFallback(prompt: string): Promise<{ text: string; finishReason: string | null; keyIndex: number }> {
-  console.log(`[Conceitos] generateContentWithFallback - ${GEMINI_KEYS.length} chaves disponíveis`);
-  
-  for (let i = 0; i < GEMINI_KEYS.length; i++) {
-    const apiKey = GEMINI_KEYS[i];
-    console.log(`[Conceitos] Tentando chave ${i + 1}/${GEMINI_KEYS.length}...`);
-    
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-              maxOutputTokens: 65000,
-              temperature: 0.3,
-              responseMimeType: "application/json",
-            },
-          }),
-        }
-      );
-
-      // Rate limit ou temporário - tentar próxima chave
-      if (response.status === 429 || response.status === 503) {
-        console.log(`[Conceitos] Chave ${i + 1} rate limited (${response.status}), tentando próxima...`);
-        continue;
-      }
-
-      // Outros erros HTTP - logar e tentar próxima
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[Conceitos] Erro na chave ${i + 1}: ${response.status} - ${errorText.slice(0, 200)}`);
-        continue;
-      }
-
-      const data = await response.json();
-      
-      // Verificar se há resposta válida
-      const candidate = data.candidates?.[0];
-      if (!candidate) {
-        console.log(`[Conceitos] Chave ${i + 1} retornou sem candidates`);
-        continue;
-      }
-
-      const text = candidate.content?.parts?.[0]?.text;
-      const finishReason = candidate.finishReason || null;
-      
-      if (!text) {
-        console.log(`[Conceitos] Chave ${i + 1} retornou resposta vazia (finishReason: ${finishReason})`);
-        continue;
-      }
-
-      console.log(`[Conceitos] ✅ Sucesso com chave ${i + 1} - ${text.length} chars, finishReason: ${finishReason}`);
-      return { text, finishReason, keyIndex: i + 1 };
-      
-    } catch (error) {
-      console.error(`[Conceitos] Exceção na chave ${i + 1}:`, error);
-      continue;
-    }
-  }
-  
-  throw new Error("Todas as chaves Gemini esgotadas ou com erro");
-}
-
-// ============================================
-// NORMALIZAÇÃO DE JSON - RESILIENTE A PSEUDO-JSON
-// ============================================
-function normalizarJsonIA(text: string): string {
-  // 1) Remover BOM e NBSP
-  let t = text.replace(/^\uFEFF/, "").replace(/\u00A0/g, " ");
-
-  // 2) Normalizar aspas "curvas" que quebram JSON.parse
-  t = t
-    .replace(/[\u201C\u201D]/g, '"') // " "
-    .replace(/[\u2018\u2019]/g, "'"); // ' '
-
-  // 3) Detectar pseudo-JSON com chaves sem aspas: {paginas: ...} ou , paginas: ...
-  // Heurística: se existe padrão de chave sem aspas e não começa com aspas duplas
-  const hasBareKeys = /([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g.test(t);
-  const hasDoubleQuotedKeys = /([{,]\s*)"[^"\\]+"\s*:/.test(t);
-  
-  if (hasBareKeys && !hasDoubleQuotedKeys) {
-    // Transformar chaves sem aspas em chaves com aspas
-    // Ex: {paginas: [...]} -> {"paginas": [...]}
-    t = t.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-    console.log("[Conceitos] Aplicada correção de chaves sem aspas (bare keys)");
-  }
-
-  // 4) Heurística: se o modelo retornou pseudo-JSON com aspas simples
-  // Ex: {'paginas': [...]} -> {"paginas": [...]}
-  const hasSingleQuotedKeys = /([{,]\s*)'[^'\\]+'\s*:/.test(t);
-  const hasDoubleQuotedKeysAfter = /([{,]\s*)"[^"\\]+"\s*:/.test(t);
-  
-  if (hasSingleQuotedKeys && !hasDoubleQuotedKeysAfter) {
-    t = t.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, p1) => {
-      const inner = String(p1).replace(/"/g, '\\"');
-      return `"${inner}"`;
-    });
-    console.log("[Conceitos] Aplicada correção de aspas simples para duplas");
-  }
-
-  return t;
-}
-
-// ============================================
-// EXTRAÇÃO DE JSON BALANCEADA (State Machine Parser)
-// Atualizado para reconhecer strings com aspas simples e duplas
-// ============================================
-function extrairJsonBalanceado(text: string): string | null {
-  // Pré-normalizar aspas simples antes da extração para evitar confusão
-  let normalizedText = text;
-  
-  // Se detectar padrão de aspas simples em keys, converter antes
-  const hasSingleQuotedKeys = /([{,]\s*)'[^'\\]+'\s*:/.test(normalizedText);
-  const hasDoubleQuotedKeys = /([{,]\s*)"[^"\\]+"\s*:/.test(normalizedText);
-  
-  if (hasSingleQuotedKeys && !hasDoubleQuotedKeys) {
-    normalizedText = normalizedText.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, p1) => {
-      const inner = String(p1).replace(/"/g, '\\"');
-      return `"${inner}"`;
-    });
-  }
-  
-  // Encontrar o início do JSON
-  const startIndex = normalizedText.indexOf("{");
-  if (startIndex === -1) return null;
-  
-  let depth = 0;
-  let inString = false;
-  let stringChar: string | null = null;
-  let escape = false;
-  let endIndex = -1;
-  
-  for (let i = startIndex; i < normalizedText.length; i++) {
-    const char = normalizedText[i];
-    
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    
-    if (char === '\\') {
-      escape = true;
-      continue;
-    }
-    
-    // Detectar início/fim de string (aspas duplas ou simples)
-    if ((char === '"' || char === "'") && !escape) {
-      if (!inString) {
-        inString = true;
-        stringChar = char;
-      } else if (char === stringChar) {
-        inString = false;
-        stringChar = null;
-      }
-      continue;
-    }
-    
-    if (!inString) {
-      if (char === '{') depth++;
-      else if (char === '}') {
-        depth--;
-        if (depth === 0) {
-          endIndex = i;
-          break;
-        }
-      }
-    }
-  }
-  
-  if (endIndex === -1) return null;
-  return normalizedText.slice(startIndex, endIndex + 1);
-}
-
-// ============================================
-// LOGS DIAGNÓSTICOS
-// ============================================
-function logDiagnostico(label: string, text: string) {
-  const preview = text.slice(0, 250);
-  const codes = Array.from(text.slice(0, 40)).map((c) => c.charCodeAt(0));
-  console.log(`[Conceitos] ${label} - Preview (250): ${preview}`);
-  console.log(`[Conceitos] ${label} - CharCodes (40): ${codes.join(",")}`);
-}
-
-// ============================================
-// SANITIZAÇÃO DE CARACTERES DE CONTROLE
-// Nota: NÃO escapa \n, \r, \t porque esses são válidos em JSON entre tokens
-// Apenas remove caracteres de controle inválidos (NUL, etc.)
-// ============================================
-function sanitizarControle(jsonStr: string): string {
-  // Apenas remove caracteres de controle problemáticos, NÃO \n, \r, \t
-  // \n (10), \r (13), \t (9) são válidos em JSON whitespace
-  return jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-}
+const MAX_TENTATIVAS = 3;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // Guardar referências para o catch
+  // Guardar referências para o catch (req.json só pode ser lido 1x)
   let topicoIdForCatch: number | null = null;
   let supabaseForCatch: any = null;
 
@@ -278,6 +68,7 @@ serve(async (req) => {
         .single();
       
       if (jaEnfileirado?.status === "na_fila") {
+        // Já está na fila, retornar posição atual
         const { count: totalFila } = await supabase
           .from("conceitos_topicos")
           .select("id", { count: "exact", head: true })
@@ -304,6 +95,7 @@ serve(async (req) => {
         })
         .eq("id", topico_id);
       
+      // Contar total na fila
       const { count: totalFila } = await supabase
         .from("conceitos_topicos")
         .select("id", { count: "exact", head: true })
@@ -370,6 +162,7 @@ serve(async (req) => {
 
     // Atualizar posições na fila (decrementar todos acima da posição removida)
     if (posicaoRemovida) {
+      // Buscar todos na fila com posição maior e atualizar
       const { data: filaParaAtualizar } = await supabase
         .from("conceitos_topicos")
         .select("id, posicao_fila")
@@ -391,7 +184,7 @@ serve(async (req) => {
     const updateProgress = async (value: number) => {
       await supabase
         .from("conceitos_topicos")
-        .update({ progresso: value, updated_at: new Date().toISOString() })
+        .update({ progresso: value })
         .eq("id", topico_id);
     };
 
@@ -401,7 +194,7 @@ serve(async (req) => {
 
     console.log(`[Conceitos] Gerando conteúdo para: ${materiaNome} - ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
 
-    // 1. Buscar conteúdo das páginas do PDF
+    // 1. Buscar TODO o conteúdo extraído das páginas do PDF
     await updateProgress(10);
     const { data: paginas, error: paginasError } = await supabase
       .from("conceitos_materia_paginas")
@@ -437,33 +230,43 @@ serve(async (req) => {
         const sub = r.subtema ? `### ${r.subtema}\n` : "";
         return sub + (r.conteudo || "");
       }).join("\n\n");
-      console.log(`[Conceitos] RESUMO: ${resumos.length} subtemas encontrados`);
+      console.log(`[Conceitos] RESUMO: ${resumos.length} subtemas`);
     }
 
     await updateProgress(30);
 
-    // 3. PROMPT PARA CONCEITOS - Foco em iniciantes de Direito
-    // IMPORTANTE: Ajustado para reforçar saída JSON com aspas duplas
+    // 3. Configurar Gemini - IGUAL À OAB (escolha aleatória de chave)
+    const geminiKeys = [
+      Deno.env.get("GEMINI_KEY_1"),
+      Deno.env.get("GEMINI_KEY_2"),
+      Deno.env.get("GEMINI_KEY_3"),
+    ].filter(Boolean);
+
+    const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
+    const genAI = new GoogleGenerativeAI(geminiKey!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    // 4. PROMPT - Igual OAB mas para iniciantes
     const prompt = `Você é um professor de Direito acolhedor e didático, especializado em ensinar INICIANTES.
 Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse ajudando alguém que está começando agora a estudar Direito.
 
-## SEU ESTILO DE ESCRITA OBRIGATÓRIO:
+## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
 
-### FAÇA SEMPRE:
+### ✅ FAÇA SEMPRE:
 - Escreva como se estivesse CONVERSANDO com o estudante iniciante
 - Use expressões naturais como:
-  - "Olha só, você está começando a entender uma das bases do Direito..."
-  - "Veja bem, isso aqui é fundamental pra sua formação..."
-  - "Sabe quando você ouve falar de...? Pois é, é isso que vamos entender!"
-  - "Deixa eu te explicar de um jeito mais simples..."
-  - "Esse é um conceito que você vai usar em toda sua carreira jurídica!"
-  - "Calma, parece complicado, mas vou te mostrar passo a passo..."
+  • "Olha só, você está começando a entender uma das bases do Direito..."
+  • "Veja bem, isso aqui é fundamental pra sua formação..."
+  • "Sabe quando você ouve falar de...? Pois é, é isso que vamos entender!"
+  • "Deixa eu te explicar de um jeito mais simples..."
+  • "Esse é um conceito que você vai usar em toda sua carreira jurídica!"
+  • "Calma, parece complicado, mas vou te mostrar passo a passo..."
 - Use perguntas retóricas para engajar
 - Faça analogias com situações do dia a dia
 - Antecipe dúvidas ("Você pode estar pensando: mas o que isso significa na prática?")
 - A cada conceito importante, explique de forma simples antes de aprofundar
 
-### NÃO FAÇA:
+### ❌ NÃO FAÇA:
 - Linguagem excessivamente formal/acadêmica
 - Parágrafos longos e densos sem pausas
 - Explicações secas e diretas demais
@@ -471,49 +274,41 @@ Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como s
 - **NUNCA USE EMOJIS NO TEXTO**
 
 ═══════════════════════════════════════════════════════════════════
-REGRAS DE FORMATO JSON - MUITO IMPORTANTE
-═══════════════════════════════════════════════════════════════════
-
-1. O JSON deve usar ASPAS DUPLAS (") para todas as chaves e valores de string. Isso é obrigatório pelo padrão JSON.
-2. DENTRO dos campos markdown, evite usar aspas duplas no texto. Use aspas simples (') ou itálico (*...*) para destacar.
-3. Não use chaves sem aspas como {paginas: ...}. Use {"paginas": ...}.
-
-═══════════════════════════════════════════════════════════════════
-REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF
+⛔⛔⛔ REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF ⛔⛔⛔
 ═══════════════════════════════════════════════════════════════════
 
 O CONTEÚDO ABAIXO FOI EXTRAÍDO DE UM PDF OFICIAL. VOCÊ DEVE:
-- Usar 100% do texto e informações do PDF
-- Citar APENAS artigos/leis que aparecem LITERALMENTE no PDF
-- Explicar cada conceito presente no material de forma didática
-- NÃO pular nenhum tópico ou seção do PDF
+✅ Usar 100% do texto e informações do PDF
+✅ Citar APENAS artigos/leis que aparecem LITERALMENTE no PDF
+✅ Explicar cada conceito presente no material de forma didática
+✅ NÃO pular nenhum tópico ou seção do PDF
 
 VOCÊ NÃO PODE:
-- INVENTAR artigos de lei que NÃO estejam no PDF
-- ADICIONAR citações legais que você "sabe" mas NÃO estão no conteúdo
-- CRIAR jurisprudência ou números de processos não presentes
-- OMITIR informações importantes do PDF
+❌ INVENTAR artigos de lei que NÃO estejam no PDF
+❌ ADICIONAR citações legais que você "sabe" mas NÃO estão no conteúdo
+❌ CRIAR jurisprudência ou números de processos não presentes
+❌ OMITIR informações importantes do PDF
 
 ## INFORMAÇÕES DO TEMA
 **Matéria:** ${materiaNome}
 **Tópico:** ${topicoTitulo}
 
 ═══════════════════════════════════════════════════════════════════
-CONTEÚDO COMPLETO DO PDF (USE 100% DESTE MATERIAL):
+📄 CONTEÚDO COMPLETO DO PDF (USE 100% DESTE MATERIAL):
 ═══════════════════════════════════════════════════════════════════
 
 ${conteudoPDF || "Conteúdo do PDF não disponível"}
 
 ${conteudoResumo ? `
 ═══════════════════════════════════════════════════════════════════
-CONTEXTO ADICIONAL:
+📚 CONTEXTO ADICIONAL:
 ═══════════════════════════════════════════════════════════════════
 
 ${conteudoResumo}
 ` : ""}
 
 ═══════════════════════════════════════════════════════════════════
-SUA MISSÃO: GERAR CONTEÚDO COM EXATAMENTE 8 PÁGINAS
+📝 SUA MISSÃO: GERAR CONTEÚDO COM EXATAMENTE 8 PÁGINAS
 ═══════════════════════════════════════════════════════════════════
 
 Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
@@ -522,18 +317,16 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
 
 **PÁGINA 1 - INTRODUÇÃO** (Tom: acolhedor e motivador para INICIANTES)
 - Tipo: "introducao"
-- Comece com algo engajador: "Você está começando sua jornada no Direito e chegou em um dos temas mais importantes: ${materiaNome}..."
-- Explique que este é um conceito fundamental para a formação jurídica
-- Contextualize: "Este tema que vamos estudar - ${topicoTitulo} - é essencial porque..."
-- "Ao final dessa trilha, você vai dominar os fundamentos de..."
-- Visão geral em 300-500 palavras, linguagem acessível para quem está começando
+- Comece com algo engajador: "Você está começando sua jornada no Direito..."
+- Visão geral do tema em 300-500 palavras
+- Contextualize a importância
+- "Ao final dessa trilha, você vai dominar..."
 
 **PÁGINA 2 - CONTEÚDO COMPLETO** (Tom: professor explicando para iniciante)
 - Tipo: "conteudo_principal"
 - Explique TODO o tema usando 100% do conteúdo do PDF
 - Organize com subtítulos claros (##, ###)
-- Use tom CONVERSACIONAL: "Vamos lá!", "Entendeu?", "Aqui vem a parte interessante..."
-- Lembre que o estudante está COMEÇANDO: explique tudo com paciência
+- Use tom CONVERSACIONAL
 - Cite os artigos de lei EXATAMENTE como aparecem no PDF
 - Mínimo 3000 palavras - cubra TUDO do PDF
 
@@ -541,24 +334,20 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
 - Tipo: "desmembrando"
 - Análise detalhada de cada elemento importante
 - Decomponha conceitos complexos em partes menores
-- "Esse termo pode parecer complicado, mas olha só..."
 
 **PÁGINA 4 - ENTENDENDO NA PRÁTICA** (Tom: "Imagina essa situação...")
 - Tipo: "entendendo_na_pratica"
 - Casos práticos do dia a dia baseados no conteúdo
-- "Vou te dar um exemplo bem concreto..."
 - Situações reais de aplicação
 
 **PÁGINA 5 - QUADRO COMPARATIVO**
 - Tipo: "quadro_comparativo"
 - Tabelas comparativas dos principais conceitos
-- Compare elementos, características, diferenças
 - Use formato Markdown de tabela
 
 **PÁGINA 6 - DICAS PARA MEMORIZAR** (Tom: "Olha esse truque...")
 - Tipo: "dicas_provas"
 - Técnicas de memorização (mnemônicos, associações)
-- "Quer uma dica? Pensa assim..."
 - Pontos mais importantes para lembrar
 
 **PÁGINA 7 - LIGAR TERMOS (EXERCÍCIO INTERATIVO)**
@@ -571,17 +360,17 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
 **PÁGINA 8 - SÍNTESE FINAL** (Tom: "Recapitulando tudo que vimos...")
 - Tipo: "sintese_final"
 - Resumo de todos os pontos-chave
-- "Vamos revisar rapidinho..."
 - Checklist do que você aprendeu
 
-### FORMATO DE RESPOSTA (JSON OBRIGATÓRIO COM ASPAS DUPLAS):
+### FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
 
+\`\`\`json
 {
   "paginas": [
     {
       "titulo": "Introdução: ${topicoTitulo}",
       "tipo": "introducao",
-      "markdown": "# Bem-vindo ao estudo de ${topicoTitulo}!\\n\\n[Visão geral acolhedora para iniciantes]"
+      "markdown": "# Bem-vindo ao estudo de ${topicoTitulo}!\\n\\n[Visão geral acolhedora]"
     },
     {
       "titulo": "Conteúdo Completo: ${topicoTitulo}",
@@ -601,7 +390,7 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
     {
       "titulo": "Quadro Comparativo",
       "tipo": "quadro_comparativo",
-      "markdown": "# Quadro Comparativo\\n\\n[Tabelas]"
+      "markdown": "# Quadro Comparativo\\n\\n[Tabelas comparativas]"
     },
     {
       "titulo": "Dicas para Memorizar",
@@ -620,148 +409,169 @@ Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
     }
   ],
   "correspondencias": [
-    {"termo": "Termo do PDF", "definicao": "Definição correspondente"},
-    {"termo": "Outro termo", "definicao": "Outra definição"}
+    {
+      "termo": "Nome do termo/conceito do PDF",
+      "definicao": "Definição correspondente do PDF"
+    },
+    {
+      "termo": "Outro termo",
+      "definicao": "Outra definição"
+    }
   ],
   "exemplos": [
-    {"titulo": "Título", "situacao": "Descrição", "analise": "Análise", "conclusao": "Conclusão"}
+    {
+      "titulo": "Título do caso",
+      "situacao": "Descrição do caso prático",
+      "analise": "Análise",
+      "conclusao": "Conclusão"
+    }
   ],
   "termos": [
-    {"termo": "Termo", "definicao": "Definição"}
+    {
+      "termo": "Termo do PDF",
+      "definicao": "Definição conforme o PDF"
+    }
   ],
   "flashcards": [
-    {"frente": "Pergunta", "verso": "Resposta", "exemplo": "Exemplo"}
+    {
+      "frente": "Pergunta baseada no PDF",
+      "verso": "Resposta do PDF",
+      "exemplo": "Exemplo prático"
+    }
   ],
   "questoes": [
-    {"pergunta": "Enunciado", "alternativas": ["A)", "B)", "C)", "D)"], "correta": 0, "explicacao": "Explicação"}
+    {
+      "pergunta": "Enunciado",
+      "alternativas": ["A)", "B)", "C)", "D)"],
+      "correta": 0,
+      "explicacao": "Explicação"
+    }
   ]
 }
+\`\`\`
 
 ### QUANTIDADES OBRIGATÓRIAS:
-- Páginas: EXATAMENTE 8 páginas
+- Páginas: EXATAMENTE 8 páginas (estrutura acima)
 - Página 2 (Conteúdo): Mínimo 3000 palavras
-- Correspondências: Mínimo 8 pares termo/definição
+- Correspondências: Mínimo 8 pares termo/definição para o jogo
 - Exemplos: Mínimo 5 casos práticos
 - Termos: Mínimo 10 termos jurídicos
 - Flashcards: Mínimo 15 flashcards
 - Questões: Mínimo 8 questões
 
 IMPORTANTE: 
-- Use TODO o conteúdo do PDF
+- Use ABSOLUTAMENTE TODO o conteúdo do PDF
 - NÃO invente artigos ou citações legais
-- MANTENHA O TOM ACOLHEDOR para iniciantes
-- Retorne APENAS o JSON válido, SEM texto adicional`;
+- MANTENHA O TOM CONVERSACIONAL em todas as páginas
+- O campo "correspondencias" é SEPARADO das páginas - são os dados para o jogo interativo
+- Retorne APENAS o JSON válido, sem texto adicional`;
 
-    // 4. Gerar conteúdo com fallback real
+    // 5. Função auxiliar para gerar e continuar se truncado - IGUAL À OAB
+    async function gerarComContinuacao(promptInicial: string, maxTentativas = 3): Promise<string> {
+      let textoCompleto = "";
+      let tentativas = 0;
+      let promptAtual = promptInicial;
+      
+      while (tentativas < maxTentativas) {
+        tentativas++;
+        console.log(`[Conceitos] Chamando Gemini (tentativa ${tentativas})...`);
+        
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: promptAtual }] }],
+          generationConfig: {
+            maxOutputTokens: 65000,
+            temperature: 0.6,
+          },
+        });
+        
+        const responseText = result.response.text();
+        textoCompleto += responseText;
+        console.log(`[Conceitos] Resposta ${tentativas}: ${responseText.length} chars`);
+        
+        // Verificar se a resposta está completa (tem o fechamento do JSON)
+        const temFechamento = textoCompleto.includes('"questoes"') && 
+                              textoCompleto.trim().endsWith("}") ||
+                              textoCompleto.includes("```") && textoCompleto.lastIndexOf("```") > textoCompleto.lastIndexOf("```json");
+        
+        // Verificar se parece truncado no meio de uma string ou array
+        const pareceTruncado = !temFechamento && (
+          responseText.trim().endsWith(",") ||
+          responseText.trim().endsWith('"') ||
+          responseText.trim().endsWith("[") ||
+          responseText.trim().endsWith("{") ||
+          !responseText.includes("questoes")
+        );
+        
+        if (!pareceTruncado) {
+          console.log(`[Conceitos] Resposta completa após ${tentativas} tentativa(s)`);
+          break;
+        }
+        
+        console.log(`[Conceitos] Resposta truncada, solicitando continuação...`);
+        
+        // Preparar prompt de continuação com contexto
+        const ultimasLinhas = responseText.slice(-500);
+        promptAtual = `CONTINUE exatamente de onde parou. A resposta anterior terminou com:
+
+"""
+${ultimasLinhas}
+"""
+
+Continue gerando o JSON a partir deste ponto. NÃO repita o que já foi gerado. 
+Mantenha a mesma estrutura e formato JSON.
+Complete TODAS as seções que faltam: correspondencias, exemplos, termos, flashcards, questoes.
+Termine com o fechamento correto do JSON.`;
+      }
+      
+      return textoCompleto;
+    }
+
+    // Gerar conteúdo com lógica de continuação
     await updateProgress(50);
-    
-    const { text: responseText, finishReason, keyIndex } = await generateContentWithFallback(prompt);
-    
-    console.log(`[Conceitos] Resposta final: ${responseText.length} chars, chave ${keyIndex}, finishReason: ${finishReason}`);
-    
+    const responseText = await gerarComContinuacao(prompt);
     await updateProgress(70);
+    console.log(`[Conceitos] Resposta final: ${responseText.length} chars`);
     
-    // ============================================
-    // LOG DIAGNÓSTICO ANTES DO PARSE
-    // ============================================
-    logDiagnostico("Resposta bruta", responseText);
-    
-    // Extrair JSON da resposta
+    // Extrair JSON da resposta (pode estar em múltiplas partes)
     let jsonStr = responseText;
     
-    // Remover marcadores de código se houver
-    jsonStr = jsonStr.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
+    // Remover marcadores de código duplicados se houver
+    jsonStr = jsonStr.replace(/```json/g, "").replace(/```/g, "");
     
-    // Tentar extração balanceada primeiro
-    const jsonBalanceado = extrairJsonBalanceado(jsonStr);
-    if (jsonBalanceado) {
-      jsonStr = jsonBalanceado;
-      console.log(`[Conceitos] JSON extraído via state machine: ${jsonStr.length} chars`);
-    } else {
-      // Fallback para indexOf/lastIndexOf
-      const jsonStart = jsonStr.indexOf("{");
-      const jsonEnd = jsonStr.lastIndexOf("}");
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
-        console.log(`[Conceitos] JSON extraído via fallback: ${jsonStr.length} chars`);
-      }
+    // Encontrar o JSON principal
+    const jsonStart = jsonStr.indexOf("{");
+    const jsonEnd = jsonStr.lastIndexOf("}");
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
     }
     
-    // ============================================
-    // PARSE JSON - ROBUSTO COM MÚLTIPLAS TENTATIVAS
-    // ============================================
+    // Tentar corrigir JSON truncado se necessário - IGUAL À OAB
     let conteudoGerado;
-    
     try {
-      // Primeiro: normalizar e sanitizar
-      jsonStr = normalizarJsonIA(jsonStr);
-      const sanitizedJson = sanitizarControle(jsonStr);
+      // Sanitizar caracteres de controle antes do parse
+      const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === '\n') return '\\n';
+        if (char === '\r') return '\\r';
+        if (char === '\t') return '\\t';
+        return ''; // Remove outros caracteres de controle
+      });
       conteudoGerado = JSON.parse(sanitizedJson);
-      console.log("[Conceitos] ✅ JSON parseado diretamente");
     } catch (parseError) {
-      // Logs diagnósticos detalhados
-      logDiagnostico("Falha no parse inicial", jsonStr);
-      console.log("[Conceitos] Erro no parse:", parseError);
-      console.log("[Conceitos] finishReason foi:", finishReason);
-
-      console.log("[Conceitos] Tentando corrigir JSON truncado...");
+      console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
       
-      // Se finishReason é MAX_TOKENS, o JSON está truncado no meio
-      // Precisamos de uma correção mais agressiva
-      let jsonCorrigido = normalizarJsonIA(jsonStr);
-      jsonCorrigido = sanitizarControle(jsonCorrigido);
+      // Sanitizar caracteres de controle
+      let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === '\n') return '\\n';
+        if (char === '\r') return '\\r';
+        if (char === '\t') return '\\t';
+        return '';
+      });
       
-      // CORREÇÃO PARA JSON TRUNCADO:
-      // 1. Encontrar a última estrutura completa (objeto ou array fechado)
-      // 2. Fechar strings não terminadas
-      // 3. Fechar estruturas pendentes
-      
-      // Verificar se está no meio de uma string (aspas não fechadas)
-      let inString = false;
-      let lastValidPos = 0;
-      let depth = 0;
-      
-      for (let i = 0; i < jsonCorrigido.length; i++) {
-        const char = jsonCorrigido[i];
-        const prevChar = i > 0 ? jsonCorrigido[i - 1] : '';
-        
-        if (char === '"' && prevChar !== '\\') {
-          inString = !inString;
-        }
-        
-        if (!inString) {
-          if (char === '{' || char === '[') {
-            depth++;
-          } else if (char === '}' || char === ']') {
-            depth--;
-            if (depth >= 0) {
-              lastValidPos = i + 1;
-            }
-          }
-        }
-      }
-      
-      // Se terminou dentro de uma string, fechar a string
-      if (inString) {
-        console.log("[Conceitos] JSON truncado dentro de uma string, fechando...");
-        // Remover o conteúdo após a última estrutura válida
-        if (lastValidPos > 0 && lastValidPos < jsonCorrigido.length - 100) {
-          // Cortar no último ponto válido e completar
-          jsonCorrigido = jsonCorrigido.slice(0, lastValidPos);
-          console.log(`[Conceitos] Cortado em lastValidPos=${lastValidPos}`);
-        } else {
-          // Fechar a string atual e tentar reparar
-          jsonCorrigido += '"';
-        }
-      }
-      
-      // Contar aberturas/fechamentos após possível correção
+      // Adicionar fechamentos faltantes
       const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
       const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
       const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
       const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
-      
-      console.log(`[Conceitos] Balanceamento: {=${aberturasObj}/${fechamentosObj}, [=${aberturasArr}/${fechamentosArr}`);
       
       // Adicionar fechamentos faltantes
       for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
@@ -774,32 +584,25 @@ IMPORTANTE:
       // Remover vírgula antes de fechamento
       jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
       
-      // Remover vírgula no final antes de fechar
-      jsonCorrigido = jsonCorrigido.replace(/,\s*$/g, "");
-      
       try {
         conteudoGerado = JSON.parse(jsonCorrigido);
-        console.log("[Conceitos] ✅ JSON corrigido com sucesso após reparo de truncamento");
+        console.log("[Conceitos] JSON corrigido com sucesso");
       } catch (finalError) {
-        console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
-        logDiagnostico("JSON após correção (falhou)", jsonCorrigido.slice(-500));
-        
+        console.error("[Conceitos] Falha definitiva no parse JSON:", finalError);
+        // Marcar como erro para tentar novamente depois
         await supabase.from("conceitos_topicos")
-          .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
+          .update({ status: "erro", progresso: 0 })
           .eq("id", topico_id);
-        
-        // Processar próximo da fila mesmo em erro
-        await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
-        
         throw new Error("Falha ao processar resposta da IA");
       }
     }
 
-    // 5. Processar o conteúdo das páginas
+    // 6. Processar o conteúdo das páginas
     let conteudoPrincipal = "";
     const numPaginas = conteudoGerado.paginas?.length || 0;
     
     if (conteudoGerado.paginas && Array.isArray(conteudoGerado.paginas)) {
+      // Concatenar todas as páginas em um único markdown com separadores
       conteudoPrincipal = conteudoGerado.paginas
         .map((p: any, i: number) => {
           const separador = i > 0 ? "\n\n---\n\n" : "";
@@ -809,112 +612,25 @@ IMPORTANTE:
       
       console.log(`[Conceitos] ${numPaginas} páginas geradas`);
     } else {
+      // Fallback para formato antigo
       conteudoPrincipal = conteudoGerado.conteudo || "";
     }
 
     // ============================================
-    // VALIDAÇÃO DE PÁGINAS - SE < 8, REGENERAR AUTOMATICAMENTE
+    // VALIDAÇÃO DE PÁGINAS E REPROCESSAMENTO AUTOMÁTICO
     // ============================================
     if (numPaginas < MIN_PAGINAS) {
-      console.log(`[Conceitos] ⚠️ Apenas ${numPaginas} páginas (mínimo: ${MIN_PAGINAS}), tentando complementar...`);
+      console.log(`[Conceitos Fila] ⚠️ Apenas ${numPaginas} páginas (mínimo: ${MIN_PAGINAS})`);
       
-      // Tentar complementar as páginas que faltam
-      const tiposExistentes = conteudoGerado.paginas?.map((p: any) => p.tipo) || [];
-      const tiposNecessarios = ["introducao", "conteudo_principal", "desmembrando", "entendendo_na_pratica", "quadro_comparativo", "dicas_provas", "correspondencias", "sintese_final"];
-      const tiposFaltantes = tiposNecessarios.filter(t => !tiposExistentes.includes(t));
+      const novasTentativas = tentativasAtuais + 1;
       
-      if (tiposFaltantes.length > 0) {
-        console.log(`[Conceitos] Tipos faltantes: ${tiposFaltantes.join(", ")}`);
-        
-        const promptComplemento = `Complete o material de estudo sobre "${topicoTitulo}".
-
-Já foram geradas ${numPaginas} páginas. Você precisa gerar EXATAMENTE as páginas que faltam para completar 8.
-
-Páginas que já existem (NÃO REPETIR): ${tiposExistentes.join(", ")}
-Páginas que FALTAM (GERAR AGORA): ${tiposFaltantes.join(", ")}
-
-IMPORTANTE: Retorne JSON válido com aspas duplas em todas as chaves e strings.
-
-Retorne APENAS um JSON com o array "paginas" contendo as páginas faltantes:
-
-{
-  "paginas": [
-    {
-      "titulo": "Título da página",
-      "tipo": "${tiposFaltantes[0]}",
-      "markdown": "# Conteúdo..."
-    }
-  ]
-}
-
-Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
-
-        try {
-          const { text: complementoText } = await generateContentWithFallback(promptComplemento);
-          
-          // Log diagnóstico do complemento
-          logDiagnostico("Complemento bruto", complementoText);
-          
-          let complementoJson = complementoText.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
-          
-          // Usar extração balanceada
-          const compBalanceado = extrairJsonBalanceado(complementoJson);
-          if (compBalanceado) {
-            complementoJson = compBalanceado;
-          } else {
-            const compStart = complementoJson.indexOf("{");
-            const compEnd = complementoJson.lastIndexOf("}");
-            if (compStart !== -1 && compEnd !== -1) {
-              complementoJson = complementoJson.slice(compStart, compEnd + 1);
-            }
-          }
-          
-          // Parse com normalização completa
-          let complemento;
-          try {
-            complementoJson = normalizarJsonIA(complementoJson);
-            const sanitizedComp = sanitizarControle(complementoJson);
-            complemento = JSON.parse(sanitizedComp);
-          } catch {
-            // Limpeza adicional se falhar
-            console.log("[Conceitos] Falha no parse do complemento, tentando correção...");
-            logDiagnostico("Complemento falhou no parse", complementoJson);
-            
-            let jsonLimpo = normalizarJsonIA(complementoJson);
-            jsonLimpo = sanitizarControle(jsonLimpo);
-            jsonLimpo = jsonLimpo.replace(/,(\s*[}\]])/g, "$1");
-            complemento = JSON.parse(jsonLimpo);
-          }
-          
-          if (complemento.paginas && Array.isArray(complemento.paginas)) {
-            conteudoGerado.paginas = [...(conteudoGerado.paginas || []), ...complemento.paginas];
-            console.log(`[Conceitos] ✅ Complemento adicionou ${complemento.paginas.length} páginas. Total: ${conteudoGerado.paginas.length}`);
-            
-            // Recalcular conteúdo principal
-            conteudoPrincipal = conteudoGerado.paginas
-              .map((p: any, i: number) => {
-                const separador = i > 0 ? "\n\n---\n\n" : "";
-                return `${separador}${p.markdown || ""}`;
-              })
-              .join("");
-          }
-        } catch (compError) {
-          console.log(`[Conceitos] ⚠️ Falha ao complementar páginas (não crítico):`, compError);
-          // Não derrubar a geração se o complemento falhar e já temos páginas suficientes
-        }
-      }
-      
-      // Verificar novamente após complemento
-      const numPaginasFinal = conteudoGerado.paginas?.length || 0;
-      if (numPaginasFinal < MIN_PAGINAS) {
-        console.log(`[Conceitos] ❌ Ainda com ${numPaginasFinal} páginas após complemento - marcando erro`);
-        
+      if (novasTentativas >= MAX_TENTATIVAS) {
+        console.log(`[Conceitos Fila] ❌ Máximo de tentativas (${MAX_TENTATIVAS}) atingido, marcando como erro`);
         await supabase.from("conceitos_topicos")
           .update({ 
             status: "erro", 
-            tentativas: 1,
-            progresso: 0,
-            updated_at: new Date().toISOString() 
+            tentativas: novasTentativas,
+            progresso: 0 
           })
           .eq("id", topico_id);
         
@@ -923,20 +639,58 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
         
         return new Response(
           JSON.stringify({ 
-            error: `Conteúdo insuficiente: ${numPaginasFinal}/${MIN_PAGINAS} páginas. Clique em "Tentar novamente".`,
-            paginas: numPaginasFinal
+            error: `Falha após ${MAX_TENTATIVAS} tentativas (${numPaginas}/${MIN_PAGINAS} páginas)`,
+            tentativas: novasTentativas
           }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      
+      // Calcular próxima posição na fila
+      const { data: maxPosicao } = await supabase
+        .from("conceitos_topicos")
+        .select("posicao_fila")
+        .eq("status", "na_fila")
+        .order("posicao_fila", { ascending: false })
+        .limit(1)
+        .single();
+      
+      const novaPosicao = (maxPosicao?.posicao_fila || 0) + 1;
+      
+      console.log(`[Conceitos Fila] Recolocando na fila: posição ${novaPosicao}, tentativa ${novasTentativas + 1}`);
+      
+      // Limpar conteúdo e recolocar no final da fila
+      await supabase.from("conceitos_topicos")
+        .update({ 
+          status: "na_fila", 
+          posicao_fila: novaPosicao,
+          tentativas: novasTentativas,
+          conteudo_gerado: null,
+          progresso: 0
+        })
+        .eq("id", topico_id);
+      
+      // Processar próximo da fila
+      await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
+      
+      return new Response(
+        JSON.stringify({ 
+          requeued: true,
+          reason: `${numPaginas}/${MIN_PAGINAS} páginas`,
+          position: novaPosicao,
+          tentativas: novasTentativas + 1
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // 6. VALIDAR correspondências antes de salvar
+    // 7. VALIDAR correspondências antes de salvar - mínimo 8 pares para o jogo "Ligar Termos"
     await updateProgress(85);
     let correspondenciasValidas = conteudoGerado.correspondencias || [];
     
+    // Verificar se tem correspondências suficientes
     if (!Array.isArray(correspondenciasValidas) || correspondenciasValidas.length < 8) {
-      console.log(`[Conceitos] ⚠️ Correspondências insuficientes (${correspondenciasValidas.length}), tentando extrair...`);
+      console.log(`[Conceitos] ⚠️ Correspondências insuficientes (${correspondenciasValidas.length}), tentando extrair do conteúdo...`);
       
       // Tentar extrair correspondências a partir das páginas
       const paginaLigarTermos = conteudoGerado.paginas?.find((p: any) => 
@@ -945,10 +699,12 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
         p.markdown?.toLowerCase().includes("ligar termos")
       );
       
+      // Extrair termos do próprio conteúdo se existirem listas de termos/definições
       if (paginaLigarTermos?.dados_interativos?.pares) {
         correspondenciasValidas = paginaLigarTermos.dados_interativos.pares;
         console.log(`[Conceitos] ✓ Extraídas ${correspondenciasValidas.length} correspondências da página 7`);
       } else if (conteudoGerado.termos && Array.isArray(conteudoGerado.termos) && conteudoGerado.termos.length >= 8) {
+        // Converter termos do glossário em correspondências (usar descrição curta)
         correspondenciasValidas = conteudoGerado.termos.slice(0, 10).map((t: any) => ({
           termo: t.termo || t.nome || t,
           definicao: t.definicao?.substring(0, 60) || t.descricao?.substring(0, 60) || "Conceito jurídico"
@@ -960,7 +716,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
     // Validar cada par de correspondência
     correspondenciasValidas = correspondenciasValidas
       .filter((c: any) => c && c.termo && c.definicao)
-      .slice(0, 10)
+      .slice(0, 10) // Máximo 10 pares
       .map((c: any) => ({
         termo: String(c.termo).trim().substring(0, 50),
         definicao: String(c.definicao).trim().substring(0, 80)
@@ -968,11 +724,11 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
     
     console.log(`[Conceitos] Correspondências finais: ${correspondenciasValidas.length} pares válidos`);
     
-    // Se ainda não tiver correspondências suficientes, marcar como erro
+    // Se ainda não tiver correspondências suficientes, marcar como erro para retry
     if (correspondenciasValidas.length < 6) {
       console.error(`[Conceitos] ❌ Falha: apenas ${correspondenciasValidas.length} correspondências (mínimo 6)`);
       await supabase.from("conceitos_topicos")
-        .update({ status: "erro", progresso: 80, updated_at: new Date().toISOString() })
+        .update({ status: "erro", progresso: 80 })
         .eq("id", topico_id);
       throw new Error(`Correspondências insuficientes para o jogo Ligar Termos (${correspondenciasValidas.length}/6)`);
     }
@@ -981,9 +737,6 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
       glossario: conteudoGerado.termos || [],
       correspondencias: correspondenciasValidas
     };
-    
-    // 7. Salvar conteúdo
-    const numPaginasFinal = conteudoGerado.paginas?.length || 0;
     
     const { error: updateError } = await supabase
       .from("conceitos_topicos")
@@ -1006,7 +759,10 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
     }
 
     console.log(`[Conceitos] ✅ Conteúdo salvo com sucesso: ${topicoTitulo}`);
-    console.log(`[Conceitos] Stats: ${numPaginasFinal} páginas, ${correspondenciasValidas.length} correspondências, ${conteudoGerado.flashcards?.length || 0} flashcards, chave ${keyIndex}`);
+    console.log(`[Conceitos] Stats: ${numPaginas} páginas, ${correspondenciasValidas.length} correspondências, ${conteudoGerado.flashcards?.length || 0} flashcards`);
+
+    // 8. NÃO gerar capa automaticamente - usar capa da matéria
+    console.log("[Conceitos] Capa será herdada da matéria, não gerando individual");
 
     // ============================================
     // PROCESSAR PRÓXIMO DA FILA
@@ -1016,41 +772,87 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Conteúdo gerado com sucesso - 8 páginas",
+        message: "Conteúdo gerado com sucesso - 8 páginas incluindo Ligar Termos",
         topico_id,
         titulo: topicoTitulo,
         materia: materiaNome,
-        paginas: numPaginasFinal,
+        paginas: numPaginas,
         stats: {
           correspondencias: correspondenciasValidas.length,
           exemplos: conteudoGerado.exemplos?.length || 0,
           termos: conteudoGerado.termos?.length || 0,
           flashcards: conteudoGerado.flashcards?.length || 0,
           questoes: conteudoGerado.questoes?.length || 0,
-          keyUsed: keyIndex,
         }
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   } catch (error: any) {
     console.error("[Conceitos] ❌ Erro ao gerar conteúdo:", error);
+    console.log(`[Conceitos] ❌ Erro detalhado:`, {
+      topico_id: topicoIdForCatch,
+      erro: error.message,
+      stack: error.stack?.substring(0, 500)
+    });
 
-    // Marcar como erro
+    // Tentar fazer retry automático
     try {
-      if (topicoIdForCatch && supabaseForCatch) {
-        await supabaseForCatch
+      if (topicoIdForCatch) {
+        const supabase = supabaseForCatch || createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        // Buscar tentativas atuais
+        const { data: topicoAtual } = await supabase
           .from("conceitos_topicos")
-          .update({ 
-            status: "erro", 
-            tentativas: 1, 
-            progresso: 0, 
-            updated_at: new Date().toISOString() 
-          })
-          .eq("id", topicoIdForCatch);
+          .select("tentativas")
+          .eq("id", topicoIdForCatch)
+          .single();
+
+        const tentativas = (topicoAtual?.tentativas || 0) + 1;
+
+        if (tentativas < MAX_TENTATIVAS) {
+          // Calcular próxima posição na fila
+          const { data: maxPos } = await supabase
+            .from("conceitos_topicos")
+            .select("posicao_fila")
+            .eq("status", "na_fila")
+            .order("posicao_fila", { ascending: false })
+            .limit(1)
+            .single();
+
+          const novaPosicao = (maxPos?.posicao_fila || 0) + 1;
+
+          // Recolocar na fila para nova tentativa
+          await supabase
+            .from("conceitos_topicos")
+            .update({ 
+              status: "na_fila", 
+              posicao_fila: novaPosicao,
+              tentativas,
+              progresso: 0,
+              conteudo_gerado: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", topicoIdForCatch);
+
+          console.log(`[Conceitos Fila] ♻️ Erro recuperável, recolocando na fila (tentativa ${tentativas}/${MAX_TENTATIVAS})`);
+        } else {
+          // Esgotou tentativas, marcar como erro definitivo
+          await supabase
+            .from("conceitos_topicos")
+            .update({ status: "erro", tentativas, progresso: 0, updated_at: new Date().toISOString() })
+            .eq("id", topicoIdForCatch);
+
+          console.log(`[Conceitos Fila] ❌ Erro após ${MAX_TENTATIVAS} tentativas, marcando como falha definitiva`);
+        }
         
         // Processar próximo da fila mesmo em caso de erro
         await processarProximoDaFila(
-          supabaseForCatch, 
+          supabase, 
           Deno.env.get("SUPABASE_URL")!, 
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
@@ -1066,7 +868,7 @@ Use o mesmo tom conversacional e didático. Mantenha a qualidade.`;
   }
 });
 
-// Função auxiliar para processar próximo item da fila
+// Função auxiliar para processar próximo item da fila - IGUAL À OAB
 async function processarProximoDaFila(supabase: any, supabaseUrl: string, supabaseServiceKey: string) {
   try {
     const { data: proximo, error } = await supabase
