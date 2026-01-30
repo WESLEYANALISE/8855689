@@ -588,87 +588,52 @@ Termine com o fechamento correto do JSON.`;
     }
     
     // ============================================
-    // PARSE JSON - Abordagem simplificada igual OAB Trilhas
+    // PARSE JSON - Abordagem IDÊNTICA à OAB Trilhas
     // ============================================
     let conteudoGerado;
-
-    // Sanitizar caracteres de controle GLOBALMENTE antes do parse (como OAB Trilhas)
-    // Isso é mais simples e confiável do que tentar detectar contexto de strings
-    const sanitizarJsonGlobal = (input: string): string => {
-      // IMPORTANTE: Não converter \n literal para \\n pois causa double-escaping
-      // O JSON da API Gemini já vem com escapes corretos
-      return input
-        // Remover BOM
-        .replace(/\uFEFF/g, "")
-        // Normalizar espaços unicode para espaço normal
-        .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, " ")
-        // Normalizar separadores de linha unicode para newline real
-        .replace(/[\u2028\u2029]/g, "\n")
-        // Remover caracteres de controle problemáticos (exceto newline, tab, carriage return)
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-    };
-
-    // Aplicar sanitização global
-    jsonStr = sanitizarJsonGlobal(jsonStr).trim();
     
-    // Primeiro: tentar parse direto
     try {
-      conteudoGerado = JSON.parse(jsonStr);
+      // Sanitizar caracteres de controle antes do parse (IGUAL OAB Trilhas)
+      const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === '\n') return '\\n';
+        if (char === '\r') return '\\r';
+        if (char === '\t') return '\\t';
+        return ''; // Remove outros caracteres de controle
+      });
+      conteudoGerado = JSON.parse(sanitizedJson);
       console.log("[Conceitos] ✅ JSON parseado diretamente");
-    } catch (parseError1) {
-      console.log("[Conceitos] Erro no parse direto, tentando correções...");
+    } catch (parseError) {
+      console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
+      
+      // Sanitizar caracteres de controle (igual OAB)
+      let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === '\n') return '\\n';
+        if (char === '\r') return '\\r';
+        if (char === '\t') return '\\t';
+        return '';
+      });
+      
+      // Adicionar fechamentos faltantes
+      const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
+      const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
+      const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
+      const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
+      
+      for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
+        jsonCorrigido += "]";
+      }
+      for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
+        jsonCorrigido += "}";
+      }
+      
+      // Remover vírgula antes de fechamento
+      jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
       
       try {
-        // Segunda tentativa: re-extrair JSON balanceado e adicionar fechamentos faltantes
-        let jsonCorrigido = jsonStr;
-        
-        // Tentar re-extrair JSON balanceado
-        const jsonReExtraido = extrairJsonBalanceado(jsonCorrigido);
-        if (jsonReExtraido) {
-          jsonCorrigido = jsonReExtraido;
-          console.log("[Conceitos] JSON re-extraído via state machine");
-        }
-        
-        // Adicionar fechamentos faltantes
-        const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
-        const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
-        const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
-        const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
-        
-        for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
-          jsonCorrigido += "]";
-        }
-        for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
-          jsonCorrigido += "}";
-        }
-        
-        // Remover vírgula antes de fechamento
-        jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
-        
         conteudoGerado = JSON.parse(jsonCorrigido);
         console.log("[Conceitos] ✅ JSON corrigido com sucesso");
       } catch (finalError) {
         console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
-        
-        // Extrair posição do erro para debug
-        try {
-          const msg = (finalError as any)?.message ? String((finalError as any).message) : "";
-          const m = msg.match(/position\s+(\d+)/i);
-          const pos = m ? Number(m[1]) : null;
-          if (pos !== null && Number.isFinite(pos)) {
-            const start = Math.max(0, pos - 80);
-            const end = Math.min(jsonStr.length, pos + 80);
-            const snippet = jsonStr.slice(start, end);
-            console.error("[Conceitos] Parse error position=", pos);
-            console.error("[Conceitos] Snippet around error=", JSON.stringify(snippet));
-          }
-        } catch (_e) {
-          // ignore
-        }
-        
-        console.error("[Conceitos] Primeiros 500 chars:", jsonStr.slice(0, 500));
-        console.error("[Conceitos] Últimos 500 chars:", jsonStr.slice(-500));
-        
         await supabase.from("conceitos_topicos")
           .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
           .eq("id", topico_id);
