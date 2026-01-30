@@ -1,239 +1,274 @@
 
-# Plano: Carregamento Instantâneo de Imagens com Cache Agressivo
+# Plano: Melhorias no Chat da Professora
 
-## Objetivo
-Implementar carregamento instantâneo com blur placeholder e cache agressivo para **todas** as imagens do app: capas de bibliotecas, capas de livros, imagens de fundo (backgrounds), e outras imagens críticas.
+## Visao Geral
 
----
+Este plano implementa tres melhorias principais no Chat da Professora (`/chat-professora`):
 
-## Análise do Sistema Atual
-
-### Componentes que JÁ usam UniversalImage (✅ OK)
-- `BibliotecasCarousel` - capas das bibliotecas
-- `CapaDocumentario` - capas de documentários
-- `CachedImage` (wrapper)
-- `EstudosPoliticosSection`
-
-### Componentes que PRECISAM migrar para UniversalImage
-1. **Capas de Livros**
-   - `LivroCard.tsx` - lista de livros nas bibliotecas
-   - `LivroCarouselCard.tsx` - carrossel de livros
-   - `BookRecommendationCard.tsx` - recomendações de livros
-   
-2. **Imagens de Fundo (Backgrounds)**
-   - `HeroBackground.tsx` - hero de várias páginas
-   - Páginas com `backgroundImage` inline: `ConceitosLivro`, `ConceitosTrilhante`, `OABTrilhasMateria`, `FaculdadeInicio`, `BibliotecaClassicosAnalise`
-   - `DesktopTopNav.tsx` - header desktop
-   
-3. **Outros Cards com Imagens**
-   - `NoticiaCarouselCard.tsx` - notícias
-   - `CursosAreasCarousel.tsx` - cursos
-   - `FlashcardsEmAltaCarousel.tsx` - flashcards
-   - `CarreirasCarousel.tsx` - carreiras
-   - `ResumosDisponiveisCarousel.tsx` - resumos
+1. **Reconhecimento de FAQs** - A Professora identificara perguntas frequentes e respondera de forma direcionada
+2. **Tabela Comparativa Visual** - Usar o componente `QuadroComparativoVisual` para renderizar tabelas no chat
+3. **Botao Flutuante de Flashcards** - Apos cada resposta, exibir botao lateral que gera 10 flashcards automaticos
 
 ---
 
-## Implementação
+## Analise Atual
 
-### Fase 1: Melhorar HeroBackground com Blur Placeholder
+### Estrutura do Chat Professora
+- **Pagina principal**: `src/pages/ChatProfessora.tsx`
+- **Componente de mensagem**: `src/components/chat/ChatMessageNew.tsx`
+- **Perguntas sugeridas**: `src/components/chat/SuggestedQuestions.tsx` (define FAQs por modo)
+- **Hook de streaming**: `src/hooks/useStreamingChat.ts`
+- **Edge function**: `supabase/functions/chat-professora/index.ts`
 
-```typescript
-// HeroBackground.tsx - ANTES
-<img
-  src={imageSrc}
-  loading="eager"
-  fetchPriority="high"
-  decoding="sync"
-/>
+### Sistema de FAQs Existente
+O componente `SuggestedQuestions.tsx` ja possui perguntas pre-definidas organizadas por modo:
+- **study**: Perguntas sobre Direito Penal, Constitucional, Civil, Administrativo
+- **realcase**: Casos Penais, Civeis, Trabalhistas
+- **recommendation**: Livros, Doutrina, Conteudo Digital
 
-// HeroBackground.tsx - DEPOIS
-import { UniversalImage } from '@/components/ui/universal-image';
-import type { BlurCategory } from '@/lib/blurPlaceholders';
+### Componente de Tabela Existente
+`src/components/oab/QuadroComparativoVisual.tsx` ja implementa:
+- Tabela visual com tema vermelho/laranja
+- Suporte a drag horizontal e touch
+- Funcao `extrairTabelaDoMarkdown` para parsear tabelas Markdown
 
-interface HeroBackgroundProps {
-  imageSrc: string;
-  imageAlt?: string;
-  height?: string;
-  blurCategory?: BlurCategory;
-  gradientOpacity?: {...};
-}
+### Flashcards Existente
+- `src/components/FlashcardViewer.tsx` - Visualizador completo com flip animation
+- `src/components/videoaulas/VideoaulaFlashcards.tsx` - Versao simplificada
+- Edge function `gerar-flashcards` - Gera 10+ flashcards via Gemini
 
-<UniversalImage
-  src={imageSrc}
-  alt={imageAlt}
-  priority={true}
-  blurCategory={blurCategory}
-  disableBlur={false}
-  containerClassName="w-full h-full"
-/>
+---
+
+## Implementacao
+
+### Fase 1: Reconhecimento de FAQs
+
+**Objetivo**: Quando o usuario digitar uma pergunta que corresponda a uma FAQ pre-definida, a Professora reconhecera e dara uma resposta direcionada.
+
+**Arquivos a modificar**:
+1. `supabase/functions/chat-professora/index.ts`
+
+**Abordagem**:
+```text
+1. Criar mapa de FAQs com respostas base
+2. Antes de enviar ao Gemini, verificar se a pergunta eh similar a uma FAQ
+3. Se for FAQ, adicionar contexto especifico no prompt
+4. Incluir instrucao para estruturar resposta de forma didatica
 ```
 
-### Fase 2: Migrar Cards de Livros
-
-Atualizar `LivroCard.tsx`, `LivroCarouselCard.tsx` e `BookRecommendationCard.tsx` para usar `UniversalImage`:
-
+**Mapa de FAQs a criar**:
 ```typescript
-// LivroCard.tsx - Exemplo de migração
-import { UniversalImage } from '@/components/ui/universal-image';
-
-// ANTES
-<img
-  src={capaUrl}
-  loading={isImagePreloaded(capaUrl) ? "eager" : "lazy"}
-  decoding={isImagePreloaded(capaUrl) ? "sync" : "async"}
-  onLoad={() => markImageLoaded(capaUrl)}
-/>
-
-// DEPOIS
-<UniversalImage
-  src={capaUrl}
-  alt={titulo}
-  priority={priority}
-  blurCategory="library"
-  containerClassName="w-full h-full"
-/>
-```
-
-### Fase 3: Criar Componente InstantBackground para Fundos
-
-Novo componente para backgrounds com estilo inline:
-
-```typescript
-// src/components/ui/instant-background.tsx
-import { memo } from 'react';
-import { UniversalImage } from './universal-image';
-import type { BlurCategory } from '@/lib/blurPlaceholders';
-
-interface InstantBackgroundProps {
-  src: string;
-  alt?: string;
-  blurCategory?: BlurCategory;
-  gradient?: string;
-  className?: string;
-}
-
-export const InstantBackground = memo(({
-  src,
-  alt = '',
-  blurCategory = 'dark',
-  gradient = 'bg-gradient-to-b from-black/70 via-black/60 to-black/80',
-  className = 'fixed inset-0'
-}: InstantBackgroundProps) => {
-  return (
-    <>
-      <div className={cn(className, 'pointer-events-none')}>
-        <UniversalImage
-          src={src}
-          alt={alt}
-          priority={true}
-          blurCategory={blurCategory}
-          disableBlur={false}
-          containerClassName="w-full h-full"
-        />
-      </div>
-      <div className={cn(className, gradient)} />
-    </>
-  );
-});
-```
-
-### Fase 4: Migrar Carrosséis e Cards Restantes
-
-Atualizar os seguintes componentes:
-- `NoticiaCarouselCard.tsx` → usar UniversalImage com `blurCategory="news"`
-- `CursosAreasCarousel.tsx` → usar UniversalImage
-- `FlashcardsEmAltaCarousel.tsx` → usar UniversalImage
-- `CarreirasCarousel.tsx` → usar UniversalImage
-- `ResumosDisponiveisCarousel.tsx` → usar UniversalImage
-
-### Fase 5: Ampliar Sistema de Preload
-
-Melhorar `GlobalImagePreloader.tsx` para incluir mais categorias:
-
-```typescript
-// Adicionar ao CRITICAL_SUPABASE_IMAGES
-{ key: 'livros_estudos_capas', table: 'BIBLIOTECA-ESTUDOS', imageColumn: 'url_capa_gerada', limit: 100 },
-{ key: 'livros_classicos_capas', table: 'BIBLIOTECA-CLASSICOS', imageColumn: 'imagem', limit: 50 },
-{ key: 'livros_oab_capas', table: 'BIBILIOTECA-OAB', imageColumn: 'Capa-livro', limit: 50 },
-{ key: 'carreiras_capas', table: 'CARREIRAS_JURIDICAS', imageColumn: 'capa_url', limit: 20 },
-```
-
-### Fase 6: Adicionar Categorias de Blur ao Sistema
-
-Expandir `blurPlaceholders.ts`:
-
-```typescript
-export const BLUR_PLACEHOLDERS = {
-  // Existentes...
+const FAQ_MAP = {
+  // Direito Penal
+  "legitima defesa": "Explicar Art. 25 CP, excludentes, requisitos...",
+  "dolo e culpa": "Diferenciar dolo direto, eventual, culpa consciente...",
+  "crimes hediondos": "Lei 8.072/90, rol de crimes, regime...",
   
-  // Novos para melhor matching
-  book: 'data:image/webp;base64,...', // tom âmbar/marrom (capa de livro)
-  career: 'data:image/webp;base64,...', // azul profissional
-  course: 'data:image/webp;base64,...', // verde educacional
-  flashcard: 'data:image/webp;base64,...', // roxo
-  resume: 'data:image/webp;base64,...', // vermelho/laranja
-} as const;
+  // Direito Constitucional  
+  "clausulas petreas": "Art. 60 CF, protecoes, limites...",
+  "controle constitucionalidade": "Difuso vs concentrado, ADI, ADC...",
+  
+  // Direito Civil
+  "usucapiao": "Modalidades, prazos, requisitos...",
+  "responsabilidade civil": "Objetiva vs subjetiva, Art. 927...",
+};
+```
+
+**Deteccao de similaridade**:
+- Comparar tokens da pergunta com chaves do FAQ_MAP
+- Se match > 60%, considerar como FAQ
+- Adicionar contexto especifico ao system prompt
+
+---
+
+### Fase 2: Tabela Comparativa Visual
+
+**Objetivo**: Renderizar tabelas Markdown da Professora usando o `QuadroComparativoVisual`.
+
+**Arquivos a modificar**:
+1. `src/components/chat/ChatMessageNew.tsx`
+
+**Abordagem**:
+```text
+1. Importar QuadroComparativoVisual e extrairTabelaDoMarkdown
+2. Na funcao renderMarkdownContent, detectar tabelas
+3. Extrair dados da tabela e renderizar com componente visual
+4. Manter texto normal para resto do conteudo
+```
+
+**Implementacao no ChatMessageNew**:
+```typescript
+// Importar
+import { QuadroComparativoVisual, extrairTabelaDoMarkdown } from '@/components/oab/QuadroComparativoVisual';
+
+// Na renderizacao
+const renderContent = (text: string) => {
+  const tabelaData = extrairTabelaDoMarkdown(text);
+  
+  if (tabelaData) {
+    // Separar texto antes/depois da tabela
+    // Renderizar QuadroComparativoVisual
+  }
+  
+  return renderMarkdownContent(text);
+};
 ```
 
 ---
 
-## Arquivos a Modificar
+### Fase 3: Botao Flutuante de Flashcards
 
-### Componentes UI
-1. `src/components/HeroBackground.tsx` - Migrar para UniversalImage
-2. `src/components/LivroCard.tsx` - Migrar para UniversalImage
-3. `src/components/LivroCarouselCard.tsx` - Migrar para UniversalImage
-4. `src/components/BookRecommendationCard.tsx` - Migrar para UniversalImage
-5. `src/components/NoticiaCarouselCard.tsx` - Migrar para UniversalImage
-6. `src/components/CursosAreasCarousel.tsx` - Migrar para UniversalImage
-7. `src/components/FlashcardsEmAltaCarousel.tsx` - Migrar para UniversalImage
-8. `src/components/CarreirasCarousel.tsx` - Migrar para UniversalImage
-9. `src/components/ResumosDisponiveisCarousel.tsx` - Migrar para UniversalImage
+**Objetivo**: Apos cada resposta da Professora, exibir um botao flutuante que gera 10 flashcards automaticamente.
 
-### Páginas com Background
-10. `src/pages/ConceitosLivro.tsx` - Usar InstantBackground
-11. `src/pages/ConceitosTrilhante.tsx` - Usar InstantBackground
-12. `src/pages/oab/OABTrilhasMateria.tsx` - Usar InstantBackground
-13. `src/pages/FaculdadeInicio.tsx` - Usar InstantBackground
-14. `src/pages/BibliotecaClassicosAnalise.tsx` - Usar InstantBackground
-15. `src/components/DesktopTopNav.tsx` - Usar UniversalImage
+**Arquivos a criar**:
+1. `src/components/chat/FloatingFlashcardsButton.tsx`
+2. `src/components/chat/ChatFlashcardsModal.tsx`
 
-### Novos Arquivos
-16. `src/components/ui/instant-background.tsx` - Novo componente
+**Arquivos a modificar**:
+1. `src/pages/ChatProfessora.tsx`
+2. `src/hooks/useStreamingChat.ts` (opcional - para gerar flashcards junto com resposta)
 
-### Sistema de Cache
-17. `src/lib/blurPlaceholders.ts` - Adicionar novas categorias
-18. `src/components/GlobalImagePreloader.tsx` - Expandir preload
+**FloatingFlashcardsButton**:
+```typescript
+// Botao fixo no lado direito da tela
+// Aparece quando ha mensagem do assistant
+// Animacao de entrada/saida
+// Icone de flashcard (Layers)
+// Badge com "10 cards"
+```
+
+**Estilo do botao**:
+```text
+- Posicao: fixed right-0 top-1/2 -translate-y-1/2
+- Tamanho: h-12 w-12 ou h-14 w-14
+- Cor: Gradient vermelho/laranja (tema do app)
+- Borda: rounded-l-xl (arredondado apenas esquerda)
+- Animacao: slide-in da direita quando aparece
+- Z-index: 40 (abaixo de modais, acima do conteudo)
+```
+
+**ChatFlashcardsModal**:
+```typescript
+// Modal drawer lateral ou central
+// Reutiliza VideoaulaFlashcards para exibir os cards
+// Loading state durante geracao
+// Animacao de flip (react-card-flip)
+// Navegacao entre cards
+// Exemplo pratico em cada card
+```
+
+**Fluxo**:
+```text
+1. Usuario faz pergunta
+2. Professora responde
+3. Sistema gera 10 flashcards em background (ou sob demanda)
+4. Botao flutuante aparece com animacao
+5. Usuario clica no botao
+6. Modal abre mostrando flashcards
+7. Usuario navega com flip animation
+```
 
 ---
 
-## Benefícios Esperados
+## Detalhes Tecnicos
 
-1. **Carregamento Instantâneo**: Blur placeholder visível imediatamente enquanto imagem real carrega
-2. **Zero Layout Shift**: Container com aspect ratio fixo + blur evita "pulos" no layout
-3. **Cache Agressivo**: Performance API + memória + preload = imagens já em cache na maioria das vezes
-4. **UX Consistente**: Mesmo padrão visual em todo o app
-5. **Performance**: Imagens prioritárias com fetchPriority="high" + decoding="sync"
+### Estrutura do Modal de Flashcards
+
+```typescript
+interface Flashcard {
+  id: number;
+  frente: string;      // Pergunta
+  verso: string;       // Resposta
+  exemplo?: string;    // Exemplo pratico
+}
+
+interface ChatFlashcardsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  conteudo: string;    // Conteudo da resposta para gerar flashcards
+  flashcards: Flashcard[];
+  isLoading: boolean;
+}
+```
+
+### Edge Function de Flashcards
+
+A edge function `gerar-flashcards` ja existe e pode ser reutilizada:
+- Recebe `content` como texto base
+- Retorna array de flashcards com `front`, `back`, `exemplo`, `base_legal`
+- Usa Gemini Flash para geracao rapida
+
+### Deteccao de FAQs
+
+```typescript
+// Funcao para detectar FAQ
+function detectarFAQ(pergunta: string): { isFAQ: boolean; contexto?: string } {
+  const perguntaLower = pergunta.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  for (const [tema, contexto] of Object.entries(FAQ_MAP)) {
+    const temaLower = tema.toLowerCase();
+    const palavrasTema = temaLower.split(' ');
+    const palavrasPergunta = perguntaLower.split(' ');
+    
+    const matches = palavrasTema.filter(p => palavrasPergunta.some(q => q.includes(p)));
+    const similarity = matches.length / palavrasTema.length;
+    
+    if (similarity >= 0.6) {
+      return { isFAQ: true, contexto };
+    }
+  }
+  
+  return { isFAQ: false };
+}
+```
 
 ---
 
-## Detalhes Técnicos
+## Arquivos a Modificar/Criar
 
-### Como funciona o carregamento instantâneo:
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `src/components/chat/FloatingFlashcardsButton.tsx` | Criar | Botao flutuante lateral |
+| `src/components/chat/ChatFlashcardsModal.tsx` | Criar | Modal com viewer de flashcards |
+| `src/components/chat/ChatMessageNew.tsx` | Modificar | Adicionar renderizacao de tabela visual |
+| `src/pages/ChatProfessora.tsx` | Modificar | Integrar botao flutuante e modal |
+| `supabase/functions/chat-professora/index.ts` | Modificar | Adicionar deteccao de FAQs |
+| `supabase/functions/chat-professora/faq-map.ts` | Criar | Mapa de FAQs com contextos |
+
+---
+
+## Fluxo de Usuario Final
 
 ```text
-1. Container renderiza com backgroundColor de fallback (ex: #78350f para library)
-2. Blur placeholder (10x10px base64) aparece com blur(20px) + scale(1.1)
-3. Imagem real começa a carregar
-4. Quando imagem carrega:
-   - Blur faz transição: blur(0) + scale(1) + opacity(0)
-   - Imagem real: opacity(0) → opacity(1)
-5. Imagem marcada no cache global (Set + Performance API)
-6. Próxima vez: imagem detectada no cache → loading="eager", sem blur
+1. Usuario abre /chat-professora
+2. Digita "O que e legitima defesa?"
+3. Sistema detecta como FAQ -> adiciona contexto especifico
+4. Professora responde com explicacao completa + tabela comparativa
+5. Tabela renderiza com QuadroComparativoVisual (drag horizontal)
+6. Botao flutuante aparece no lado direito
+7. Usuario clica no botao
+8. Loading enquanto gera 10 flashcards
+9. Modal abre com flashcards
+10. Usuario navega com flip animation
+11. Cada card mostra pergunta, resposta e exemplo pratico
 ```
 
-### Verificação de cache (ordem):
-1. `Set<string>` em memória (mais rápido)
-2. `performance.getEntriesByName()` - verifica cache HTTP do browser
-3. `new Image().complete` - fallback para imagens já renderizadas
+---
+
+## Estimativa de Complexidade
+
+| Fase | Complexidade | Tempo Estimado |
+|------|--------------|----------------|
+| Fase 1: FAQs | Media | Modificacoes na edge function |
+| Fase 2: Tabela Visual | Baixa | Integracao de componente existente |
+| Fase 3: Flashcards Flutuante | Alta | Novos componentes + integracao |
+
+---
+
+## Dependencias
+
+Todas as dependencias necessarias ja estao instaladas:
+- `react-card-flip` - Para animacao de flip
+- `framer-motion` - Para animacoes de entrada/saida
+- `lucide-react` - Para icones
+- Componentes Radix UI - Para modal/dialog
