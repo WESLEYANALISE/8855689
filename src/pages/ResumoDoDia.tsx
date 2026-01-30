@@ -11,9 +11,6 @@ import { ptBR } from "date-fns/locale";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Vídeo de introdução para boletim jurídico
-import introVideoJuridico from "@/assets/intro-boletim-juridico.mp4";
-
 // URL da música de fundo
 const BACKGROUND_MUSIC_URL = "https://files.catbox.moe/08cl4u.mp3";
 
@@ -65,11 +62,7 @@ export default function ResumoDoDia() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement>(null);
   const transitionAudioRef = useRef<HTMLAudioElement>(null);
-  const introVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlayingTransition, setIsPlayingTransition] = useState(false);
-  
-  // Estado para vídeo de introdução (boletim jurídico)
-  const [showIntroVideo, setShowIntroVideo] = useState(false);
   
   const [resumo, setResumo] = useState<ResumoDiario | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,16 +95,7 @@ export default function ResumoDoDia() {
     fetchResumo();
   }, [tipo, dataParam]);
 
-  // Pré-carregar vídeo de introdução para reprodução instantânea (boletim jurídico)
-  useEffect(() => {
-    if (tipo === 'juridica') {
-      const video = document.createElement('video');
-      video.src = introVideoJuridico;
-      video.preload = 'auto';
-      video.muted = true;
-      video.load(); // Força o download imediato
-    }
-  }, [tipo]);
+  // (Vídeo de introdução removido para otimização do bundle)
 
   // Montar fila de áudios quando resumo carregar
   useEffect(() => {
@@ -173,7 +157,7 @@ export default function ResumoDoDia() {
 
   // Efeito para mostrar emojis durante a reprodução
   useEffect(() => {
-    if (!isPlaying || !resumo || !audioRef.current || !currentSegmentDuration || showIntroVideo) return;
+    if (!isPlaying || !resumo || !audioRef.current || !currentSegmentDuration) return;
     
     const currentSlideData = resumo.slides[currentSlide];
     if (!currentSlideData?.emojis?.length) return;
@@ -360,10 +344,7 @@ export default function ResumoDoDia() {
   const handleAudioEnded = () => {
     const nextIndex = currentAudioIndex + 1;
     
-    // Se era o áudio de abertura (index 0) e é boletim jurídico, esconder vídeo de intro
-    if (currentAudioIndex === 0 && tipo === 'juridica' && resumo?.url_audio_abertura) {
-      setShowIntroVideo(false);
-    }
+    // (Vídeo de intro removido)
     
     // Acumular tempo do segmento que acabou
     setAccumulatedProgress(prev => prev + currentSegmentDuration);
@@ -402,7 +383,6 @@ export default function ResumoDoDia() {
       setIsPlaying(false);
       setCurrentAudioIndex(0);
       setAccumulatedProgress(0);
-      setShowIntroVideo(false);
       pendingAudioIndexRef.current = null;
       
       // Parar música de fundo
@@ -644,11 +624,6 @@ export default function ResumoDoDia() {
                 backgroundAudioRef.current.volume = 0.12;
                 backgroundAudioRef.current.play().catch(() => {});
               }
-              // Iniciar vídeo de introdução para boletim jurídico
-              if (tipo === 'juridica' && resumo?.url_audio_abertura && currentAudioIndex === 0) {
-                setShowIntroVideo(true);
-                introVideoRef.current?.play().catch(() => {});
-              }
               setHasAutoPlayed(true);
             }
           }}
@@ -790,43 +765,20 @@ export default function ResumoDoDia() {
                 <div className="absolute inset-0 bg-primary/10 blur-3xl scale-150 opacity-20" />
                 
                 <AnimatePresence mode="wait">
-                  {/* Vídeo de introdução durante áudio de abertura */}
-                  {tipo === 'juridica' && showIntroVideo ? (
-                    <motion.video
-                      key="intro-video"
-                      ref={introVideoRef}
-                      src={introVideoJuridico}
-                      muted
-                      playsInline
-                      loop
-                      autoPlay
-                      preload="auto"
-                      initial={{ opacity: 1 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                      className="relative w-full h-full object-cover"
-                      onLoadedData={(e) => {
-                        const video = e.currentTarget;
-                        video.currentTime = 0;
-                        video.play().catch(() => {});
-                      }}
-                    />
-                  ) : (
-                    <motion.img
-                      key={`img-${currentSlide}`}
-                      src={currentSlideData?.imagem_url || '/placeholder.svg'}
-                      alt={currentSlideData?.titulo}
-                      initial={{ opacity: 0, scale: 1.05 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                      className="relative w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
-                  )}
+                  {/* Imagem do slide atual */}
+                  <motion.img
+                    key={`img-${currentSlide}`}
+                    src={currentSlideData?.imagem_url || '/placeholder.svg'}
+                    alt={currentSlideData?.titulo}
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    className="relative w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
                 </AnimatePresence>
 
                 {/* Overlay de pausa/play */}
@@ -984,11 +936,6 @@ export default function ResumoDoDia() {
               backgroundAudioRef.current.volume = 0.12;
               backgroundAudioRef.current.play().catch(() => {});
             }
-            // Iniciar vídeo de introdução para boletim jurídico
-            if (tipo === 'juridica' && resumo?.url_audio_abertura && currentAudioIndex === 0) {
-              setShowIntroVideo(true);
-              introVideoRef.current?.play().catch(() => {});
-            }
             setHasAutoPlayed(true);
           }
         }}
@@ -1066,46 +1013,23 @@ export default function ResumoDoDia() {
             <div className="absolute inset-0 bg-primary/20 blur-3xl scale-150 opacity-30" />
             
             <AnimatePresence mode="wait">
-              {/* Vídeo de introdução durante áudio de abertura */}
-              {tipo === 'juridica' && showIntroVideo ? (
-                <motion.video
-                  key="intro-video"
-                  ref={introVideoRef}
-                  src={introVideoJuridico}
-                  muted
-                  playsInline
-                  loop
-                  autoPlay
-                  preload="auto"
-                  initial={{ opacity: 1 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative w-full h-full object-cover"
-                  onLoadedData={(e) => {
-                    const video = e.currentTarget;
-                    video.currentTime = 0;
-                    video.play().catch(() => {});
-                  }}
-                />
-              ) : (
-                <motion.img
-                  key={`img-${currentSlide}`}
-                  src={currentSlideData?.imagem_url || '/placeholder.svg'}
-                  alt={currentSlideData?.titulo}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.4, 
-                    ease: [0.4, 0, 0.2, 1]
-                  }}
-                  className="relative w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder.svg';
-                  }}
-                />
-              )}
+              {/* Imagem do slide atual */}
+              <motion.img
+                key={`img-${currentSlide}`}
+                src={currentSlideData?.imagem_url || '/placeholder.svg'}
+                alt={currentSlideData?.titulo}
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ 
+                  duration: 0.4, 
+                  ease: [0.4, 0, 0.2, 1]
+                }}
+                className="relative w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                }}
+              />
             </AnimatePresence>
 
             {/* Overlay: Barra de progresso no topo */}

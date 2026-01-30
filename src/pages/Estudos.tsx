@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import faculdadeUspImage from "@/assets/faculdade-usp.webp";
 import capaFaculdadeImage from "@/assets/capa-faculdade.webp";
 
 // Preload images for instant loading
-const preloadImages = [faculdadeUspImage, capaFaculdadeImage].forEach(src => {
+const preloadImages = [capaFaculdadeImage].forEach(src => {
   const img = new Image();
   img.src = src;
 });
@@ -124,7 +123,7 @@ const Estudos = () => {
           <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-neutral-900 border-neutral-800">
             <div className="relative">
               <img 
-                src={faculdadeUspImage} 
+                src={capaFaculdadeImage} 
                 alt="Faculdade de Direito da USP" 
                 className="w-full h-48 object-cover"
               />

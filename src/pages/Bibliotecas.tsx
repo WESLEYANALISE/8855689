@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import heroBibliotecas from "@/assets/biblioteca-office-sunset.jpg";
 import capaLideranca from "@/assets/capa-lideranca.jpg";
 import capaForaDaToga from "@/assets/capa-fora-da-toga.jpg";
-import capaEstudos from "@/assets/capa-estudos.jpg";
+import capaEstudos from "@/assets/capa-estudos-compressed.webp";
 import capaClassicos from "@/assets/capa-classicos.jpg";
 import capaOratoria from "@/assets/capa-oratoria.jpg";
 import capaPesquisaCientifica from "@/assets/capa-pesquisa-cientifica.jpg";
