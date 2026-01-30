@@ -1,9 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Play, Loader2 } from "lucide-react";
+import { Play, Loader2, ArrowLeft, Video } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import StandardPageHeader from "@/components/StandardPageHeader";
+import { motion } from "framer-motion";
+
+// Função para limpar título (remove "CURSO GRATUITO", "PRIMEIROS PASSOS NO DIREITO", etc.)
+const cleanVideoTitle = (title: string): string => {
+  return title
+    .replace(/\s*\|\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*\|\s*CURSO GRATUITO\s*/gi, '')
+    .replace(/\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*CURSO GRATUITO\s*/gi, '')
+    .replace(/\s*PRIMEIROS PASSOS NO DIREITO[:\s]*/gi, '')
+    .replace(/\s*o método para que[^\|]*/gi, '')
+    .trim();
+};
 
 interface VideoaulaIniciante {
   id: string;
@@ -45,11 +57,41 @@ const VideoaulasIniciante = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <StandardPageHeader 
-        title="Videoaulas para Iniciantes" 
-        subtitle={`${videoaulas?.length || 0} aulas disponíveis`}
-        backPath="/primeiros-passos"
-      />
+      {/* Header Simples */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <button 
+            onClick={() => navigate('/videoaulas')}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Header da Página */}
+      <div className="pt-4 pb-4 px-4">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                  CONCEITOS
+                </span>
+                <h1 className="text-lg font-bold mt-1">Videoaulas para Iniciantes</h1>
+                <p className="text-xs text-muted-foreground">{videoaulas?.length || 0} aulas disponíveis</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
 
       {/* Lista de Aulas - Centralizada */}
       <ScrollArea className="h-[calc(100vh-80px)]">
@@ -80,16 +122,11 @@ const VideoaulasIniciante = () => {
                 </div>
               </div>
 
-              {/* Conteúdo */}
-              <div className="flex-1 text-left min-w-0 py-0.5">
+              {/* Conteúdo - Só título limpo, sem descrição */}
+              <div className="flex-1 text-left min-w-0 py-0.5 flex items-center">
                 <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-red-400 transition-colors leading-snug">
-                  {aula.titulo}
+                  {cleanVideoTitle(aula.titulo)}
                 </h3>
-                {aula.descricao && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5">
-                    {aula.descricao.substring(0, 100)}...
-                  </p>
-                )}
               </div>
             </button>
           ))}

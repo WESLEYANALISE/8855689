@@ -76,7 +76,7 @@ const VideoaulasFaculdadeArea = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/videoaulas/faculdade")}
+            onClick={() => navigate("/videoaulas")}
             className="shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
