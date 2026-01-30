@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, BookOpen, ArrowLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, BookOpen, ChevronRight, Book, Gavel } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { LivroCard } from "@/components/LivroCard";
@@ -8,7 +8,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
+import { motion } from "framer-motion";
 import capaOabEstudos from "@/assets/capa-biblioteca-oab-estudos.jpg";
+import { StandardPageHeader } from "@/components/StandardPageHeader";
 
 interface BibliotecaItem {
   id: number;
@@ -22,11 +24,42 @@ interface BibliotecaItem {
   Sobre: string | null;
 }
 
+// Cores para as áreas
+const areaColors: Record<string, string> = {
+  "Direito Administrativo": "#3b82f6",
+  "Direito Ambiental": "#10b981",
+  "Direito Civil": "#f59e0b",
+  "Direito Constitucional": "#ef4444",
+  "Direito do Consumidor": "#8b5cf6",
+  "Direito do Trabalho": "#ec4899",
+  "Direito Empresarial": "#0891b2",
+  "Direito Penal": "#dc2626",
+  "Direito Processual Civil": "#6366f1",
+  "Direito Processual Penal": "#7c3aed",
+  "Direito Tributário": "#059669",
+  "Direitos Humanos": "#2563eb",
+  "Ética Profissional": "#9333ea",
+  "Filosofia do Direito": "#d97706",
+  "Estatuto da Criança e do Adolescente": "#14b8a6",
+  "Direito Internacional": "#0ea5e9",
+};
+
+const getAreaColor = (area: string): string => {
+  return areaColors[area] || "#6366f1";
+};
+
 const BibliotecaOABEstudos = () => {
   const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
+
+  // Hero image cache check
+  const [imageLoaded, setImageLoaded] = useState(() => {
+    const img = new Image();
+    img.src = capaOabEstudos;
+    return img.complete;
+  });
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["biblioteca-oab-estudos"],
@@ -124,75 +157,202 @@ const BibliotecaOABEstudos = () => {
     );
   }
 
-  // Tela principal - lista de áreas
+  // Tela principal - timeline de áreas
   return (
-    <div className="min-h-screen pb-20">
-      {/* Header com Capa */}
-      <div className="relative h-48 md:h-56 overflow-hidden">
-        <img src={capaOabEstudos} alt="Estudos OAB" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/80" />
-        <Button variant="ghost" size="icon" onClick={() => navigate('/biblioteca-oab')} className="absolute top-4 left-4 text-white hover:bg-white/20 z-10">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="absolute bottom-6 left-6 right-6 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-500/90 rounded-lg">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Estudos OAB</h1>
-              <p className="text-sm text-white/90 mt-1">Materiais completos por área</p>
-            </div>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image - Fixed */}
+      <div className="fixed inset-0">
+        <img
+          src={capaOabEstudos}
+          alt="Estudos OAB"
+          className={`w-full h-full object-cover object-[50%_30%] transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          loading="eager"
+          fetchPriority="high"
+          decoding="sync"
+        />
+      </div>
+      
+      {/* Dark gradient overlay */}
+      <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/80 to-neutral-900" />
+      
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Header padrão fixo */}
+        <StandardPageHeader title="OAB" position="fixed" backPath="/biblioteca-oab" />
+        
+        {/* Hero section */}
+        <div className="pt-14 pb-4 px-4">
+          <div className="max-w-lg mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-4"
+            >
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <BookOpen className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+                  <span className="bg-gradient-to-br from-blue-200 via-blue-100 to-blue-300 bg-clip-text text-transparent">
+                    Estudos OAB
+                  </span>
+                </h1>
+                <p className="text-sm text-gray-400">
+                  Materiais completos por área
+                </p>
+              </div>
+            </motion.div>
           </div>
         </div>
-      </div>
 
-      <div className="px-2 py-6 max-w-7xl mx-auto animate-fade-in">
-        <Card className="mb-6 mx-1">
-          <CardContent className="p-4">
-            <div className="flex gap-2">
-              <Input placeholder="Buscar área ou livro..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="text-base" />
-              <Button variant="outline" size="icon" className="shrink-0">
-                <Search className="w-4 h-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Lista de Áreas */}
-        <div className="space-y-3 px-2">
-          {areasFiltradas.length > 0 ? (
-            areasFiltradas.map(([area, data], index) => (
-              <Card
-                key={area}
-                onClick={() => setSelectedArea(area)}
-                className="cursor-pointer group overflow-hidden bg-secondary/40 hover:bg-secondary/60 border border-accent/20 hover:border-accent/60 transition-all duration-300"
-              >
-                <div className="flex items-center gap-4 p-4">
-                  <div className="relative w-16 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                    {data.capa ? (
-                      <img src={data.capa} alt={area} className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center">
-                        <BookOpen className="w-8 h-8 text-accent" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base mb-1 text-foreground">{area}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {data.livros.length} {data.livros.length === 1 ? 'livro' : 'livros'}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent flex-shrink-0" />
+        {/* Search Bar */}
+        <div className="px-4 pb-4">
+          <div className="max-w-lg mx-auto">
+            <Card className="bg-black/40 backdrop-blur-sm border-white/10">
+              <CardContent className="p-3">
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Buscar área ou livro..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                    className="text-base bg-white/10 border-white/20 text-white placeholder:text-white/50" 
+                  />
+                  <Button variant="outline" size="icon" className="shrink-0 border-white/20 text-white hover:bg-white/10">
+                    <Search className="w-4 h-4" />
+                  </Button>
                 </div>
-              </Card>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhum resultado encontrado</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Timeline de Áreas */}
+        <div className="px-4 pb-24 pt-2">
+          <div className="max-w-lg mx-auto relative">
+            {/* Linha central da timeline */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 overflow-hidden">
+              <div className="w-full h-full bg-gradient-to-b from-blue-500/80 via-blue-600/60 to-blue-700/40 rounded-full" />
+              {/* Animação de fluxo contínuo */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-white/60 via-blue-300/50 to-transparent rounded-full"
+                animate={{ y: ["-100%", "500%"] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+              />
             </div>
-          )}
+            
+            <div className="space-y-5">
+              {areasFiltradas.length > 0 ? (
+                areasFiltradas.map(([area, data], index) => {
+                  const isLeft = index % 2 === 0;
+                  const color = getAreaColor(area);
+                  const capaUrl = data.capa;
+                  
+                  return (
+                    <motion.div
+                      key={area}
+                      initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`relative flex items-center ${
+                        isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
+                      }`}
+                    >
+                      {/* Marcador Martelo no centro */}
+                      <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                        <motion.div
+                          animate={{ 
+                            scale: [1, 1.1, 1],
+                          }}
+                          transition={{ 
+                            duration: 2, 
+                            repeat: Infinity,
+                            delay: index * 0.2
+                          }}
+                          className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg"
+                          style={{ 
+                            background: `linear-gradient(135deg, ${color}, ${color}dd)`,
+                            boxShadow: `0 4px 15px ${color}50`
+                          }}
+                        >
+                          <Gavel className="w-4 h-4 text-white" />
+                        </motion.div>
+                      </div>
+                      
+                      {/* Card da Área - Formato Livro */}
+                      <div className="w-full">
+                        <motion.button
+                          onClick={() => setSelectedArea(area)}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="w-full rounded-2xl overflow-hidden text-left"
+                          style={{
+                            boxShadow: `0 4px 20px ${color}30`
+                          }}
+                        >
+                          {/* Capa estilo livro - aspect ratio 3:4 */}
+                          <div className="aspect-[3/4] w-full overflow-hidden relative group">
+                            {capaUrl ? (
+                              <img 
+                                src={capaUrl} 
+                                alt={area}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div 
+                                className="w-full h-full flex items-center justify-center"
+                                style={{ background: `linear-gradient(135deg, ${color}60, ${color}30)` }}
+                              >
+                                <BookOpen className="w-12 h-12" style={{ color }} />
+                              </div>
+                            )}
+                            
+                            {/* Badge de contagem - topo esquerdo */}
+                            <div 
+                              className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md backdrop-blur-sm"
+                              style={{ backgroundColor: `${color}90` }}
+                            >
+                              <Book className="w-3 h-3 text-white" />
+                              <span className="text-xs font-bold text-white">
+                                {data.livros.length}
+                              </span>
+                              <span className="text-[10px] text-white/80">livros</span>
+                            </div>
+                            
+                            {/* Gradiente apenas na parte inferior para texto */}
+                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
+                            
+                            {/* Conteúdo sobre a capa */}
+                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                              {/* Título */}
+                              <h3 className="font-bold text-base text-white mb-2 line-clamp-2">
+                                {area}
+                              </h3>
+                              
+                              {/* Botão Acessar abaixo, alinhado à direita */}
+                              <div className="flex justify-end">
+                                <div 
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-white text-xs font-medium backdrop-blur-sm"
+                                  style={{ backgroundColor: `${color}cc` }}
+                                >
+                                  <span>Acessar</span>
+                                  <ChevronRight className="w-3 h-3" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-white/60">Nenhum resultado encontrado</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
