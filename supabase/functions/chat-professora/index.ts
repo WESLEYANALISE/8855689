@@ -3,6 +3,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
 import { BLOCOS_BASE, EXTENSAO_CONFIG } from './prompt-templates.ts';
 import { AULA_SYSTEM_PROMPT, AULA_USER_PROMPT } from './aula-prompts.ts';
+import { detectarFAQ } from './faq-map.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -311,6 +312,16 @@ serve(async (request) => {
     const contextoBanco = await buscarContextoBancoDados(lastUserMessage);
     if (contextoBanco) {
       cfContext += contextoBanco;
+    }
+    
+    // 🎯 DETECTAR FAQ - Adicionar contexto específico se for pergunta frequente
+    const faqMatch = detectarFAQ(lastUserMessage);
+    if (faqMatch) {
+      console.log(`📌 FAQ detectada: "${faqMatch.pergunta}"`);
+      cfContext += `\n\n🎯 CONTEXTO ESPECÍFICO PARA ESTA PERGUNTA:\n${faqMatch.contexto}`;
+      if (faqMatch.artigos && faqMatch.artigos.length > 0) {
+        cfContext += `\n\nARTIGOS RELEVANTES: ${faqMatch.artigos.join(', ')}`;
+      }
     }
     
     // Instruções FORTES para análise automática de imagem/PDF

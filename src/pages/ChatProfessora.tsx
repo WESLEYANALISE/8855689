@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ArrowLeft, Brain, BookOpen, Scale, GraduationCap, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +8,7 @@ import { getDocument, GlobalWorkerOptions, version as pdfjsVersion } from "pdfjs
 import { useStreamingChat, UploadedFile } from "@/hooks/useStreamingChat";
 import { ChatMessageNew } from "@/components/chat/ChatMessageNew";
 import { ChatInputNew } from "@/components/chat/ChatInputNew";
+import { FloatingFlashcardsButton } from "@/components/chat/FloatingFlashcardsButton";
 
 import { TypingIndicator } from "@/components/simulacao/TypingIndicator";
 import { SuggestedQuestions } from "@/components/chat/SuggestedQuestions";
@@ -144,6 +145,15 @@ const ChatProfessora = () => {
     handleSend(topic);
   };
 
+  // Calcular última mensagem do assistente para o botão flutuante
+  const lastAssistantMessage = useMemo(() => {
+    const assistantMessages = messages.filter(m => m.role === 'assistant' && m.content);
+    return assistantMessages.length > 0 ? assistantMessages[assistantMessages.length - 1].content : '';
+  }, [messages]);
+
+  // Mostrar botão flutuante apenas quando há resposta do assistente e não está em streaming
+  const showFloatingButton = !isStreaming && lastAssistantMessage.length > 100;
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-[#1a0a0a] via-[#2d0a0a] to-background relative overflow-hidden">
       {/* Imagem de Têmis - Fundo de tela toda */}
@@ -275,6 +285,12 @@ const ChatProfessora = () => {
         uploadedFiles={uploadedFiles}
         onFilesChange={setUploadedFiles}
         onExtractPdf={extractPdfText}
+      />
+
+      {/* Botão Flutuante de Flashcards */}
+      <FloatingFlashcardsButton
+        isVisible={showFloatingButton}
+        lastAssistantMessage={lastAssistantMessage}
       />
     </div>
   );
