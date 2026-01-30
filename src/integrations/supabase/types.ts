@@ -16562,6 +16562,42 @@ export type Database = {
         }
         Relationships: []
       }
+      resumos_personalizados_historico: {
+        Row: {
+          caracteres_fonte: number | null
+          created_at: string | null
+          id: string
+          nivel: string
+          nome_arquivo: string | null
+          resumo: string
+          tipo_entrada: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          caracteres_fonte?: number | null
+          created_at?: string | null
+          id?: string
+          nivel: string
+          nome_arquivo?: string | null
+          resumo: string
+          tipo_entrada: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          caracteres_fonte?: number | null
+          created_at?: string | null
+          id?: string
+          nivel?: string
+          nome_arquivo?: string | null
+          resumo?: string
+          tipo_entrada?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       senado_comissoes: {
         Row: {
           ativa: boolean | null
