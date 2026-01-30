@@ -495,12 +495,6 @@ const VideoaulaInicianteView = () => {
   );
 };
 
-// Declare YouTube types
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
-}
+// YouTube types are declared in src/types/youtube.d.ts
 
 export default VideoaulaInicianteView;
