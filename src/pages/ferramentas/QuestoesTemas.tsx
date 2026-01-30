@@ -177,7 +177,7 @@ const QuestoesTemas = () => {
                     <Scale className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base">{item.tema}</h3>
+                    <h3 className="font-medium text-base">{item.tema}</h3>
                     <p className="text-sm text-muted-foreground">
                       {item.temQuestoes 
                         ? `${item.totalQuestoes} questões disponíveis` 
