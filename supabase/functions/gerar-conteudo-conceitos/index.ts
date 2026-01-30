@@ -595,20 +595,16 @@ Termine com o fechamento correto do JSON.`;
     // Sanitizar caracteres de controle GLOBALMENTE antes do parse (como OAB Trilhas)
     // Isso é mais simples e confiável do que tentar detectar contexto de strings
     const sanitizarJsonGlobal = (input: string): string => {
+      // IMPORTANTE: Não converter \n literal para \\n pois causa double-escaping
+      // O JSON da API Gemini já vem com escapes corretos
       return input
         // Remover BOM
         .replace(/\uFEFF/g, "")
-        // Normalizar espaços unicode
+        // Normalizar espaços unicode para espaço normal
         .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, " ")
-        // Normalizar separadores de linha unicode
-        .replace(/[\u2028\u2029]/g, "\\n")
-        // Converter quebras de linha literais em escapes JSON
-        .replace(/\r\n/g, "\\n")
-        .replace(/\r/g, "\\n")
-        .replace(/\n/g, "\\n")
-        // Converter tabs em escapes JSON
-        .replace(/\t/g, "\\t")
-        // Remover outros caracteres de controle
+        // Normalizar separadores de linha unicode para newline real
+        .replace(/[\u2028\u2029]/g, "\n")
+        // Remover caracteres de controle problemáticos (exceto newline, tab, carriage return)
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
     };
 
