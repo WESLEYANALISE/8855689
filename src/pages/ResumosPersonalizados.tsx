@@ -5,6 +5,7 @@ import { StepSelectInput } from "@/components/resumos/StepSelectInput";
 import { StepAnalyzing } from "@/components/resumos/StepAnalyzing";
 import { StepSelectLevel } from "@/components/resumos/StepSelectLevel";
 import { StepGenerating } from "@/components/resumos/StepGenerating";
+import { HistoricoResumosSheet } from "@/components/resumos/HistoricoResumosSheet";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDailyLimit } from "@/hooks/useDailyLimit";
@@ -25,12 +26,11 @@ const ResumosPersonalizados = () => {
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<ResumoLevel | null>(null);
   const [showPremiumCard, setShowPremiumCard] = useState(false);
+  const [showHistorico, setShowHistorico] = useState(false);
 
-  // Hook de limite diário
   const { canUse, remainingUses, isUnlimited, incrementUse, loading: limitLoading } = useDailyLimit('resumos-personalizados');
 
   const handleTypeSelect = (type: InputType) => {
-    // Verificar limite antes de prosseguir
     if (!canUse && !isUnlimited) {
       setShowPremiumCard(true);
       return;
@@ -83,7 +83,6 @@ const ResumosPersonalizados = () => {
 
       if (data?.extraido && typeof data.extraido === "string" && data.extraido.trim().length > 0) {
         setExtractedText(data.extraido);
-        // Transição instantânea para a próxima etapa
         setTimeout(() => {
           setCurrentStep("select-level");
         }, 100);
@@ -107,8 +106,35 @@ const ResumosPersonalizados = () => {
     }
   };
 
+  const salvarNoHistorico = async (resumoTexto: string, nivel: ResumoLevel) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const titulo = arquivo?.name 
+        ? arquivo.name.replace(/\.[^/.]+$/, "").substring(0, 100)
+        : inputType === "texto" 
+          ? texto.substring(0, 50).trim() + (texto.length > 50 ? "..." : "")
+          : "Resumo de imagem";
+
+      // Usando any para contornar tipos ainda não regenerados
+      await (supabase as any).from("resumos_personalizados_historico").insert({
+        user_id: user.id,
+        titulo,
+        resumo: resumoTexto,
+        nivel,
+        tipo_entrada: inputType,
+        nome_arquivo: arquivo?.name || null,
+        caracteres_fonte: extractedText?.length || texto.length || 0,
+      });
+
+      console.log("✅ Resumo salvo no histórico");
+    } catch (error) {
+      console.error("Erro ao salvar no histórico:", error);
+    }
+  };
+
   const handleLevelSelect = async (level: ResumoLevel) => {
-    // Verificar limite novamente antes de gerar
     if (!canUse && !isUnlimited) {
       setShowPremiumCard(true);
       return;
@@ -145,10 +171,11 @@ const ResumosPersonalizados = () => {
       }
 
       if (data?.resumo) {
-        // Incrementar uso após sucesso
         incrementUse();
         
-        // Transição instantânea para o resultado
+        // Salvar no histórico
+        await salvarNoHistorico(data.resumo, level);
+        
         setTimeout(() => {
           navigate("/resumos-juridicos/resultado", {
             state: { 
@@ -199,7 +226,10 @@ const ResumosPersonalizados = () => {
       )}
 
       {currentStep === "select-type" && (
-        <StepSelectType onSelect={handleTypeSelect} />
+        <StepSelectType 
+          onSelect={handleTypeSelect} 
+          onOpenHistory={() => setShowHistorico(true)}
+        />
       )}
       
       {currentStep === "input-content" && inputType && (
@@ -231,6 +261,12 @@ const ResumosPersonalizados = () => {
         onClose={() => setShowPremiumCard(false)}
         title="Limite de Resumos Atingido"
         description="Você usou todos os seus 3 resumos gratuitos de hoje. Assine o Premium para resumos ilimitados!"
+      />
+
+      {/* Sheet de histórico */}
+      <HistoricoResumosSheet
+        isOpen={showHistorico}
+        onClose={() => setShowHistorico(false)}
       />
     </div>
   );

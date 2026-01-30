@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, RefreshCw, ImageIcon } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { formatForWhatsApp } from "@/lib/formatWhatsApp";
 
 const ResumosResultado = () => {
@@ -16,35 +16,6 @@ const ResumosResultado = () => {
   const { resumo, titulo } = location.state || {};
   const { goBack } = useHierarchicalNavigation();
   const [exportingPDF, setExportingPDF] = useState(false);
-  const [imagemUrl, setImagemUrl] = useState<string | null>(null);
-  const [gerandoImagem, setGerandoImagem] = useState(false);
-
-  useEffect(() => {
-    if (resumo) {
-      gerarIlustracao();
-    }
-  }, [resumo]);
-
-  const gerarIlustracao = async () => {
-    if (!resumo) return;
-    
-    setGerandoImagem(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gerar-imagem-resumo-personalizado', {
-        body: { resumoTexto: resumo, titulo }
-      });
-
-      if (error) throw error;
-      
-      if (data?.url_imagem) {
-        setImagemUrl(data.url_imagem);
-      }
-    } catch (error) {
-      console.error('Erro ao gerar ilustração:', error);
-    } finally {
-      setGerandoImagem(false);
-    }
-  };
 
   if (!resumo) {
     navigate("/resumos-juridicos");
@@ -156,61 +127,9 @@ const ResumosResultado = () => {
           </Button>
         </div>
 
-        {/* Ilustração do resumo */}
-        <Card className="border-accent/20 overflow-hidden">
-          <div className="p-3 border-b border-border/50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Ilustração do Resumo</span>
-            </div>
-            {imagemUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={gerarIlustracao}
-                disabled={gerandoImagem}
-                className="h-8 px-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${gerandoImagem ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
-          </div>
-          <div className="relative">
-            {gerandoImagem ? (
-              <div className="aspect-video bg-muted/30 flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Gerando ilustração...</p>
-                </div>
-              </div>
-            ) : imagemUrl ? (
-              <img 
-                src={imagemUrl} 
-                alt="Ilustração do resumo" 
-                className="w-full aspect-video object-cover"
-              />
-            ) : (
-              <div className="aspect-video bg-muted/30 flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">Não foi possível gerar a ilustração</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={gerarIlustracao}
-                    disabled={gerandoImagem}
-                  >
-                    Tentar novamente
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-
         {/* Conteúdo do resumo */}
         <Card className="border-accent/20">
-          <CardContent className="p-6 resumo-content">
+          <CardContent className="p-4 md:p-6 resumo-content">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {resumo}
             </ReactMarkdown>
@@ -219,7 +138,7 @@ const ResumosResultado = () => {
 
         {/* Botão para novo resumo */}
         <Button
-          onClick={() => navigate("/resumos-juridicos")}
+          onClick={() => navigate("/resumos-juridicos/personalizado")}
           variant="outline"
           className="w-full"
         >
