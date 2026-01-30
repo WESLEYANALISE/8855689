@@ -288,7 +288,7 @@ const VideoaulasIniciante = () => {
 
                     {/* Conteúdo - Só título limpo, sem descrição */}
                     <div className="flex-1 text-left min-w-0 py-0.5">
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-red-400 transition-colors leading-snug whitespace-normal break-words">
+                      <h3 className="text-sm font-normal text-foreground group-hover:text-red-400 transition-colors leading-snug whitespace-normal break-words">
                         {cleanVideoTitle(aula.titulo)}
                       </h3>
                       {/* Info de progresso */}
@@ -362,7 +362,7 @@ const VideoaulasIniciante = () => {
 
                     {/* Conteúdo */}
                     <div className="flex-1 text-left min-w-0 py-0.5">
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-red-400 transition-colors leading-snug whitespace-normal break-words">
+                      <h3 className="text-sm font-normal text-foreground group-hover:text-red-400 transition-colors leading-snug whitespace-normal break-words">
                         {cleanVideoTitle(video.titulo)}
                       </h3>
                       <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
