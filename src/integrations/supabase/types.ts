@@ -3750,6 +3750,38 @@ export type Database = {
         }
         Relationships: []
       }
+      conceitos_topico_paginas: {
+        Row: {
+          conteudo: string | null
+          created_at: string | null
+          id: string
+          pagina: number
+          topico_id: number
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: string
+          pagina: number
+          topico_id: number
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: string
+          pagina?: number
+          topico_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conceitos_topico_paginas_topico_id_fkey"
+            columns: ["topico_id"]
+            isOneToOne: false
+            referencedRelation: "conceitos_topicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conceitos_topicos: {
         Row: {
           capa_url: string | null
