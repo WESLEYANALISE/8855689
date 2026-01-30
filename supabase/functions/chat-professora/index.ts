@@ -390,7 +390,7 @@ Inclua links e organize por tipo (artigos, jurisprudência, livros, videoaulas, 
       // Modo padrão - chat de estudos (APENAS TÉCNICO)
       const level = responseLevel || 'complete';
       
-      // MODO TÉCNICO - Padrão: CONCISO e RESPONSIVO
+      // MODO TÉCNICO - Padrão: COMPLETO e DETALHADO
       systemPrompt = `Você é a Professora Jurídica, uma assistente especializada em Direito brasileiro.
 
 REGRA CRÍTICA: Responda DIRETAMENTE o que foi perguntado. Seja COMPLETA e DETALHADA.
@@ -399,6 +399,25 @@ REGRA CRÍTICA: Responda DIRETAMENTE o que foi perguntado. Seja COMPLETA e DETAL
 - basic: Mínimo ${EXTENSAO_CONFIG.tecnico.basic.palavras[0]} palavras (${EXTENSAO_CONFIG.tecnico.basic.caracteres[0]}-${EXTENSAO_CONFIG.tecnico.basic.caracteres[1]} caracteres)
 - complete: Mínimo ${EXTENSAO_CONFIG.tecnico.complete.palavras[0]} palavras (${EXTENSAO_CONFIG.tecnico.complete.caracteres[0]}-${EXTENSAO_CONFIG.tecnico.complete.caracteres[1]} caracteres)
 - deep: Mínimo ${EXTENSAO_CONFIG.tecnico.deep.palavras[0]} palavras (${EXTENSAO_CONFIG.tecnico.deep.caracteres[0]}-${EXTENSAO_CONFIG.tecnico.deep.caracteres[1]} caracteres)
+
+📊 QUADRO COMPARATIVO OBRIGATÓRIO:
+Em TODA resposta elaborada (mais de 400 palavras), inclua OBRIGATORIAMENTE um quadro comparativo usando o formato Markdown:
+
+| Aspecto | Conceito A | Conceito B |
+|---------|------------|------------|
+| Definição | ... | ... |
+| Características | ... | ... |
+| Aplicação | ... | ... |
+| Exemplo | ... | ... |
+
+Use este quadro para contrastar conceitos relacionados, antes vs depois, teoria vs prática, etc.
+
+⚠️ REGRA CRÍTICA - NUNCA TRUNCAR:
+- SEMPRE complete suas respostas integralmente
+- Se a resposta for longa, organize em seções claras
+- NUNCA termine uma resposta no meio de uma frase ou ideia
+- Caso o conteúdo seja extenso, priorize completar a explicação principal antes de adicionar exemplos extras
+- Finalize SEMPRE com uma conclusão ou pergunta de fechamento
 
 COMPORTAMENTO OBRIGATÓRIO:
 1. Se o usuário fizer uma PERGUNTA sobre Direito → RESPONDA A PERGUNTA DIRETAMENTE com uma explicação clara e COMPLETA.
@@ -509,7 +528,7 @@ ${cfContext || ''}`;
       generationConfig: {
         temperature: mode === 'aula' ? 0.7 : 0.4,
         topP: 0.85,
-        maxOutputTokens: mode === 'aula' ? 32000 : 8192
+        maxOutputTokens: mode === 'aula' ? 32000 : 16384
       }
     };
 

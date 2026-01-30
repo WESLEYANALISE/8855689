@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowLeft, Brain, BookOpen, Scale, GraduationCap, MessageCircle, Lightbulb, Trash2 } from "lucide-react";
+import { ArrowLeft, Brain, BookOpen, Scale, GraduationCap, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,8 +20,6 @@ const MODES = [
   { id: "study", label: "Estudar", icon: BookOpen },
   { id: "realcase", label: "Caso Real", icon: Scale },
   { id: "aula", label: "Criar Aula", icon: GraduationCap },
-  { id: "recommendation", label: "Indicações", icon: Lightbulb },
-  { id: "tcc", label: "TCC", icon: MessageCircle },
 ] as const;
 
 const ChatProfessora = () => {
@@ -199,22 +197,23 @@ const ChatProfessora = () => {
           </div>
         </div>
 
-        {/* Mode Tabs - Linha única horizontal */}
-        <div className="px-4 pb-3 overflow-x-auto scrollbar-hide">
-          <Tabs value={mode} onValueChange={(v) => handleModeChange(v as ChatMode)}>
-            <TabsList className="inline-flex h-9 gap-1 bg-transparent p-0 min-w-max">
+        {/* Mode Tabs - 3 opções com tamanho igual */}
+        <div className="px-4 pb-3">
+          <Tabs value={mode} onValueChange={(v) => handleModeChange(v as ChatMode)} className="w-full">
+            <TabsList className="flex w-full h-10 gap-1 bg-transparent p-0">
               {MODES.map(({ id, label, icon: Icon }) => (
                 <TabsTrigger
                   key={id}
                   value={id}
                   className={cn(
-                    "inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-full border whitespace-nowrap transition-all",
+                    "flex-1 flex items-center justify-center gap-1.5 py-2 text-xs rounded-full border transition-all",
                     "data-[state=active]:bg-red-800 data-[state=active]:text-white data-[state=active]:border-red-700",
                     "data-[state=inactive]:bg-white/5 data-[state=inactive]:text-white/70 data-[state=inactive]:border-white/10 data-[state=inactive]:hover:bg-white/10"
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="sm:hidden">{label.split(' ')[0]}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
