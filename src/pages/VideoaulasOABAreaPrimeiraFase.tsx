@@ -17,25 +17,23 @@ interface VideoaulaOAB {
   sobre_aula: string | null;
 }
 
-// Extrai apenas o título limpo da aula (remove prefixos como "Direito X | OAB - ")
+// Extrai apenas o título limpo da aula (remove prefixos como "Direito X | OAB - " e "CURSO GRATUITO")
 const extractCleanTitle = (fullTitle: string): string => {
-  // Padrão: "Direito Administrativo | OAB - Atos Administrativos I | CURSO GRATUITO"
-  // Queremos: "Atos Administrativos I"
-  
-  // Remove "| CURSO GRATUITO" no final se existir
-  let title = fullTitle.replace(/\s*\|\s*CURSO GRATUITO\s*$/i, '');
+  // Remove "| CURSO GRATUITO" variações no final
+  let title = fullTitle
+    .replace(/\s*\|\s*CURSO GRATUITO COMPLETO\s*\|\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*\|\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*\|\s*CURSO GRATUITO\s*/gi, '')
+    .replace(/\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*CURSO GRATUITO\s*/gi, '');
   
   // Se tem formato "X | OAB - Y", pega só o Y
   const oabMatch = title.match(/\|\s*OAB\s*-\s*(.+)$/i);
-  if (oabMatch) {
-    return oabMatch[1].trim();
-  }
+  if (oabMatch) return oabMatch[1].trim();
   
   // Se tem formato "X - Y", pode ser "OAB - Título", pega só depois do último hífen
   const lastDashMatch = title.match(/^[^-]+-\s*(.+)$/);
-  if (lastDashMatch && !title.includes('|')) {
-    return lastDashMatch[1].trim();
-  }
+  if (lastDashMatch && !title.includes('|')) return lastDashMatch[1].trim();
   
   return title.trim();
 };
@@ -93,7 +91,7 @@ const VideoaulasOABAreaPrimeiraFase = () => {
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-3">
           <button 
-            onClick={() => navigate('/videoaulas-oab-1fase')}
+            onClick={() => navigate('/videoaulas')}
             className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />

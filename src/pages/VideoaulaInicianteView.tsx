@@ -2,18 +2,30 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Loader2, Play, Sparkles, ListChecks, Layers } from "lucide-react";
+import { BookOpen, Loader2, Play, Sparkles, ListChecks, Layers, ArrowLeft, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import VideoaulaQuestoes from "@/components/videoaulas/VideoaulaQuestoes";
-import StandardPageHeader from "@/components/StandardPageHeader";
 import VideoaulaFlashcards from "@/components/videoaulas/VideoaulaFlashcards";
 import VideoNavigationFooter from "@/components/videoaulas/VideoNavigationFooter";
 import VideoProgressBar from "@/components/videoaulas/VideoProgressBar";
 import ContinueWatchingModal from "@/components/videoaulas/ContinueWatchingModal";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
+import { motion } from "framer-motion";
+
+// Função para limpar título (remove "CURSO GRATUITO", "PRIMEIROS PASSOS NO DIREITO", etc.)
+const cleanVideoTitle = (title: string): string => {
+  return title
+    .replace(/\s*\|\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*\|\s*CURSO GRATUITO\s*/gi, '')
+    .replace(/\s*CURSO GRATUITO COMPLETO\s*/gi, '')
+    .replace(/\s*CURSO GRATUITO\s*/gi, '')
+    .replace(/\s*PRIMEIROS PASSOS NO DIREITO[:\s]*/gi, '')
+    .replace(/\s*o método para que[^\|]*/gi, '')
+    .trim();
+};
 
 interface VideoaulaIniciante {
   id: string;
@@ -264,11 +276,37 @@ const VideoaulaInicianteView = () => {
         percentage={progress?.percentual || 0}
       />
 
-      <StandardPageHeader 
-        title="Videoaulas" 
-        subtitle={`Aula ${aula.ordem}`}
-        backPath="/videoaulas/iniciante"
-      />
+      {/* Header Simples */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <button 
+            onClick={() => navigate('/videoaulas')}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Header do Vídeo */}
+      <div className="pt-4 pb-2 px-4">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
+                <Video className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base font-bold leading-snug">{cleanVideoTitle(aula.titulo)}</h1>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
 
       <ScrollArea className="h-[calc(100vh-140px)]">
         <div className="p-4 space-y-4">
@@ -317,16 +355,6 @@ const VideoaulaInicianteView = () => {
             </div>
           )}
 
-          {/* Info da Aula */}
-          <div className="bg-neutral-900/80 border border-white/5 rounded-xl p-4">
-            <h2 className="text-base sm:text-lg font-bold text-foreground leading-snug">
-              {aula.titulo}
-            </h2>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Aula {aula.ordem}</span>
-            </div>
-          </div>
 
           {/* Tabs: Sobre / Flashcards / Questões */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
