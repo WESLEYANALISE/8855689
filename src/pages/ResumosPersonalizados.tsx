@@ -5,7 +5,6 @@ import { StepSelectInput } from "@/components/resumos/StepSelectInput";
 import { StepAnalyzing } from "@/components/resumos/StepAnalyzing";
 import { StepSelectLevel } from "@/components/resumos/StepSelectLevel";
 import { StepGenerating } from "@/components/resumos/StepGenerating";
-import { HistoricoResumosSheet } from "@/components/resumos/HistoricoResumosSheet";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDailyLimit } from "@/hooks/useDailyLimit";
@@ -26,7 +25,6 @@ const ResumosPersonalizados = () => {
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<ResumoLevel | null>(null);
   const [showPremiumCard, setShowPremiumCard] = useState(false);
-  const [showHistorico, setShowHistorico] = useState(false);
 
   const { canUse, remainingUses, isUnlimited, incrementUse, loading: limitLoading } = useDailyLimit('resumos-personalizados');
 
@@ -226,10 +224,7 @@ const ResumosPersonalizados = () => {
       )}
 
       {currentStep === "select-type" && (
-        <StepSelectType 
-          onSelect={handleTypeSelect} 
-          onOpenHistory={() => setShowHistorico(true)}
-        />
+        <StepSelectType onSelect={handleTypeSelect} />
       )}
       
       {currentStep === "input-content" && inputType && (
@@ -263,11 +258,6 @@ const ResumosPersonalizados = () => {
         description="Você usou todos os seus 3 resumos gratuitos de hoje. Assine o Premium para resumos ilimitados!"
       />
 
-      {/* Sheet de histórico */}
-      <HistoricoResumosSheet
-        isOpen={showHistorico}
-        onClose={() => setShowHistorico(false)}
-      />
     </div>
   );
 };
