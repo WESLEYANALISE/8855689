@@ -242,7 +242,7 @@ const AreasList = ({ areas, isLoading }: { areas: AreaItem[], isLoading: boolean
         return (
           <div
             key={item.area}
-            onClick={() => navigate(`/ferramentas/questoes/temas-hub?area=${encodeURIComponent(item.area)}`)}
+            onClick={() => navigate(`/ferramentas/questoes/temas?area=${encodeURIComponent(item.area)}`)}
             className="bg-card/90 backdrop-blur-sm rounded-xl p-4 cursor-pointer transition-all border-l-4 group shadow-lg hover:bg-muted/80 hover:translate-x-1"
             style={{ 
               borderLeftColor: glowColor,
