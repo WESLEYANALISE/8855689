@@ -66,6 +66,28 @@ async function chamarGemini(messages: any[], config: any): Promise<any> {
   throw lastError || new Error('Todas as chaves API falharam');
 }
 
+// 🧹 Limpar string base64 removendo prefixo data URI e caracteres inválidos
+function cleanBase64(base64String: string): string {
+  if (!base64String) return "";
+  let cleaned = base64String.trim();
+
+  // Remove data URL prefix if present (e.g., "data:image/png;base64,")
+  if (cleaned.includes(",") && cleaned.startsWith("data:")) {
+    cleaned = cleaned.split(",")[1];
+  }
+
+  // Remove whitespace/newlines
+  cleaned = cleaned.replace(/\s/g, "");
+
+  // Validate base64 format
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleaned)) {
+    console.error("❌ [BASE64] String inválida após limpeza");
+    throw new Error("Invalid base64 string after cleaning");
+  }
+
+  return cleaned;
+}
+
 // 📄 Extrair texto do PDF usando unpdf
 async function extrairTextoPDF(base64Data: string): Promise<string> {
   console.log("📄 [UNPDF] Iniciando extração com unpdf...");
@@ -73,7 +95,10 @@ async function extrairTextoPDF(base64Data: string): Promise<string> {
   try {
     const { extractText } = await import('https://esm.sh/unpdf@0.11.0');
     
-    const binaryString = atob(base64Data);
+    // Limpar base64 antes de processar
+    const cleanedBase64 = cleanBase64(base64Data);
+    
+    const binaryString = atob(cleanedBase64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
@@ -159,16 +184,28 @@ serve(async (req) => {
         throw new Error("Arquivo de imagem não fornecido");
       }
 
-      base64Data = arquivo.split(",")[1];
-      mimeType = arquivo.split(";")[0].split(":")[1];
+      // Extrair e limpar base64 da imagem
+      const rawBase64 = arquivo.includes(",") ? arquivo.split(",")[1] : arquivo;
+      base64Data = cleanBase64(rawBase64);
+      
+      // Extrair mimeType de forma segura
+      if (arquivo.startsWith("data:")) {
+        mimeType = arquivo.split(";")[0].split(":")[1] || 'image/jpeg';
+      } else {
+        mimeType = 'image/jpeg';
+      }
 
-      console.log("🖼️ [IMAGEM] Processando imagem. MimeType:", mimeType, "Tamanho base64:", base64Data?.length || 0);
+      console.log("🖼️ [IMAGEM] Processando imagem. MimeType:", mimeType, "Tamanho base64 limpo:", base64Data?.length || 0);
+
+      if (!base64Data || base64Data.length < 100) {
+        throw new Error("Dados da imagem estão vazios ou inválidos");
+      }
 
       const extractionMessages = [{
         role: "user" as const,
         parts: [
-          { text: "Extraia TODO o texto visível nesta imagem. Seja preciso e detalhado. Retorne apenas o texto extraído." },
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } }
+          { text: "Extraia TODO o texto visível nesta imagem. Seja preciso e detalhado. Retorne apenas o texto extraído. Se não houver texto, descreva o conteúdo da imagem de forma detalhada." },
+          { inlineData: { mimeType: mimeType, data: base64Data } }
         ]
       }];
 
@@ -187,8 +224,8 @@ serve(async (req) => {
 
           textoParaResumir = visionData.candidates?.[0]?.content?.parts?.[0]?.text || '';
           
-          if (!textoParaResumir) {
-            throw new Error("A API não retornou conteúdo extraído");
+          if (!textoParaResumir || textoParaResumir.trim().length < 10) {
+            throw new Error("A API não retornou conteúdo extraído suficiente");
           }
           
           console.log(`✅ [SUCESSO] Texto extraído - ${textoParaResumir.length} caracteres`);
@@ -197,7 +234,7 @@ serve(async (req) => {
         } catch (error) {
           console.error(`Tentativa ${extractionAttempts} falhou:`, error);
           if (extractionAttempts >= maxAttempts) {
-            throw new Error(`Falha na extração após ${maxAttempts} tentativas`);
+            throw new Error(`Falha na extração após ${maxAttempts} tentativas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
           }
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
