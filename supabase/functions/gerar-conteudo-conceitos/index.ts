@@ -4,12 +4,21 @@ import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Constantes de configuração
 const MIN_PAGINAS = 8;
 const MAX_TENTATIVAS = 3;
+// Se uma geração ficar marcada como "gerando" por muito tempo, consideramos travada.
+const STALE_GERACAO_MS = 12 * 60 * 1000; // 12 min
+
+function isStaleGeracao(updatedAt: string | null | undefined) {
+  if (!updatedAt) return false;
+  const ts = Date.parse(updatedAt);
+  if (Number.isNaN(ts)) return false;
+  return Date.now() - ts > STALE_GERACAO_MS;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,13 +50,34 @@ serve(async (req) => {
     // ============================================
     const { data: gerandoAtivo, error: checkError } = await supabase
       .from("conceitos_topicos")
+      .select("id, titulo, updated_at")
+      .eq("status", "gerando")
+      .neq("id", topico_id)
+      .limit(1);
+
+    // Se existir um "gerando" antigo demais, ele provavelmente travou.
+    // Para não bloquear a fila indefinidamente, marcamos como erro e seguimos.
+    if (!checkError && gerandoAtivo && gerandoAtivo.length > 0) {
+      const ativo = gerandoAtivo[0] as { id: number; titulo: string; updated_at?: string | null };
+      if (isStaleGeracao(ativo.updated_at)) {
+        console.log(`[Conceitos Fila] ⚠️ Geração travada detectada (stale): ${ativo.titulo} (ID: ${ativo.id}). Marcando como erro e liberando fila.`);
+        await supabase
+          .from("conceitos_topicos")
+          .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
+          .eq("id", ativo.id);
+      }
+    }
+
+    // Recarregar após possível limpeza de "stale" acima
+    const { data: gerandoAtivoAtual, error: checkError2 } = await supabase
+      .from("conceitos_topicos")
       .select("id, titulo")
       .eq("status", "gerando")
       .neq("id", topico_id)
       .limit(1);
 
-    if (!checkError && gerandoAtivo && gerandoAtivo.length > 0) {
-      console.log(`[Conceitos Fila] Geração ativa detectada: ${gerandoAtivo[0].titulo} (ID: ${gerandoAtivo[0].id})`);
+    if (!checkError2 && gerandoAtivoAtual && gerandoAtivoAtual.length > 0) {
+      console.log(`[Conceitos Fila] Geração ativa detectada: ${gerandoAtivoAtual[0].titulo} (ID: ${gerandoAtivoAtual[0].id})`);
       
       // Calcular próxima posição na fila
       const { data: maxPosicao } = await supabase
@@ -136,15 +166,17 @@ serve(async (req) => {
     }
 
     // Verificar se já está gerando (permitir restart forçado)
-    if (topico.status === "gerando" && !force_restart) {
+    const shouldForceRestart = Boolean(force_restart) || (topico.status === "gerando" && isStaleGeracao(topico.updated_at));
+
+    if (topico.status === "gerando" && !shouldForceRestart) {
       return new Response(
         JSON.stringify({ message: "Geração já em andamento" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (topico.status === "gerando" && force_restart) {
-      console.log(`[Conceitos] 🔁 Force restart solicitado para topico_id=${topico_id}`);
+    if (topico.status === "gerando" && shouldForceRestart) {
+      console.log(`[Conceitos] 🔁 Reiniciando geração (force/stale) para topico_id=${topico_id}`);
     }
 
     // Marcar como gerando com progresso inicial, limpar posição da fila
