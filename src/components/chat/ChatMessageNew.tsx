@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
+import { QuadroComparativoVisual, extrairTabelaDoMarkdown } from "@/components/oab/QuadroComparativoVisual";
 
 interface TermoJuridico {
   termo: string;
@@ -425,6 +426,51 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
     }
   };
 
+  // Renderizar conteúdo com suporte a tabelas visuais
+  const renderContentWithTables = (text: string) => {
+    // Verificar se há tabela no conteúdo
+    const tabelaData = extrairTabelaDoMarkdown(text);
+    
+    if (tabelaData) {
+      // Separar texto antes e depois da tabela
+      const lines = text.split('\n');
+      let beforeTable = '';
+      let afterTable = '';
+      let inTable = false;
+      let tableEnded = false;
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          inTable = true;
+        } else if (inTable && !trimmed.startsWith('|')) {
+          inTable = false;
+          tableEnded = true;
+        }
+        
+        if (!inTable && !tableEnded) {
+          beforeTable += line + '\n';
+        } else if (tableEnded && !inTable) {
+          afterTable += line + '\n';
+        }
+      }
+      
+      return (
+        <>
+          {beforeTable.trim() && renderMarkdownContent(beforeTable)}
+          <QuadroComparativoVisual 
+            cabecalhos={tabelaData.cabecalhos}
+            linhas={tabelaData.linhas}
+            titulo="Quadro Comparativo"
+          />
+          {afterTable.trim() && renderMarkdownContent(afterTable)}
+        </>
+      );
+    }
+    
+    return renderMarkdownContent(text);
+  };
+
   // Renderizar conteúdo markdown
   const renderMarkdownContent = (text: string) => (
     <ReactMarkdown
@@ -494,7 +540,14 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
               {children}
             </code>
           );
-        }
+        },
+        // Não renderizar tabelas no markdown - já renderizamos com QuadroComparativoVisual
+        table: () => null,
+        thead: () => null,
+        tbody: () => null,
+        tr: () => null,
+        th: () => null,
+        td: () => null
       }}
     >
       {text}
@@ -593,7 +646,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                       animate={{ opacity: 1 }}
                       className="text-[15px] leading-[1.7] text-foreground/90"
                     >
-                      {renderMarkdownContent(formattedContent)}
+                      {renderContentWithTables(formattedContent)}
                     </motion.div>
                   </TabsContent>
                   
