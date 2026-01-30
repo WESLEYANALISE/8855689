@@ -172,12 +172,12 @@ const QuestoesTemas = () => {
                   animationFillMode: 'backwards'
                 }}
               >
-                <CardContent className="p-4 flex items-center gap-4">
+                <CardContent className="p-4 flex items-center gap-4 min-h-[72px]">
                   <div className="bg-emerald-500/10 rounded-full p-3 shrink-0">
                     <Scale className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-base">{item.tema}</h3>
+                    <h3 className="font-medium text-base line-clamp-1">{item.tema}</h3>
                     <p className="text-sm text-muted-foreground">
                       {item.temQuestoes 
                         ? `${item.totalQuestoes} questões disponíveis` 
