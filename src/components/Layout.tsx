@@ -130,6 +130,7 @@ const HIDE_HEADER_PREFIXES = [
   "/dominando/trilhas",
   "/dominando/area",
   "/dominando/estudo",
+  "/resumos-juridicos/personalizado",
 ];
 
 // Helper function to check if path matches prefixes
