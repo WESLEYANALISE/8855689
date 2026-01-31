@@ -1,96 +1,93 @@
 
-# Plano: Reset Completo de Conceitos e Corrigir Erro de Parse JSON
+# Plano: Ajustar Prompt de Conceitos para Estrutura Igual à OAB Trilhas
 
 ## Problema Identificado
 
-O erro `SyntaxError: Expected property name or '}' in JSON at position 1` ocorre porque:
-1. O Gemini retorna respostas com texto/markdown antes ou depois do JSON (ex: "```json\n{...}\n```")
-2. A sanitizacao atual (linhas 397-402 e 407-426) esta substituindo `\n` por `\\n` em todo o texto, inclusive FORA de strings JSON, o que quebra a estrutura
-3. A funcao `gerarComContinuacao` concatena respostas truncadas, resultando em JSON mal formado
+O conteúdo gerado em Conceitos está vindo com tom excessivamente informal e frases de abertura conversacionais como:
+- "E aí, futuro(a) jurista!"
+- "Ok, vamos lá!"
+- "Relaxa, a gente vai começar do comecinho"
 
-## Solucao em Duas Partes
+Isso acontece porque o prompt atual instrui a IA a escrever "como se estivesse CONVERSANDO com o estudante", resultando em texto coloquial demais.
 
-### Parte 1: Reset Completo do Banco de Dados (SQL)
+Na OAB Trilhas, o conteúdo inicia de forma profissional: "As Escolas Penais representam um fascinante panorama da evolução do pensamento jurídico-penal..."
 
-Apagar todos os topicos de todas as materias de Conceitos:
+## Solução
 
-```sql
--- 1. Deletar todas as paginas de topicos
-DELETE FROM conceitos_topico_paginas;
+Atualizar o prompt da edge function `gerar-conteudo-conceitos` para:
 
--- 2. Deletar todos os topicos
-DELETE FROM conceitos_topicos;
+1. **Remover instruções de tom excessivamente informal**
+2. **Manter didatismo sem ser coloquial** - Explicar bem, mas sem frases como "E aí!"
+3. **Proibir explicitamente frases de abertura conversacionais** - "Ok vamos lá", "E aí", "Bora", etc.
+4. **Estrutura clara de 8 páginas** - Igual à OAB Trilhas
 
--- 3. Resetar status das materias para que o usuario possa reenviar PDF
-UPDATE conceitos_materias
-SET 
-  status_processamento = NULL,
-  temas_identificados = NULL,
-  total_paginas = NULL
-WHERE 1=1;
+## Mudanças no Prompt Base
 
--- 4. Deletar paginas extraidas das materias (opcional, mas recomendado)
-DELETE FROM conceitos_materia_paginas;
+### Antes (atual):
+```
+Você é um professor de Direito acolhedor, especializado em ensinar INICIANTES.
+Escreva como se estivesse CONVERSANDO com o estudante.
+Use expressões naturais, perguntas retóricas e analogias do dia a dia.
 ```
 
-Apos rodar este SQL, voce podera reenviar o link do PDF em cada materia e os temas serao identificados do zero.
+### Depois (novo):
+```
+Você é um professor de Direito especialista, didático e acolhedor.
+Escreva de forma clara e acessível para estudantes iniciantes.
+Use linguagem simples, exemplos práticos e analogias quando útil.
 
-### Parte 2: Corrigir Edge Function gerar-conteudo-conceitos
+PROIBIDO:
+- Frases de abertura informais como "E aí!", "Ok, vamos lá!", "Bora!", "Relaxa"
+- Linguagem excessivamente coloquial ou gírias
+- Emojis de qualquer tipo
+- Iniciar parágrafos com expressões do tipo "Sabe o que é...?", "Olha só..."
+```
 
-O problema de parse JSON precisa de uma correcao mais robusta. Vou copiar a logica exata que funciona na OAB:
+## Mudanças nos Prompts por Página
 
-**Mudancas principais:**
+Cada página terá instruções mais específicas:
 
-1. **Extrair JSON corretamente** - Usar regex para encontrar o bloco JSON real:
+1. **Introdução**: Apresentar o tema de forma clara e motivadora, SEM frases coloquiais
+2. **Conteúdo Principal**: Explicar TODO o PDF de forma didática e organizada
+3. **Desmembrando**: Dividir conceitos complexos em partes menores
+4. **Entendendo na Prática**: Casos práticos com análise jurídica
+5. **Quadro Comparativo**: Tabelas Markdown comparando institutos
+6. **Dicas para Memorizar**: Técnicas de memorização e pontos-chave
+7. **Ligar Termos**: Introdução breve para o exercício interativo
+8. **Síntese Final**: Resumo conciso de tudo que foi visto
+
+## Arquivo a ser Alterado
+
+**supabase/functions/gerar-conteudo-conceitos/index.ts**
+- Linhas 241-252: Atualizar `promptBase` com novo tom
+- Linhas 11-20: Atualizar `PAGINAS_CONFIG` com instruções mais específicas
+
+## Detalhes Tecnicos
+
+O prompt será alterado para remover o tom conversacional excessivo. As instruções por página serao mais específicas para garantir conteúdo profissional e didático.
+
+Exemplo do novo `PAGINAS_CONFIG`:
+
 ```typescript
-// Remover markdown fences e texto extra
-let jsonStr = responseText;
-jsonStr = jsonStr.replace(/```json\s*/g, "");
-jsonStr = jsonStr.replace(/```\s*/g, "");
-
-// Encontrar o objeto JSON principal
-const match = jsonStr.match(/\{[\s\S]*\}/);
-if (match) {
-  jsonStr = match[0];
-}
+const PAGINAS_CONFIG = [
+  { 
+    tipo: "introducao", 
+    titulo: "Introdução", 
+    promptExtra: "Escreva uma introdução clara de 400-600 palavras. Apresente o tema, sua importância e o que será abordado. NÃO use frases como 'E aí!', 'Vamos lá!', 'Bora!'." 
+  },
+  { 
+    tipo: "conteudo_principal", 
+    titulo: "Conteúdo Completo", 
+    promptExtra: "Escreva o conteúdo principal com MÍNIMO 3000 palavras. Cubra TODO o PDF de forma didática e organizada. Use subtítulos (##, ###) para estruturar. Comece diretamente com o conteúdo, sem saudações." 
+  },
+  // ... demais páginas
+];
 ```
-
-2. **Sanitizar apenas caracteres de controle** - Nao substituir `\n` por `\\n` globalmente:
-```typescript
-// Remover apenas caracteres de controle invalidos (nao \n, \r, \t que sao validos em JSON)
-const sanitized = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-```
-
-3. **Parse mais robusto** - Tentar multiplas estrategias:
-```typescript
-try {
-  conteudoGerado = JSON.parse(sanitized);
-} catch {
-  // Tentar corrigir trailing commas
-  const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
-  conteudoGerado = JSON.parse(fixed);
-}
-```
-
-## Resumo dos Arquivos
-
-### Arquivos que serao alterados:
-- `supabase/functions/gerar-conteudo-conceitos/index.ts` - Corrigir parse JSON
-
-### SQL para rodar manualmente:
-O usuario devera rodar o SQL de reset no Supabase Cloud View > Run SQL
-
-## Sequencia de Execucao
-
-1. Rodar SQL de reset no Supabase (limpar todos os topicos)
-2. Corrigir a edge function `gerar-conteudo-conceitos`
-3. Deploy da edge function
-4. Reenviar PDF em cada materia
-5. Confirmar temas identificados
-6. Geracao automatica ira iniciar
 
 ## Resultado Esperado
 
-- Todos os topicos de Conceitos serao apagados
-- O usuario podera reenviar PDFs para identificar temas
-- A geracao de conteudo funcionara sem erros de parse JSON
+Após a mudança, o conteúdo gerado terá:
+- Tom profissional e didático (como na OAB Trilhas)
+- Estrutura clara em 8 páginas
+- Sem frases coloquiais de abertura
+- Conteúdo que vai direto ao assunto
