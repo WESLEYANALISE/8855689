@@ -6,23 +6,42 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import TermoHighlight from "@/components/conceitos/TermoHighlight";
 
-// Componente para citação inline de artigo (texto entre aspas)
-const CitacaoArtigoInline = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline bg-amber-500/10 text-amber-200 px-1.5 py-0.5 rounded border-l-2 border-amber-500/50 italic">
-    "{children}"
+// Componente para citação inline de artigo de lei (Art. X)
+const CitacaoArtigoLeiInline = ({ children }: { children: React.ReactNode }) => (
+  <span className="inline-block my-2 bg-slate-800/60 text-gray-200 px-3 py-2 rounded-lg border-l-3 border-primary italic">
+    {children}
   </span>
 );
 
-// Função para processar Markdown inline básico (negrito, itálico e citações entre aspas)
+// Verificar se um texto entre aspas é uma citação legal (deve ser formatada como citação)
+const isLegalCitation = (text: string): boolean => {
+  // Apenas formata como citação legal se:
+  // 1. Começa com "Art." (artigo de lei)
+  // 2. Contém referência a lei/código/constituição
+  // 3. É uma transcrição literal de norma jurídica
+  const legalPatterns = [
+    /^Art\.\s*\d+/i,                    // "Art. 1º..."
+    /^§\s*\d+/i,                        // "§ 1º..."
+    /Código\s+(Civil|Penal|Tributário)/i,
+    /Constituição\s+Federal/i,
+    /Lei\s+n[º°]?\s*[\d.]+/i,
+    /^Súmula\s+\d+/i,
+  ];
+  
+  return legalPatterns.some(pattern => pattern.test(text.trim()));
+};
+
+// Função para processar Markdown inline básico (negrito e itálico)
+// REMOVIDO: citação automática de aspas - agora só formata negrito/itálico
 export const processInlineMarkdown = (text: string, enableQuoteCitation: boolean = true): React.ReactNode => {
   if (!text || typeof text !== 'string') return text;
   
   const parts: React.ReactNode[] = [];
   let key = 0;
   
-  // Regex para **negrito**, *itálico* e "citação entre aspas"
-  // Detecta aspas duplas ("" ou "") como citações de artigos
-  const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|[""]([^""]+)[""])/g;
+  // Regex para **negrito** e *itálico* apenas
+  // NÃO captura mais aspas genéricas - aspas são tratadas como texto normal
+  const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*)/g;
   let lastIndex = 0;
   let match;
   
@@ -38,12 +57,6 @@ export const processInlineMarkdown = (text: string, enableQuoteCitation: boolean
     } else if (match[3]) {
       // *itálico*
       parts.push(<em key={key++} className="italic text-amber-100/80">{match[3]}</em>);
-    } else if (match[4] && enableQuoteCitation) {
-      // "citação entre aspas" - aplica estilo de citação de artigo
-      parts.push(<CitacaoArtigoInline key={key++}>{match[4]}</CitacaoArtigoInline>);
-    } else if (match[4] && !enableQuoteCitation) {
-      // Se citação desabilitada, mantém aspas normais
-      parts.push(`"${match[4]}"`);
     }
     
     lastIndex = regex.lastIndex;
@@ -394,21 +407,35 @@ const parseEnrichedContent = (content: string, imagensDiagramas?: ImagemDiagrama
       continue;
     }
 
-    // Detecta citação de lei
-    const leiMatch = line.match(/^>\s*[""]?(Art\.\s*\d+[^"]*)/i);
-    if (leiMatch) {
+    // Detecta citação de lei em blockquote: > Art. X ou > "Art. X
+    const leiBlockMatch = line.match(/^>\s*[""]?(Art\.\s*\d+[^"]*)/i);
+    if (leiBlockMatch) {
       flushCitacoes();
       if (currentMarkdown.trim()) {
         blocks.push({ type: "markdown", content: currentMarkdown.trim() });
         currentMarkdown = "";
       }
-      let leiContent = leiMatch[1];
+      let leiContent = leiBlockMatch[1];
       i++;
       while (i < lines.length && lines[i].startsWith('>')) {
         leiContent += '\n' + lines[i].replace(/^>\s*/, '').replace(/[""]$/, '');
         i++;
       }
       blocks.push({ type: "lei", content: leiContent.trim().replace(/[""]$/, '') });
+      continue;
+    }
+
+    // Detecta citação de lei INLINE (linha que começa com Art. X sem blockquote)
+    // Formato: "Art. 1º Toda pessoa é capaz..." ou linha isolada
+    const leiInlineMatch = line.match(/^(Art\.\s*\d+[º°]?\s*.+)$/i);
+    if (leiInlineMatch && !line.startsWith('#') && !line.startsWith('*') && !line.startsWith('-')) {
+      flushCitacoes();
+      if (currentMarkdown.trim()) {
+        blocks.push({ type: "markdown", content: currentMarkdown.trim() });
+        currentMarkdown = "";
+      }
+      blocks.push({ type: "lei", content: leiInlineMatch[1].trim() });
+      i++;
       continue;
     }
 
