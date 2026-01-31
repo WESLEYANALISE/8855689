@@ -81,37 +81,40 @@ export const ConceitosSlidesViewer = ({
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
+    <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
+      {/* Header - aligned with reader design */}
+      <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-xs text-red-400 uppercase tracking-widest truncate">
               {materiaName}
             </p>
-            <h1 className="text-sm font-semibold text-foreground truncate">
+            <h1 
+              className="text-sm font-semibold text-white truncate"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               {currentSectionTitle}
             </h1>
           </div>
           
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
+            <span className="text-xs text-gray-500 whitespace-nowrap">
               {currentIndex + 1}/{totalSlides}
             </span>
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-8 w-8"
+              className="h-8 w-8 text-white hover:bg-white/10"
             >
               <X className="w-4 h-4" />
             </Button>
           </div>
         </div>
         
-        {/* Progress bar */}
+        {/* Progress bar with red gradient */}
         <div className="max-w-2xl mx-auto mt-2">
-          <Progress value={progress} className="h-1" />
+          <Progress value={progress} className="h-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" />
         </div>
       </div>
 

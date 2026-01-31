@@ -874,6 +874,48 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
 
     console.log(`[Conceitos] ✅ Conteúdo salvo: ${topicoTitulo}`);
 
+    // ============================================
+    // DISPARAR BATCH DE IMAGENS PARA OS SLIDES
+    // ============================================
+    if (slidesData?.secoes && Array.isArray(slidesData.secoes)) {
+      const imagensParaBatch: Array<{id: number; slideId: string; prompt: string}> = [];
+      
+      slidesData.secoes.forEach((secao: any, secaoIdx: number) => {
+        if (secao.slides && Array.isArray(secao.slides)) {
+          secao.slides.forEach((slideItem: any, slideIdx: number) => {
+            if (slideItem.imagemPrompt) {
+              imagensParaBatch.push({
+                id: imagensParaBatch.length,
+                slideId: `${secaoIdx}-${slideIdx}`,
+                prompt: slideItem.imagemPrompt
+              });
+            }
+          });
+        }
+      });
+      
+      // Disparar batch se houver imagens a gerar
+      if (imagensParaBatch.length > 0) {
+        console.log(`[Conceitos] Disparando batch para ${imagensParaBatch.length} imagens de slides`);
+        
+        fetch(`${supabaseUrl}/functions/v1/batch-imagens-iniciar`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`
+          },
+          body: JSON.stringify({
+            tipo: "imagens_slides",
+            items: imagensParaBatch,
+            materia_id: topico.materia?.id || null,
+            topico_id: topico_id
+          })
+        }).catch(err => {
+          console.error("[Conceitos] Erro ao iniciar batch de imagens:", err);
+        });
+      }
+    }
+
     // Processar próximo da fila
     await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
 

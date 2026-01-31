@@ -3556,6 +3556,7 @@ export type Database = {
           results_data: Json | null
           status: string
           tipo: string
+          topico_id: number | null
           total_items: number
           updated_at: string
         }
@@ -3573,6 +3574,7 @@ export type Database = {
           results_data?: Json | null
           status?: string
           tipo: string
+          topico_id?: number | null
           total_items?: number
           updated_at?: string
         }
@@ -3590,6 +3592,7 @@ export type Database = {
           results_data?: Json | null
           status?: string
           tipo?: string
+          topico_id?: number | null
           total_items?: number
           updated_at?: string
         }
@@ -3599,6 +3602,13 @@ export type Database = {
             columns: ["materia_id"]
             isOneToOne: false
             referencedRelation: "conceitos_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conceitos_batch_jobs_topico_id_fkey"
+            columns: ["topico_id"]
+            isOneToOne: false
+            referencedRelation: "conceitos_topicos"
             referencedColumns: ["id"]
           },
         ]

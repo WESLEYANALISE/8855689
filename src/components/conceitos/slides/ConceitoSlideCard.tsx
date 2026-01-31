@@ -15,7 +15,8 @@ import {
   LayoutList,
   ChevronRight,
   ChevronLeft,
-  List
+  List,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SlideCollapsible } from "./SlideCollapsible";
@@ -24,6 +25,7 @@ import { SlideTabela } from "@/components/aula-v2/SlideTabela";
 import { SlideResumoVisual } from "@/components/aula-v2/SlideResumoVisual";
 import { SlideDicaEstudo } from "@/components/aula-v2/SlideDicaEstudo";
 import { UniversalImage } from "@/components/ui/universal-image";
+import EnrichedMarkdownRenderer from "@/components/EnrichedMarkdownRenderer";
 import confetti from "canvas-confetti";
 import type { ConceitoSlide } from "./types";
 
@@ -51,36 +53,6 @@ const iconMap: Record<string, React.ElementType> = {
   quickcheck: CheckCircle2
 };
 
-const colorMap: Record<string, string> = {
-  introducao: "from-purple-500 to-pink-500",
-  texto: "from-blue-500 to-blue-600",
-  termos: "from-indigo-500 to-purple-500",
-  explicacao: "from-amber-500 to-orange-500",
-  collapsible: "from-indigo-500 to-violet-500",
-  linha_tempo: "from-blue-500 to-indigo-500",
-  tabela: "from-cyan-500 to-teal-500",
-  atencao: "from-red-500 to-rose-500",
-  dica: "from-violet-500 to-fuchsia-500",
-  caso: "from-emerald-500 to-green-500",
-  resumo: "from-amber-500 to-yellow-500",
-  quickcheck: "from-violet-500 to-purple-500"
-};
-
-const bgColorMap: Record<string, string> = {
-  introducao: "bg-purple-500/10 border-purple-500/20",
-  texto: "bg-blue-500/10 border-blue-500/20",
-  termos: "bg-indigo-500/10 border-indigo-500/20",
-  explicacao: "bg-amber-500/10 border-amber-500/20",
-  collapsible: "bg-indigo-500/10 border-indigo-500/20",
-  linha_tempo: "bg-blue-500/10 border-blue-500/20",
-  tabela: "bg-cyan-500/10 border-cyan-500/20",
-  atencao: "bg-red-500/10 border-red-500/20",
-  dica: "bg-violet-500/10 border-violet-500/20",
-  caso: "bg-emerald-500/10 border-emerald-500/20",
-  resumo: "bg-amber-500/10 border-amber-500/20",
-  quickcheck: "bg-violet-500/10 border-violet-500/20"
-};
-
 const getSlideLabel = (tipo: string): string => {
   switch (tipo) {
     case 'introducao': return 'Introdução';
@@ -99,6 +71,17 @@ const getSlideLabel = (tipo: string): string => {
   }
 };
 
+// Get icon color based on slide type
+const getIconColor = (tipo: string): string => {
+  switch (tipo) {
+    case 'atencao': return 'text-red-400';
+    case 'dica': return 'text-amber-400';
+    case 'caso': return 'text-emerald-400';
+    case 'quickcheck': return 'text-violet-400';
+    default: return 'text-red-400';
+  }
+};
+
 export const ConceitoSlideCard = ({
   slide,
   slideIndex,
@@ -112,8 +95,7 @@ export const ConceitoSlideCard = ({
   const containerRef = useRef<HTMLDivElement>(null);
   
   const Icon = iconMap[slide.tipo] || FileText;
-  const gradientColor = colorMap[slide.tipo] || colorMap.texto;
-  const bgColor = bgColorMap[slide.tipo] || bgColorMap.texto;
+  const iconColor = getIconColor(slide.tipo);
 
   // Scroll to top when slide changes
   useEffect(() => {
@@ -144,6 +126,7 @@ export const ConceitoSlideCard = ({
 
   const isQuickCheck = slide.tipo === 'quickcheck';
   const isCorrect = selectedOption === slide.resposta;
+  const hasImage = slide.imagemUrl || slide.imagemPrompt;
 
   // Render specialized content based on slide type
   const renderContent = () => {
@@ -215,17 +198,17 @@ export const ConceitoSlideCard = ({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="bg-card/60 rounded-xl p-4 border border-border/50"
+                  className="bg-white/5 rounded-xl p-4 border border-white/10"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                      <Scale className="w-4 h-4 text-indigo-400" />
+                    <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                      <Scale className="w-4 h-4 text-red-400" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-foreground uppercase text-sm tracking-wide">
+                      <h4 className="font-bold text-white uppercase text-sm tracking-wide" style={{ fontFamily: "'Playfair Display', serif" }}>
                         {item.termo}
                       </h4>
-                      <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
+                      <p className="text-gray-300 text-sm mt-1 leading-relaxed">
                         {item.definicao}
                       </p>
                     </div>
@@ -240,7 +223,7 @@ export const ConceitoSlideCard = ({
       case 'quickcheck':
         return (
           <div className="space-y-4">
-            <p className="text-foreground font-medium text-lg">
+            <p className="text-white font-medium text-lg" style={{ fontFamily: "'Playfair Display', serif" }}>
               {slide.pergunta}
             </p>
             
@@ -249,7 +232,7 @@ export const ConceitoSlideCard = ({
                 const isSelected = selectedOption === index;
                 const isCorrectOption = index === slide.resposta;
                 
-                let optionStyle = "bg-card border-border hover:border-primary/50 hover:bg-primary/5";
+                let optionStyle = "bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5";
                 
                 if (showFeedback) {
                   if (isCorrectOption) {
@@ -257,7 +240,7 @@ export const ConceitoSlideCard = ({
                   } else if (isSelected && !isCorrectOption) {
                     optionStyle = "bg-red-500/20 border-red-500 text-red-400";
                   } else {
-                    optionStyle = "bg-card/50 border-border/50 opacity-50";
+                    optionStyle = "bg-white/5 border-white/10 opacity-50";
                   }
                 }
                 
@@ -274,7 +257,7 @@ export const ConceitoSlideCard = ({
                           ? 'border-emerald-500 bg-emerald-500' 
                           : showFeedback && isSelected 
                             ? 'border-red-500 bg-red-500' 
-                            : 'border-current'
+                            : 'border-white/30'
                       }`}>
                         {showFeedback && isCorrectOption && (
                           <CheckCircle2 className="w-5 h-5 text-white" />
@@ -283,12 +266,12 @@ export const ConceitoSlideCard = ({
                           <XCircle className="w-5 h-5 text-white" />
                         )}
                         {!showFeedback && (
-                          <span className="text-sm font-medium">
+                          <span className="text-sm font-medium text-white/70">
                             {String.fromCharCode(65 + index)}
                           </span>
                         )}
                       </div>
-                      <span className="flex-1">{opcao}</span>
+                      <span className="flex-1 text-white/90">{opcao}</span>
                     </div>
                   </button>
                 );
@@ -319,7 +302,7 @@ export const ConceitoSlideCard = ({
                         {isCorrect ? 'Correto!' : 'Incorreto'}
                       </p>
                       {slide.feedback && (
-                        <p className="text-muted-foreground text-sm mt-1">
+                        <p className="text-gray-400 text-sm mt-1">
                           {slide.feedback}
                         </p>
                       )}
@@ -332,13 +315,13 @@ export const ConceitoSlideCard = ({
         );
     }
 
-    // Default: render text content
+    // Default: render text content with EnrichedMarkdownRenderer
     return (
-      <div className="prose prose-sm max-w-none dark:prose-invert">
-        <p className="text-foreground leading-relaxed whitespace-pre-line">
-          {slide.conteudo}
-        </p>
-      </div>
+      <EnrichedMarkdownRenderer 
+        content={slide.conteudo}
+        fontSize={16}
+        theme="classicos"
+      />
     );
   };
 
@@ -358,15 +341,15 @@ export const ConceitoSlideCard = ({
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
               i === slideIndex 
-                ? 'w-6 bg-primary' 
+                ? 'w-6 bg-red-500' 
                 : i < slideIndex 
-                  ? 'w-1.5 bg-primary/50' 
-                  : 'w-1.5 bg-border'
+                  ? 'w-1.5 bg-red-500/50' 
+                  : 'w-1.5 bg-white/20'
             }`}
           />
         ))}
         {totalSlides > 20 && (
-          <span className="text-xs text-muted-foreground ml-1">
+          <span className="text-xs text-gray-500 ml-1">
             +{totalSlides - 20}
           </span>
         )}
@@ -374,40 +357,94 @@ export const ConceitoSlideCard = ({
 
       {/* Slide content */}
       <div className="flex-1 flex flex-col">
-        {/* Slide image if available */}
-        {slide.imagemUrl && (
+        {/* Imagem com título overlay */}
+        {hasImage && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 rounded-2xl overflow-hidden"
+            className="relative mb-6 rounded-2xl overflow-hidden"
           >
-            <UniversalImage
-              src={slide.imagemUrl}
-              alt={slide.titulo || "Ilustração"}
-              aspectRatio="16/9"
-              blurCategory="juridico"
-              containerClassName="w-full"
-            />
+            {slide.imagemUrl ? (
+              <>
+                <UniversalImage
+                  src={slide.imagemUrl}
+                  alt={slide.titulo || "Ilustração"}
+                  aspectRatio="16/9"
+                  blurCategory="juridico"
+                  containerClassName="w-full"
+                />
+                {/* Gradient overlay with title */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
+                  <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-1">
+                    {getSlideLabel(slide.tipo)}
+                  </p>
+                  {slide.titulo && (
+                    <h2 
+                      className="text-lg md:text-xl font-bold text-white leading-tight"
+                      style={{ fontFamily: "'Playfair Display', serif" }}
+                    >
+                      {slide.titulo}
+                    </h2>
+                  )}
+                </div>
+              </>
+            ) : (
+              // Loading state for image being generated
+              <div className="aspect-video bg-[#1a1a2e] flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-red-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-500">Gerando ilustração...</p>
+                </div>
+                {/* Title overlay even during loading */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5 bg-gradient-to-t from-[#1a1a2e] to-transparent">
+                  <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-1">
+                    {getSlideLabel(slide.tipo)}
+                  </p>
+                  {slide.titulo && (
+                    <h2 
+                      className="text-lg md:text-xl font-bold text-white leading-tight"
+                      style={{ fontFamily: "'Playfair Display', serif" }}
+                    >
+                      {slide.titulo}
+                    </h2>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
-        {/* Header with icon */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradientColor} flex items-center justify-center shadow-lg`}>
-            <Icon className="w-6 h-6 text-white" />
+        {/* Header with icon (only when no image) */}
+        {!hasImage && (
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg">
+              <Icon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-red-400 uppercase tracking-widest font-medium">
+                {getSlideLabel(slide.tipo)}
+              </p>
+              {slide.titulo && (
+                <h2 
+                  className="text-lg font-semibold text-white"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  {slide.titulo}
+                </h2>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              {getSlideLabel(slide.tipo)}
-            </p>
-            {slide.titulo && (
-              <h2 className="text-lg font-semibold text-foreground">{slide.titulo}</h2>
-            )}
-          </div>
+        )}
+
+        {/* Decorative element */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-red-400">✦</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-red-500/50 to-transparent" />
         </div>
 
-        {/* Main content */}
-        <div className={`rounded-2xl border p-5 md:p-6 ${bgColor} flex-1 overflow-y-auto`}>
+        {/* Main content card */}
+        <div className="bg-[#12121a] rounded-2xl border border-white/10 p-5 md:p-6 flex-1 overflow-y-auto">
           {renderContent()}
         </div>
       </div>
@@ -419,7 +456,7 @@ export const ConceitoSlideCard = ({
             <Button
               variant="outline"
               onClick={onPrevious}
-              className="flex-1 md:flex-none"
+              className="flex-1 md:flex-none border-white/10 hover:bg-white/5 text-white"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Anterior
@@ -429,14 +466,14 @@ export const ConceitoSlideCard = ({
           {isQuickCheck && !showFeedback ? (
             <Button
               disabled
-              className="flex-1 opacity-50"
+              className="flex-1 opacity-50 bg-red-500/50"
             >
               Selecione uma opção
             </Button>
           ) : (
             <Button
               onClick={isQuickCheck && showFeedback ? handleContinue : onNext}
-              className="flex-1"
+              className="flex-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
             >
               {slideIndex === totalSlides - 1 ? 'Concluir' : 'Próximo'}
               <ChevronRight className="w-4 h-4 ml-1" />
