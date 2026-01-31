@@ -246,7 +246,7 @@ serve(async (req) => {
     ].filter(Boolean);
     const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
     const genAI = new GoogleGenerativeAI(geminiKey!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Função para atualizar progresso
     const updateProgress = async (value: number) => {
@@ -308,13 +308,34 @@ serve(async (req) => {
       }
     }
 
+    // Função para limpar instruções vazadas no texto
+    function limparInstrucoesVazadas(texto: string): string {
+      const padroesRemover = [
+        /^(Não inclua|INSTRUÇÕES|Retorne APENAS|REGRAS|PROIBIDO)[^\n]*\n*/gi,
+        /^(Comece diretamente|O título será|O título da seção)[^\n]*\n*/gi,
+        /^(Aqui está|Segue o conteúdo|Segue abaixo)[^\n]*\n*/gi,
+        /^(Observação:|Nota:|OBS:)[^\n]*\n*/gi,
+        /^(Esta seção|Nesta seção)[^\n]*\n*/gi,
+        /^---\s*$/gm, // Remove linhas só com ---
+      ];
+      
+      let limpo = texto.trim();
+      for (const padrao of padroesRemover) {
+        limpo = limpo.replace(padrao, '');
+      }
+      // Limpar múltiplas quebras de linha no início
+      limpo = limpo.replace(/^\n+/, '');
+      return limpo.trim();
+    }
+
     // Função para gerar texto markdown
     async function gerarTexto(prompt: string): Promise<string> {
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: 16384, temperature: 0.6 },
       });
-      return result.response.text();
+      const textoRaw = result.response.text();
+      return limparInstrucoesVazadas(textoRaw);
     }
 
     // ============================================
@@ -361,7 +382,7 @@ ${conteudoPDF || "Conteúdo não disponível"}
 ═══ SUA TAREFA ═══
 ${config.promptExtra}
 
-Retorne APENAS o conteúdo em formato Markdown. Não inclua o título da seção (já será adicionado automaticamente).`;
+[IMPORTANTE: Comece diretamente com o primeiro parágrafo do conteúdo. NÃO repita estas instruções no texto.]`;
 
       try {
         const markdown = await gerarTexto(prompt);

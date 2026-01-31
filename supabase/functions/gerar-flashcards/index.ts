@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
 
-const REVISION = "v3.4.0-gemini-pool";
-const MODEL = "gemini-2.0-flash";
+const REVISION = "v3.5.0-gemini-2.5";
+const MODEL = "gemini-2.5-flash";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

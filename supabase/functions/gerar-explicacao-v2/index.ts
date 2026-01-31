@@ -2,8 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 // Revisão e modelo para tracking
-const REVISION = "v2.1.0-2025-12-08T00:00Z";
-const MODEL = "gemini-2.0-flash";
+const REVISION = "v2.2.0-gemini-2.5";
+const MODEL = "gemini-2.5-flash";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

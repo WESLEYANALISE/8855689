@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // Função para chamar Gemini com fallback de chaves
 async function chamarGemini(prompt: string, apiKeys: string[]): Promise<string> {
-  const modelo = 'gemini-2.0-flash';
+  const modelo = 'gemini-2.5-flash';
   
   for (let i = 0; i < apiKeys.length; i++) {
     try {

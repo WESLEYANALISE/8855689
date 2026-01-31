@@ -21,7 +21,7 @@ async function chamarGeminiComFallback(prompt: string): Promise<Response> {
       console.log(`Tentando com GEMINI_KEY_${i + 1}...`);
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEYS[i]}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEYS[i]}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
