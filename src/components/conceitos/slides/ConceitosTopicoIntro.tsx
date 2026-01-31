@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { UniversalImage } from "@/components/ui/universal-image";
 
@@ -136,12 +135,12 @@ export const ConceitosTopicoIntro = ({
             </h1>
           </motion.div>
 
-          {/* Stats row */}
+          {/* Stats row com ruído marrom inline */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center justify-center gap-4 mb-6"
+            className="flex items-center justify-center gap-3 mb-6 flex-wrap"
           >
             <div className="flex items-center gap-1.5 text-gray-400">
               <BookOpen className="w-4 h-4" />
@@ -152,38 +151,20 @@ export const ConceitosTopicoIntro = ({
               <Clock className="w-4 h-4" />
               <span className="text-sm">{tempoEstimado}</span>
             </div>
-          </motion.div>
-
-          {/* Brown noise toggle */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="flex items-center justify-between bg-white/5 rounded-xl p-4 border border-white/10 mb-6"
-          >
-            <div className="flex items-center gap-3">
+            <div className="w-1 h-1 rounded-full bg-gray-600" />
+            <button
+              onClick={() => setBrownNoiseEnabled(!brownNoiseEnabled)}
+              className={`flex items-center gap-1.5 transition-colors ${
+                brownNoiseEnabled ? 'text-red-400' : 'text-gray-500'
+              }`}
+            >
               {brownNoiseEnabled ? (
-                <Volume2 className="w-5 h-5 text-red-400" />
+                <Volume2 className="w-4 h-4" />
               ) : (
-                <VolumeX className="w-5 h-5 text-gray-500" />
+                <VolumeX className="w-4 h-4" />
               )}
-              <div>
-                <p className="text-sm font-medium text-white">Ruído Marrom</p>
-                <p className="text-xs text-gray-500">Melhora o foco</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowBrownNoiseInfo(true)}
-                className="p-1 text-gray-500 hover:text-gray-300"
-              >
-                <HelpCircle className="w-4 h-4" />
-              </button>
-              <Switch
-                checked={brownNoiseEnabled}
-                onCheckedChange={setBrownNoiseEnabled}
-              />
-            </div>
+              <span className="text-sm">Ruído Marrom</span>
+            </button>
           </motion.div>
 
           {/* Objectives BEFORE modules */}
