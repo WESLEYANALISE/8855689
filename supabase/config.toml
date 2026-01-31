@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.batch-imagens-processar]
 verify_jwt = false
+
+[functions.batch-imagens-aplicar]
+verify_jwt = false
