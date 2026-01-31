@@ -9,6 +9,7 @@ import { useStreamingChat, UploadedFile } from "@/hooks/useStreamingChat";
 import { ChatMessageNew } from "@/components/chat/ChatMessageNew";
 import { ChatInputNew } from "@/components/chat/ChatInputNew";
 import { FloatingFlashcardsButton } from "@/components/chat/FloatingFlashcardsButton";
+import { FloatingComparativeButton } from "@/components/chat/FloatingComparativeButton";
 
 import { TypingIndicator } from "@/components/simulacao/TypingIndicator";
 import { SuggestedQuestions } from "@/components/chat/SuggestedQuestions";
@@ -288,6 +289,12 @@ const ChatProfessora = () => {
         uploadedFiles={uploadedFiles}
         onFilesChange={setUploadedFiles}
         onExtractPdf={extractPdfText}
+      />
+
+      {/* Botão Flutuante de Tabela Comparativa */}
+      <FloatingComparativeButton
+        isVisible={showFloatingButton}
+        lastAssistantMessage={lastAssistantMessage}
       />
 
       {/* Botão Flutuante de Flashcards */}

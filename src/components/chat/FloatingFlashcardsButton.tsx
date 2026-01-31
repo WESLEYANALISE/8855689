@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ChatFlashcardsModal from "@/components/ChatFlashcardsModal";
+import { supabase } from "@/integrations/supabase/client";
 
 // Paleta de cores alternadas para cada novo flashcard
 const COLOR_THEMES = [
@@ -64,6 +65,12 @@ interface FloatingFlashcardsButtonProps {
   messageCount?: number; // Contador para alternar cores
 }
 
+interface Flashcard {
+  front: string;
+  back: string;
+  exemplo?: string;
+}
+
 export const FloatingFlashcardsButton = ({ 
   isVisible, 
   lastAssistantMessage,
@@ -73,8 +80,54 @@ export const FloatingFlashcardsButton = ({
   const [showButton, setShowButton] = useState(false);
   const prevMessageRef = useRef<string>("");
   
+  // Estado para flashcards pré-carregados em segundo plano
+  const [preloadedFlashcards, setPreloadedFlashcards] = useState<Flashcard[]>([]);
+  const [isPreloading, setIsPreloading] = useState(false);
+  const [preloadError, setPreloadError] = useState(false);
+  
   // Selecionar tema de cor baseado no contador de mensagens
   const colorTheme = COLOR_THEMES[messageCount % COLOR_THEMES.length];
+
+  // Gerar flashcards automaticamente em segundo plano quando mensagem finaliza
+  const generateFlashcardsInBackground = useCallback(async (content: string) => {
+    if (content.length < 200) return; // Não gerar para conteúdo muito curto
+    
+    setIsPreloading(true);
+    setPreloadError(false);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-flashcards", {
+        body: { content, tipo: 'chat' }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.flashcards && Array.isArray(data.flashcards)) {
+        setPreloadedFlashcards(data.flashcards);
+      }
+    } catch (error) {
+      console.error("Erro ao pré-carregar flashcards:", error);
+      setPreloadError(true);
+    } finally {
+      setIsPreloading(false);
+    }
+  }, []);
+
+  // Iniciar geração em segundo plano quando uma nova mensagem do assistente aparece
+  useEffect(() => {
+    if (isVisible && lastAssistantMessage && lastAssistantMessage !== prevMessageRef.current) {
+      // Resetar flashcards pré-carregados para nova mensagem
+      setPreloadedFlashcards([]);
+      setPreloadError(false);
+      
+      // Aguardar um pouco para garantir que a mensagem foi finalizada
+      const timer = setTimeout(() => {
+        generateFlashcardsInBackground(lastAssistantMessage);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, lastAssistantMessage, generateFlashcardsInBackground]);
 
   // Controlar animação de entrada/saída baseado na mudança de mensagem
   useEffect(() => {
@@ -154,9 +207,15 @@ export const FloatingFlashcardsButton = ({
             {/* Ícone Sparkles (brilho) */}
             <Sparkles className="w-6 h-6 text-white relative z-10 drop-shadow-lg" />
             
-            {/* Badge com número */}
+            {/* Badge com número ou indicador de loading */}
             <span className="text-[10px] font-bold text-white/90 relative z-10">
-              10
+              {isPreloading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : preloadedFlashcards.length > 0 ? (
+                preloadedFlashcards.length
+              ) : (
+                "10"
+              )}
             </span>
             
             {/* Partículas de brilho decorativas */}
@@ -195,11 +254,12 @@ export const FloatingFlashcardsButton = ({
         )}
       </AnimatePresence>
 
-      {/* Modal de Flashcards */}
+      {/* Modal de Flashcards - passa flashcards pré-carregados */}
       <ChatFlashcardsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         content={lastAssistantMessage}
+        preloadedFlashcards={preloadedFlashcards.length > 0 ? preloadedFlashcards : undefined}
       />
     </>
   );

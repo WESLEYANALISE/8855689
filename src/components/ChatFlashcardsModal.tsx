@@ -9,6 +9,7 @@ interface ChatFlashcardsModalProps {
   isOpen: boolean;
   onClose: () => void;
   content: string;
+  preloadedFlashcards?: Flashcard[];
 }
 
 interface Flashcard {
@@ -17,7 +18,7 @@ interface Flashcard {
   exemplo?: string;
 }
 
-const ChatFlashcardsModal = ({ isOpen, onClose, content }: ChatFlashcardsModalProps) => {
+const ChatFlashcardsModal = ({ isOpen, onClose, content, preloadedFlashcards }: ChatFlashcardsModalProps) => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -26,6 +27,16 @@ const ChatFlashcardsModal = ({ isOpen, onClose, content }: ChatFlashcardsModalPr
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const { toast } = useToast();
+
+  // Se temos flashcards pré-carregados, usar diretamente
+  useEffect(() => {
+    if (isOpen && preloadedFlashcards && preloadedFlashcards.length > 0) {
+      setFlashcards(preloadedFlashcards);
+      setHasGenerated(true);
+      setLoading(false);
+      setProgress(100);
+    }
+  }, [isOpen, preloadedFlashcards]);
 
   const gerarFlashcards = async () => {
     if (hasGenerated) return;
@@ -135,11 +146,12 @@ const ChatFlashcardsModal = ({ isOpen, onClose, content }: ChatFlashcardsModalPr
     setCurrentIndex(0);
   };
 
+  // Gerar flashcards apenas se não temos pré-carregados
   useEffect(() => {
-    if (isOpen && !hasGenerated && !loading) {
+    if (isOpen && !hasGenerated && !loading && (!preloadedFlashcards || preloadedFlashcards.length === 0)) {
       gerarFlashcards();
     }
-  }, [isOpen, hasGenerated, loading]);
+  }, [isOpen, hasGenerated, loading, preloadedFlashcards]);
 
   if (!isOpen) return null;
 

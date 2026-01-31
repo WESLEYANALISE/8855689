@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.batch-imagens-aplicar]
 verify_jwt = false
+
+[functions.gerar-tabela-comparativa]
+verify_jwt = false
