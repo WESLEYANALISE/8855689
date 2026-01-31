@@ -194,36 +194,43 @@ export const QuadroComparativoVisual = ({ cabecalhos, linhas, titulo }: QuadroCo
 /**
  * Extrai dados de tabela de um conteúdo Markdown.
  * Retorna null se não encontrar tabela válida.
+ * Filtra corretamente linhas separadoras (|---|---|)
  */
 export const extrairTabelaDoMarkdown = (markdown: string): { cabecalhos: string[]; linhas: string[][] } | null => {
-  if (!markdown || !markdown.includes("|")) return null;
+  if (!markdown || typeof markdown !== 'string') return null;
   
-  // Encontrar linhas que parecem ser tabela (mais flexível)
+  // Verificar se há pipes suficientes para ser uma tabela
+  const pipeCount = (markdown.match(/\|/g) || []).length;
+  if (pipeCount < 4) return null; // Mínimo para uma tabela simples
+  
   const allLines = markdown.split('\n');
   const tableLines: string[] = [];
-  let inTable = false;
   
+  // Encontrar linhas de tabela (contém | e não é só separador)
   for (const line of allLines) {
     const trimmed = line.trim();
-    // Linha de tabela: começa e termina com |, ou tem | no meio
+    
+    // Ignorar linhas vazias
+    if (!trimmed) continue;
+    
+    // Verificar se é linha de tabela (tem múltiplos |)
     if (trimmed.includes('|')) {
-      const pipeCount = (trimmed.match(/\|/g) || []).length;
-      if (pipeCount >= 2) {
-        inTable = true;
+      const pipes = (trimmed.match(/\|/g) || []).length;
+      if (pipes >= 2) {
         tableLines.push(trimmed);
       }
-    } else if (inTable && trimmed === '') {
-      // Linha vazia após tabela - continua checando
-      continue;
-    } else if (inTable) {
-      // Linha não-tabela - termina a detecção
-      break;
     }
   }
   
-  if (tableLines.length < 3) return null; // Mínimo: header, separator, 1 row
+  // Precisa de pelo menos 3 linhas: header, separator, data
+  if (tableLines.length < 3) return null;
   
-  // Primeira linha = headers
+  // Verificar se segunda linha é separador (só tem -, |, : e espaços)
+  const separatorLine = tableLines[1];
+  const isSeparator = /^[\|\s\-:]+$/.test(separatorLine) && separatorLine.includes('-');
+  if (!isSeparator) return null;
+  
+  // Extrair headers da primeira linha
   const headerLine = tableLines[0];
   const cabecalhos = headerLine
     .split('|')
@@ -232,13 +239,12 @@ export const extrairTabelaDoMarkdown = (markdown: string): { cabecalhos: string[
   
   if (cabecalhos.length === 0) return null;
   
-  // Ignorar linha separadora (segunda linha com ---)
-  // Restante = linhas de dados
-  const dataLines = tableLines.slice(2);
-  
+  // Extrair linhas de dados (a partir da terceira linha)
   const linhas: string[][] = [];
-  for (const line of dataLines) {
-    // Ignorar linhas separadoras
+  for (let i = 2; i < tableLines.length; i++) {
+    const line = tableLines[i];
+    
+    // Ignorar linhas que são apenas separadores
     if (/^[\|\s\-:]+$/.test(line)) continue;
     
     const cells = line
@@ -246,14 +252,15 @@ export const extrairTabelaDoMarkdown = (markdown: string): { cabecalhos: string[
       .map(cell => cell.trim())
       .filter(cell => cell !== '');
     
-    if (cells.length > 0) {
+    // Só adicionar se tiver células com conteúdo real
+    if (cells.length > 0 && cells.some(c => c.length > 0 && !/^[-:]+$/.test(c))) {
       linhas.push(cells);
     }
   }
   
   if (linhas.length === 0) return null;
   
-  console.log('📊 Tabela detectada:', { cabecalhos, linhasCount: linhas.length });
+  console.log('📊 Tabela extraída:', { cabecalhos, linhasCount: linhas.length });
   
   return { cabecalhos, linhas };
 };
