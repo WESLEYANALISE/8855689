@@ -381,19 +381,20 @@ Termine com o fechamento correto do JSON.`;
     await updateProgress(70);
     console.log(`[Conceitos] Resposta final: ${responseText.length} chars`);
     
-    // Extrair JSON da resposta - NOVA LÓGICA CORRIGIDA
-    let jsonStr = responseText;
+    // ============================================
+    // SANITIZAÇÃO ROBUSTA DE JSON (padrão OAB corrigido)
+    // ============================================
     
     // 1. Remover markdown fences
+    let jsonStr = responseText;
     jsonStr = jsonStr.replace(/```json\s*/g, "");
     jsonStr = jsonStr.replace(/```\s*/g, "");
     
-    // 2. Encontrar o objeto JSON principal usando regex
+    // 2. Encontrar o objeto JSON principal
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonStr = jsonMatch[0];
     } else {
-      // Fallback: tentar encontrar por índices
       const jsonStart = jsonStr.indexOf("{");
       const jsonEnd = jsonStr.lastIndexOf("}");
       if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -401,24 +402,81 @@ Termine com o fechamento correto do JSON.`;
       }
     }
     
-    // 3. Remover APENAS caracteres de controle inválidos (NÃO \n, \r, \t que são válidos)
-    const sanitized = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+    // 3. SANITIZAÇÃO CRÍTICA: Escapar caracteres de controle DENTRO de strings JSON
+    // O problema é que \n, \r, \t literais dentro de strings JSON são inválidos
+    // Precisamos convertê-los para suas versões escapadas (\\n, \\r, \\t)
+    function sanitizeJsonString(str: string): string {
+      let result = "";
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const code = str.charCodeAt(i);
+        
+        if (escapeNext) {
+          result += char;
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          result += char;
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"') {
+          inString = !inString;
+          result += char;
+          continue;
+        }
+        
+        if (inString) {
+          // Dentro de uma string: escapar caracteres de controle
+          if (code === 0x0A) { // \n
+            result += '\\n';
+          } else if (code === 0x0D) { // \r
+            result += '\\r';
+          } else if (code === 0x09) { // \t
+            result += '\\t';
+          } else if (code < 0x20 || code === 0x7F) {
+            // Outros caracteres de controle: remover
+            continue;
+          } else {
+            result += char;
+          }
+        } else {
+          // Fora de strings: manter espaços em branco normais, remover outros controles
+          if (char === '\n' || char === '\r' || char === '\t' || char === ' ') {
+            result += char;
+          } else if (code < 0x20 || code === 0x7F) {
+            continue;
+          } else {
+            result += char;
+          }
+        }
+      }
+      
+      return result;
+    }
     
-    console.log(`[Conceitos] JSON extraído: ${sanitized.length} chars`);
+    const sanitized = sanitizeJsonString(jsonStr);
+    console.log(`[Conceitos] JSON sanitizado: ${sanitized.length} chars`);
     
-    // Parse JSON com múltiplas estratégias
+    // 4. Parse JSON com múltiplas estratégias de correção
     let conteudoGerado;
     try {
       conteudoGerado = JSON.parse(sanitized);
-      console.log("[Conceitos] Parse JSON bem-sucedido na primeira tentativa");
+      console.log("[Conceitos] ✓ Parse JSON bem-sucedido");
     } catch (parseError) {
-      console.log("[Conceitos] Erro no parse inicial, tentando corrigir...");
+      console.log("[Conceitos] Erro no parse inicial, tentando corrigir...", parseError);
       
       try {
         // Tentar corrigir trailing commas
         const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
         conteudoGerado = JSON.parse(fixed);
-        console.log("[Conceitos] Parse JSON bem-sucedido após remover trailing commas");
+        console.log("[Conceitos] ✓ Parse JSON após remover trailing commas");
       } catch (secondError) {
         console.log("[Conceitos] Tentando balancear chaves/colchetes...");
         
@@ -439,13 +497,13 @@ Termine com o fechamento correto do JSON.`;
         
         try {
           conteudoGerado = JSON.parse(jsonCorrigido);
-          console.log("[Conceitos] Parse JSON bem-sucedido após balanceamento");
+          console.log("[Conceitos] ✓ Parse JSON após balanceamento");
         } catch (finalError) {
-          console.error("[Conceitos] Falha definitiva no parse JSON:", finalError);
+          console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
           console.error("[Conceitos] Primeiros 500 chars:", sanitized.slice(0, 500));
           console.error("[Conceitos] Últimos 500 chars:", sanitized.slice(-500));
           await supabase.from("conceitos_topicos")
-            .update({ status: "erro", progresso: 0 })
+            .update({ status: "erro", progresso: 0, tentativas: (topico.tentativas || 0) + 1 })
             .eq("id", topico_id);
           throw new Error("Falha ao processar resposta da IA");
         }
