@@ -1,0 +1,136 @@
+import { useState, useCallback, useMemo } from "react";
+import { AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ConceitoSlideCard } from "./ConceitoSlideCard";
+import type { ConceitoSecao, ConceitoSlide } from "./types";
+
+interface ConceitosSlidesViewerProps {
+  secoes: ConceitoSecao[];
+  titulo: string;
+  materiaName?: string;
+  onClose: () => void;
+  onComplete?: () => void;
+}
+
+interface FlatSlide {
+  slide: ConceitoSlide;
+  secaoIndex: number;
+  slideIndex: number;
+  globalIndex: number;
+}
+
+export const ConceitosSlidesViewer = ({
+  secoes,
+  titulo,
+  materiaName,
+  onClose,
+  onComplete
+}: ConceitosSlidesViewerProps) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Flatten all slides for easier navigation
+  const flatSlides: FlatSlide[] = useMemo(() => {
+    const slides: FlatSlide[] = [];
+    let globalIndex = 0;
+    
+    secoes.forEach((secao, secaoIndex) => {
+      secao.slides.forEach((slide, slideIndex) => {
+        slides.push({
+          slide,
+          secaoIndex,
+          slideIndex,
+          globalIndex
+        });
+        globalIndex++;
+      });
+    });
+    
+    return slides;
+  }, [secoes]);
+
+  const totalSlides = flatSlides.length;
+  const currentFlatSlide = flatSlides[currentIndex];
+  const progress = totalSlides > 0 ? ((currentIndex + 1) / totalSlides) * 100 : 0;
+
+  // Get current section title
+  const currentSectionTitle = secoes[currentFlatSlide?.secaoIndex]?.titulo || titulo;
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < totalSlides - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      // Completed all slides
+      onComplete?.();
+    }
+  }, [currentIndex, totalSlides, onComplete]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  }, [currentIndex]);
+
+  if (!currentFlatSlide) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Nenhum slide disponível</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground truncate">
+              {materiaName}
+            </p>
+            <h1 className="text-sm font-semibold text-foreground truncate">
+              {currentSectionTitle}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {currentIndex + 1}/{totalSlides}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Progress bar */}
+        <div className="max-w-2xl mx-auto mt-2">
+          <Progress value={progress} className="h-1" />
+        </div>
+      </div>
+
+      {/* Slide content */}
+      <div className="flex-1">
+        <AnimatePresence mode="wait">
+          <ConceitoSlideCard
+            key={currentIndex}
+            slide={currentFlatSlide.slide}
+            slideIndex={currentIndex}
+            totalSlides={totalSlides}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            canGoBack={currentIndex > 0}
+          />
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+export default ConceitosSlidesViewer;

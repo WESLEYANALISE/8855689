@@ -674,6 +674,157 @@ Retorne APENAS o JSON, sem texto adicional.`;
     console.log(`[Conceitos] Correspondências válidas: ${correspondencias.length}`);
 
     // ============================================
+    // GERAR ESTRUTURA DE SLIDES INTERATIVOS
+    // ============================================
+    console.log(`[Conceitos] Gerando estrutura de slides interativos...`);
+    
+    const promptSlides = `${promptBase}
+
+═══ SUA TAREFA ═══
+Transforme o conteúdo do PDF em uma estrutura de SLIDES INTERATIVOS para estudo.
+
+Retorne um JSON válido com esta estrutura EXATA:
+{
+  "versao": 1,
+  "titulo": "${topicoTitulo}",
+  "tempoEstimado": "25 min",
+  "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"],
+  "secoes": [
+    {
+      "id": 1,
+      "titulo": "Nome da Seção",
+      "slides": [
+        {
+          "tipo": "introducao",
+          "titulo": "O que você vai aprender",
+          "conteudo": "Texto introdutório motivador...",
+          "imagemPrompt": "Professional legal illustration showing..."
+        },
+        {
+          "tipo": "texto",
+          "titulo": "Conceito Principal",
+          "conteudo": "Explicação do conceito de forma clara e didática...",
+          "imagemPrompt": "Educational illustration of..."
+        },
+        {
+          "tipo": "termos",
+          "titulo": "Termos Importantes",
+          "conteudo": "Conheça os termos essenciais:",
+          "termos": [
+            {"termo": "Termo 1", "definicao": "Definição clara e concisa"},
+            {"termo": "Termo 2", "definicao": "Definição clara e concisa"}
+          ],
+          "imagemPrompt": "Legal glossary concept..."
+        },
+        {
+          "tipo": "collapsible",
+          "titulo": "Explore os Conceitos",
+          "conteudo": "Clique para expandir cada conceito:",
+          "collapsibleItems": [
+            {"titulo": "Conceito A", "conteudo": "Explicação detalhada...", "icone": "book"},
+            {"titulo": "Conceito B", "conteudo": "Explicação detalhada...", "icone": "scale"}
+          ],
+          "imagemPrompt": "Interactive learning concept..."
+        },
+        {
+          "tipo": "linha_tempo",
+          "titulo": "Evolução Histórica",
+          "conteudo": "Veja como o tema evoluiu:",
+          "etapas": [
+            {"titulo": "Etapa 1", "descricao": "Descrição da etapa"},
+            {"titulo": "Etapa 2", "descricao": "Descrição da etapa"}
+          ],
+          "imagemPrompt": "Timeline showing legal evolution..."
+        },
+        {
+          "tipo": "tabela",
+          "titulo": "Comparativo",
+          "conteudo": "Compare os principais aspectos:",
+          "tabela": {
+            "cabecalhos": ["Aspecto", "Tipo A", "Tipo B"],
+            "linhas": [
+              ["Característica 1", "Valor A1", "Valor B1"],
+              ["Característica 2", "Valor A2", "Valor B2"]
+            ]
+          },
+          "imagemPrompt": "Comparison chart concept..."
+        },
+        {
+          "tipo": "atencao",
+          "titulo": "Ponto de Atenção",
+          "conteudo": "Cuidado! Este é um ponto importante que costuma cair em provas...",
+          "imagemPrompt": "Warning sign concept..."
+        },
+        {
+          "tipo": "dica",
+          "titulo": "Dica de Memorização",
+          "conteudo": "Use este mnemônico para lembrar: SIGLA = ...",
+          "imagemPrompt": "Memory tip concept..."
+        },
+        {
+          "tipo": "caso",
+          "titulo": "Caso Prático",
+          "conteudo": "Imagine a seguinte situação: João comprou um imóvel...",
+          "imagemPrompt": "Legal case study illustration..."
+        },
+        {
+          "tipo": "quickcheck",
+          "titulo": "Verificação Rápida",
+          "conteudo": "Teste seu conhecimento:",
+          "pergunta": "Qual é a característica principal de X?",
+          "opcoes": ["Opção A", "Opção B", "Opção C", "Opção D"],
+          "resposta": 0,
+          "feedback": "Correto! A resposta é A porque..."
+        },
+        {
+          "tipo": "resumo",
+          "titulo": "Resumo da Seção",
+          "conteudo": "Recapitulando os pontos principais:",
+          "pontos": ["Ponto 1", "Ponto 2", "Ponto 3"],
+          "imagemPrompt": "Summary concept..."
+        }
+      ]
+    }
+  ]
+}
+
+REGRAS CRÍTICAS:
+1. Gere entre 30-50 slides no total, divididos em 4-6 seções
+2. Use TODOS os tipos de slides disponíveis de forma variada
+3. Cada seção deve ter 5-10 slides
+4. Inclua imagemPrompt para TODOS os slides (descrição para gerar imagem ilustrativa)
+5. O imagemPrompt deve ser em INGLÊS e descrever uma ilustração educacional profissional
+6. Use tom CONVERSACIONAL e didático no conteúdo
+7. Inclua pelo menos 3 slides tipo "quickcheck" espalhados pelo conteúdo
+8. Inclua pelo menos 2 slides tipo "collapsible" para conceitos que têm subcategorias
+9. Inclua pelo menos 1 slide tipo "linha_tempo" se o tema tiver evolução histórica ou etapas
+10. Garanta que o conteúdo seja COMPLETO - não pule informações importantes do PDF
+
+TIPOS DE SLIDES DISPONÍVEIS:
+- introducao: Slide de abertura com objetivos
+- texto: Explicação de um conceito
+- termos: Lista de termos com definições
+- collapsible: Menu expansível com subcategorias
+- linha_tempo: Timeline/etapas/procedimentos
+- tabela: Quadro comparativo
+- atencao: Ponto importante/pegadinha
+- dica: Dica de memorização/estudo
+- caso: Caso prático/exemplo
+- resumo: Resumo com pontos principais
+- quickcheck: Mini-quiz rápido
+
+Retorne APENAS o JSON válido, sem texto adicional.`;
+
+    let slidesData: any = null;
+    try {
+      slidesData = await gerarJSON(promptSlides);
+      console.log(`[Conceitos] ✓ Slides gerados: ${slidesData?.secoes?.length || 0} seções`);
+    } catch (err) {
+      console.error(`[Conceitos] ❌ Erro ao gerar slides:`, err);
+      slidesData = null;
+    }
+
+    // ============================================
     // MONTAR CONTEÚDO FINAL COM TÍTULOS DAS SEÇÕES
     // ============================================
     const conteudoPrincipal = paginasGeradas
@@ -708,6 +859,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
         termos: termosComCorrespondencias,
         flashcards: extras.flashcards || [],
         questoes: extras.questoes || [],
+        slides_json: slidesData, // Nova estrutura de slides interativos
         status: "concluido",
         progresso: 100,
         tentativas: (topico.tentativas || 0) + 1,
