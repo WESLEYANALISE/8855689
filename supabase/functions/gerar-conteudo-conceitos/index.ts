@@ -24,7 +24,10 @@ Use elementos visuais quando apropriado:
   { 
     tipo: "conteudo_principal", 
     titulo: "Conteúdo Completo", 
-    promptExtra: `Escreva o conteúdo principal com MÍNIMO 3000 palavras.
+    promptExtra: `ATENÇÃO: NÃO comece com saudações como "E aí, tudo bem?" ou "Olá!". A introdução já fez isso.
+Vá DIRETO ao primeiro conceito do tema. Comece explicando o conteúdo imediatamente.
+
+Escreva o conteúdo principal com MÍNIMO 3000 palavras.
 Cubra TODO o conteúdo do PDF de forma didática e organizada.
 Use subtítulos (###) para estruturar cada parte.
 
@@ -39,12 +42,13 @@ Use pelo menos 3-5 destes elementos ao longo do conteúdo.`
   { 
     tipo: "desmembrando", 
     titulo: "Desmembrando o Tema", 
-    promptExtra: `Análise detalhada de cada elemento importante do tema (800-1200 palavras).
-Decomponha os conceitos complexos em partes menores.
+    promptExtra: `Pegue os conceitos-chave apresentados no Conteúdo Completo e desmembre cada um em partes menores (800-1200 palavras).
+
+IDENTIFIQUE 4-6 termos/conceitos principais do tema e analise cada um em profundidade.
 
 Para CADA termo ou conceito importante, analise:
 - **Significado jurídico:** O que significa exatamente no contexto do Direito
-- **Etimologia/Origem:** De onde vem o termo, sua origem histórica ou linguística (quando relevante)
+- **Etimologia/Origem:** De onde vem o termo, sua origem histórica ou linguística
 - **Pronúncia correta:** Como pronunciar corretamente (quando houver dúvida comum)
 - **Elementos constitutivos:** Quais são os componentes ou requisitos
 - **Características principais:** O que o diferencia de outros institutos
@@ -77,7 +81,10 @@ Formato para cada caso:
   { 
     tipo: "quadro_comparativo", 
     titulo: "Quadro Comparativo", 
-    promptExtra: `Crie tabelas comparativas dos principais institutos relacionados ao tema.
+    promptExtra: `GERE APENAS AS TABELAS COMPARATIVAS. SEM texto introdutório ou explicativo antes.
+Comece DIRETAMENTE com a primeira tabela Markdown.
+
+Crie tabelas comparativas dos principais institutos relacionados ao tema.
 Compare elementos, requisitos, efeitos de forma clara.
 Use formato Markdown de tabela CORRETO.
 Inclua pelo menos 2 tabelas relevantes.
@@ -94,20 +101,24 @@ Formato OBRIGATÓRIO para cada tabela:
 Garanta que cada tabela tenha:
 - Linha de cabeçalho com nomes dos institutos
 - Linha separadora (|---|---|---|)
-- Linhas de dados bem formatadas` 
+- Linhas de dados bem formatadas
+
+IMPORTANTE: NÃO escreva texto antes das tabelas. Comece direto com a tabela.` 
   },
   { 
     tipo: "dicas_provas", 
     titulo: "Dicas para Memorizar", 
-    promptExtra: `Forneça dicas de memorização, macetes e pontos-chave (600-800 palavras).
+    promptExtra: `Forneça dicas de memorização, macetes e pontos-chave (400-600 palavras MÁXIMO).
+Seja OBJETIVO e CONCISO. Mnemônicos curtos. Pegadinhas em formato de lista.
 Use técnicas como acrônimos, associações, esquemas mentais.
 Destaque o que mais cai em provas.
 
 OBRIGATÓRIO usar:
 > 💡 **DICA DE PROVA:** [macete ou dica específica para provas]
-> ⚠️ **ATENÇÃO:** [ponto que costuma confundir em provas]
+> ⚠️ **PEGADINHA:** [ponto que costuma confundir em provas]
 
-Use pelo menos 4-5 destes elementos.` 
+Use pelo menos 4-5 destes elementos em formato de lista curta.
+NÃO se alongue. Seja direto ao ponto.` 
   },
   { 
     tipo: "correspondencias", 
@@ -117,22 +128,26 @@ O estudante vai ligar os termos às suas definições corretas arrastando os ele
 
 Exemplo: "Conecte cada termo à sua definição correta arrastando os elementos. Este exercício vai ajudar você a fixar os conceitos principais que estudamos."
 
-NOTA: Os dados do jogo (pares termo/definição) serão gerados separadamente.` 
+NOTA: Os dados do jogo (pares termo/definição) serão gerados separadamente com mínimo 8 pares.` 
   },
   { 
     tipo: "sintese_final", 
     titulo: "Síntese Final", 
-    promptExtra: `Faça um resumo conciso de tudo que foi abordado (500-700 palavras).
+    promptExtra: `Faça um resumo conciso de tudo que foi abordado (400-600 palavras MÁXIMO).
+Comece DIRETO com: "Então, recapitulando tudo que vimos..."
+
 Destaque os pontos principais e conecte os conceitos.
-Encerre de forma motivadora.
+Encerre de forma motivadora mas concisa.
 
 Use:
 > 📌 **EM RESUMO:** [síntese dos pontos principais]
 
-Inclua um checklist final:
+Inclua um checklist final curto:
 - [ ] Conceito X compreendido
 - [ ] Diferença entre A e B clara
-- [ ] Requisitos memorizados` 
+- [ ] Requisitos memorizados
+
+NÃO se alongue. Seja direto e objetivo.` 
   },
 ];
 
