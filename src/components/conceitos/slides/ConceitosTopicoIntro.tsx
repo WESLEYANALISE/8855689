@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List } from "lucide-react";
+import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
@@ -47,7 +47,7 @@ export const ConceitosTopicoIntro = ({
   const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
   
   // Índice
-  const [showIndex, setShowIndex] = useState(false);
+  const [showIndex, setShowIndex] = useState(true);
 
   // Calcular desbloqueios
   const leituraCompleta = progressoLeitura >= 100;
@@ -186,8 +186,8 @@ export const ConceitosTopicoIntro = ({
             </div>
           </motion.div>
 
-          {/* Modules */}
-          <div className="space-y-3">
+          {/* Modules - Compact responsive design */}
+          <div className="space-y-2">
             {/* Module 1: Leitura - Always unlocked */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -196,25 +196,27 @@ export const ConceitosTopicoIntro = ({
             >
               <button
                 onClick={onStartPaginas}
-                className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/10 hover:from-red-500/30 hover:to-orange-500/20 border border-red-500/30 rounded-xl p-4 transition-all"
+                className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/10 hover:from-red-500/30 hover:to-orange-500/20 border border-red-500/30 rounded-xl p-3 sm:p-4 transition-all"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-sm">
-                      1
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-sm">
+                    1
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+                      <span className="text-sm sm:text-base font-semibold text-white">Começar Leitura</span>
                     </div>
-                    <div className="text-left">
-                      <p className="font-semibold text-white">Começar Leitura</p>
-                      <p className="text-xs text-gray-400">{totalPaginas} páginas interativas</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Progress 
+                        value={progressoLeitura} 
+                        className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
+                      />
+                      <span className="text-xs text-gray-400 w-10 text-right">{progressoLeitura}%</span>
                     </div>
                   </div>
-                  <Play className="w-5 h-5 text-red-400" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                 </div>
-                <Progress 
-                  value={progressoLeitura} 
-                  className="h-1.5 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
-                />
-                <p className="text-xs text-gray-500 mt-2 text-right">{progressoLeitura}% concluído</p>
               </button>
             </motion.div>
 
@@ -228,39 +230,39 @@ export const ConceitosTopicoIntro = ({
                 <button
                   onClick={leituraCompleta && onStartFlashcards ? onStartFlashcards : undefined}
                   disabled={!leituraCompleta}
-                  className={`w-full rounded-xl p-4 transition-all ${
+                  className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
                     leituraCompleta 
                       ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
                       : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        leituraCompleta ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700 text-gray-500'
-                      }`}>
-                        2
-                      </div>
-                      <div className="text-left">
-                        <p className={`font-semibold ${leituraCompleta ? 'text-white' : 'text-gray-500'}`}>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                      leituraCompleta ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700 text-gray-500'
+                    }`}>
+                      2
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+                        <span className={`text-sm sm:text-base font-semibold ${leituraCompleta ? 'text-white' : 'text-gray-500'}`}>
                           Flashcards
-                        </p>
-                        <p className="text-xs text-gray-500">Memorize os conceitos</p>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Progress 
+                          value={progressoFlashcards} 
+                          className={`h-1 sm:h-1.5 flex-1 ${leituraCompleta ? 'bg-white/10 [&>div]:bg-purple-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
+                        />
+                        <span className="text-xs text-gray-500 w-10 text-right">{progressoFlashcards}%</span>
                       </div>
                     </div>
                     {leituraCompleta ? (
-                      <Sparkles className="w-5 h-5 text-purple-400" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                     ) : (
                       <Lock className="w-4 h-4 text-gray-600" />
                     )}
                   </div>
-                  <Progress 
-                    value={progressoFlashcards} 
-                    className={`h-1.5 ${leituraCompleta ? 'bg-white/10 [&>div]:bg-purple-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
-                  />
-                  <p className="text-xs text-gray-500 mt-2 text-right">
-                    {leituraCompleta ? `${progressoFlashcards}% concluído` : 'Complete a leitura para desbloquear'}
-                  </p>
                 </button>
               </motion.div>
             )}
@@ -275,39 +277,39 @@ export const ConceitosTopicoIntro = ({
                 <button
                   onClick={flashcardsCompletos && onStartQuestoes ? onStartQuestoes : undefined}
                   disabled={!flashcardsCompletos}
-                  className={`w-full rounded-xl p-4 transition-all ${
+                  className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
                     flashcardsCompletos 
                       ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
                       : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        flashcardsCompletos ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-500'
-                      }`}>
-                        3
-                      </div>
-                      <div className="text-left">
-                        <p className={`font-semibold ${flashcardsCompletos ? 'text-white' : 'text-gray-500'}`}>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                      flashcardsCompletos ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-500'
+                    }`}>
+                      3
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                        <span className={`text-sm sm:text-base font-semibold ${flashcardsCompletos ? 'text-white' : 'text-gray-500'}`}>
                           Praticar
-                        </p>
-                        <p className="text-xs text-gray-500">Questões para fixação</p>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Progress 
+                          value={progressoQuestoes} 
+                          className={`h-1 sm:h-1.5 flex-1 ${flashcardsCompletos ? 'bg-white/10 [&>div]:bg-emerald-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
+                        />
+                        <span className="text-xs text-gray-500 w-10 text-right">{progressoQuestoes}%</span>
                       </div>
                     </div>
                     {flashcardsCompletos ? (
-                      <Target className="w-5 h-5 text-emerald-400" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                     ) : (
                       <Lock className="w-4 h-4 text-gray-600" />
                     )}
                   </div>
-                  <Progress 
-                    value={progressoQuestoes} 
-                    className={`h-1.5 ${flashcardsCompletos ? 'bg-white/10 [&>div]:bg-emerald-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
-                  />
-                  <p className="text-xs text-gray-500 mt-2 text-right">
-                    {flashcardsCompletos ? `${progressoQuestoes}% concluído` : 'Complete os flashcards para desbloquear'}
-                  </p>
                 </button>
               </motion.div>
             )}
