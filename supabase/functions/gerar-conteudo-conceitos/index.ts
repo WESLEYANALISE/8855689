@@ -7,299 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Configuração das páginas a serem geradas (estrutura ALINHADA com OAB Trilhas - TOM CONVERSACIONAL)
-const PAGINAS_CONFIG = [
-  { 
-    tipo: "introducao", 
-    titulo: "Introdução", 
-    promptExtra: `Esta é a ÚNICA página que deve ter saudação acolhedora.
-
-Comece com algo acolhedor e motivador:
-"Vamos falar sobre um tema super importante pra você entender..."
-"Esse é um assunto que todo estudante de Direito precisa dominar..."
-
-Escreva 150-250 palavras MÁXIMO contendo:
-1. Saudação acolhedora e motivadora (1-2 frases)
-2. Contexto: por que isso é relevante para o estudante de Direito (1-2 frases)
-3. Lista de 3-5 pontos-chave que serão abordados na trilha:
-   - Ponto 1
-   - Ponto 2
-   - Ponto 3
-4. Frase de encerramento: "Ao final dessa trilha, você vai dominar..."
-
-Termine OBRIGATORIAMENTE com:
-> 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema - uma frase]
-
-⛔ NÃO escreva parágrafos longos. Seja ENXUTO mas acolhedor.` 
-  },
-  { 
-    tipo: "conteudo_principal", 
-    titulo: "Conteúdo Completo", 
-    promptExtra: `Vá DIRETO ao conteúdo (a introdução já fez a saudação).
-Escreva com tom CONVERSACIONAL e FLUIDO - como se explicasse para um amigo.
-
-### ⚡ PROFUNDIDADE DE CONTEÚDO OBRIGATÓRIA (CRÍTICO!):
-
-Esta é a página PRINCIPAL - deve ser EXTREMAMENTE COMPLETA e DETALHADA.
-Você DEVE escrever **mínimo 5000-7000 palavras** nesta seção.
-
-Para CADA conceito do PDF:
-1. **Defina claramente** o que é o conceito (mínimo 3 parágrafos)
-2. **Explique POR QUE é importante** no contexto jurídico brasileiro
-3. **Dê EXATAMENTE 1 EXEMPLO PRÁTICO por conceito** (um exemplo bem detalhado, não múltiplos)
-4. **Traduza e explique TODOS os termos em latim** com aplicação prática
-5. **Inclua jurisprudência/doutrina** quando citada no PDF
-6. **Faça transições naturais** conectando um conceito ao próximo
-7. **SEMPRE que mencionar um artigo de lei, grife-o no formato: [[Art. Xº]]** para que seja clicável
-
-### REGRAS OBRIGATÓRIAS DE FLUIDEZ E DIDÁTICA:
-
-1. **UM EXEMPLO PRÁTICO POR CONCEITO (OBRIGATÓRIO)**
-   A cada conceito novo, dê EXATAMENTE 1 exemplo prático bem desenvolvido:
-   "Por exemplo, imagine que Maria compra um celular pela internet..."
-   
-   ⚠️ NÃO dê múltiplos exemplos - UM exemplo detalhado é suficiente!
-   ⚠️ O exemplo deve ser completo e bem explicado (3-5 frases)
-
-2. **EXPLICAÇÃO DETALHADA DE TERMOS EM LATIM E JURIDIQUÊS (OBRIGATÓRIO)**
-   Sempre que usar termo técnico, em latim ou juridiquês, EXPLIQUE imediatamente COM CONTEXTO:
-   
-   Formato para termos em latim:
-   "...a *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos'). Na prática, isso significa que quando você assina um contrato, está juridicamente obrigado a cumprir todas as cláusulas, mesmo que depois se arrependa. Por exemplo, se João assinou contrato de aluguel por 12 meses, não pode simplesmente sair no 3º mês sem pagar a multa."
-   
-   Formato para juridiquês:
-   "...a capacidade civil (aptidão para exercer direitos pessoalmente). Isso é diferente da capacidade de direito! Capacidade de direito TODO MUNDO tem ao nascer com vida. Já a capacidade civil plena só vem aos 18 anos. Por exemplo, um menor de 16 anos PODE ter um imóvel em seu nome (capacidade de direito), mas NÃO PODE vendê-lo sozinho (falta capacidade civil)."
-
-3. **TRANSIÇÕES NATURAIS E ENGAJANTES:**
-   "Agora que você entendeu X, vamos ver como funciona Y na prática..."
-   "Percebeu a lógica? Esse é o pulo do gato! O próximo passo é entender..."
-   "Antes de avançar, deixa eu te dar mais um exemplo importante..."
-
-4. **ANTECIPE DÚVIDAS COMUNS:**
-   "Você pode estar pensando: e se...? A resposta é..."
-   "Uma confusão muito comum aqui é achar que... mas na verdade..."
-   "Cuidado! Muita gente confunde isso com..."
-
-5. **APROFUNDE CADA TEMA:**
-   - Não passe superficialmente pelos conceitos
-   - Explique as CONSEQUÊNCIAS JURÍDICAS de cada instituto
-   - Mostre a EVOLUÇÃO HISTÓRICA quando relevante
-   - Compare com situações semelhantes para diferenciar
-
-### TÍTULOS E SUBTÍTULOS OBRIGATÓRIOS:
-Use os MESMOS títulos e subtítulos que aparecem no PDF.
-Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica".
-Mantenha a ESTRUTURA ORIGINAL do material do PDF.
-
-### CITAÇÕES OBRIGATÓRIAS:
-Sempre que o PDF contiver citações de doutrinadores, jurisprudência ou enunciados, INCLUA-AS:
-
-> "A tutela da dignidade da pessoa humana na sociedade da informação inclui o direito ao esquecimento" (Enunciado n. 531 da VI Jornada de Direito Civil)
-
-> "O STJ entendeu que..." (STJ, REsp 613.374/MG)
-
-### TABELAS COMPARATIVAS:
-Quando houver institutos para comparar, use tabelas Markdown.
-
-### ELEMENTOS VISUAIS (use > no início) - USE ABUNDANTEMENTE:
-> ⚠️ **ATENÇÃO:** [ponto importante - cai muito em prova!]
-> 💡 **DICA:** [dica prática de memorização]
-> 📌 **EM RESUMO:** [síntese do que foi explicado]
-> 💼 **CASO PRÁTICO:** [exemplo prático detalhado]
-> 📚 **EXEMPLO RÁPIDO:** [exemplo curto inline]
-> 🎯 **VOCÊ SABIA?:** [curiosidade relevante]
-
-**MÍNIMO 5000-7000 palavras.** Use pelo menos 15-20 elementos visuais.
-CADA conceito deve ter: explicação completa + múltiplos exemplos + explicação de termos técnicos + consequências jurídicas.` 
-  },
-  { 
-    tipo: "desmembrando", 
-    titulo: "Desmembrando o Tema", 
-    promptExtra: `Vá DIRETO ao conteúdo (sem saudações - a introdução já fez isso).
-
-Pegue os conceitos-chave do PDF e DESTRINCHE cada um com tom de conversa.
-Escreva 1200-1800 palavras no total.
-
-Para CADA conceito principal (identifique 5-7 do PDF):
-
-### [Nome do Conceito]
-
-"Olha, isso parece complicado, mas vou te mostrar passo a passo..."
-
-Explique o conceito de forma FLUIDA, como se estivesse conversando com um amigo.
-NÃO use listas rígidas - escreva em parágrafos naturais e envolventes.
-Cite exemplos práticos DURANTE a explicação.
-
-INCLUA citações do PDF quando relevantes:
-> "Citação do doutrinador ou jurisprudência" (AUTOR, ano)
-
-Use perguntas retóricas para engajar:
-"E por que isso é tão importante? Porque..."
-"Percebeu a diferença? Esse é o pulo do gato!"
-
-Faça analogias com o dia a dia:
-"Pense como se fosse..."
-"É como quando você..."
-
-Ao final de cada conceito, faça um resumo rápido:
-"Então, resumindo: [conceito] significa [explicação breve]."
-
-### [Próximo Conceito]
-...
-
-⛔ NÃO use estrutura rígida de bullets (Premissas, Aplicação, Consequências).
-✅ USE parágrafos fluidos e conversacionais com exemplos inline.
-✅ INCLUA todas as citações de doutrinadores e jurisprudências do PDF.` 
-  },
-  { 
-    tipo: "entendendo_na_pratica", 
-    titulo: "Entendendo na Prática", 
-    promptExtra: `Vá DIRETO aos casos práticos (sem saudações).
-
-Crie casos práticos usando ESPECIFICAMENTE o tema estudado no PDF.
-NÃO invente situações genéricas - use os conceitos que estão no material.
-
-Escreva 800-1200 palavras com 4-5 casos práticos.
-
-Estrutura para cada caso:
-
-### Caso 1: [Título relacionado ao tema do PDF]
-
-"Imagina a seguinte situação..."
-
-> 💼 **CASO PRÁTICO:** [Situação real baseada ESPECIFICAMENTE no tema do PDF]
-
-**Análise:** Como aplicar o que foi estudado - conecte diretamente com o conteúdo do PDF.
-**Conclusão:** O que acontece juridicamente.
-
-### Caso 2: [Título]
-...
-
-IMPORTANTE: Os casos devem refletir o DIA A DIA da aplicação do tema.
-- Se o tema é "Escolas Penais", crie casos sobre como cada escola interpretaria um crime específico.
-- Se o tema é "Personalidade Civil", crie casos sobre início/fim da personalidade.
-- Se o tema é "Contratos", crie casos sobre formação, execução e rescisão.
-
-⛔ NÃO crie situações genéricas desconectadas do PDF.
-✅ USE os conceitos específicos do material para criar os casos.` 
-  },
-  { 
-    tipo: "quadro_comparativo", 
-    titulo: "Quadro Comparativo", 
-    promptExtra: `⛔ ATENÇÃO CRÍTICA: Esta página DEVE conter tabelas Markdown.
-Se você não gerar tabelas, a página ficará VAZIA e INUTILIZÁVEL.
-
-Comece DIRETAMENTE com a primeira tabela Markdown (sem texto introdutório).
-
-CRIE OBRIGATORIAMENTE pelo menos 3 TABELAS COMPARATIVAS distintas.
-
-MESMO que o tema pareça não ter comparações óbvias, CRIE tabelas:
-- Compare conceitos vs exceções
-- Compare requisitos de diferentes situações
-- Compare efeitos jurídicos de diferentes hipóteses
-- Compare posicionamentos doutrinários
-- Compare classificações do tema
-
-⛔ NUNCA escreva "Conteúdo não disponível".
-⛔ NUNCA deixe esta página sem tabelas.
-
-### TABELA 1: [Título da comparação principal]
-
-| Aspecto | Instituto A | Instituto B |
-|---------|-------------|-------------|
-| Definição | [texto claro] | [texto claro] |
-| Requisitos | [lista objetiva] | [lista objetiva] |
-| Efeitos Jurídicos | [consequências] | [consequências] |
-| Previsão Legal | [artigos] | [artigos] |
-| Exemplo Prático | [situação] | [situação] |
-
-### TABELA 2: [Outro comparativo do tema]
-
-| Critério | Conceito X | Conceito Y | Conceito Z |
-|----------|------------|------------|------------|
-| ... | ... | ... | ... |
-
-### TABELA 3: [Terceiro comparativo]
-
-| Característica | Tipo 1 | Tipo 2 |
-|----------------|--------|--------|
-| ... | ... | ... |
-
-REGRAS:
-- Mínimo 3 tabelas, máximo 5
-- Cada tabela com mínimo 4 linhas de dados
-- NÃO escreva texto explicativo, APENAS tabelas` 
-  },
-  { 
-    tipo: "dicas_provas", 
-    titulo: "Dicas para Memorizar", 
-    promptExtra: `Vá DIRETO às dicas (sem saudações).
-
-"Olha esse truque que vai salvar sua vida na prova..."
-
-Forneça dicas de memorização com tom AMIGÁVEL (400-600 palavras):
-
-### Mnemônicos que Funcionam
-
-"Quer uma dica? Pensa assim: [SIGLA] = [Significado]"
-"Decora assim que não esquece nunca mais..."
-
-- **[SIGLA]** = [Significado] (Ex: LIMPE = Legalidade, Impessoalidade, Moralidade...)
-
-### Pegadinhas que Sempre Caem
-
-"Cuidado com essa aqui..."
-
-> ⚠️ **PEGADINHA:** [ponto que confunde em provas]
-> ⚠️ **PEGADINHA:** [outro ponto]
-
-### Macetes de Prova
-
-"Quando você ver [X] na questão, já sabe que..."
-
-> 💡 **DICA:** [macete específico]
-> 💡 **DICA:** [outro macete]
-
-Use linguagem AMIGÁVEL, não acadêmica.
-Escreva como se estivesse dando dicas pra um amigo antes da prova.
-"Se cair isso, lembra que..."
-"A banca adora cobrar..."` 
-  },
-  { 
-    tipo: "correspondencias", 
-    titulo: "Ligar Termos", 
-    promptExtra: `Vá DIRETO à instrução (sem saudações).
-
-Escreva APENAS uma breve instrução (2-3 frases) para um exercício interativo:
-
-"Conecte cada termo à sua definição correta. Este exercício vai ajudar você a fixar os conceitos principais que estudamos."
-
-NOTA: Os dados do jogo (pares termo/definição) serão gerados separadamente com mínimo 8 pares.` 
-  },
-  { 
-    tipo: "sintese_final", 
-    titulo: "Síntese Final", 
-    promptExtra: `Vá DIRETO à síntese (sem saudações).
-
-Comece assim: "Recapitulando tudo que vimos..."
-
-Faça um resumo conciso de tudo que foi abordado (400-600 palavras).
-Destaque os pontos principais e conecte os conceitos.
-
-Use:
-> 📌 **EM RESUMO:** [síntese dos pontos principais]
-
-Inclua um checklist final:
-- [ ] Conceito X compreendido
-- [ ] Diferença entre A e B clara
-- [ ] Requisitos memorizados
-
-Encerre de forma motivadora:
-"Agora você já domina os principais pontos sobre [tema]. Continue praticando!"` 
-  },
-];
-
-// Páginas extras que geram JSON estruturado
+// Extras a serem gerados (JSON estruturado)
 const EXTRAS_CONFIG = [
   { tipo: "correspondencias", minimo: 8 },
   { tipo: "exemplos", minimo: 5 },
@@ -503,43 +211,9 @@ serve(async (req) => {
       }
     }
 
-    // Função para limpar instruções vazadas no texto
-    function limparInstrucoesVazadas(texto: string): string {
-      const padroesRemover = [
-        /^(Não inclua|INSTRUÇÕES|Retorne APENAS|REGRAS|PROIBIDO)[^\n]*\n*/gi,
-        /^(Comece diretamente|O título será|O título da seção)[^\n]*\n*/gi,
-        /^(Aqui está|Segue o conteúdo|Segue abaixo)[^\n]*\n*/gi,
-        /^(Observação:|Nota:|OBS:)[^\n]*\n*/gi,
-        /^(Esta seção|Nesta seção)[^\n]*\n*/gi,
-        /^---\s*$/gm, // Remove linhas só com ---
-      ];
-      
-      let limpo = texto.trim();
-      for (const padrao of padroesRemover) {
-        limpo = limpo.replace(padrao, '');
-      }
-      // Limpar múltiplas quebras de linha no início
-      limpo = limpo.replace(/^\n+/, '');
-      return limpo.trim();
-    }
-
-    // Função para gerar texto markdown
-    async function gerarTexto(prompt: string): Promise<string> {
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 16384, temperature: 0.6 },
-      });
-      const textoRaw = result.response.text();
-      return limparInstrucoesVazadas(textoRaw);
-    }
-
     // ============================================
-    // GERAR PÁGINA POR PÁGINA
+    // PROMPT BASE PARA GERAÇÃO
     // ============================================
-    const paginasGeradas: { titulo: string; tipo: string; markdown: string }[] = [];
-    const baseProgress = 10;
-    const progressPerPage = 70 / PAGINAS_CONFIG.length;
-
     const promptBase = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
 Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café e ajudando um colega a entender a matéria.
 
@@ -555,56 +229,38 @@ Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como s
   • "Resumindo pra você não esquecer..."
 - Use perguntas retóricas para engajar ("E por que isso importa tanto?")
 - Faça analogias com situações do dia a dia
-- A cada termo técnico, EXPLIQUE o que significa COM DETALHES E EXEMPLOS:
-  "...a personalidade civil (ou seja, a capacidade de ser titular de direitos). Por exemplo, um bebê recém-nascido já pode herdar bens..."
-  "...o dolo eventual (isto é, quando o agente assume o risco de produzir o resultado). Imagine alguém dirigindo a 200km/h em área escolar..."
-- Cite MÚLTIPLOS exemplos DURANTE a explicação, não depois
+- A cada termo técnico, EXPLIQUE o que significa COM DETALHES E EXEMPLOS
+- Cite exemplos práticos DURANTE a explicação
 - Após conceitos complexos, faça um breve resumo informal
 
 ### 📖 PROFUNDIDADE DE CONTEÚDO (CRÍTICO!):
 
-Para CADA página de tipo "texto" ou "conteudo_principal":
+Para CADA página de tipo "texto":
 1. Comece explicando O QUE É o conceito (definição clara e completa)
 2. Explique POR QUE é importante (contexto jurídico brasileiro)
-3. Dê MÚLTIPLOS EXEMPLOS PRÁTICOS imediatamente (mínimo 2 por conceito)
-4. Se tiver termo em latim, EXPLIQUE com aplicação: "*pacta sunt servanda* (pactos devem ser cumpridos) - na prática, significa que se você assinou um contrato de 12 meses, não pode sair no 3º mês sem consequências..."
-5. Se o PDF citar doutrina/jurisprudência, INCLUA: > "Citação..." (AUTOR)
-6. Se for ponto de prova, marque: > ⚠️ **ATENÇÃO:** Este tema cai com frequência em provas!
-7. Faça transições naturais: "Agora que entendemos X, veja como Y se relaciona..."
-8. Aprofunde cada tema - não passe superficialmente pelos conceitos
+3. Dê exemplos práticos detalhados
+4. Se tiver termo em latim, EXPLIQUE com aplicação prática
+5. Se o PDF citar doutrina/jurisprudência, INCLUA
+6. Se for ponto de prova, marque com > ⚠️ **ATENÇÃO:**
+7. Faça transições naturais entre conceitos
 
 ### ❌ NÃO FAÇA:
-- Linguagem excessivamente formal/acadêmica (parecer livro jurídico)
+- Linguagem excessivamente formal/acadêmica
 - Parágrafos longos e densos sem pausas
-- Repetir vícios de linguagem (não use a mesma expressão mais de 2x no texto)
-- **NUNCA USE EMOJIS NO TEXTO CORRIDO** (emojis SÓ nos elementos visuais como > 💡 **DICA:**)
-- NÃO seja superficial - cada conceito merece explicação COMPLETA
-
-### ⛔ SAUDAÇÕES:
-- Saudações são permitidas APENAS na página de Introdução
-- Nas demais páginas, comece DIRETO com o conteúdo
+- **NUNCA USE EMOJIS NO TEXTO CORRIDO** (emojis SÓ nos elementos visuais)
 
 ## 📋 FORMATO DOS ELEMENTOS VISUAIS (CRÍTICO!):
 
 SEMPRE use o caractere > (blockquote) no INÍCIO da linha para elementos especiais:
-
-✅ FORMATO CORRETO (usar):
 > ⚠️ **ATENÇÃO:** texto aqui
 > 💡 **DICA:** texto aqui
 > 📌 **EM RESUMO:** texto aqui
 > 💼 **CASO PRÁTICO:** texto aqui
 > 🎯 **VOCÊ SABIA?:** texto aqui
 
-⛔ FORMATO ERRADO (NÃO usar):
-⚠️ **ATENÇÃO:** texto (FALTA o > no início!)
-
-O caractere > é OBRIGATÓRIO para que o elemento visual tenha fundo colorido.
-
 ## 📚 FIDELIDADE AO PDF:
 - Use 100% do texto e informações do PDF
 - Cite APENAS artigos/leis que aparecem LITERALMENTE no PDF
-- NÃO invente artigos de lei que NÃO estejam no PDF
-- Use os TÍTULOS ORIGINAIS do PDF como subtítulos (ex: "## 1. Escola Clássica")
 - Inclua TODAS as citações de doutrinadores do PDF
 
 **Matéria:** ${materiaNome}
@@ -614,40 +270,7 @@ O caractere > é OBRIGATÓRIO para que o elemento visual tenha fundo colorido.
 ${conteudoPDF || "Conteúdo não disponível"}
 ═══════════════════════`;
 
-    for (let i = 0; i < PAGINAS_CONFIG.length; i++) {
-      const config = PAGINAS_CONFIG[i];
-      const progress = Math.round(baseProgress + (i * progressPerPage));
-      await updateProgress(progress);
-      
-      console.log(`[Conceitos] Gerando página ${i + 1}/${PAGINAS_CONFIG.length}: ${config.tipo}`);
-      
-      const prompt = `${promptBase}
-
-═══ SUA TAREFA ═══
-${config.promptExtra}
-
-[IMPORTANTE: Comece diretamente com o primeiro parágrafo do conteúdo. NÃO repita estas instruções no texto.]`;
-
-      try {
-        const markdown = await gerarTexto(prompt);
-        paginasGeradas.push({
-          titulo: `${config.titulo}: ${topicoTitulo}`,
-          tipo: config.tipo,
-          markdown: markdown.trim()
-        });
-        console.log(`[Conceitos] ✓ Página ${config.tipo}: ${markdown.length} chars`);
-      } catch (err) {
-        console.error(`[Conceitos] ❌ Erro na página ${config.tipo}:`, err);
-        paginasGeradas.push({
-          titulo: `${config.titulo}: ${topicoTitulo}`,
-          tipo: config.tipo,
-          markdown: `Conteúdo não disponível para esta seção.`
-        });
-      }
-    }
-
-    await updateProgress(80);
-    console.log(`[Conceitos] ${paginasGeradas.length} páginas geradas`);
+    await updateProgress(15);
 
     // ============================================
     // GERAR EXTRAS (JSON)
@@ -882,28 +505,22 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
     }
 
     // ============================================
-    // MONTAR CONTEÚDO FINAL COM TÍTULOS DAS SEÇÕES
+    // MONTAR TERMOS COM CORRESPONDÊNCIAS
     // ============================================
-    const conteudoPrincipal = paginasGeradas
-      .map((p, i) => {
-        // Adiciona título da seção como ## para criar páginas no reader
-        const tituloSecao = `## ${p.titulo.split(':')[0]}\n\n`;
-        return `${tituloSecao}${p.markdown}`;
-      })
-      .join("\n\n---\n\n");
-
-    // Montar array de páginas estruturado para o Reader
-    const paginasParaSalvar = paginasGeradas.map((p, idx) => ({
-      titulo: p.titulo,
-      markdown: p.markdown,
-      tipo: p.tipo
-    }));
-
     const termosComCorrespondencias = {
       glossario: extras.termos || [],
-      correspondencias: correspondencias,
-      paginas: paginasParaSalvar
+      correspondencias: correspondencias
     };
+
+    // Contar total de páginas no slides_json
+    let totalPaginas = 0;
+    if (slidesData?.secoes && Array.isArray(slidesData.secoes)) {
+      slidesData.secoes.forEach((secao: any) => {
+        if (secao.slides && Array.isArray(secao.slides)) {
+          totalPaginas += secao.slides.length;
+        }
+      });
+    }
 
     // ============================================
     // SALVAR NO BANCO
@@ -911,12 +528,11 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
     const { error: updateError } = await supabase
       .from("conceitos_topicos")
       .update({
-        conteudo_gerado: conteudoPrincipal,
         exemplos: extras.exemplos || [],
         termos: termosComCorrespondencias,
         flashcards: extras.flashcards || [],
         questoes: extras.questoes || [],
-        slides_json: slidesData, // Nova estrutura de slides interativos
+        slides_json: slidesData, // Estrutura de slides interativos (ÚNICO formato)
         status: "concluido",
         progresso: 100,
         tentativas: (topico.tentativas || 0) + 1,
@@ -929,7 +545,7 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
       throw updateError;
     }
 
-    console.log(`[Conceitos] ✅ Conteúdo salvo: ${topicoTitulo}`);
+    console.log(`[Conceitos] ✅ Conteúdo salvo: ${topicoTitulo} (${totalPaginas} páginas)`);
 
     // ============================================
     // DISPARAR BATCH DE IMAGENS PARA OS SLIDES
@@ -979,10 +595,11 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Conteúdo gerado página por página",
+        message: "Conteúdo gerado em formato de páginas interativas",
         topico_id,
         titulo: topicoTitulo,
-        paginas: paginasGeradas.length,
+        paginas: totalPaginas,
+        secoes: slidesData?.secoes?.length || 0,
         stats: {
           correspondencias: correspondencias.length,
           exemplos: extras.exemplos?.length || 0,
