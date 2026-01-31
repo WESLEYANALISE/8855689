@@ -16,6 +16,7 @@ interface BatchRequest {
   tipo: "capas_topicos" | "imagens_slides";
   items: BatchItem[];
   materia_id?: number;
+  topico_id?: number;
 }
 
 serve(async (req) => {
@@ -33,7 +34,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { tipo, items, materia_id }: BatchRequest = await req.json();
+    const { tipo, items, materia_id, topico_id }: BatchRequest = await req.json();
 
     if (!tipo || !items || items.length === 0) {
       throw new Error("tipo e items são obrigatórios");
@@ -97,6 +98,7 @@ Create a 16:9 landscape image that would work as a slide header or hero image.`
         total_items: items.length,
         completed_items: 0,
         materia_id,
+        topico_id,
         items_data: items,
         results_data: []
       })
