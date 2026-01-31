@@ -808,20 +808,25 @@ const OABTrilhasReader = ({
             {/* 1. Leitura */}
             <button onClick={iniciarLeitura} className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/20 hover:from-red-500/30 hover:to-orange-500/30 border border-red-500/40 rounded-xl p-4 transition-all group">
               <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white font-bold text-sm shadow-lg shadow-red-500/30">1</div>
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white font-bold text-sm shadow-lg shadow-red-500/30">
+                  {leituraCompleta ? <CheckCircle2 className="w-5 h-5" /> : "1"}
+                </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2">
                     <Play className="w-4 h-4 text-red-400" />
-                    <span className="text-white font-semibold">Começar Leitura</span>
+                    <span className="text-white font-semibold">
+                      {leituraCompleta ? "Leitura Concluída" : "Começar Leitura"}
+                    </span>
                   </div>
-                  {progressoLeitura > 0 ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Progress value={progressoLeitura} className="h-1.5 flex-1 bg-white/10" />
-                      <span className="text-xs text-red-400 font-medium">{progressoLeitura}%</span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-white/50 mt-0.5">Leia todo o conteúdo do tópico</p>
-                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <Progress 
+                      value={leituraCompleta ? 100 : progressoLeitura} 
+                      className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
+                    />
+                    <span className="text-xs text-red-400 font-medium w-10 text-right">
+                      {leituraCompleta ? "100%" : `${progressoLeitura}%`}
+                    </span>
+                  </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-red-400 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -845,16 +850,30 @@ const OABTrilhasReader = ({
                     ? "bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/30" 
                     : "bg-white/10 text-white/50"
                 }`}>
-                  {leituraCompleta ? "2" : <Lock className="w-4 h-4" />}
+                  {flashcardsCompletos ? <CheckCircle2 className="w-5 h-5" /> : leituraCompleta ? "2" : <Lock className="w-4 h-4" />}
                 </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-purple-400" />
-                    <span className={`font-semibold ${leituraCompleta ? "text-white" : "text-white/50"}`}>Flashcards</span>
+                    <span className={`font-semibold ${leituraCompleta ? "text-white" : "text-white/50"}`}>
+                      {flashcardsCompletos ? "Flashcards Concluídos" : "Flashcards"}
+                    </span>
                   </div>
-                  <p className={`text-xs mt-0.5 ${leituraCompleta ? "text-white/50" : "text-white/30"}`}>
-                    {hasFlashcards ? `${flashcards.length} cards` : "Revise com flashcards"}
-                  </p>
+                  {leituraCompleta ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Progress 
+                        value={flashcardsCompletos ? 100 : progressoFlashcards} 
+                        className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-violet-600" 
+                      />
+                      <span className="text-xs text-purple-400 font-medium w-10 text-right">
+                        {flashcardsCompletos ? "100%" : `${progressoFlashcards}%`}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/30 mt-0.5">
+                      {hasFlashcards ? `${flashcards.length} cards` : "Revise com flashcards"}
+                    </p>
+                  )}
                 </div>
                 {leituraCompleta ? (
                   <ChevronRight className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" />
@@ -882,16 +901,30 @@ const OABTrilhasReader = ({
                     ? "bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/30" 
                     : "bg-white/10 text-white/50"
                 }`}>
-                  {flashcardsCompletos ? "3" : <Lock className="w-4 h-4" />}
+                  {praticaCompleta ? <CheckCircle2 className="w-5 h-5" /> : flashcardsCompletos ? "3" : <Lock className="w-4 h-4" />}
                 </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-emerald-400" />
-                    <span className={`font-semibold ${flashcardsCompletos ? "text-white" : "text-white/50"}`}>Praticar</span>
+                    <span className={`font-semibold ${flashcardsCompletos ? "text-white" : "text-white/50"}`}>
+                      {praticaCompleta ? "Prática Concluída" : "Praticar"}
+                    </span>
                   </div>
-                  <p className={`text-xs mt-0.5 ${flashcardsCompletos ? "text-white/50" : "text-white/30"}`}>
-                    {hasQuestoes ? `${questoes.length} questões` : "Teste seus conhecimentos"}
-                  </p>
+                  {flashcardsCompletos ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Progress 
+                        value={praticaCompleta ? 100 : progressoQuestoes} 
+                        className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-green-600" 
+                      />
+                      <span className="text-xs text-emerald-400 font-medium w-10 text-right">
+                        {praticaCompleta ? "100%" : `${progressoQuestoes}%`}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/30 mt-0.5">
+                      {hasQuestoes ? `${questoes.length} questões` : "Teste seus conhecimentos"}
+                    </p>
+                  )}
                 </div>
                 {flashcardsCompletos ? (
                   <ChevronRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
@@ -1015,7 +1048,8 @@ const OABTrilhasReader = ({
             className="text-3xl sm:text-4xl font-bold text-white mb-6"
             style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
           >
-            {topicoData?.titulo}
+            {/* Mostra apenas o título do tema, sem o nome da página */}
+            {topicoData?.ehIntroducao || topicoData?.numero === 1 ? titulo : topicoData?.titulo}
           </motion.h1>
 
           <div className="flex items-center justify-center gap-3 mb-8">
@@ -1283,12 +1317,18 @@ const OABTrilhasReader = ({
             </Button>
           </div>
 
-          {/* Indicador de página */}
-          <div className="text-sm text-gray-400 bg-white/5 px-4 py-2 rounded-full min-w-[70px] text-center">
+          {/* Indicador de página com nome */}
+          <button 
+            onClick={() => setMostrarIndice(true)}
+            className="text-sm text-gray-400 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-full min-w-[100px] text-center transition-all"
+          >
             <span className="font-bold text-white">{topicoAtual}</span>
-            <span className="mx-1.5 text-white/30">/</span>
-            <span>{totalTopicos}</span>
-          </div>
+            <span className="mx-1 text-white/30">·</span>
+            <span className="text-white/70 text-xs truncate max-w-[80px] inline-block align-middle">
+              {topicoData?.titulo?.replace(/^(\d+\.\s*)?/, '').substring(0, 12)}
+              {(topicoData?.titulo?.length || 0) > 12 ? '…' : ''}
+            </span>
+          </button>
           
           {/* Botão Próximo ou Concluir */}
           {topicoAtual >= totalTopicos ? (
