@@ -5,6 +5,7 @@ import { AlertTriangle, Lightbulb, Scale, Quote, ImageIcon, Maximize2, Download,
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import TermoHighlight from "@/components/conceitos/TermoHighlight";
+import { ArtigoPopover } from "@/components/conceitos/ArtigoPopover";
 
 // Componente para citação inline de artigo de lei (Art. X)
 const CitacaoArtigoLeiInline = ({ children }: { children: React.ReactNode }) => (
@@ -70,44 +71,63 @@ export const processInlineMarkdown = (text: string, enableQuoteCitation: boolean
   return parts.length > 1 ? <>{parts}</> : parts[0] || text;
 };
 
-// Função para processar texto e extrair termos destacados [[termo]]
-const processTextWithTermos = (text: string, disableTermos: boolean = false): React.ReactNode[] => {
+// Função para processar texto e extrair termos destacados [[termo]] e artigos de lei
+const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = false): React.ReactNode[] => {
   if (!text || typeof text !== 'string') return [text];
   
-  // Se termos estão desabilitados, apenas remove os colchetes e retorna o texto
-  if (disableTermos) {
-    return [text.replace(/\[\[([^\]]+)\]\]/g, '$1')];
-  }
+  // Se termos estão desabilitados, apenas remove os colchetes
+  let processedText = disableTermos ? text.replace(/\[\[([^\]]+)\]\]/g, '$1') : text;
   
-  const regex = /\[\[([^\]]+)\]\]/g;
   const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match;
   let keyIndex = 0;
   
-  while ((match = regex.exec(text)) !== null) {
+  // Regex para [[termo]] e Art. Xº (artigos de lei)
+  // Prioridade: [[termo]], depois Art. X
+  const combinedRegex = /\[\[([^\]]+)\]\]|(Art\.?\s*\d+[º°]?(?:\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?)?)/gi;
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = combinedRegex.exec(processedText)) !== null) {
     // Adiciona texto antes do match
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+      parts.push(processedText.slice(lastIndex, match.index));
     }
     
-    // Adiciona o termo destacado
-    const termo = match[1];
-    parts.push(
-      <TermoHighlight key={`termo-${keyIndex++}`} termo={termo}>
-        {termo}
-      </TermoHighlight>
-    );
+    if (match[1]) {
+      // [[termo]] - destaque de termo
+      if (!disableTermos) {
+        parts.push(
+          <TermoHighlight key={`termo-${keyIndex++}`} termo={match[1]}>
+            {match[1]}
+          </TermoHighlight>
+        );
+      } else {
+        parts.push(match[1]);
+      }
+    } else if (match[2]) {
+      // Art. Xº - artigo de lei clicável
+      const artigoText = match[2];
+      parts.push(
+        <ArtigoPopover key={`artigo-${keyIndex++}`} artigo={artigoText}>
+          {artigoText}
+        </ArtigoPopover>
+      );
+    }
     
-    lastIndex = regex.lastIndex;
+    lastIndex = combinedRegex.lastIndex;
   }
   
   // Adiciona texto restante
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+  if (lastIndex < processedText.length) {
+    parts.push(processedText.slice(lastIndex));
   }
   
   return parts.length > 0 ? parts : [text];
+};
+
+// Função legacy para compatibilidade
+const processTextWithTermos = (text: string, disableTermos: boolean = false): React.ReactNode[] => {
+  return processTextWithTermosAndArtigos(text, disableTermos);
 };
 
 // Componente wrapper para processar termos e citações em children do React

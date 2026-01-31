@@ -334,7 +334,7 @@ export const ConceitoSlideCard = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="min-h-[calc(100vh-8rem)] flex flex-col p-4 pb-24 md:pb-4 max-w-2xl mx-auto"
+      className="min-h-[calc(100vh-8rem)] flex flex-col p-4 pb-4 max-w-2xl mx-auto"
     >
       {/* Progress dots */}
       <div className="flex justify-center gap-1.5 mb-6">
@@ -417,38 +417,7 @@ export const ConceitoSlideCard = ({
         </div>
       </div>
 
-      {/* Navigation buttons */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent md:relative md:bg-none md:p-0 md:mt-6">
-        <div className="flex gap-3 max-w-2xl mx-auto">
-          {canGoBack && (
-            <Button
-              variant="outline"
-              onClick={onPrevious}
-              className="flex-1 md:flex-none border-white/10 hover:bg-white/5 text-white"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Anterior
-            </Button>
-          )}
-          
-          {isQuickCheck && !showFeedback ? (
-            <Button
-              disabled
-              className="flex-1 opacity-50 bg-red-500/50"
-            >
-              Selecione uma opção
-            </Button>
-          ) : (
-            <Button
-              onClick={isQuickCheck && showFeedback ? handleContinue : onNext}
-              className="flex-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
-            >
-              {paginaIndex === totalPaginas - 1 ? 'Concluir' : 'Próximo'}
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          )}
-        </div>
-      </div>
+      {/* Navigation buttons removed - now in ConceitosSlidesFooter */}
     </motion.div>
   );
 };

@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConceitoSlideCard } from "./ConceitoSlideCard";
+import { ConceitosSlidesFooter } from "./ConceitosSlidesFooter";
 import type { ConceitoSecao, ConceitoSlide } from "./types";
 
 interface ConceitosSlidesViewerProps {
@@ -72,6 +73,12 @@ export const ConceitosSlidesViewer = ({
     }
   }, [currentIndex]);
 
+  const handleNavigate = useCallback((index: number) => {
+    if (index >= 0 && index < totalPaginas) {
+      setCurrentIndex(index);
+    }
+  }, [totalPaginas]);
+
   if (!currentFlatPagina) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -97,19 +104,14 @@ export const ConceitosSlidesViewer = ({
             </h1>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500 whitespace-nowrap">
-              {currentIndex + 1}/{totalPaginas}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 text-white hover:bg-white/10"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="h-8 w-8 text-white hover:bg-white/10"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </div>
         
         {/* Progress bar with red gradient */}
@@ -119,7 +121,7 @@ export const ConceitosSlidesViewer = ({
       </div>
 
       {/* Page content */}
-      <div className="flex-1">
+      <div className="flex-1 pb-20">
         <AnimatePresence mode="wait">
           <ConceitoSlideCard
             key={currentIndex}
@@ -132,6 +134,18 @@ export const ConceitosSlidesViewer = ({
           />
         </AnimatePresence>
       </div>
+
+      {/* Footer com navegação, índice e ruído marrom */}
+      <ConceitosSlidesFooter
+        secoes={secoes}
+        currentIndex={currentIndex}
+        totalPaginas={totalPaginas}
+        onNavigate={handleNavigate}
+        onNext={handleNext}
+        onPrevious={handlePrevious}
+        canGoBack={currentIndex > 0}
+        canGoForward={currentIndex < totalPaginas - 1}
+      />
     </div>
   );
 };
