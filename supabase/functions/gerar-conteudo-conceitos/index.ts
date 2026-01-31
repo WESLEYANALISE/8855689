@@ -698,12 +698,18 @@ Retorne APENAS o JSON, sem texto adicional.`;
     // ============================================
     // GERAR ESTRUTURA DE SLIDES INTERATIVOS
     // ============================================
-    console.log(`[Conceitos] Gerando estrutura de slides interativos...`);
+    console.log(`[Conceitos] Gerando estrutura de páginas interativas...`);
     
     const promptSlides = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Transforme o conteúdo do PDF em uma estrutura de SLIDES INTERATIVOS para estudo.
+Transforme o conteúdo do PDF em uma estrutura de PÁGINAS INTERATIVAS para estudo.
+
+CADA PÁGINA DEVE SER SUPER EXPLICATIVA com:
+- Mínimo 200-400 palavras por página de tipo "texto"
+- Exemplos práticos imediatos após cada conceito
+- Explicação de TODOS os termos em latim e juridiquês
+- Citações de artigos, doutrina e jurisprudência do PDF
 
 Retorne um JSON válido com esta estrutura EXATA:
 {
@@ -725,7 +731,7 @@ Retorne um JSON válido com esta estrutura EXATA:
         {
           "tipo": "texto",
           "titulo": "Conceito Principal",
-          "conteudo": "Explicação do conceito de forma clara e didática...",
+          "conteudo": "Explicação EXTENSA e DIDÁTICA do conceito...\\n\\n📚 **EXEMPLO PRÁTICO:** Maria comprou um celular...\\n\\nO termo *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos') indica que...\\n\\n> \\"Art. 421 do CC - A liberdade contratual será exercida...\\" (Código Civil)\\n\\n> ⚠️ **ATENÇÃO:** Este ponto costuma cair em provas!",
           "imagemPrompt": "Educational illustration of..."
         },
         {
@@ -733,20 +739,10 @@ Retorne um JSON válido com esta estrutura EXATA:
           "titulo": "Termos Importantes",
           "conteudo": "Conheça os termos essenciais:",
           "termos": [
-            {"termo": "Termo 1", "definicao": "Definição clara e concisa"},
-            {"termo": "Termo 2", "definicao": "Definição clara e concisa"}
+            {"termo": "Termo em latim", "definicao": "Significado claro em português"},
+            {"termo": "Termo jurídico", "definicao": "Explicação acessível"}
           ],
           "imagemPrompt": "Legal glossary concept..."
-        },
-        {
-          "tipo": "collapsible",
-          "titulo": "Explore os Conceitos",
-          "conteudo": "Clique para expandir cada conceito:",
-          "collapsibleItems": [
-            {"titulo": "Conceito A", "conteudo": "Explicação detalhada...", "icone": "book"},
-            {"titulo": "Conceito B", "conteudo": "Explicação detalhada...", "icone": "scale"}
-          ],
-          "imagemPrompt": "Interactive learning concept..."
         },
         {
           "tipo": "linha_tempo",
@@ -774,19 +770,19 @@ Retorne um JSON válido com esta estrutura EXATA:
         {
           "tipo": "atencao",
           "titulo": "Ponto de Atenção",
-          "conteudo": "Cuidado! Este é um ponto importante que costuma cair em provas...",
+          "conteudo": "⚠️ Cuidado! Este é um ponto importante que costuma cair em provas...\\n\\n📚 **EXEMPLO:** Imagine que...",
           "imagemPrompt": "Warning sign concept..."
         },
         {
           "tipo": "dica",
           "titulo": "Dica de Memorização",
-          "conteudo": "Use este mnemônico para lembrar: SIGLA = ...",
+          "conteudo": "💡 Use este mnemônico para lembrar: SIGLA = ...\\n\\nOutra dica: associe o conceito X com...",
           "imagemPrompt": "Memory tip concept..."
         },
         {
           "tipo": "caso",
           "titulo": "Caso Prático",
-          "conteudo": "Imagine a seguinte situação: João comprou um imóvel...",
+          "conteudo": "💼 Imagine a seguinte situação:\\n\\nJoão comprou um imóvel...\\n\\n**Análise jurídica:** Aplicando o que estudamos...\\n\\n**Conclusão:** Portanto...",
           "imagemPrompt": "Legal case study illustration..."
         },
         {
@@ -811,38 +807,46 @@ Retorne um JSON válido com esta estrutura EXATA:
 }
 
 REGRAS CRÍTICAS:
-1. Gere entre 30-50 slides no total, divididos em 4-6 seções
-2. Use TODOS os tipos de slides disponíveis de forma variada
-3. Cada seção deve ter 5-10 slides
-4. Inclua imagemPrompt para TODOS os slides (descrição para gerar imagem ilustrativa)
+1. Gere entre 35-55 páginas no total, divididas em 5-7 seções
+2. Use TODOS os tipos de páginas disponíveis de forma variada
+3. Cada seção deve ter 5-10 páginas
+4. Inclua imagemPrompt para TODOS as páginas (descrição para gerar imagem ilustrativa)
 5. O imagemPrompt deve ser em INGLÊS e descrever uma ilustração educacional profissional
 6. Use tom CONVERSACIONAL e didático no conteúdo
-7. Inclua pelo menos 3 slides tipo "quickcheck" espalhados pelo conteúdo
-8. Inclua pelo menos 2 slides tipo "collapsible" para conceitos que têm subcategorias
-9. Inclua pelo menos 1 slide tipo "linha_tempo" se o tema tiver evolução histórica ou etapas
+7. Inclua pelo menos 4 páginas tipo "quickcheck" espalhadas pelo conteúdo
+8. Inclua pelo menos 2 páginas tipo "atencao" com pontos importantes
+9. Inclua pelo menos 2 páginas tipo "dica" com mnemônicos e macetes
 10. Garanta que o conteúdo seja COMPLETO - não pule informações importantes do PDF
 
-TIPOS DE SLIDES DISPONÍVEIS:
-- introducao: Slide de abertura com objetivos
-- texto: Explicação de um conceito
+CONTEÚDO OBRIGATÓRIO EM CADA PÁGINA TIPO "texto":
+- Mínimo 200 palavras de explicação clara e didática
+- Exemplo prático imediato: "📚 **EXEMPLO PRÁTICO:** Maria vendeu..."
+- Explicação de termos: "O termo *habeas corpus* (que significa 'que tenhas o corpo') é..."
+- Citações quando houver no PDF: "> \\"Art. 5º, inciso XXXV...\\" (CF/88)"
+- Cards visuais: "> ⚠️ **ATENÇÃO:** ...", "> 💡 **DICA:** ..."
+
+TIPOS DE PÁGINAS DISPONÍVEIS (NÃO use collapsible):
+- introducao: Página de abertura com objetivos
+- texto: Explicação EXTENSA de um conceito com exemplos
 - termos: Lista de termos com definições
-- collapsible: Menu expansível com subcategorias
 - linha_tempo: Timeline/etapas/procedimentos
 - tabela: Quadro comparativo
 - atencao: Ponto importante/pegadinha
 - dica: Dica de memorização/estudo
-- caso: Caso prático/exemplo
+- caso: Caso prático/exemplo detalhado
 - resumo: Resumo com pontos principais
 - quickcheck: Mini-quiz rápido
+
+⛔ NÃO USE tipo "collapsible" - substitua por "texto" com subtítulos
 
 Retorne APENAS o JSON válido, sem texto adicional.`;
 
     let slidesData: any = null;
     try {
       slidesData = await gerarJSON(promptSlides);
-      console.log(`[Conceitos] ✓ Slides gerados: ${slidesData?.secoes?.length || 0} seções`);
+      console.log(`[Conceitos] ✓ Páginas geradas: ${slidesData?.secoes?.length || 0} seções`);
     } catch (err) {
-      console.error(`[Conceitos] ❌ Erro ao gerar slides:`, err);
+      console.error(`[Conceitos] ❌ Erro ao gerar páginas:`, err);
       slidesData = null;
     }
 

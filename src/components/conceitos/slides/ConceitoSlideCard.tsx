@@ -28,8 +28,8 @@ import type { ConceitoSlide, CollapsibleItem } from "./types";
 
 interface ConceitoSlideCardProps {
   slide: ConceitoSlide;
-  slideIndex: number;
-  totalSlides: number;
+  paginaIndex: number;
+  totalPaginas: number;
   onNext: () => void;
   onPrevious: () => void;
   canGoBack: boolean;
@@ -40,7 +40,6 @@ const iconMap: Record<string, React.ElementType> = {
   texto: FileText,
   termos: BookOpen,
   explicacao: Lightbulb,
-  collapsible: List,
   linha_tempo: Clock,
   tabela: Table2,
   atencao: AlertTriangle,
@@ -50,13 +49,12 @@ const iconMap: Record<string, React.ElementType> = {
   quickcheck: CheckCircle2
 };
 
-const getSlideLabel = (tipo: string): string => {
+const getPaginaLabel = (tipo: string): string => {
   switch (tipo) {
     case 'introducao': return 'Introdução';
     case 'texto': return 'Conteúdo';
     case 'termos': return 'Termos importantes';
     case 'explicacao': return 'Isso significa';
-    case 'collapsible': return 'Conceitos detalhados';
     case 'linha_tempo': return 'Passo a passo';
     case 'tabela': return 'Quadro comparativo';
     case 'atencao': return 'Atenção!';
@@ -68,8 +66,9 @@ const getSlideLabel = (tipo: string): string => {
   }
 };
 
-// Converte collapsible items para formato Markdown
+// Converte collapsible items para formato Markdown (legado)
 const convertCollapsibleToMarkdown = (items: CollapsibleItem[]): string => {
+  if (!items || items.length === 0) return '';
   return items.map(item => {
     return `### ${item.titulo}\n\n${item.conteudo}`;
   }).join('\n\n');
@@ -77,8 +76,8 @@ const convertCollapsibleToMarkdown = (items: CollapsibleItem[]): string => {
 
 export const ConceitoSlideCard = ({
   slide,
-  slideIndex,
-  totalSlides,
+  paginaIndex,
+  totalPaginas,
   onNext,
   onPrevious,
   canGoBack
@@ -89,11 +88,11 @@ export const ConceitoSlideCard = ({
   
   const Icon = iconMap[slide.tipo] || FileText;
 
-  // Scroll to top when slide changes
+  // Scroll to top when page changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [slideIndex]);
+  }, [paginaIndex]);
 
   const handleOptionSelect = (index: number) => {
     if (showFeedback) return;
@@ -120,22 +119,24 @@ export const ConceitoSlideCard = ({
   const isCorrect = selectedOption === slide.resposta;
   const hasImage = slide.imagemUrl || slide.imagemPrompt;
 
-  // Render specialized content based on slide type
+  // Render specialized content based on page type - collapsible agora vira texto
   const renderContent = () => {
+    // Para slides legados do tipo collapsible, converte para texto
+    if ((slide as any).tipo === 'collapsible' || (slide.collapsibleItems && slide.collapsibleItems.length > 0)) {
+      const collapsibleMarkdown = slide.collapsibleItems && slide.collapsibleItems.length > 0
+        ? convertCollapsibleToMarkdown(slide.collapsibleItems)
+        : slide.conteudo;
+      
+      return (
+        <EnrichedMarkdownRenderer 
+          content={collapsibleMarkdown || ''}
+          fontSize={16}
+          theme="classicos"
+        />
+      );
+    }
+
     switch (slide.tipo) {
-      // COLLAPSIBLE agora vira TEXTO normal
-      case 'collapsible':
-        const collapsibleMarkdown = slide.collapsibleItems && slide.collapsibleItems.length > 0
-          ? convertCollapsibleToMarkdown(slide.collapsibleItems)
-          : slide.conteudo;
-        
-        return (
-          <EnrichedMarkdownRenderer 
-            content={collapsibleMarkdown || ''}
-            fontSize={16}
-            theme="classicos"
-          />
-        );
 
       case 'linha_tempo':
         if (slide.etapas && slide.etapas.length > 0) {
@@ -337,21 +338,21 @@ export const ConceitoSlideCard = ({
     >
       {/* Progress dots */}
       <div className="flex justify-center gap-1.5 mb-6">
-        {Array.from({ length: Math.min(totalSlides, 20) }).map((_, i) => (
+        {Array.from({ length: Math.min(totalPaginas, 20) }).map((_, i) => (
           <div
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === slideIndex 
+              i === paginaIndex 
                 ? 'w-6 bg-red-500' 
-                : i < slideIndex 
+                : i < paginaIndex 
                   ? 'w-1.5 bg-red-500/50' 
                   : 'w-1.5 bg-white/20'
             }`}
           />
         ))}
-        {totalSlides > 20 && (
+        {totalPaginas > 20 && (
           <span className="text-xs text-gray-500 ml-1">
-            +{totalSlides - 20}
+            +{totalPaginas - 20}
           </span>
         )}
       </div>
@@ -396,7 +397,7 @@ export const ConceitoSlideCard = ({
           {/* Label e título - agora no card de conteúdo */}
           <div className="mb-4">
             <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-1">
-              {getSlideLabel(slide.tipo)}
+              {getPaginaLabel(slide.tipo)}
             </p>
             {slide.titulo && (
               <h2 
@@ -442,7 +443,7 @@ export const ConceitoSlideCard = ({
               onClick={isQuickCheck && showFeedback ? handleContinue : onNext}
               className="flex-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
             >
-              {slideIndex === totalSlides - 1 ? 'Concluir' : 'Próximo'}
+              {paginaIndex === totalPaginas - 1 ? 'Concluir' : 'Próximo'}
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           )}
