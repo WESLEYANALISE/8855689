@@ -1,145 +1,195 @@
 
-# Plano: Corrigir Geração de Conceitos e Atualizar Modelo Gemini
+# Plano: Alinhar Trilhas de Conceitos com OAB Trilhas
 
-## Problemas Identificados
+## Diagnóstico
 
-### 1. Prompt Vazando no Conteúdo
-Na imagem, aparece o texto "Não inclua nenhuma saudação ou comentários adicionais" no início do conteúdo gerado. Isso acontece porque a IA está repetindo as instruções do prompt no início da resposta.
+Após análise detalhada do código, identifiquei as seguintes diferenças entre o sistema de geração de conteúdo de **Conceitos** e **OAB Trilhas**:
 
-**Causa**: O prompt na linha 364 da edge function diz:
+### Diferenças no Prompt de Geração
+
+| Aspecto | Conceitos (Atual) | OAB Trilhas (Desejado) |
+|---------|------------------|----------------------|
+| **Introdução** | 400-600 palavras | 300-500 palavras (mais concisa) |
+| **Tom de escrita** | Profissional/didático | Conversacional ("como se estivesse tomando café com um amigo") |
+| **Desmembrando** | "Divida em partes menores" (genérico) | Análise detalhada com significado, temas, pronúncia, elementos explicativos |
+| **Quadro Comparativo** | Prompt básico de tabela | Prompt detalhado com formato visual específico |
+| **Correspondências (Ligar Termos)** | Gerado separadamente nos "extras" | Integrado como página 7 com dados para jogo interativo |
+
+### Diferenças na Interface
+
+| Aspecto | Conceitos (Atual) | OAB Trilhas (Desejado) |
+|---------|------------------|----------------------|
+| **Barra de progresso de leitura** | Não existe | Barra no topo que progride conforme scroll |
+| **Título da página** | "Página 1" | Título da seção real |
+| **Quadro Comparativo Visual** | Renderiza markdown simples | Componente `QuadroComparativoVisual` interativo |
+| **Ligar Termos** | Não renderiza o jogo | Componente `DragDropMatchingGame` interativo |
+
+## Alterações Necessárias
+
+### Parte 1: Atualizar Edge Function `gerar-conteudo-conceitos`
+
+Alinhar o prompt com o de OAB Trilhas:
+
+**1.1 Introdução (Página 1)**
 ```
-Retorne APENAS o conteúdo em formato Markdown. Não inclua o título da seção...
-```
-A IA interpretou isso como parte do texto a ser gerado.
-
-### 2. Título Mostrando "Página X" em vez do Nome Real
-Na UI está aparecendo "TÓPICO 2 / Página 2" quando deveria mostrar "Conteúdo Completo".
-
-**Causa**: O frontend `ConceitosReader.tsx` está pegando o título da seção `##`, mas o parsing não está funcionando corretamente. A função `extrairTopicos` divide por `## ` e pega o título, mas pode haver problemas na extração.
-
-### 3. Modelo desatualizado gemini-2.0-flash
-Você quer atualizar de `gemini-2.0-flash` para `gemini-2.5-flash` em todas as edge functions.
-
-**Funções afetadas** (lista parcial - mais de 50 funções):
-- gerar-conteudo-conceitos
-- gemini-chat
-- formatar-leitura
-- gerar-analise-documentario
-- gerar-flashcards
-- gerar-questoes
-- gerar-resumo-obra
-- explicar-com-gemini
-- ... e muitas outras
-
-## Solução Proposta
-
-### Parte 1: Corrigir Vazamento de Prompt
-Modificar o prompt para deixar mais claro que as instruções são APENAS para a IA, não para incluir no texto:
-
-**Antes**:
-```
-Retorne APENAS o conteúdo em formato Markdown. Não inclua o título da seção (já será adicionado automaticamente).
+DE: 400-600 palavras, tom formal
+PARA: 300-500 palavras, tom conversacional e acolhedor
 ```
 
-**Depois**:
+**1.2 Desmembrando (Página 3)**
 ```
-INSTRUÇÕES DE FORMATO (não inclua estas instruções no texto):
-- Retorne APENAS o conteúdo em Markdown
-- Comece diretamente com o primeiro parágrafo do conteúdo
-- O título da seção já será adicionado automaticamente pelo sistema
-```
-
-Também vou adicionar uma função de limpeza no edge function para remover frases que parecem instruções caso a IA ainda as inclua.
-
-### Parte 2: Corrigir Títulos (remover "Página X")
-O problema está na montagem do conteúdo. Atualmente o título é:
-```typescript
-const tituloSecao = `## ${p.titulo.split(':')[0]}\n\n`;
+DE: "Divida o tema em partes menores" (genérico)
+PARA: Análise detalhada de cada elemento:
+- Significado jurídico do termo
+- Origem e evolução histórica
+- Pronúncia correta (se aplicável)
+- Elementos constitutivos
+- Requisitos e características
+- Tom: "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
 ```
 
-Isso gera `## Introdução`, `## Conteúdo Completo`, etc. O frontend deve estar lendo corretamente, mas preciso verificar se o parser está extraindo os títulos das seções geradas.
+**1.3 Quadro Comparativo (Página 5)**
+```
+DE: "Crie tabelas comparativas" (básico)
+PARA: Tabelas estruturadas com:
+- Comparação de institutos similares
+- Elementos, requisitos, efeitos
+- Formato markdown correto para tabelas
+```
 
-Vou ajustar a função `extrairTopicos` no `ConceitosReader.tsx` para garantir que o título real seja usado e não "Página X".
+**1.4 Correspondências (Página 7)**
+```
+DE: Gerado nos "extras" separadamente
+PARA: Página 7 dedicada com instrução breve + dados no campo separado
+- Mínimo 8 pares termo/definição
+- Dados para o jogo DragDropMatchingGame
+```
 
-### Parte 3: Atualizar Modelo para gemini-2.5-flash
-Atualizar todas as edge functions que usam `gemini-2.0-flash` para `gemini-2.5-flash`:
+**1.5 Tom de escrita geral**
+```
+Adicionar ao prompt as mesmas instruções de estilo conversacional:
+- "Olha só, é assim que funciona..."
+- "Veja bem, isso é super importante porque..."
+- Perguntas retóricas para engajar
+- Analogias com situações do dia a dia
+```
 
-| Edge Function | Mudança |
-|--------------|---------|
-| gerar-conteudo-conceitos | gemini-2.0-flash → gemini-2.5-flash |
-| gemini-chat | gemini-2.0-flash → gemini-2.5-flash |
-| formatar-leitura | gemini-2.0-flash → gemini-2.5-flash |
-| gerar-analise-documentario | gemini-2.0-flash → gemini-2.5-flash |
-| chat-professora-jurista | gemini-2.0-flash → gemini-2.5-flash |
-| gerar-flashcards | gemini-2.0-flash → gemini-2.5-flash |
-| gerar-questoes | gemini-2.0-flash → gemini-2.5-flash |
-| explicar-com-gemini | gemini-2.0-flash → gemini-2.5-flash |
-| gerar-resumo-obra | gemini-2.0-flash → gemini-2.5-flash |
-| (todas as outras ~50+ funções) | gemini-2.0-flash → gemini-2.5-flash |
+### Parte 2: Adicionar Barra de Progresso de Leitura no Reader
+
+Criar barra de progresso de scroll no topo da página de leitura:
+
+```text
+┌────────────────────────────────────────────────┐
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░  45%            │ ← Nova barra
+├────────────────────────────────────────────────┤
+│                                                │
+│         Conteúdo da página atual               │
+│                                                │
+└────────────────────────────────────────────────┘
+```
+
+Implementação:
+- Adicionar `useEffect` para monitorar scroll da página
+- Calcular porcentagem de scroll (`scrollY / (scrollHeight - clientHeight) * 100`)
+- Renderizar barra sticky no topo com gradiente vermelho/laranja
+
+### Parte 3: Garantir Renderização de Quadro Comparativo Visual
+
+O componente `QuadroComparativoVisual` já é usado no OABTrilhasReader. Verificar que:
+- A detecção de tipo `quadro_comparativo` está funcionando
+- A função `extrairTabelaDoMarkdown` está parseando corretamente
+- O componente está sendo renderizado ao invés de markdown simples
+
+### Parte 4: Garantir Funcionamento do Jogo Ligar Termos
+
+Verificar que:
+- As correspondências estão sendo extraídas do campo `termos.correspondencias`
+- A página de correspondências está sendo detectada pelo tipo
+- O componente `DragDropMatchingGame` está recebendo os dados corretos
 
 ## Arquivos a Serem Alterados
 
-### Edge Functions (principais):
-1. `supabase/functions/gerar-conteudo-conceitos/index.ts`
-   - Corrigir prompt para não vazar instruções
-   - Adicionar função de limpeza de texto
-   - Atualizar modelo para gemini-2.5-flash
+1. **`supabase/functions/gerar-conteudo-conceitos/index.ts`**
+   - Atualizar `PAGINAS_CONFIG` com prompts alinhados ao OAB Trilhas
+   - Adicionar instruções de tom conversacional no `promptBase`
+   - Garantir que correspondências são geradas corretamente
 
-2. `supabase/functions/gemini-chat/index.ts`
-   - Atualizar modelo para gemini-2.5-flash
-
-3. `supabase/functions/formatar-leitura/index.ts`
-   - Atualizar modelo para gemini-2.5-flash
-
-4. `supabase/functions/gerar-analise-documentario/index.ts`
-   - Atualizar modelo para gemini-2.5-flash
-
-5. Mais ~50 outras edge functions com gemini-2.0-flash
-
-### Frontend:
-6. `src/components/conceitos/ConceitosReader.tsx`
-   - Corrigir extração de títulos das seções
-   - Garantir que "Introdução", "Conteúdo Completo", etc apareçam corretamente
+2. **`src/components/oab/OABTrilhasReader.tsx`**
+   - Adicionar barra de progresso de leitura (scroll) no topo
+   - Criar state para `scrollProgress`
+   - Adicionar `useEffect` com event listener de scroll
 
 ## Detalhes Técnicos
 
-### Nova Função de Limpeza (edge function):
-```typescript
-function limparInstrucoesDoTexto(texto: string): string {
-  // Remove frases que parecem instruções da IA
-  const padroesInstrucoes = [
-    /^(Não inclua|INSTRUÇÕES|Retorne APENAS)[^\n]*\n*/gi,
-    /^(Comece diretamente|O título será)[^\n]*\n*/gi,
-    /^(Aqui está|Segue o conteúdo)[^\n]*\n*/gi,
-  ];
+### Nova Barra de Progresso de Scroll
+
+```tsx
+// Estado
+const [scrollProgress, setScrollProgress] = useState(0);
+
+// Efeito para monitorar scroll
+useEffect(() => {
+  const handleScroll = () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    setScrollProgress(Math.min(100, Math.max(0, progress)));
+  };
   
-  let limpo = texto;
-  for (const padrao of padroesInstrucoes) {
-    limpo = limpo.replace(padrao, '');
-  }
-  return limpo.trim();
-}
+  window.addEventListener('scroll', handleScroll);
+  return () => window.removeEventListener('scroll', handleScroll);
+}, []);
+
+// Renderização (no topo da tela de leitura)
+<div className="fixed top-[header-height] left-0 right-0 h-1 bg-white/10 z-40">
+  <div 
+    className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all"
+    style={{ width: `${scrollProgress}%` }}
+  />
+</div>
 ```
 
-### Correção do Parser de Títulos (frontend):
-```typescript
-// Na função extrairTopicos
-const titulo = tituloRaw
-  .replace(/^\d+\.\s*/, '') // Remove números
-  .replace(/[🔍🃏📌💡💼🎯⚠️]/g, '') // Remove emojis
-  .split(':')[0] // Pega apenas a primeira parte antes de ":"
-  .trim();
+### Prompts Alinhados
+
+**Introdução:**
+```
+Escreva uma introdução clara de 300-500 palavras.
+Tom acolhedor e motivador.
+Comece com algo engajador: "Vamos falar sobre um tema super importante..."
+Contextualize a importância de forma natural.
+```
+
+**Desmembrando:**
+```
+Análise detalhada de cada elemento importante:
+- Significado jurídico preciso
+- Etimologia e origem do termo
+- Pronúncia correta (quando relevante)
+- Elementos constitutivos
+- Requisitos e características
+- Natureza jurídica
+Tom: "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
+Use exemplos para clarificar cada elemento.
+```
+
+**Quadro Comparativo:**
+```
+Crie tabelas comparativas dos principais institutos:
+- Compare elementos, requisitos, efeitos
+- Use formato Markdown de tabela correto
+- Mínimo 2 tabelas relevantes
+
+| Aspecto | Instituto A | Instituto B |
+|---------|-------------|-------------|
+| Definição | ... | ... |
+| Requisitos | ... | ... |
 ```
 
 ## Resultado Esperado
 
-Após as correções:
-1. O conteúdo gerado NÃO terá mais frases como "Não inclua nenhuma saudação..."
-2. Os títulos aparecerão como "Introdução", "Conteúdo Completo", "Desmembrando o Tema", etc.
-3. Todas as edge functions usarão o modelo gemini-2.5-flash (mais avançado e estável)
-
-## Observações Importantes
-
-- O modelo gemini-2.5-flash é mais recente e tem melhor compreensão de instruções
-- A mudança será feita em todas as ~50+ edge functions que usam gemini-2.0-flash
-- Após as alterações, será necessário resetar um tópico de Conceitos para testar a nova geração
+Após as alterações:
+- Introdução mais concisa e acolhedora (300-500 palavras)
+- Barra de progresso de leitura visível no topo ao rolar
+- Seção "Desmembrando" com análise detalhada (significado, etimologia, pronúncia, etc)
+- Quadros comparativos visuais interativos
+- Jogo "Ligar Termos" funcionando com as correspondências corretas
