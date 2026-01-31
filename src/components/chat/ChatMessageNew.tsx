@@ -143,13 +143,14 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
   const [aulaGerada, setAulaGerada] = useState<any>(null);
   const [showAulaModal, setShowAulaModal] = useState(false);
   
-  // Formatar conteúdo
-  const formattedContent = !isStreaming && content
-    ? content
-        .replace(/(\n)(##\s)/g, '\n\n$2')
-        .replace(/(\n)(\*\*[^*]+\*\*:)/g, '\n\n$2')
-        .replace(/(\n)([-•]\s)/g, '\n$2')
-    : content;
+  // Formatar conteúdo - SEMPRE aplicar formatação, mesmo durante streaming
+  const formattedContent = useMemo(() => {
+    if (!content) return '';
+    return content
+      .replace(/(\n)(##\s)/g, '\n\n$2')
+      .replace(/(\n)(\*\*[^*]+\*\*:)/g, '\n\n$2')
+      .replace(/(\n)([-•]\s)/g, '\n$2');
+  }, [content]);
 
   // Usar termos da API se disponíveis, senão extrair do conteúdo
   const terms = useMemo(() => {
@@ -829,22 +830,138 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                   </TabsContent>
                 </Tabs>
               ) : (
-                // Durante streaming: renderização com Markdown em tempo real
+                // Durante streaming: renderização com Markdown em tempo real e animação fluida
                 <div className="text-[15px] leading-[1.7] text-foreground/90">
                   {content ? (
                     isStreaming ? (
-                      // Durante streaming: Markdown leve em tempo real + cursor piscante
-                      <div className="streaming-markdown prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      // Durante streaming: Markdown em tempo real com animação fluida + cursor piscante
+                      <motion.div 
+                        className="streaming-markdown prose prose-sm dark:prose-invert max-w-none"
+                        initial={{ opacity: 0.8 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            // Parágrafos com animação de entrada
+                            p: ({ children }) => (
+                              <motion.p 
+                                className="mb-3"
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {children}
+                              </motion.p>
+                            ),
+                            // Headers com animação
+                            h1: ({ children }) => (
+                              <motion.h1 
+                                className="text-xl font-bold mt-6 mb-3 text-primary"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.25 }}
+                              >
+                                {children}
+                              </motion.h1>
+                            ),
+                            h2: ({ children }) => (
+                              <motion.h2 
+                                className="text-lg font-bold mt-5 mb-2 text-foreground"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.25 }}
+                              >
+                                {children}
+                              </motion.h2>
+                            ),
+                            h3: ({ children }) => (
+                              <motion.h3 
+                                className="text-base font-semibold mt-4 mb-2 text-foreground/90"
+                                initial={{ opacity: 0, x: -5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {children}
+                              </motion.h3>
+                            ),
+                            // Listas com animação
+                            ul: ({ children }) => (
+                              <motion.ul 
+                                className="list-disc pl-5 mb-3 space-y-1"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {children}
+                              </motion.ul>
+                            ),
+                            ol: ({ children }) => (
+                              <motion.ol 
+                                className="list-decimal pl-5 mb-3 space-y-1"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {children}
+                              </motion.ol>
+                            ),
+                            li: ({ children }) => (
+                              <motion.li 
+                                className="mb-1"
+                                initial={{ opacity: 0, x: 5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.15 }}
+                              >
+                                {children}
+                              </motion.li>
+                            ),
+                            // Blockquotes com estilo especial
+                            blockquote: ({ children }) => (
+                              <motion.blockquote 
+                                className="border-l-4 border-amber-500/50 bg-amber-500/10 pl-4 py-2 my-3 italic text-foreground/80"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.25 }}
+                              >
+                                {children}
+                              </motion.blockquote>
+                            ),
+                            // Negrito e ênfase
+                            strong: ({ children }) => (
+                              <strong className="font-bold text-primary/90">{children}</strong>
+                            ),
+                            em: ({ children }) => (
+                              <em className="italic text-foreground/80">{children}</em>
+                            ),
+                            // Código inline
+                            code: ({ children }) => (
+                              <code className="bg-muted/50 px-1.5 py-0.5 rounded text-sm font-mono text-primary">
+                                {children}
+                              </code>
+                            ),
+                          }}
+                        >
                           {formattedContent}
                         </ReactMarkdown>
-                        <span className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 animate-pulse" />
-                      </div>
+                        <motion.span 
+                          className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 rounded-sm"
+                          animate={{ opacity: [1, 0.3, 1] }}
+                          transition={{ duration: 0.8, repeat: Infinity }}
+                        />
+                      </motion.div>
                     ) : (
                       renderMarkdownContent(formattedContent)
                     )
                   ) : null}
-                  {isStreaming && !content && <span className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 animate-pulse" />}
+                  {isStreaming && !content && (
+                    <motion.span 
+                      className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 rounded-sm"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 0.8, repeat: Infinity }}
+                    />
+                  )}
                 </div>
               )}
 
