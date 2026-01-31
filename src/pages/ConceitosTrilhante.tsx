@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import themisBackground from "@/assets/themis-estudos-background.webp";
 import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
+import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 
 const ConceitosTrilhante = () => {
   const navigate = useNavigate();
@@ -290,6 +291,9 @@ const ConceitosTrilhante = () => {
             </div>
           </div>
         )}
+        
+        {/* Botão flutuante de scroll */}
+        <FloatingScrollButton />
       </div>
     </div>
   );

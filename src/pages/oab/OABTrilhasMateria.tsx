@@ -13,6 +13,7 @@ import { OABTrilhasProgressBadge } from "@/components/oab/OABTrilhasProgressBadg
 import { toast } from "sonner";
 import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
+import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 
 const OABTrilhasMateria = () => {
   const { materiaId } = useParams<{ materiaId: string }>();
@@ -375,6 +376,9 @@ const OABTrilhasMateria = () => {
             </Button>
           </div>
         )}
+        
+        {/* Botão flutuante de scroll */}
+        <FloatingScrollButton />
         
         {/* Modal de processamento de PDF */}
         {area && (
