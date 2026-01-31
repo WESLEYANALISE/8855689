@@ -46,6 +46,7 @@ export const ConceitosSlidesFooter = ({
   onFontSizeChange
 }: ConceitosSlidesFooterProps) => {
   const [showIndex, setShowIndex] = useState(false);
+  const [showFontControls, setShowFontControls] = useState(false);
   const [brownNoiseEnabled, setBrownNoiseEnabled] = useState(false);
   const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
 
@@ -105,32 +106,57 @@ export const ConceitosSlidesFooter = ({
 
   return (
     <>
-      {/* Botões flutuantes de controle de fonte - canto inferior esquerdo */}
+      {/* Botão flutuante de controle de fonte - canto inferior direito */}
       {onFontSizeChange && (
-        <div className="fixed bottom-20 left-4 z-40 flex flex-col gap-2">
+        <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
+          {/* Botões expandidos */}
+          <AnimatePresence>
+            {showFontControls && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                className="flex flex-col gap-2"
+              >
+                <button
+                  onClick={() => onFontSizeChange(fontSize + 2)}
+                  disabled={fontSize >= 24}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
+                    fontSize >= 24
+                      ? 'bg-white/5 text-gray-600 border-white/10'
+                      : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30'
+                  }`}
+                  title="Aumentar fonte"
+                >
+                  <AArrowUp className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onFontSizeChange(fontSize - 2)}
+                  disabled={fontSize <= 12}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
+                    fontSize <= 12
+                      ? 'bg-white/5 text-gray-600 border-white/10'
+                      : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30'
+                  }`}
+                  title="Diminuir fonte"
+                >
+                  <AArrowDown className="w-4 h-4" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Botão principal para abrir/fechar controles */}
           <button
-            onClick={() => onFontSizeChange(fontSize + 2)}
-            disabled={fontSize >= 24}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
-              fontSize >= 24
-                ? 'bg-white/5 text-gray-600 border-white/10'
+            onClick={() => setShowFontControls(!showFontControls)}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-lg ${
+              showFontControls
+                ? 'bg-orange-500 text-white border-orange-500 shadow-orange-500/30'
                 : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30'
             }`}
-            title="Aumentar fonte"
+            title="Tamanho da fonte"
           >
-            <AArrowUp className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onFontSizeChange(fontSize - 2)}
-            disabled={fontSize <= 12}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
-              fontSize <= 12
-                ? 'bg-white/5 text-gray-600 border-white/10'
-                : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30'
-            }`}
-            title="Diminuir fonte"
-          >
-            <AArrowDown className="w-4 h-4" />
+            <span className="text-sm font-bold">A</span>
           </button>
         </div>
       )}
