@@ -19,15 +19,12 @@ import {
   Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SlideCollapsible } from "./SlideCollapsible";
 import { SlideLinhaTempo } from "@/components/aula-v2/SlideLinhaTempo";
 import { SlideTabela } from "@/components/aula-v2/SlideTabela";
-import { SlideResumoVisual } from "@/components/aula-v2/SlideResumoVisual";
-import { SlideDicaEstudo } from "@/components/aula-v2/SlideDicaEstudo";
 import { UniversalImage } from "@/components/ui/universal-image";
 import EnrichedMarkdownRenderer from "@/components/EnrichedMarkdownRenderer";
 import confetti from "canvas-confetti";
-import type { ConceitoSlide } from "./types";
+import type { ConceitoSlide, CollapsibleItem } from "./types";
 
 interface ConceitoSlideCardProps {
   slide: ConceitoSlide;
@@ -59,7 +56,7 @@ const getSlideLabel = (tipo: string): string => {
     case 'texto': return 'Conteúdo';
     case 'termos': return 'Termos importantes';
     case 'explicacao': return 'Isso significa';
-    case 'collapsible': return 'Explore os conceitos';
+    case 'collapsible': return 'Conceitos detalhados';
     case 'linha_tempo': return 'Passo a passo';
     case 'tabela': return 'Quadro comparativo';
     case 'atencao': return 'Atenção!';
@@ -71,15 +68,11 @@ const getSlideLabel = (tipo: string): string => {
   }
 };
 
-// Get icon color based on slide type
-const getIconColor = (tipo: string): string => {
-  switch (tipo) {
-    case 'atencao': return 'text-red-400';
-    case 'dica': return 'text-amber-400';
-    case 'caso': return 'text-emerald-400';
-    case 'quickcheck': return 'text-violet-400';
-    default: return 'text-red-400';
-  }
+// Converte collapsible items para formato Markdown
+const convertCollapsibleToMarkdown = (items: CollapsibleItem[]): string => {
+  return items.map(item => {
+    return `### ${item.titulo}\n\n${item.conteudo}`;
+  }).join('\n\n');
 };
 
 export const ConceitoSlideCard = ({
@@ -95,7 +88,6 @@ export const ConceitoSlideCard = ({
   const containerRef = useRef<HTMLDivElement>(null);
   
   const Icon = iconMap[slide.tipo] || FileText;
-  const iconColor = getIconColor(slide.tipo);
 
   // Scroll to top when slide changes
   useEffect(() => {
@@ -131,16 +123,19 @@ export const ConceitoSlideCard = ({
   // Render specialized content based on slide type
   const renderContent = () => {
     switch (slide.tipo) {
+      // COLLAPSIBLE agora vira TEXTO normal
       case 'collapsible':
-        if (slide.collapsibleItems && slide.collapsibleItems.length > 0) {
-          return (
-            <SlideCollapsible 
-              items={slide.collapsibleItems}
-              conteudo={slide.conteudo}
-            />
-          );
-        }
-        break;
+        const collapsibleMarkdown = slide.collapsibleItems && slide.collapsibleItems.length > 0
+          ? convertCollapsibleToMarkdown(slide.collapsibleItems)
+          : slide.conteudo;
+        
+        return (
+          <EnrichedMarkdownRenderer 
+            content={collapsibleMarkdown || ''}
+            fontSize={16}
+            theme="classicos"
+          />
+        );
 
       case 'linha_tempo':
         if (slide.etapas && slide.etapas.length > 0) {
@@ -168,23 +163,29 @@ export const ConceitoSlideCard = ({
 
       case 'resumo':
         if (slide.pontos && slide.pontos.length > 0) {
+          // Converte pontos para markdown ao invés de usar componente
+          const resumoMarkdown = slide.pontos.map((ponto, idx) => 
+            `**${idx + 1}.** ${ponto}`
+          ).join('\n\n');
+          
           return (
-            <SlideResumoVisual 
-              pontos={slide.pontos}
-              conteudo={slide.conteudo}
-              titulo={slide.titulo}
+            <EnrichedMarkdownRenderer 
+              content={resumoMarkdown}
+              fontSize={16}
+              theme="classicos"
             />
           );
         }
         break;
 
       case 'dica':
+        // Dica como texto com destaque
+        const dicaMarkdown = `> 💡 **DICA DE MEMORIZAÇÃO:**\n\n${slide.conteudo}`;
         return (
-          <SlideDicaEstudo 
-            tecnica={undefined}
-            dica={undefined}
-            conteudo={slide.conteudo}
-            titulo={slide.titulo}
+          <EnrichedMarkdownRenderer 
+            content={dicaMarkdown}
+            fontSize={16}
+            theme="classicos"
           />
         );
 
@@ -357,94 +358,60 @@ export const ConceitoSlideCard = ({
 
       {/* Slide content */}
       <div className="flex-1 flex flex-col">
-        {/* Imagem com título overlay */}
+        {/* Imagem SEM título overlay - apenas imagem ilustrativa */}
         {hasImage && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative mb-6 rounded-2xl overflow-hidden"
+            className="relative mb-4 rounded-2xl overflow-hidden"
           >
             {slide.imagemUrl ? (
-              <>
-                <UniversalImage
-                  src={slide.imagemUrl}
-                  alt={slide.titulo || "Ilustração"}
-                  aspectRatio="16/9"
-                  blurCategory="juridico"
-                  containerClassName="w-full"
-                />
-                {/* Gradient overlay with title */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-                  <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-1">
-                    {getSlideLabel(slide.tipo)}
-                  </p>
-                  {slide.titulo && (
-                    <h2 
-                      className="text-lg md:text-xl font-bold text-white leading-tight"
-                      style={{ fontFamily: "'Playfair Display', serif" }}
-                    >
-                      {slide.titulo}
-                    </h2>
-                  )}
-                </div>
-              </>
+              <UniversalImage
+                src={slide.imagemUrl}
+                alt={slide.titulo || "Ilustração"}
+                aspectRatio="16/9"
+                blurCategory="juridico"
+                containerClassName="w-full"
+              />
             ) : (
               // Loading state for image being generated
-              <div className="aspect-video bg-[#1a1a2e] flex items-center justify-center">
+              <div className="aspect-video bg-[#1a1a2e] flex items-center justify-center rounded-2xl">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-red-400 mx-auto mb-2" />
                   <p className="text-xs text-gray-500">Gerando ilustração...</p>
-                </div>
-                {/* Title overlay even during loading */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5 bg-gradient-to-t from-[#1a1a2e] to-transparent">
-                  <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-1">
-                    {getSlideLabel(slide.tipo)}
-                  </p>
-                  {slide.titulo && (
-                    <h2 
-                      className="text-lg md:text-xl font-bold text-white leading-tight"
-                      style={{ fontFamily: "'Playfair Display', serif" }}
-                    >
-                      {slide.titulo}
-                    </h2>
-                  )}
                 </div>
               </div>
             )}
           </motion.div>
         )}
 
-        {/* Header with icon (only when no image) */}
-        {!hasImage && (
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg">
-              <Icon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-red-400 uppercase tracking-widest font-medium">
-                {getSlideLabel(slide.tipo)}
-              </p>
-              {slide.titulo && (
-                <h2 
-                  className="text-lg font-semibold text-white"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
-                >
-                  {slide.titulo}
-                </h2>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Decorative element */}
+        {/* Decorative element - linha vermelha estilo reader */}
         <div className="flex items-center gap-2 mb-4">
           <span className="text-red-400">✦</span>
           <div className="h-px flex-1 bg-gradient-to-r from-red-500/50 to-transparent" />
         </div>
 
-        {/* Main content card */}
+        {/* Main content card com título DENTRO */}
         <div className="bg-[#12121a] rounded-2xl border border-white/10 p-5 md:p-6 flex-1 overflow-y-auto">
+          {/* Label e título - agora no card de conteúdo */}
+          <div className="mb-4">
+            <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-1">
+              {getSlideLabel(slide.tipo)}
+            </p>
+            {slide.titulo && (
+              <h2 
+                className="text-xl md:text-2xl font-bold text-white leading-tight"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                {slide.titulo}
+              </h2>
+            )}
+          </div>
+
+          {/* Linha decorativa abaixo do título */}
+          <div className="h-px w-full bg-gradient-to-r from-red-500/30 via-orange-500/20 to-transparent mb-5" />
+
+          {/* Conteúdo */}
           {renderContent()}
         </div>
       </div>

@@ -60,6 +60,21 @@ Use os MESMOS títulos e subtítulos que aparecem no PDF.
 Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica".
 Mantenha a ESTRUTURA ORIGINAL do material do PDF.
 
+### CITAÇÕES OBRIGATÓRIAS (MUITO IMPORTANTE):
+Sempre que o PDF contiver citações de doutrinadores, jurisprudência ou enunciados, INCLUA-AS usando o formato de blockquote:
+
+> "A tutela da dignidade da pessoa humana na sociedade da informação inclui o direito ao esquecimento" (Enunciado n. 531 da VI Jornada de Direito Civil)
+
+> "O STJ entendeu que a empresa jornalística, ao reproduzir na manchete do jornal o cognome – 'apelido' – do autor, com manifesto proveito econômico, feriu o direito dele ao segredo da vida privada" (STJ, REsp 613.374/MG)
+
+> "O direito ao esquecimento justifica-se pelo impacto que a divulgação de imagens e informações não permitidas pode causar na dimensão da personalidade dos sujeitos" (TARTUCE, 2018)
+
+REGRAS PARA CITAÇÕES:
+- Copie citações EXATAS do PDF
+- Sempre inclua a fonte entre parênteses
+- Use o formato de blockquote (>) para destacar
+- Cite doutrinadores, tribunais, súmulas e enunciados quando mencionados no PDF
+
 ### TABELAS COMPARATIVAS NO CONTEÚDO:
 Quando houver institutos ou conceitos para comparar, INCLUA tabelas Markdown:
 
@@ -74,8 +89,9 @@ Quando houver institutos ou conceitos para comparar, INCLUA tabelas Markdown:
 > 📌 **EM RESUMO:** [resumo de uma seção]
 > 💼 **CASO PRÁTICO:** [exemplo prático]
 
-Mínimo 3000 palavras cobrindo TODO o PDF.
-Use pelo menos 5-7 elementos visuais ao longo do conteúdo.` 
+Mínimo 4000 palavras cobrindo TODO o PDF de forma completa e detalhada.
+Use pelo menos 8-10 elementos visuais ao longo do conteúdo.
+Inclua TODAS as citações jurídicas presentes no PDF.` 
   },
   { 
     tipo: "desmembrando", 
@@ -83,9 +99,9 @@ Use pelo menos 5-7 elementos visuais ao longo do conteúdo.`
     promptExtra: `Vá DIRETO ao conteúdo (sem saudações - a introdução já fez isso).
 
 Pegue os conceitos-chave do PDF e DESTRINCHE cada um com tom de conversa.
-Escreva 800-1200 palavras no total.
+Escreva 1200-1800 palavras no total.
 
-Para CADA conceito principal (identifique 4-6 do PDF):
+Para CADA conceito principal (identifique 5-7 do PDF):
 
 ### [Nome do Conceito]
 
@@ -94,6 +110,9 @@ Para CADA conceito principal (identifique 4-6 do PDF):
 Explique o conceito de forma FLUIDA, como se estivesse conversando com um amigo.
 NÃO use listas rígidas - escreva em parágrafos naturais e envolventes.
 Cite exemplos práticos DURANTE a explicação.
+
+INCLUA citações do PDF quando relevantes:
+> "Citação do doutrinador ou jurisprudência" (AUTOR, ano)
 
 Use perguntas retóricas para engajar:
 "E por que isso é tão importante? Porque..."
@@ -110,7 +129,8 @@ Ao final de cada conceito, faça um resumo rápido:
 ...
 
 ⛔ NÃO use estrutura rígida de bullets (Premissas, Aplicação, Consequências).
-✅ USE parágrafos fluidos e conversacionais com exemplos inline.` 
+✅ USE parágrafos fluidos e conversacionais com exemplos inline.
+✅ INCLUA todas as citações de doutrinadores e jurisprudências do PDF.` 
   },
   { 
     tipo: "entendendo_na_pratica", 
