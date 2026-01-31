@@ -172,12 +172,14 @@ FIELD: ${materia}
 - This is an ILLUSTRATION ONLY - the title will be added separately by the app
 - Focus 100% on visual symbolism and imagery
 
-🎨 IMAGE REQUIREMENTS:
-- EDGE-TO-EDGE content - fill 100% of the 16:9 frame
-- NO white space, NO margins, NO empty areas
-- Dark, rich backgrounds that extend to ALL edges
+🎨 IMAGE REQUIREMENTS - CRITICAL:
+- FULL BLEED image - content MUST extend to ALL 4 edges with ZERO empty space
+- ABSOLUTELY NO white corners, NO white borders, NO margins, NO padding
+- Dark, rich backgrounds that extend COMPLETELY to ALL edges - check every corner
+- The image must be a COMPLETE rectangle with NO visible borders or frames
 - PHOTOREALISTIC, cinematic quality like a movie poster
 - DRAMATIC lighting with deep shadows and rim lighting
+- Background elements MUST reach and TOUCH every edge of the 16:9 frame
 - The visual must INSTANTLY communicate the ESSENCE of "${titulo}"
 
 VISUAL APPROACH FOR "${titulo}":
@@ -192,13 +194,15 @@ STYLE:
 - Magazine cover / blockbuster movie quality
 - Strong central focus with dramatic composition
 
-FORBIDDEN:
+FORBIDDEN - NEVER INCLUDE:
 - ANY text, letters, words, numbers, typography, labels, titles
-- White or empty areas
+- White corners, white edges, white borders, white margins
+- Empty areas or padding around the image
 - Flat compositions
 - Stock photo look
 - Cartoonish or illustrated style
-- Margins or borders
+- Margins, borders, frames, or any visible boundaries
+- ANY area that is not filled with the actual image content
 
 Generate a PURELY VISUAL, CINEMATIC cover that captures the essence of "${titulo}" without any text.`;
 }
