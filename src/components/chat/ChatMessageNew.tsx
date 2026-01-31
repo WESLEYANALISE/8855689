@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { Brain, User, BookOpen, X, HelpCircle, Layers, ChevronDown, Loader2, Copy, Check, Sparkles, GraduationCap, Lightbulb, MessageCircle, FileText, BookMarked, ExternalLink } from "lucide-react";
+import { Brain, User, BookOpen, X, HelpCircle, Layers, ChevronDown, Loader2, Copy, Check, Sparkles, GraduationCap, Lightbulb, MessageCircle, FileText, BookMarked, ExternalLink, Scale } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { FlashcardViewer } from "@/components/FlashcardViewer";
@@ -484,7 +484,51 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
     return renderMarkdownContent(cleanedText);
   };
 
-  // Renderizar conteúdo markdown
+  // Componente de citação legal (Art. X, §, inciso)
+  const CitacaoLegal = ({ children }: { children: React.ReactNode }) => (
+    <div className="my-4 p-4 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg">
+      <div className="flex items-start gap-3">
+        <Scale className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+        <div className="text-amber-100 text-sm leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
+
+  // Componente de exemplo prático
+  const ExemploPratico = ({ children }: { children: React.ReactNode }) => (
+    <div className="my-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+      <div className="flex items-start gap-3">
+        <Lightbulb className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+        <div className="text-purple-100 text-sm leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
+
+  // Detectar se o texto é uma citação legal
+  const isLegalCitation = (text: string): boolean => {
+    const patterns = [
+      /Art\.\s*\d+/i,
+      /§\s*\d+/,
+      /inciso\s+[IVXLCDM]+/i,
+      /alínea\s+[a-z]/i,
+      /Lei\s+n[º°]?\s*[\d.]+/i,
+      /Código\s+(Civil|Penal|Processo|Tributário)/i,
+      /CF\/88/i,
+      /Constituição\s+Federal/i,
+    ];
+    return patterns.some(p => p.test(text));
+  };
+
+  // Detectar se o texto é um exemplo prático
+  const isPracticalExample = (text: string): boolean => {
+    const patterns = [
+      /^(Exemplo|Ex\.?|💡|🔍|Caso\s+prático|Na\s+prática)[\s:]/i,
+      /^(Imagine|Suponha|Considere|Veja\s+o\s+caso)/i,
+    ];
+    return patterns.some(p => p.test(text.trim()));
+  };
+
+  // Renderizar conteúdo markdown com suporte a citações e exemplos
   const renderMarkdownContent = (text: string) => (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -499,11 +543,25 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
             {children}
           </h3>
         ),
-        p: ({ children }) => (
-          <p className="mb-3 leading-relaxed">
-            {children}
-          </p>
-        ),
+        p: ({ children }) => {
+          const textContent = String(children);
+          
+          // Verificar se é uma citação legal
+          if (isLegalCitation(textContent)) {
+            return <CitacaoLegal>{children}</CitacaoLegal>;
+          }
+          
+          // Verificar se é um exemplo prático
+          if (isPracticalExample(textContent)) {
+            return <ExemploPratico>{children}</ExemploPratico>;
+          }
+          
+          return (
+            <p className="mb-3 leading-relaxed">
+              {children}
+            </p>
+          );
+        },
         ul: ({ children }) => (
           <div className="my-3 space-y-2">
             {children}
@@ -538,8 +596,10 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
           <strong className="font-semibold text-foreground">{children}</strong>
         ),
         blockquote: ({ children }) => (
-          <blockquote className="border-l-4 border-primary/50 pl-4 italic text-muted-foreground my-3 py-1">
-            {children}
+          <blockquote className="my-4 p-4 bg-muted/50 border-l-4 border-primary/50 rounded-r-lg">
+            <div className="italic text-muted-foreground">
+              {children}
+            </div>
           </blockquote>
         ),
         code: ({ children, className }) => {

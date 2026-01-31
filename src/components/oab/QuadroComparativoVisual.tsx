@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { Table2, GripHorizontal } from "lucide-react";
 
 // Função local para processar Markdown inline (negrito e itálico)

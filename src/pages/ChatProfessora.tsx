@@ -257,15 +257,12 @@ const ChatProfessora = () => {
                 
                 // Se é a última mensagem do assistant e ainda não tem conteúdo, mostra typing
                 if (showTyping) {
-                  return <TypingIndicator key={`typing-${index}`} variant="chat" />;
+                  return <TypingIndicator key={`typing-${message.id}`} variant="chat" />;
                 }
-                
-                // Usar ID estável para evitar re-renders e perda de scroll
-                const messageKey = `msg-${index}-${message.role}-${message.content?.length || 0}`;
                 
                 return (
                   <ChatMessageNew
-                    key={messageKey}
+                    key={message.id}
                     role={message.role}
                     content={message.content}
                     termos={message.termos}

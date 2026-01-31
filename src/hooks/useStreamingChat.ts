@@ -7,6 +7,7 @@ export interface TermoJuridico {
 }
 
 export interface ChatMessage {
+  id: string; // ID único estável para evitar problemas de scroll/re-render
   role: "user" | "assistant";
   content: string;
   termos?: TermoJuridico[]; // Termos jurídicos extraídos pela IA
@@ -54,11 +55,21 @@ export const useStreamingChat = (options: UseStreamingChatOptions) => {
   ) => {
     if (!userMessage.trim() && !files?.length) return;
 
-    // Adicionar mensagem do usuário IMEDIATAMENTE
-    const userMsg: ChatMessage = { role: "user", content: userMessage };
+    // Adicionar mensagem do usuário IMEDIATAMENTE com ID único
+    const userMsg: ChatMessage = { 
+      id: crypto.randomUUID(), 
+      role: "user", 
+      content: userMessage 
+    };
     
-    // Criar mensagem do assistente IMEDIATAMENTE com cursor
-    const assistantMsg: ChatMessage = { role: "assistant", content: "", isStreaming: true };
+    // Criar mensagem do assistente IMEDIATAMENTE com cursor e ID único
+    const assistantMsgId = crypto.randomUUID();
+    const assistantMsg: ChatMessage = { 
+      id: assistantMsgId, 
+      role: "assistant", 
+      content: "", 
+      isStreaming: true 
+    };
     
     setMessages(prev => [...prev, userMsg, assistantMsg]);
     setIsStreaming(true);
@@ -113,6 +124,7 @@ export const useStreamingChat = (options: UseStreamingChatOptions) => {
           const lastIndex = newMessages.length - 1;
           if (newMessages[lastIndex]?.role === 'assistant') {
             newMessages[lastIndex] = { 
+              ...newMessages[lastIndex], // Preservar ID
               role: 'assistant', 
               content: text, 
               termos: termos,
@@ -159,6 +171,7 @@ export const useStreamingChat = (options: UseStreamingChatOptions) => {
                   const lastIndex = newMessages.length - 1;
                   if (newMessages[lastIndex]?.role === 'assistant') {
                     newMessages[lastIndex] = { 
+                      ...newMessages[lastIndex], // Preservar ID
                       role: 'assistant', 
                       content: accumulatedContent, 
                       isStreaming: true 
@@ -179,6 +192,7 @@ export const useStreamingChat = (options: UseStreamingChatOptions) => {
           const lastIndex = newMessages.length - 1;
           if (newMessages[lastIndex]?.role === 'assistant') {
             newMessages[lastIndex] = { 
+              ...newMessages[lastIndex], // Preservar ID
               role: 'assistant', 
               content: accumulatedContent, 
               isStreaming: false 
@@ -199,6 +213,7 @@ export const useStreamingChat = (options: UseStreamingChatOptions) => {
           const lastIndex = newMessages.length - 1;
           if (newMessages[lastIndex]?.role === 'assistant') {
             newMessages[lastIndex] = { 
+              ...newMessages[lastIndex], // Preservar ID
               role: 'assistant', 
               content: 'Desculpe, ocorreu um erro. Tente novamente.', 
               isStreaming: false 
