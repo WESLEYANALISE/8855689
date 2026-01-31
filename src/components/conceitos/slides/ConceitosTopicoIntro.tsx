@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List, ChevronRight } from "lucide-react";
+import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { UniversalImage } from "@/components/ui/universal-image";
@@ -47,6 +47,10 @@ export const ConceitosTopicoIntro = ({
   
   // Índice
   const [showIndex, setShowIndex] = useState(false);
+  
+  // Modais de aviso para itens bloqueados
+  const [showFlashcardsBlockedModal, setShowFlashcardsBlockedModal] = useState(false);
+  const [showPraticarBlockedModal, setShowPraticarBlockedModal] = useState(false);
 
   // Calcular desbloqueios
   const leituraCompleta = progressoLeitura >= 100;
@@ -254,39 +258,44 @@ export const ConceitosTopicoIntro = ({
                 transition={{ delay: 0.5 }}
               >
                 <button
-                  onClick={leituraCompleta && onStartFlashcards ? onStartFlashcards : undefined}
-                  disabled={!leituraCompleta}
+                  onClick={() => {
+                    if (leituraCompleta && onStartFlashcards) {
+                      onStartFlashcards();
+                    } else if (!leituraCompleta) {
+                      setShowFlashcardsBlockedModal(true);
+                    }
+                  }}
                   className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
                     leituraCompleta 
-                      ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
-                      : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/10 hover:from-purple-500/30 hover:to-violet-500/20 border border-purple-500/30' 
+                      : 'bg-purple-500/10 border border-purple-500/20 opacity-60'
                   }`}
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                      leituraCompleta ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700 text-gray-500'
+                      leituraCompleta ? 'bg-purple-500 text-white' : 'bg-purple-500/30 text-purple-300'
                     }`}>
                       2
                     </div>
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
-                        <span className={`text-sm sm:text-base font-semibold ${leituraCompleta ? 'text-white' : 'text-gray-500'}`}>
+                        <span className={`text-sm sm:text-base font-semibold ${leituraCompleta ? 'text-white' : 'text-purple-300'}`}>
                           Flashcards
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <Progress 
                           value={progressoFlashcards} 
-                          className={`h-1 sm:h-1.5 flex-1 ${leituraCompleta ? 'bg-white/10 [&>div]:bg-purple-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
+                          className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-violet-500"
                         />
-                        <span className="text-xs text-gray-500 w-10 text-right">{progressoFlashcards}%</span>
+                        <span className="text-xs text-purple-400 w-10 text-right">{progressoFlashcards}%</span>
                       </div>
                     </div>
                     {leituraCompleta ? (
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                     ) : (
-                      <Lock className="w-4 h-4 text-gray-600" />
+                      <Lock className="w-4 h-4 text-purple-400" />
                     )}
                   </div>
                 </button>
@@ -301,39 +310,44 @@ export const ConceitosTopicoIntro = ({
                 transition={{ delay: 0.6 }}
               >
                 <button
-                  onClick={flashcardsCompletos && onStartQuestoes ? onStartQuestoes : undefined}
-                  disabled={!flashcardsCompletos}
+                  onClick={() => {
+                    if (flashcardsCompletos && onStartQuestoes) {
+                      onStartQuestoes();
+                    } else if (!flashcardsCompletos) {
+                      setShowPraticarBlockedModal(true);
+                    }
+                  }}
                   className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
                     flashcardsCompletos 
-                      ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
-                      : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/10 hover:from-emerald-500/30 hover:to-green-500/20 border border-emerald-500/30' 
+                      : 'bg-emerald-500/10 border border-emerald-500/20 opacity-60'
                   }`}
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                      flashcardsCompletos ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-500'
+                      flashcardsCompletos ? 'bg-emerald-500 text-white' : 'bg-emerald-500/30 text-emerald-300'
                     }`}>
                       3
                     </div>
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
                         <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                        <span className={`text-sm sm:text-base font-semibold ${flashcardsCompletos ? 'text-white' : 'text-gray-500'}`}>
+                        <span className={`text-sm sm:text-base font-semibold ${flashcardsCompletos ? 'text-white' : 'text-emerald-300'}`}>
                           Praticar
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <Progress 
                           value={progressoQuestoes} 
-                          className={`h-1 sm:h-1.5 flex-1 ${flashcardsCompletos ? 'bg-white/10 [&>div]:bg-emerald-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
+                          className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-green-500"
                         />
-                        <span className="text-xs text-gray-500 w-10 text-right">{progressoQuestoes}%</span>
+                        <span className="text-xs text-emerald-400 w-10 text-right">{progressoQuestoes}%</span>
                       </div>
                     </div>
                     {flashcardsCompletos ? (
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                     ) : (
-                      <Lock className="w-4 h-4 text-gray-600" />
+                      <Lock className="w-4 h-4 text-emerald-400" />
                     )}
                   </div>
                 </button>
@@ -411,6 +425,157 @@ export const ConceitosTopicoIntro = ({
                 className="w-full mt-4 bg-red-500 hover:bg-red-600"
               >
                 Entendi
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Flashcards bloqueado */}
+      <AnimatePresence>
+        {showFlashcardsBlockedModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowFlashcardsBlockedModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#12121a] rounded-2xl p-6 max-w-sm w-full border border-purple-500/30"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-purple-400" />
+                  <h3 className="font-semibold text-white">Flashcards Bloqueados</h3>
+                </div>
+                <button
+                  onClick={() => setShowFlashcardsBlockedModal(false)}
+                  className="p-1 text-gray-500 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-3 text-sm text-gray-400">
+                <p>
+                  Para desbloquear os flashcards, você precisa:
+                </p>
+                <div className="flex items-center gap-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <Play className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <span className="text-gray-300">Concluir a leitura das páginas interativas</span>
+                </div>
+                <p className="text-xs text-gray-500 pt-2">
+                  A leitura ajuda a absorver o conteúdo antes de treinar com flashcards.
+                </p>
+              </div>
+              
+              <Button
+                onClick={() => {
+                  setShowFlashcardsBlockedModal(false);
+                  onStartPaginas();
+                }}
+                className="w-full mt-4 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Começar Leitura
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Praticar bloqueado */}
+      <AnimatePresence>
+        {showPraticarBlockedModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPraticarBlockedModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#12121a] rounded-2xl p-6 max-w-sm w-full border border-emerald-500/30"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-emerald-400" />
+                  <h3 className="font-semibold text-white">Praticar Bloqueado</h3>
+                </div>
+                <button
+                  onClick={() => setShowPraticarBlockedModal(false)}
+                  className="p-1 text-gray-500 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-3 text-sm text-gray-400">
+                <p>
+                  Para desbloquear o modo Praticar, você precisa:
+                </p>
+                <div className="space-y-2">
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    leituraCompleta 
+                      ? 'bg-green-500/10 border-green-500/20' 
+                      : 'bg-red-500/10 border-red-500/20'
+                  }`}>
+                    <Play className={`w-5 h-5 flex-shrink-0 ${leituraCompleta ? 'text-green-400' : 'text-red-400'}`} />
+                    <span className="text-gray-300">
+                      {leituraCompleta ? '✓ Leitura concluída' : 'Concluir a leitura'}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    flashcardsCompletos 
+                      ? 'bg-green-500/10 border-green-500/20' 
+                      : 'bg-purple-500/10 border-purple-500/20'
+                  }`}>
+                    <Sparkles className={`w-5 h-5 flex-shrink-0 ${flashcardsCompletos ? 'text-green-400' : 'text-purple-400'}`} />
+                    <span className="text-gray-300">
+                      {flashcardsCompletos ? '✓ Flashcards concluídos' : 'Treinar com flashcards'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 pt-2">
+                  Seguir essa ordem ajuda a fixar o conteúdo de forma progressiva.
+                </p>
+              </div>
+              
+              <Button
+                onClick={() => {
+                  setShowPraticarBlockedModal(false);
+                  if (!leituraCompleta) {
+                    onStartPaginas();
+                  } else if (onStartFlashcards) {
+                    onStartFlashcards();
+                  }
+                }}
+                className={`w-full mt-4 ${
+                  !leituraCompleta 
+                    ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600'
+                    : 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600'
+                }`}
+              >
+                {!leituraCompleta ? (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    Começar Leitura
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Treinar Flashcards
+                  </>
+                )}
               </Button>
             </motion.div>
           </motion.div>
