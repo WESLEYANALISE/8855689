@@ -1,240 +1,151 @@
 
-## Diagnóstico Confirmado
+# Plano: Corrigir Piscadas Brancas no Mobile
 
-Os logs revelaram exatamente o problema:
+## Diagnóstico
 
-```
-SyntaxError: Expected ',' or ']' after array element in JSON at position 33130 (line 267)
-SyntaxError: Expected ',' or ']' after array element in JSON at position 34744 (line 322)
-```
+Após análise do codebase, identifiquei **múltiplas causas** para o problema de piscadas brancas no mobile:
 
-O Gemini está tentando gerar um JSON de 35-55 páginas de uma só vez (35.000+ caracteres). O modelo atinge o limite de tokens de saída (8192) antes de completar o JSON, que fica **truncado** no meio (sem fechar chaves/colchetes).
+### 1. Animações com `opacity: 0` inicial (Causa Principal)
+- **149 arquivos** usam `initial={{ opacity: 0 }}` com framer-motion
+- Quando um componente monta com `opacity: 0`, há um frame onde o background (branco do navegador) fica visível antes da animação começar
+- Em mobile, a renderização é mais lenta, tornando esse flash mais perceptível
 
-O código atual continua mesmo com `slidesData = null` e salva no banco como `status: "concluido"` com `slides_json: null`. Isso cria os "tópicos fantasmas".
+### 2. `AnimatePresence mode="wait"` causando gaps brancos
+- Múltiplos componentes usam `AnimatePresence mode="wait"`
+- O modo "wait" desmonta o componente antigo ANTES de montar o novo
+- Durante esse intervalo, o background aparece (flash branco)
 
-## Solução: Geração Página por Página (Batch Incremental)
+### 3. Transições de slides horizontais com `x: 300` e `opacity: 0`
+- `ConceitoSlideCard.tsx` usa animação que move 300px horizontalmente com opacity 0
+- Durante a transição, há um momento onde nada é renderizado
 
-Vou implementar exatamente o que você sugeriu: gerar o conteúdo em etapas menores.
+### 4. Falta de background escuro fixo no root
+- O `html` e `body` têm background definido, mas durante transições React, o container pode piscar
 
-### Arquitetura Nova
+---
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    FLUXO DE GERAÇÃO                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. ESTRUTURAÇÃO (1 chamada pequena)                           │
-│     └─> Gera apenas o "esqueleto":                             │
-│         - Títulos das seções                                   │
-│         - Nomes das páginas                                    │
-│         - Tipos de cada página                                 │
-│         - Objetivos gerais                                     │
-│     └─> JSON pequeno (~2KB), nunca trunca                      │
-│                                                                 │
-│  2. GERAÇÃO EM LOTES (N chamadas)                              │
-│     └─> Para cada seção (ou grupo de 5-8 páginas):             │
-│         - Gera o conteúdo completo das páginas                 │
-│         - Valida JSON antes de continuar                       │
-│         - Salva progresso parcial no banco                     │
-│                                                                 │
-│  3. MONTAGEM FINAL                                             │
-│     └─> Combina todos os lotes                                 │
-│     └─> Valida estrutura completa                              │
-│     └─> Só marca "concluido" se tudo estiver OK                │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+## Solução
 
-### Implementação Detalhada
+### Parte 1: CSS - Garantir Background Escuro Durante Transições
 
-#### 1. Nova Etapa: Gerar Estrutura/Esqueleto
+**Arquivo: `src/index.css`**
 
-Primeira chamada ao Gemini gera apenas a estrutura (sem conteúdo):
+Adicionar regras para prevenir flash branco:
+```css
+/* Prevenir flash branco durante transições */
+html, body, #root {
+  background-color: hsl(0, 0%, 8%) !important;
+}
 
-```json
-{
-  "titulo": "Surgimento do Direito",
-  "tempoEstimado": "25 min",
-  "objetivos": ["...", "...", "..."],
-  "secoes": [
-    {
-      "id": 1,
-      "titulo": "Origens do Direito",
-      "paginas": [
-        {"tipo": "introducao", "titulo": "O que você vai aprender"},
-        {"tipo": "texto", "titulo": "Direito na Antiguidade"},
-        {"tipo": "texto", "titulo": "Código de Hamurabi"},
-        {"tipo": "quickcheck", "titulo": "Teste Rápido"}
-      ]
-    },
-    {
-      "id": 2,
-      "titulo": "Direito Romano",
-      "paginas": [...]
-    }
-  ]
+/* Garantir que AnimatePresence não mostre background branco */
+[data-motion-pop-id],
+.framer-motion-container {
+  background-color: inherit;
+}
+
+/* Forçar background em elementos com opacity animada */
+.motion-opacity-container {
+  background-color: hsl(0, 0%, 8%);
 }
 ```
 
-Esse JSON é pequeno (~3-5KB) e nunca será truncado.
+### Parte 2: Otimizar AnimatePresence em Componentes Críticos
 
-#### 2. Geração em Lotes por Seção
+**Arquivo: `src/components/conceitos/slides/ConceitosSlidesViewer.tsx`**
 
-Para cada seção do esqueleto:
-- Faz uma chamada separada ao Gemini
-- Pede apenas o conteúdo daquela seção (5-10 páginas)
-- JSON de ~8-15KB por seção - dentro do limite seguro
-- Atualiza progresso no banco a cada seção concluída
-
-```text
-Seção 1 (5 páginas) → 10% progresso → salva parcial
-Seção 2 (7 páginas) → 25% progresso → salva parcial  
-Seção 3 (6 páginas) → 40% progresso → salva parcial
-...
-Seção 6 (5 páginas) → 90% progresso → salva parcial
+Mudar de `mode="wait"` para `mode="popLayout"` (mais suave):
+```tsx
+<AnimatePresence mode="popLayout" custom={direction}>
 ```
 
-#### 3. Validação Rigorosa
+**Arquivo: `src/components/conceitos/slides/ConceitoSlideCard.tsx`**
 
-Antes de marcar como concluído:
-- Verificar que todas as seções foram geradas
-- Verificar que cada seção tem slides válidos
-- Verificar total de páginas mínimo (ex: 25)
-- Se qualquer validação falhar: status = "erro"
-
-#### 4. Retry por Seção
-
-Se uma seção falhar:
-- Tentar novamente apenas aquela seção (até 2 retries)
-- Não precisa refazer as seções que já deram certo
-- Progresso não é perdido
-
-### Mudanças nos Arquivos
-
-#### supabase/functions/gerar-conteudo-conceitos/index.ts
-
-1. **Nova função `gerarEstrutura()`**
-   - Prompt enxuto pedindo só títulos/tipos
-   - maxOutputTokens: 4096 (suficiente para esqueleto)
-   - Retorna estrutura sem conteúdo
-
-2. **Nova função `gerarConteudoSecao(secao, indice)`**
-   - Recebe uma seção do esqueleto
-   - Gera conteúdo completo só daquela seção
-   - maxOutputTokens: 8192
-   - Retry interno se falhar
-
-3. **Loop de geração com progresso**
-   - Itera sobre seções
-   - Atualiza banco a cada seção (progresso parcial)
-   - Coleta resultados
-
-4. **Montagem e validação final**
-   - Combina todas as seções
-   - Valida estrutura completa
-   - Só então marca concluído
-
-5. **Correção do bug atual**
-   - Se slidesData for null/inválido: throw error
-   - Catch block marca status = "erro"
-   - Nunca mais "concluido fantasma"
-
-### Benefícios
-
-1. **Confiabilidade**: JSONs menores nunca truncam
-2. **Progresso real**: Usuário vê % avançando de verdade
-3. **Resiliência**: Se falhar uma seção, as outras estão salvas
-4. **Menos timeout**: Cada chamada é mais rápida
-5. **Conteúdo mais rico**: Pode pedir mais detalhes por página
-
-### Seção Técnica
-
-#### Estrutura do Prompt de Esqueleto
-
-```javascript
-const promptEstrutura = `Crie APENAS a estrutura/esqueleto do conteúdo.
-NÃO gere conteúdo, apenas títulos e tipos.
-
-Retorne JSON com:
-{
-  "titulo": "${topicoTitulo}",
-  "objetivos": ["3-4 objetivos de aprendizado"],
-  "secoes": [
-    {
-      "id": 1,
-      "titulo": "Nome da Seção",
-      "paginas": [
-        {"tipo": "introducao", "titulo": "Título da página"},
-        {"tipo": "texto", "titulo": "Título da página"},
-        ...
-      ]
-    }
-  ]
-}
-
-Gere 5-7 seções com 5-10 páginas cada (total 35-55 páginas).
-Tipos: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck`;
+Remover o `opacity: 0` inicial e usar apenas transformação:
+```tsx
+const slideVariants = {
+  enter: (direction: 'next' | 'prev') => ({
+    x: direction === 'next' ? 300 : -300,
+    opacity: 0.3  // Nunca ir para 0 total
+  }),
+  center: {
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction: 'next' | 'prev') => ({
+    x: direction === 'next' ? -300 : 300,
+    opacity: 0.3  // Manter visibilidade mínima
+  })
+};
 ```
 
-#### Estrutura do Prompt por Seção
+### Parte 3: Otimizar Animações de Entrada nas Páginas Principais
 
-```javascript
-const promptSecao = `Gere o conteúdo COMPLETO para esta seção:
-Seção ${indice+1}: "${secao.titulo}"
-Páginas: ${JSON.stringify(secao.paginas)}
+**Arquivo: `src/components/conceitos/slides/ConceitosTopicoIntro.tsx`**
 
-Para cada página, adicione:
-- conteudo: texto completo (200-400 palavras para tipo "texto")
-- imagemPrompt: descrição em inglês para ilustração
-- campos específicos do tipo (termos, etapas, tabela, etc)
-
-Retorne JSON com a seção completa...`;
+Substituir `opacity: 0` inicial por `opacity: 0.8`:
+```tsx
+<motion.div 
+  initial={{ opacity: 0.8 }}  // Não mais 0
+  animate={{ opacity: 1 }}
+  className="..."
+>
 ```
 
-#### Progresso Incremental
+### Parte 4: Adicionar Background Explícito nos Containers de Animação
 
-```javascript
-const totalSecoes = estrutura.secoes.length;
-for (let i = 0; i < totalSecoes; i++) {
-  const progresso = Math.round(20 + (i / totalSecoes) * 70); // 20% a 90%
-  
-  const secaoCompleta = await gerarConteudoSecao(estrutura.secoes[i], i);
-  secoesCompletas.push(secaoCompleta);
-  
-  await updateProgress(progresso);
-}
+**Arquivo: `src/pages/ConceitosTopicoEstudo.tsx`**
+
+Garantir que o container sempre tenha background:
+```tsx
+<div className="min-h-screen bg-background flex flex-col" 
+     style={{ backgroundColor: 'hsl(0, 0%, 8%)' }}>
 ```
 
-#### Validação Final
+### Parte 5: Melhorar Transições de Lista
 
-```javascript
-// Validar antes de salvar como concluído
-const totalPaginas = secoesCompletas.reduce(
-  (acc, s) => acc + (s.slides?.length || 0), 0
-);
+**Arquivo: `src/pages/ConceitosMateria.tsx`**
 
-if (totalPaginas < 25) {
-  throw new Error(`Páginas insuficientes: ${totalPaginas}/25`);
-}
-
-// Só aqui marca como concluído
-await supabase.from("conceitos_topicos").update({
-  slides_json: slidesData,
-  status: "concluido",
-  progresso: 100
-});
+Reduzir delay stagger e remover opacity 0:
+```tsx
+<motion.button
+  initial={{ opacity: 0.9, y: 5 }}  // Valores mínimos
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: index * 0.02 }}  // Delay reduzido
 ```
 
-### Migração para Corrigir Dados Existentes
+### Parte 6: Handler Global de Unhandled Rejections
 
-Uma migração SQL para resetar tópicos "fantasmas":
+**Arquivo: `src/App.tsx`**
 
-```sql
-UPDATE public.conceitos_topicos
-SET status = 'pendente',
-    progresso = 0,
-    tentativas = 0
-WHERE status = 'concluido'
-  AND slides_json IS NULL
-  AND conteudo_gerado IS NULL;
+Adicionar proteção contra erros async que causam tela branca:
+```tsx
+useEffect(() => {
+  const handleRejection = (event: PromiseRejectionEvent) => {
+    console.error("Unhandled rejection:", event.reason);
+    event.preventDefault();  // Previne crash
+  };
+  window.addEventListener("unhandledrejection", handleRejection);
+  return () => window.removeEventListener("unhandledrejection", handleRejection);
+}, []);
 ```
+
+---
+
+## Arquivos que Serão Modificados
+
+1. `src/index.css` - Adicionar regras CSS anti-flash
+2. `src/components/conceitos/slides/ConceitosSlidesViewer.tsx` - Otimizar AnimatePresence
+3. `src/components/conceitos/slides/ConceitoSlideCard.tsx` - Suavizar transições
+4. `src/components/conceitos/slides/ConceitosTopicoIntro.tsx` - Remover opacity 0
+5. `src/pages/ConceitosTopicoEstudo.tsx` - Background explícito
+6. `src/pages/ConceitosMateria.tsx` - Otimizar lista animada
+7. `src/App.tsx` - Handler de erros globais
+
+---
+
+## Resultado Esperado
+
+- Eliminar flashes brancos durante navegação entre páginas
+- Transições mais suaves entre slides
+- Experiência mobile sem piscadas visuais
+- App mais estável contra erros assíncronos
