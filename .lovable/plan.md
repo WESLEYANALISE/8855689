@@ -1,419 +1,269 @@
 
-# Plano: Sistema de Slides Interativos com Imagens Batch para Conceitos
+# Plano: Alinhamento Visual e Imagens Batch para Slides de Conceitos
 
-## Visão Geral
+## Análise do Problema
 
-Este plano implementa duas funcionalidades integradas:
+Após analisar o código e a imagem de referência do modo leitura, identifiquei os seguintes problemas:
 
-1. **Gemini Batch API**: Sistema para gerar imagens em massa com 50% de economia de custo
-2. **Slides Interativos**: Reformulação do sistema de Conceitos para usar slides dinâmicos com menus suspensos (Collapsible), linhas do tempo, e uma imagem ilustrativa por slide
+### 1. Design Inconsistente
+- O `ConceitoSlideCard.tsx` atual usa paleta de cores diferentes (roxo, azul, amarelo, verde) ao invés da paleta vermelha/laranja do modo leitura
+- O fundo do card usa cores variadas por tipo (`bgColorMap`) enquanto o reader usa `bg-[#12121a]`
+- A tipografia não segue o padrão Playfair Display do reader
+- Os títulos estão acima do card, não integrados à imagem com degradê
 
----
+### 2. Imagens Não Estão Sendo Geradas
+- A edge function `gerar-conteudo-conceitos` gera os `imagemPrompt` para cada slide
+- MAS não há integração com o sistema batch para disparar a geração
+- O `batch-imagens-iniciar` existe mas não é chamado após a geração dos slides
 
-## Parte 1: Sistema Batch API para Geração de Imagens
-
-### 1.1 Arquitetura do Sistema Batch
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    FLUXO DE GERAÇÃO BATCH                           │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  1. INICIAR BATCH                                                   │
-│     └─> batch-imagens-iniciar                                       │
-│         • Recebe lista de prompts + IDs                             │
-│         • Cria arquivo JSONL                                        │
-│         • Dispara job no Gemini Batch API                           │
-│         • Salva job_id na tabela batch_jobs                         │
-│                                                                      │
-│  2. MONITORAR (cron ou polling)                                     │
-│     └─> batch-imagens-status                                        │
-│         • Consulta status do job                                    │
-│         • Retorna: PENDING | RUNNING | COMPLETED | FAILED           │
-│                                                                      │
-│  3. PROCESSAR RESULTADOS                                            │
-│     └─> batch-imagens-processar                                     │
-│         • Baixa arquivo de output                                   │
-│         • Extrai imagens base64                                     │
-│         • Comprime para WebP (TinyPNG)                              │
-│         • Faz upload para Storage                                   │
-│         • Atualiza registros com URLs                               │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 1.2 Nova Tabela: `conceitos_batch_jobs`
-
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | uuid | Primary key |
-| job_name | text | Nome do job no Gemini |
-| tipo | text | 'capas_topicos' ou 'imagens_slides' |
-| status | text | pending, running, completed, failed |
-| total_items | integer | Quantidade de imagens a gerar |
-| completed_items | integer | Quantidade concluída |
-| input_file_uri | text | URI do arquivo JSONL de input |
-| output_file_uri | text | URI do arquivo de output |
-| created_at | timestamp | Criação |
-| completed_at | timestamp | Conclusão |
-| error_message | text | Mensagem de erro se falhar |
-
-### 1.3 Edge Functions a Criar
-
-#### `batch-imagens-iniciar/index.ts`
-```typescript
-// Estrutura do body:
-{
-  tipo: 'capas_conceitos' | 'slides_conceitos',
-  items: [
-    { id: 123, prompt: "Create an image for..." },
-    { id: 124, prompt: "Create an image for..." }
-  ]
-}
-
-// Fluxo:
-// 1. Criar arquivo JSONL com os requests
-// 2. Upload para Cloud Storage via API
-// 3. Criar batch job via generativelanguage API
-// 4. Salvar job na tabela batch_jobs
-// 5. Retornar job_id para polling
-```
-
-#### `batch-imagens-status/index.ts`
-```typescript
-// Consulta status do job
-// Retorna progresso e estado atual
-```
-
-#### `batch-imagens-processar/index.ts`
-```typescript
-// Quando job COMPLETED:
-// 1. Baixar output JSONL
-// 2. Para cada linha, extrair imagem base64
-// 3. Comprimir com TinyPNG
-// 4. Upload para Storage
-// 5. Atualizar tabela correspondente com URL
-```
-
-### 1.4 Economia Estimada
-
-| Cenário | Custo Real-time | Custo Batch | Economia |
-|---------|-----------------|-------------|----------|
-| 50 capas de tópicos | $1.95 | $0.975 | 50% |
-| 200 imagens de slides | $7.80 | $3.90 | 50% |
-| 1000 imagens/mês | $39.00 | $19.50 | 50% |
+### 3. Falta de Citações e Hierarquia
+- O slide card não usa o `EnrichedMarkdownRenderer` que processa citações, blockquotes coloridos (ATENÇÃO, DICA, CASO PRÁTICO)
+- Não há processamento de citações legais estilo `> "Art. 1º..."`
 
 ---
 
-## Parte 2: Sistema de Slides Interativos para Conceitos
+## Solução Proposta
 
-### 2.1 Nova Estrutura de Dados dos Slides
+### Fase 1: Alinhamento Visual com Modo Leitura
 
-A edge function `gerar-conteudo-conceitos` será reformulada para gerar uma estrutura de slides similar à usada em `gerar-aula-trilhas-oab`:
+#### Modificações em `ConceitoSlideCard.tsx`:
+
+1. **Unificar paleta de cores**: Substituir `colorMap` e `bgColorMap` pela paleta vermelha/laranja do reader
+2. **Tipografia**: Usar `Playfair Display` para títulos
+3. **Background do card**: Usar `bg-[#12121a]` com borda `border-white/10`
+4. **Decoração**: Adicionar os elementos decorativos vermelhos (✦ e linhas gradiente)
+
+```tsx
+// ANTES
+const colorMap = {
+  introducao: "from-purple-500 to-pink-500",
+  ...
+}
+
+// DEPOIS  
+const colorMap = {
+  introducao: "from-red-500 to-orange-500",
+  texto: "from-red-500 to-orange-500",
+  ...todos usam a mesma paleta
+}
+
+// ANTES - background variado
+const bgColor = bgColorMap[slide.tipo];
+
+// DEPOIS - background consistente
+className="bg-[#12121a] rounded-xl border border-white/10 p-5"
+```
+
+5. **Imagem com título overlay**: Título do slide deve ficar DENTRO da imagem, na parte inferior com degradê:
+
+```tsx
+{/* Imagem com título overlay */}
+{slide.imagemUrl && (
+  <div className="relative rounded-2xl overflow-hidden mb-6">
+    <UniversalImage src={slide.imagemUrl} aspectRatio="16/9" />
+    {/* Degradê + título */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+    <div className="absolute bottom-0 left-0 right-0 p-4">
+      <p className="text-xs text-red-400 uppercase tracking-wide">{getSlideLabel(tipo)}</p>
+      <h2 className="text-xl font-bold text-white" style={{fontFamily: "'Playfair Display'..."}}>
+        {slide.titulo}
+      </h2>
+    </div>
+  </div>
+)}
+```
+
+---
+
+### Fase 2: Integrar EnrichedMarkdownRenderer para Citações
+
+O conteúdo dos slides deve usar o `EnrichedMarkdownRenderer` para processar:
+- Blockquotes coloridos (`> ⚠️ **ATENÇÃO:**`, `> 💡 **DICA:**`, etc.)
+- Citações legais entre aspas
+- Formatação negrito/itálico com cores âmbar
+
+```tsx
+// Em renderContent() para tipo "texto" e outros
+import EnrichedMarkdownRenderer from "@/components/EnrichedMarkdownRenderer";
+
+return (
+  <EnrichedMarkdownRenderer 
+    content={slide.conteudo}
+    fontSize={16}
+    theme="classicos"
+  />
+);
+```
+
+---
+
+### Fase 3: Disparar Geração Batch de Imagens
+
+#### Modificar `gerar-conteudo-conceitos`:
+
+Após salvar os slides_json, disparar automaticamente o batch de imagens:
 
 ```typescript
-interface ConceitoSlide {
-  tipo: 'introducao' | 'texto' | 'termos' | 'explicacao' | 'collapsible' 
-      | 'linha_tempo' | 'tabela' | 'atencao' | 'dica' | 'caso' | 'resumo' | 'quickcheck';
-  titulo: string;
-  conteudo: string;
+// Após salvar slides_json no banco
+if (slidesData?.secoes) {
+  // Coletar todos os prompts de imagem
+  const imagensParaBatch: Array<{id: number; slideId: string; prompt: string}> = [];
   
-  // Para tipo 'collapsible' (menu suspenso)
-  collapsibleItems?: Array<{
-    titulo: string;
-    conteudo: string;
-    icone?: string;
-  }>;
+  slidesData.secoes.forEach((secao, secaoIdx) => {
+    secao.slides.forEach((slide, slideIdx) => {
+      if (slide.imagemPrompt) {
+        imagensParaBatch.push({
+          id: imagensParaBatch.length,
+          slideId: `${secaoIdx}-${slideIdx}`,
+          prompt: slide.imagemPrompt
+        });
+      }
+    });
+  });
   
-  // Para tipo 'linha_tempo'
-  etapas?: Array<{
-    titulo: string;
-    descricao: string;
-  }>;
-  
-  // Para tipo 'termos'
-  termos?: Array<{
-    termo: string;
-    definicao: string;
-  }>;
-  
-  // Para tipo 'tabela'
-  tabela?: {
-    cabecalhos: string[];
-    linhas: string[][];
-  };
-  
-  // Para tipo 'quickcheck'
-  pergunta?: string;
-  opcoes?: string[];
-  resposta?: number;
-  feedback?: string;
-  
-  // Imagem do slide
-  imagemPrompt?: string;  // Prompt para gerar a imagem
-  imagemUrl?: string;     // URL após geração
-}
-
-interface ConceitoSecao {
-  id: number;
-  titulo: string;
-  slides: ConceitoSlide[];
+  // Disparar batch se houver imagens
+  if (imagensParaBatch.length > 0) {
+    fetch(`${supabaseUrl}/functions/v1/batch-imagens-iniciar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      body: JSON.stringify({
+        tipo: "imagens_slides",
+        items: imagensParaBatch,
+        materia_id: topico.materia_id
+      })
+    }).catch(err => console.error("Erro ao iniciar batch:", err));
+  }
 }
 ```
 
-### 2.2 Novo Componente: `SlideCollapsible.tsx`
+---
 
-Menu suspenso interativo dentro de slides:
+### Fase 4: Atualizar tipos de slides para usar imagens corretamente
 
-```typescript
-// Funcionalidades:
-// - Múltiplos itens expansíveis
-// - Animação suave de abertura/fechamento
-// - Ícones personalizados por item
-// - Permite manter múltiplos abertos
-// - Estilo visual consistente com outros slides
+#### Em `ConceitosSlidesViewer.tsx`:
+
+Adicionar indicador visual de carregamento de imagem:
+
+```tsx
+{/* Estado de loading para imagens */}
+{slide.imagemPrompt && !slide.imagemUrl && (
+  <div className="relative rounded-2xl overflow-hidden mb-6 aspect-video bg-[#1a1a2e] flex items-center justify-center">
+    <div className="text-center">
+      <Loader2 className="w-8 h-8 animate-spin text-red-400 mx-auto mb-2" />
+      <p className="text-xs text-muted-foreground">Gerando ilustração...</p>
+    </div>
+  </div>
+)}
 ```
 
-### 2.3 Componentes a Criar/Modificar
+---
 
-| Componente | Ação | Descrição |
-|------------|------|-----------|
-| `src/components/conceitos/ConceitosSlidesViewer.tsx` | CRIAR | Container principal de slides |
-| `src/components/conceitos/ConceitoSlideCard.tsx` | CRIAR | Renderiza cada tipo de slide |
-| `src/components/conceitos/SlideCollapsible.tsx` | CRIAR | Menu suspenso interativo |
-| `src/components/conceitos/ConceitosTopicoIntro.tsx` | CRIAR | Tela inicial com opção Leitura/Slides |
-| `src/pages/ConceitosTopicoEstudo.tsx` | MODIFICAR | Adicionar toggle de modo |
+## Arquivos a Modificar
 
-### 2.4 Atualização da Edge Function `gerar-conteudo-conceitos`
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/components/conceitos/slides/ConceitoSlideCard.tsx` | Redesign completo seguindo paleta do reader, imagem com título overlay, integrar EnrichedMarkdownRenderer |
+| `src/components/conceitos/slides/ConceitosSlidesViewer.tsx` | Adicionar loading state para imagens |
+| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Disparar batch-imagens-iniciar após salvar slides_json |
 
-#### Novo Prompt para Gerar Slides Estruturados
+---
 
-A função será modificada para:
+## Comparativo Visual
 
-1. **Dividir o conteúdo em 30-50 slides** (não mais 8 páginas longas)
-2. **Incluir prompts de imagem** para cada slide
-3. **Usar tipos variados de slides** (collapsible, linha_tempo, tabela, etc.)
-4. **Gerar estrutura JSON** compatível com o novo viewer
+### Antes (Design Atual)
+- Cores variadas por tipo de slide (roxo, azul, verde)
+- Ícone + título lado a lado acima do conteúdo
+- Sem imagens
+- Conteúdo em texto simples
 
-#### Estrutura do Output
+### Depois (Alinhado com Reader)
+- Paleta vermelha/laranja consistente
+- Imagem 16:9 no topo com título overlay em degradê
+- Decoração ✦ e linhas gradiente vermelhas
+- Background `#12121a` com borda sutil
+- Citações, blockquotes coloridos, tipografia Playfair Display
+- Loading state enquanto imagens são geradas em batch
 
-```json
-{
-  "secoes": [
-    {
-      "id": 1,
-      "titulo": "Introdução às Escolas Penais",
-      "slides": [
-        {
-          "tipo": "introducao",
-          "titulo": "O que você vai aprender",
-          "conteudo": "Nesta trilha...",
-          "imagemPrompt": "Classical law library with scales of justice..."
-        },
-        {
-          "tipo": "collapsible",
-          "titulo": "Conceitos Fundamentais",
-          "conteudo": "Clique para explorar cada conceito:",
-          "collapsibleItems": [
-            {
-              "titulo": "Direito Penal Clássico",
-              "conteudo": "Surgiu no século XVIII...",
-              "icone": "book"
-            },
-            {
-              "titulo": "Escola Positivista",
-              "conteudo": "Foco no criminoso, não no crime...",
-              "icone": "user"
-            }
-          ],
-          "imagemPrompt": "18th century courtroom with legal scholars..."
-        },
-        {
-          "tipo": "linha_tempo",
-          "titulo": "Evolução das Escolas Penais",
-          "conteudo": "Veja como as escolas evoluíram:",
-          "etapas": [
-            {"titulo": "Século XVIII", "descricao": "Escola Clássica - Beccaria"},
-            {"titulo": "Século XIX", "descricao": "Escola Positivista - Lombroso"},
-            {"titulo": "Século XX", "descricao": "Escola Crítica - Abolicionismo"}
-          ],
-          "imagemPrompt": "Timeline showing evolution of legal thought..."
-        }
-      ]
-    }
-  ],
-  "imagensParaBatch": [
-    {"slideId": "1-0", "prompt": "Classical law library..."},
-    {"slideId": "1-1", "prompt": "18th century courtroom..."}
-  ]
-}
-```
+---
 
-### 2.5 Fluxo de Geração com Imagens Batch
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                 FLUXO COMPLETO DE GERAÇÃO                         │
-├───────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│  ETAPA 1: Gerar Estrutura de Slides (imediato)                    │
-│  └─> gerar-conteudo-conceitos                                     │
-│      • Gera JSON com 30-50 slides                                 │
-│      • Inclui prompts de imagem para cada slide                   │
-│      • Salva estrutura no banco (sem imagens ainda)               │
-│      • Status: "slides_prontos"                                   │
-│                                                                    │
-│  ETAPA 2: Disparar Batch de Imagens (background)                  │
-│  └─> batch-imagens-iniciar                                        │
-│      • Coleta todos os prompts do tópico                          │
-│      • Cria job batch com todos os prompts                        │
-│      • Status: "gerando_imagens"                                  │
-│                                                                    │
-│  ETAPA 3: Monitorar e Processar (background/cron)                 │
-│  └─> batch-imagens-processar                                      │
-│      • Quando job completa, processa todas as imagens             │
-│      • Atualiza cada slide com sua imagemUrl                      │
-│      • Status: "concluido"                                        │
-│                                                                    │
-│  USUÁRIO PODE USAR A TRILHA IMEDIATAMENTE (Etapa 1)               │
-│  As imagens aparecem conforme ficam prontas                       │
-│                                                                    │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-### 2.6 Interface do Usuário
-
-#### Tela de Introdução do Tópico
+## Hierarquia Visual dos Slides
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    ESCOLAS PENAIS                                │
-│                 Direito Penal I                                  │
+│  Direitos da Personalidade          5/20                    ✕  │  <- Header simples
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│   [     IMAGEM DE CAPA     ]                                    │
-│                                                                  │
-│   ⏱️ 25 min  |  📑 6 seções  |  🎯 35 slides                    │
-│                                                                  │
-│   ┌─────────────────┐  ┌─────────────────┐                      │
-│   │  📖 Modo        │  │  🎬 Modo        │                      │
-│   │     Leitura     │  │     Slides ⭐   │                      │
-│   └─────────────────┘  └─────────────────┘                      │
-│                                                                  │
-│              [     COMEÇAR     ]                                 │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### Slide com Menu Collapsible
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  [←]   Conceitos   ●●●○○○○   [3/35]                       [X]  │
+│  ●●●●●○○○○○○○○○○○○○○○                                          │  <- Progress dots
 ├─────────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                                                           │  │
+│  │           [IMAGEM ILUSTRATIVA 16:9]                       │  │
+│  │                                                           │  │
+│  │   ┌───────────────────────────────────────────────────┐   │  │
+│  │   │ CONTEÚDO                                          │   │  │  <- Label sobre degradê
+│  │   │ O Que é o Direito ao Esquecimento?                │   │  │  <- Título sobre degradê
+│  │   └─────────────────────────────(degradê preto)───────┘   │  │
+│  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
-│   [     IMAGEM ILUSTRATIVA DO SLIDE     ]                       │
-│                                                                  │
-│   📚 Explore os Conceitos                                       │
-│   ─────────────────────────────                                 │
-│                                                                  │
-│   ┌─────────────────────────────────────────┐                   │
-│   │ ▸ Escola Clássica                   [+] │                   │
-│   └─────────────────────────────────────────┘                   │
-│   ┌─────────────────────────────────────────┐                   │
-│   │ ▾ Escola Positivista                [-] │                   │
-│   │   ─────────────────────────────────     │                   │
-│   │   A Escola Positivista surgiu com       │                   │
-│   │   Cesare Lombroso no século XIX...      │                   │
-│   │                                         │                   │
-│   │   Foco: criminoso (não o crime)         │                   │
-│   │   Método: científico/biológico          │                   │
-│   └─────────────────────────────────────────┘                   │
-│   ┌─────────────────────────────────────────┐                   │
-│   │ ▸ Escola Crítica                    [+] │                   │
-│   └─────────────────────────────────────────┘                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                   bg-[#12121a]                            │  │
+│  │                                                           │  │
+│  │   Agora vem a parte interessante: o Direito ao           │  │
+│  │   Esquecimento. Pense nele como a possibilidade de,      │  │
+│  │   em certas situações, não ter informações do passado    │  │
+│  │   ressurgindo para te prejudicar indefinidamente.        │  │
+│  │                                                           │  │
+│  │   > ⚠️ **ATENÇÃO:** O STF reconheceu que...              │  │  <- Blockquote colorido
+│  │                                                           │  │
+│  │   > 📌 **VOCÊ SABIA?:** O Enunciado n. 531...            │  │
+│  │                                                           │  │
+│  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│   [  ← Anterior  ]              [  Próximo →  ]                 │
+│   [  ← Anterior  ]              [  Próximo →  ]                 │  <- Navegação
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Parte 3: Detalhes Técnicos de Implementação
+## Fluxo de Geração de Imagens
 
-### 3.1 Edge Functions a Criar
-
-| Função | Arquivo | Descrição |
-|--------|---------|-----------|
-| batch-imagens-iniciar | `supabase/functions/batch-imagens-iniciar/index.ts` | Inicia job batch |
-| batch-imagens-status | `supabase/functions/batch-imagens-status/index.ts` | Consulta status |
-| batch-imagens-processar | `supabase/functions/batch-imagens-processar/index.ts` | Processa resultados |
-
-### 3.2 Edge Function a Modificar
-
-| Função | Modificação |
-|--------|-------------|
-| gerar-conteudo-conceitos | Gerar estrutura de slides JSON em vez de Markdown paginado |
-
-### 3.3 Componentes React a Criar
-
-| Componente | Arquivo | Descrição |
-|------------|---------|-----------|
-| ConceitosSlidesViewer | `src/components/conceitos/ConceitosSlidesViewer.tsx` | Viewer principal |
-| ConceitoSlideCard | `src/components/conceitos/ConceitoSlideCard.tsx` | Card de slide |
-| SlideCollapsible | `src/components/conceitos/SlideCollapsible.tsx` | Menu expansível |
-| ConceitosTopicoIntro | `src/components/conceitos/ConceitosTopicoIntro.tsx` | Tela de intro |
-
-### 3.4 Páginas a Modificar
-
-| Página | Modificação |
-|--------|-------------|
-| ConceitosTopicoEstudo.tsx | Adicionar toggle Leitura/Slides |
-
-### 3.5 Banco de Dados
-
-| Tabela | Ação | Colunas |
-|--------|------|---------|
-| conceitos_batch_jobs | CRIAR | id, job_name, tipo, status, total_items, etc. |
-| conceitos_topicos | MODIFICAR | Adicionar `slides_json` (jsonb) para nova estrutura |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 FLUXO ATUALIZADO                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. gerar-conteudo-conceitos                                    │
+│     └─> Gera slides_json com imagemPrompt para cada slide       │
+│     └─> Salva no banco                                          │
+│     └─> DISPARA batch-imagens-iniciar automaticamente           │
+│                                                                  │
+│  2. batch-imagens-iniciar                                       │
+│     └─> Cria job no conceitos_batch_jobs                        │
+│     └─> Dispara batch-imagens-processar                         │
+│                                                                  │
+│  3. batch-imagens-processar (background)                        │
+│     └─> Gera imagens uma a uma (Gemini 2.0 Flash)               │
+│     └─> Comprime com TinyPNG                                    │
+│     └─> Upload para Storage                                     │
+│     └─> Atualiza slides_json com imagemUrl                      │
+│                                                                  │
+│  USUÁRIO:                                                       │
+│  └─> Pode estudar imediatamente (slides sem imagem)             │
+│  └─> Imagens aparecem conforme são geradas                      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Cronograma de Implementação
+## Resumo das Alterações
 
-### Fase 1: Sistema Batch API (Base)
-1. Criar tabela `conceitos_batch_jobs`
-2. Implementar `batch-imagens-iniciar`
-3. Implementar `batch-imagens-status`
-4. Implementar `batch-imagens-processar`
-5. Testar com capas de tópicos existentes
+1. **Design**: Unificar paleta de cores com o modo leitura (vermelho/laranja), usar Playfair Display, background `#12121a`
 
-### Fase 2: Componentes de Slides
-1. Criar `SlideCollapsible.tsx`
-2. Criar `ConceitoSlideCard.tsx` (reutilizando tipos existentes)
-3. Criar `ConceitosSlidesViewer.tsx`
-4. Criar `ConceitosTopicoIntro.tsx`
+2. **Imagem com título**: Título do slide fica dentro da imagem, na parte inferior com degradê
 
-### Fase 3: Reformular Geração de Conteúdo
-1. Atualizar `gerar-conteudo-conceitos` para gerar slides JSON
-2. Integrar com batch de imagens
-3. Modificar `ConceitosTopicoEstudo.tsx`
+3. **Citações**: Integrar `EnrichedMarkdownRenderer` para processar blockquotes coloridos e citações legais
 
-### Fase 4: Integração e Testes
-1. Testar fluxo completo
-2. Verificar performance em mobile
-3. Ajustar animações e transições
+4. **Batch de imagens**: Disparar automaticamente após gerar slides_json, com loading state no viewer
 
----
-
-## Benefícios Esperados
-
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| **Custo de imagens** | $0.039/imagem | $0.0195/imagem (50% economia) |
-| **Formato do conteúdo** | 8 páginas longas de Markdown | 30-50 slides interativos |
-| **Engajamento** | Scroll longo | Navegação por slides |
-| **Recursos visuais** | Sem imagens nos slides | 1 imagem por slide |
-| **Interatividade** | Apenas leitura | Menus expansíveis, quickchecks |
-| **Mobile** | Scroll infinito | Swipe entre slides |
+5. **Hierarquia**: Progress dots + Imagem com overlay + Card de conteúdo + Navegação
