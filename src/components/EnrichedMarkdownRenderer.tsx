@@ -165,7 +165,7 @@ const TextWithTermos = ({ children, disableTermos = false, enableQuotes = true }
       const withQuotesAndMarkdown = processInlineMarkdown(node, enableQuotes);
       if (typeof withQuotesAndMarkdown === 'string') {
         const processed = processTextWithTermos(withQuotesAndMarkdown, disableTermos);
-        return processed.length === 1 ? processed[0] : <>{processed}</>;
+        return processed.length === 1 ? processed[0] : <React.Fragment>{processed}</React.Fragment>;
       }
       return withQuotesAndMarkdown;
     }
@@ -179,13 +179,14 @@ const TextWithTermos = ({ children, disableTermos = false, enableQuotes = true }
     }
     
     if (Array.isArray(node)) {
-      return <>{node.map((n, i) => <React.Fragment key={i}>{processChildren(n)}</React.Fragment>)}</>;
+      return <React.Fragment>{node.map((n, i) => <React.Fragment key={i}>{processChildren(n)}</React.Fragment>)}</React.Fragment>;
     }
     
     return node;
   };
   
-  return <>{processChildren(children)}</>;
+  // Usar span wrapper ao invés de Fragment para evitar props inválidas
+  return <span style={{ display: 'contents' }}>{processChildren(children)}</span>;
 };
 
 interface ImagemDiagrama {
@@ -215,6 +216,52 @@ interface ParsedBlock {
   fonte?: string;
 }
 
+// Função para quebrar parágrafos muito longos (máximo ~600 caracteres por parágrafo)
+const breakLongParagraphs = (text: string): string => {
+  const lines = text.split('\n\n');
+  const MAX_PARAGRAPH_LENGTH = 600;
+  
+  const processedLines = lines.map(paragraph => {
+    // Não quebrar se for blockquote, lista, cabeçalho, tabela ou bloco especial
+    if (paragraph.trim().startsWith('>') || 
+        paragraph.trim().startsWith('-') || 
+        paragraph.trim().startsWith('*') || 
+        paragraph.trim().startsWith('#') ||
+        paragraph.trim().startsWith('|') ||
+        paragraph.trim().match(/^\d+\./) ||
+        paragraph.includes('<<<')) {
+      return paragraph;
+    }
+    
+    // Se parágrafo for curto o suficiente, retorna como está
+    if (paragraph.length <= MAX_PARAGRAPH_LENGTH) {
+      return paragraph;
+    }
+    
+    // Quebrar parágrafo longo em sentenças
+    const sentences = paragraph.split(/(?<=[.!?])\s+/);
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    for (const sentence of sentences) {
+      if (currentChunk.length + sentence.length > MAX_PARAGRAPH_LENGTH && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      } else {
+        currentChunk += (currentChunk ? ' ' : '') + sentence;
+      }
+    }
+    
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks.join('\n\n');
+  });
+  
+  return processedLines.join('\n\n');
+};
+
 // Detecta e extrai blocos especiais do markdown
 const parseEnrichedContent = (content: string, imagensDiagramas?: ImagemDiagrama[], disableTermos: boolean = false): ParsedBlock[] => {
   const blocks: ParsedBlock[] = [];
@@ -226,6 +273,9 @@ const parseEnrichedContent = (content: string, imagensDiagramas?: ImagemDiagrama
     .replace(/^\s*\\\s*$/gm, '') // Remove linhas com apenas \
     .replace(/\\\s*\n/g, '\n') // Remove \ antes de quebra de linha
     .replace(/([^\\])\\([^\\nrt"'])/g, '$1$2'); // Remove \ isolados (exceto escapes válidos)
+  
+  // Quebrar parágrafos muito longos para melhorar leitura
+  cleanedContent = breakLongParagraphs(cleanedContent);
 
   // Processa citações inline: Segundo **AUTOR** (ano), "texto" ou **AUTOR** (ano) afirma que "texto"
   const processInlineCitations = (text: string): string => {
