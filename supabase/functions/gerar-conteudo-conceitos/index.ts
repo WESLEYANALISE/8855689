@@ -46,20 +46,20 @@ Você DEVE escrever **mínimo 5000-7000 palavras** nesta seção.
 Para CADA conceito do PDF:
 1. **Defina claramente** o que é o conceito (mínimo 3 parágrafos)
 2. **Explique POR QUE é importante** no contexto jurídico brasileiro
-3. **Dê MÚLTIPLOS EXEMPLOS PRÁTICOS** imediatamente (mínimo 2 exemplos por conceito)
+3. **Dê EXATAMENTE 1 EXEMPLO PRÁTICO por conceito** (um exemplo bem detalhado, não múltiplos)
 4. **Traduza e explique TODOS os termos em latim** com aplicação prática
 5. **Inclua jurisprudência/doutrina** quando citada no PDF
 6. **Faça transições naturais** conectando um conceito ao próximo
+7. **SEMPRE que mencionar um artigo de lei, grife-o no formato: [[Art. Xº]]** para que seja clicável
 
 ### REGRAS OBRIGATÓRIAS DE FLUIDEZ E DIDÁTICA:
 
-1. **EXEMPLOS PRÁTICOS EM ABUNDÂNCIA (OBRIGATÓRIO)**
-   A cada conceito novo, dê PELO MENOS 2 exemplos práticos:
+1. **UM EXEMPLO PRÁTICO POR CONCEITO (OBRIGATÓRIO)**
+   A cada conceito novo, dê EXATAMENTE 1 exemplo prático bem desenvolvido:
    "Por exemplo, imagine que Maria compra um celular pela internet..."
-   "Outro caso comum: João assina um contrato de aluguel e..."
-   "Na prática, funciona assim: quando você vai ao cartório..."
    
-   ⚠️ NÃO deixe nenhum conceito sem múltiplos exemplos!
+   ⚠️ NÃO dê múltiplos exemplos - UM exemplo detalhado é suficiente!
+   ⚠️ O exemplo deve ser completo e bem explicado (3-5 frases)
 
 2. **EXPLICAÇÃO DETALHADA DE TERMOS EM LATIM E JURIDIQUÊS (OBRIGATÓRIO)**
    Sempre que usar termo técnico, em latim ou juridiquês, EXPLIQUE imediatamente COM CONTEXTO:
