@@ -71,7 +71,18 @@ export const processInlineMarkdown = (text: string, enableQuoteCitation: boolean
   return parts.length > 1 ? <>{parts}</> : parts[0] || text;
 };
 
-// Função para processar texto e extrair termos destacados [[termo]] e artigos de lei
+// Verificar se um texto entre aspas é um termo conceitual (palavra curta, não citação longa)
+const isConceptualTerm = (text: string): boolean => {
+  const trimmed = text.trim();
+  // Considera termo conceitual se:
+  // 1. Tem no máximo 5 palavras
+  // 2. Não é citação legal (não começa com Art., §, etc.)
+  // 3. Não é uma frase muito longa
+  const wordCount = trimmed.split(/\s+/).length;
+  return wordCount <= 5 && !isLegalCitation(trimmed) && trimmed.length <= 60;
+};
+
+// Função para processar texto e extrair termos destacados [[termo]], "termo" entre aspas, e artigos de lei
 const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = false): React.ReactNode[] => {
   if (!text || typeof text !== 'string') return [text];
   
@@ -81,10 +92,11 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
   const parts: React.ReactNode[] = [];
   let keyIndex = 0;
   
-  // Regex para [[termo]] e referências a artigos de lei (várias formas)
-  // Prioridade: [[termo]], depois referências a artigos
-  // Captura: Art. X, artigo X, art. X, inciso X, § X, parágrafo X, e combinações
-  const combinedRegex = /\[\[([^\]]+)\]\]|((?:artigo|art\.?)\s*\d+[º°]?(?:\s*,?\s*(?:inciso|inc\.?)\s*[IVXLCDM]+|\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?|\s*,?\s*(?:alínea)\s*['"]?[a-z]['"]?)*(?:\s*,?\s*d[ao]\s+(?:Constituição|CF|CC|CP|CPC|CPP|CDC|CLT|CTN|Lei|Código)[^,;.]*)?)/gi;
+  // Regex para:
+  // 1. [[termo]] - termos explicitamente marcados
+  // 2. "termo" ou "termo" (aspas curvas) - termos entre aspas (conceituais curtos)
+  // 3. Art. X, artigo X - referências a artigos de lei
+  const combinedRegex = /\[\[([^\]]+)\]\]|"([^"]+)"|"([^"]+)"|((?:artigo|art\.?)\s*\d+[º°]?(?:\s*,?\s*(?:inciso|inc\.?)\s*[IVXLCDM]+|\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?|\s*,?\s*(?:alínea)\s*['"]?[a-z]['"]?)*(?:\s*,?\s*d[ao]\s+(?:Constituição|CF|CC|CP|CPC|CPP|CDC|CLT|CTN|Lei|Código)[^,;.]*)?)/gi;
   let lastIndex = 0;
   let match;
   
@@ -95,7 +107,7 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
     }
     
     if (match[1]) {
-      // [[termo]] - destaque de termo
+      // [[termo]] - destaque de termo explícito
       if (!disableTermos) {
         parts.push(
           <TermoHighlight key={`termo-${keyIndex++}`} termo={match[1]}>
@@ -105,9 +117,23 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
       } else {
         parts.push(match[1]);
       }
-    } else if (match[2]) {
+    } else if (match[2] || match[3]) {
+      // "termo" ou "termo" - termo entre aspas
+      const termoText = match[2] || match[3];
+      if (!disableTermos && isConceptualTerm(termoText)) {
+        // Termo conceitual curto - torna clicável
+        parts.push(
+          <TermoHighlight key={`termo-quote-${keyIndex++}`} termo={termoText}>
+            "{termoText}"
+          </TermoHighlight>
+        );
+      } else {
+        // Termo longo ou citação - mantém aspas mas não clicável
+        parts.push(`"${termoText}"`);
+      }
+    } else if (match[4]) {
       // Art. Xº - artigo de lei clicável
-      const artigoText = match[2];
+      const artigoText = match[4];
       parts.push(
         <ArtigoPopover key={`artigo-${keyIndex++}`} artigo={artigoText}>
           {artigoText}
