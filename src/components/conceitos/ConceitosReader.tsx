@@ -169,8 +169,22 @@ const extrairTopicos = (markdown: string, tituloTopico: string): Topico[] => {
     
     const linhas = secao.split('\n');
     const tituloRaw = linhas[0].trim();
-    const titulo = tituloRaw.replace(/^\d+\.\s*/, '').trim();
-    const tituloLower = titulo.toLowerCase().replace(/[🔍🃏📌💡💼🎯⚠️]/g, '').trim();
+    
+    // Extrair título limpo - remove ":" e tudo após, números, emojis
+    let titulo = tituloRaw
+      .split(':')[0] // Pega só antes do ":" (ex: "Introdução" de "Introdução: Tema")
+      .replace(/^\d+\.\s*/, '') // Remove números no início
+      .replace(/[🔍🃏📌💡💼🎯⚠️📚✨🎯]/g, '') // Remove emojis
+      .trim();
+    
+    // Mapear para título conhecido se for similar
+    const tituloLower = titulo.toLowerCase();
+    const secaoConhecida = SECOES_CONHECIDAS.find(s => tituloLower.includes(s));
+    if (secaoConhecida) {
+      // Capitalizar primeira letra de cada palavra
+      titulo = secaoConhecida.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+    
     const conteudoBruto = linhas.slice(1).join('\n').trim();
     
     // Verificar se é uma seção conhecida (Introdução, Conteúdo Completo, etc.)
@@ -198,7 +212,7 @@ const extrairTopicos = (markdown: string, tituloTopico: string): Topico[] => {
       const { conteudoLimpo, flashcards } = extrairFlashcardsDoConteudo(conteudoBruto);
       topicos.push({
         numero: topicos.length + 1,
-        titulo: titulo, // Mantém o título real (Introdução, Conteúdo Completo, etc.)
+        titulo: titulo, // Título real (Introdução, Conteúdo Completo, etc.)
         conteudo: conteudoLimpo,
         flashcards,
         ehIntroducao,

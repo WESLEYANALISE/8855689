@@ -546,7 +546,7 @@ ${cfContext || ''}`;
     const acceptHeader = request.headers.get('Accept') || '';
     const wantsSSE = acceptHeader.includes('text/event-stream');
     
-    const modelName = 'gemini-2.0-flash'; // Versão mais rápida
+    const modelName = 'gemini-2.5-flash'; // Versão mais avançada
     
     console.log('🤖 Chamando Gemini API...', {
       mode,
