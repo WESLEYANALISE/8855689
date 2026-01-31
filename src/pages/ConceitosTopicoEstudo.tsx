@@ -352,23 +352,7 @@ const ConceitosTopicoEstudo = () => {
     }
   };
 
-  // Early return AFTER all hooks
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Quando o usuário clica em "Tentar novamente" (mutation pending), a UI não deve mostrar o bloco de erro ao mesmo tempo.
-  // Não deixe a mutation pendente mascarar um status=erro vindo do banco.
-  const isErro = topico?.status === "erro";
-  const isGerando = !isErro && (topico?.status === "gerando" || isInvocandoGeracao || gerarConteudoMutation.isPending);
-  const isNaFila = topico?.status === "na_fila";
-  const progresso = topico?.progresso || 0;
-
-  // Função para salvar progresso de leitura
+  // Função para salvar progresso de leitura - DEVE estar antes de qualquer early return
   const salvarProgressoLeitura = useCallback(async (novoProgresso: number) => {
     setProgressoLeitura(novoProgresso);
     
@@ -388,6 +372,22 @@ const ConceitosTopicoEstudo = () => {
       console.error("Erro ao salvar progresso:", error);
     }
   }, [user, id]);
+
+  // Early return AFTER all hooks
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Quando o usuário clica em "Tentar novamente" (mutation pending), a UI não deve mostrar o bloco de erro ao mesmo tempo.
+  // Não deixe a mutation pendente mascarar um status=erro vindo do banco.
+  const isErro = topico?.status === "erro";
+  const isGerando = !isErro && (topico?.status === "gerando" || isInvocandoGeracao || gerarConteudoMutation.isPending);
+  const isNaFila = topico?.status === "na_fila";
+  const progresso = topico?.progresso || 0;
 
   // Se está no modo páginas, renderiza o viewer de páginas
   if (viewMode === 'slides' && slidesData) {
