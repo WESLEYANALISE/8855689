@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import StandardPageHeader from "@/components/StandardPageHeader";
 import OABTrilhasReader from "@/components/oab/OABTrilhasReader";
-import ConceitosTopicoIntro from "@/components/conceitos/ConceitosTopicoIntro";
-import ConceitosSlidesViewer from "@/components/conceitos/ConceitosSlidesViewer";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Flashcard {
@@ -41,13 +39,6 @@ const ConceitosTopicoEstudo = () => {
   
   // Key para forçar recarregamento quando voltar de flashcards/questões
   const [readerKey, setReaderKey] = useState(0);
-  
-  // Estado para modo de visualização: 'intro' | 'slides' | 'leitura'
-  const [modoVisualizacao, setModoVisualizacao] = useState<'intro' | 'slides' | 'leitura'>(() => {
-    // Verificar preferência salva
-    const saved = localStorage.getItem("conceitos-modo-preferido");
-    return 'intro'; // Sempre começa na intro para escolher
-  });
   
   // Estado para controle de fonte - default 16px
   const [fontSize, setFontSize] = useState(() => {
@@ -395,58 +386,21 @@ const ConceitosTopicoEstudo = () => {
         )}
 
         {/* Estado: Conteúdo Pronto */}
-        {topico?.status === "concluido" && topico?.conteudo_gerado && conteudoGerado?.paginas && (
-          <>
-            {/* Tela de Introdução - Escolha do modo */}
-            {modoVisualizacao === 'intro' && (
-              <ConceitosTopicoIntro
-                titulo={topico.titulo}
-                materia={topico.materia?.nome}
-                capaUrl={topico.capa_url}
-                paginas={conteudoGerado.paginas}
-                onStartSlides={() => {
-                  localStorage.setItem("conceitos-modo-preferido", "slides");
-                  setModoVisualizacao('slides');
-                }}
-                onStartReading={() => {
-                  localStorage.setItem("conceitos-modo-preferido", "leitura");
-                  setModoVisualizacao('leitura');
-                }}
-              />
-            )}
-            
-            {/* Modo Slides */}
-            {modoVisualizacao === 'slides' && (
-              <ConceitosSlidesViewer
-                paginas={conteudoGerado.paginas}
-                titulo={topico.titulo}
-                fontSize={fontSize}
-                onComplete={() => {
-                  // Navegar para flashcards
-                  navigate(`/conceitos/topico/${topico.id}/flashcards`);
-                }}
-                onExit={() => setModoVisualizacao('intro')}
-              />
-            )}
-            
-            {/* Modo Leitura Tradicional */}
-            {modoVisualizacao === 'leitura' && (
-              <OABTrilhasReader
-                key={`reader-${readerKey}`}
-                conteudoGerado={topico.conteudo_gerado}
-                paginas={conteudoGerado.paginas}
-                titulo={topico.titulo}
-                materia={topico.materia?.nome}
-                capaUrl={topico.capa_url}
-                flashcards={flashcards}
-                questoes={questoes}
-                topicoId={topico.id}
-                correspondencias={correspondencias}
-                fontSize={fontSize}
-                onFontSizeChange={handleFontSizeChange}
-              />
-            )}
-          </>
+        {topico?.status === "concluido" && topico?.conteudo_gerado && (
+          <OABTrilhasReader
+            key={`reader-${readerKey}`}
+            conteudoGerado={topico.conteudo_gerado}
+            paginas={conteudoGerado?.paginas}
+            titulo={topico.titulo}
+            materia={topico.materia?.nome}
+            capaUrl={topico.capa_url}
+            flashcards={flashcards}
+            questoes={questoes}
+            topicoId={topico.id}
+            correspondencias={correspondencias}
+            fontSize={fontSize}
+            onFontSizeChange={handleFontSizeChange}
+          />
         )}
 
         {/* Estado: Sem conteúdo e não está gerando */}
