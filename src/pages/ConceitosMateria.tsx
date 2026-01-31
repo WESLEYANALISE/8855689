@@ -255,6 +255,8 @@ const ConceitosMateria = () => {
               const progresso = progressoUsuario?.[topico.id];
               const leituraCompleta = progresso?.leituraCompleta || false;
               const progressoLeitura = progresso?.progresso || 0;
+              // Conteúdo disponível (novo: slides_json). Mantém compatibilidade com legado se existir.
+              const hasConteudo = !!(topico as any)?.slides_json || !!topico.conteudo_gerado;
               
               return (
                 <motion.button
@@ -327,7 +329,7 @@ const ConceitosMateria = () => {
                       </div>
                       
                       {/* Barra de progresso do tópico */}
-                      {topico.status === "concluido" && (
+                      {topico.status === "concluido" && hasConteudo && (
                         <div className="mt-1">
                           <Progress 
                             value={progressoLeitura} 
