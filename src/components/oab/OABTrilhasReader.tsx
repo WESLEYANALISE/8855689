@@ -419,11 +419,23 @@ const OABTrilhasReader = ({
     return recoveredFromConteudo || undefined;
   })();
 
+  // Títulos padrão das páginas (alinhado com a edge function)
+  const TITULOS_PAGINAS_PADRAO = [
+    "Introdução",
+    "Conteúdo Completo", 
+    "Desmembrando o Tema",
+    "Entendendo na Prática",
+    "Quadro Comparativo",
+    "Dicas para Memorizar",
+    "Ligar Termos",
+    "Síntese Final"
+  ];
+  
   // Extrair tópicos do conteúdo
   const topicosRaw: Topico[] = Array.isArray(paginasNormalizadas) && paginasNormalizadas.length > 0
     ? paginasNormalizadas.map((p, idx) => ({
         numero: idx + 1,
-        titulo: p.titulo || `Página ${idx + 1}`,
+        titulo: p.titulo || TITULOS_PAGINAS_PADRAO[idx] || `Página ${idx + 1}`,
         conteudo: sanitizeReaderMarkdown(p.markdown || ""),
         tipo: p.tipo,
         dados_interativos: (p as any).dados_interativos,

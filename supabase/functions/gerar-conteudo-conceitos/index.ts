@@ -557,9 +557,17 @@ Retorne APENAS o JSON, sem texto adicional.`;
       })
       .join("\n\n---\n\n");
 
+    // Montar array de páginas estruturado para o Reader
+    const paginasParaSalvar = paginasGeradas.map((p, idx) => ({
+      titulo: p.titulo,
+      markdown: p.markdown,
+      tipo: p.tipo
+    }));
+
     const termosComCorrespondencias = {
       glossario: extras.termos || [],
-      correspondencias: correspondencias
+      correspondencias: correspondencias,
+      paginas: paginasParaSalvar
     };
 
     // ============================================
