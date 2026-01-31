@@ -7,15 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Extras a serem gerados (JSON estruturado)
-const EXTRAS_CONFIG = [
-  { tipo: "correspondencias", minimo: 8 },
-  { tipo: "exemplos", minimo: 5 },
-  { tipo: "termos", minimo: 10 },
-  { tipo: "flashcards", minimo: 15 },
-  { tipo: "questoes", minimo: 8 },
-];
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -118,7 +109,8 @@ serve(async (req) => {
 
     const materiaNome = topico.materia?.nome || "";
     const topicoTitulo = topico.titulo;
-    console.log(`[Conceitos] Iniciando geração página-por-página: ${topicoTitulo}`);
+    console.log(`[Conceitos] ══════════════════════════════════════════`);
+    console.log(`[Conceitos] Iniciando geração INCREMENTAL: ${topicoTitulo}`);
 
     // ============================================
     // BUSCAR CONTEÚDO DO PDF
@@ -148,7 +140,6 @@ serve(async (req) => {
     ].filter(Boolean);
     const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
     const genAI = new GoogleGenerativeAI(geminiKey!);
-    // Usando gemini-2.5-flash-lite para geração de conteúdo de conceitos (mais rápido e econômico)
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     // Função para atualizar progresso
@@ -188,80 +179,69 @@ serve(async (req) => {
       return result;
     }
 
-    // Função para gerar e fazer parse de JSON
-    async function gerarJSON(prompt: string): Promise<any> {
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.5 },
-      });
+    // Função para gerar e fazer parse de JSON com retry
+    async function gerarJSON(prompt: string, maxRetries = 2): Promise<any> {
+      let lastError: any = null;
       
-      let text = result.response.text();
-      text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
-      
-      const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (!match) throw new Error("JSON não encontrado na resposta");
-      
-      const sanitized = sanitizeJsonString(match[0]);
-      
-      try {
-        return JSON.parse(sanitized);
-      } catch {
-        const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
-        return JSON.parse(fixed);
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`[Conceitos] Retry ${attempt}/${maxRetries}...`);
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+          }
+          
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.5 },
+          });
+          
+          let text = result.response.text();
+          text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+          
+          const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+          if (!match) throw new Error("JSON não encontrado na resposta");
+          
+          const sanitized = sanitizeJsonString(match[0]);
+          
+          try {
+            return JSON.parse(sanitized);
+          } catch {
+            const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
+            return JSON.parse(fixed);
+          }
+        } catch (err) {
+          lastError = err;
+          console.error(`[Conceitos] Tentativa ${attempt + 1} falhou:`, err);
+        }
       }
+      
+      throw lastError;
     }
 
     // ============================================
-    // PROMPT BASE PARA GERAÇÃO
+    // PROMPT BASE
     // ============================================
     const promptBase = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
-Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café e ajudando um colega a entender a matéria.
+Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café.
 
-## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
+## 🎯 ESTILO DE ESCRITA:
+- Escreva como CONVERSA, use expressões como "Olha só...", "Percebeu?", "Veja bem..."
+- Perguntas retóricas para engajar
+- Analogias com situações do dia a dia
+- Explicar TODO termo técnico ou em latim
+- Exemplos práticos imediatos
 
-### ✅ FAÇA SEMPRE:
-- Escreva como se estivesse CONVERSANDO com o estudante
-- Use expressões naturais (varie, não repita a mesma mais de 2x):
-  • "Olha só, é assim que funciona..."
-  • "Veja bem, isso é super importante porque..."
-  • "Percebeu a diferença? Esse é o pulo do gato!"
-  • "Agora vem a parte interessante..."
-  • "Resumindo pra você não esquecer..."
-- Use perguntas retóricas para engajar ("E por que isso importa tanto?")
-- Faça analogias com situações do dia a dia
-- A cada termo técnico, EXPLIQUE o que significa COM DETALHES E EXEMPLOS
-- Cite exemplos práticos DURANTE a explicação
-- Após conceitos complexos, faça um breve resumo informal
-
-### 📖 PROFUNDIDADE DE CONTEÚDO (CRÍTICO!):
-
-Para CADA página de tipo "texto":
-1. Comece explicando O QUE É o conceito (definição clara e completa)
-2. Explique POR QUE é importante (contexto jurídico brasileiro)
-3. Dê exemplos práticos detalhados
-4. Se tiver termo em latim, EXPLIQUE com aplicação prática
-5. Se o PDF citar doutrina/jurisprudência, INCLUA
-6. Se for ponto de prova, marque com > ⚠️ **ATENÇÃO:**
-7. Faça transições naturais entre conceitos
-
-### ❌ NÃO FAÇA:
-- Linguagem excessivamente formal/acadêmica
-- Parágrafos longos e densos sem pausas
-- **NUNCA USE EMOJIS NO TEXTO CORRIDO** (emojis SÓ nos elementos visuais)
-
-## 📋 FORMATO DOS ELEMENTOS VISUAIS (CRÍTICO!):
-
-SEMPRE use o caractere > (blockquote) no INÍCIO da linha para elementos especiais:
-> ⚠️ **ATENÇÃO:** texto aqui
-> 💡 **DICA:** texto aqui
-> 📌 **EM RESUMO:** texto aqui
-> 💼 **CASO PRÁTICO:** texto aqui
-> 🎯 **VOCÊ SABIA?:** texto aqui
+## 📖 PROFUNDIDADE (CRÍTICO!):
+- Mínimo 200-400 palavras por página tipo "texto"
+- Sempre incluir: "📚 **EXEMPLO PRÁTICO:** ..."
+- Sempre traduzir latim: "O termo *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos')..."
+- Usar blockquotes para citações: > "Art. 421 do CC..."
+- Cards visuais: > ⚠️ **ATENÇÃO:**, > 💡 **DICA:**
 
 ## 📚 FIDELIDADE AO PDF:
-- Use 100% do texto e informações do PDF
-- Cite APENAS artigos/leis que aparecem LITERALMENTE no PDF
-- Inclua TODAS as citações de doutrinadores do PDF
+- Use 100% do conteúdo do PDF
+- Cite artigos/leis que aparecem no PDF
+- Inclua citações de doutrinadores
 
 **Matéria:** ${materiaNome}
 **Tópico:** ${topicoTitulo}
@@ -270,25 +250,196 @@ SEMPRE use o caractere > (blockquote) no INÍCIO da linha para elementos especia
 ${conteudoPDF || "Conteúdo não disponível"}
 ═══════════════════════`;
 
+    await updateProgress(10);
+
+    // ============================================
+    // ETAPA 1: GERAR ESTRUTURA/ESQUELETO
+    // ============================================
+    console.log(`[Conceitos] ETAPA 1: Gerando estrutura/esqueleto...`);
+    
+    const promptEstrutura = `${promptBase}
+
+═══ SUA TAREFA ═══
+Crie APENAS a ESTRUTURA/ESQUELETO do conteúdo interativo.
+NÃO gere o conteúdo completo agora, apenas títulos e tipos de página.
+
+Retorne um JSON com esta estrutura EXATA:
+{
+  "titulo": "${topicoTitulo}",
+  "tempoEstimado": "25 min",
+  "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3", "Objetivo 4"],
+  "secoes": [
+    {
+      "id": 1,
+      "titulo": "Nome da Seção",
+      "paginas": [
+        {"tipo": "introducao", "titulo": "O que você vai aprender"},
+        {"tipo": "texto", "titulo": "Conceito Principal X"},
+        {"tipo": "texto", "titulo": "Detalhamento de Y"},
+        {"tipo": "termos", "titulo": "Termos Importantes"},
+        {"tipo": "quickcheck", "titulo": "Verificação Rápida"}
+      ]
+    },
+    {
+      "id": 2,
+      "titulo": "Segunda Seção",
+      "paginas": [...]
+    }
+  ]
+}
+
+REGRAS:
+1. Gere entre 5-7 seções
+2. Cada seção deve ter 6-10 páginas (total final: 35-55 páginas)
+3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
+4. Distribua bem os tipos (não só "texto")
+5. Cada seção deve ter pelo menos 1 quickcheck
+6. Use títulos descritivos para cada página
+7. Cubra TODO o conteúdo do PDF
+
+Retorne APENAS o JSON, sem texto adicional.`;
+
+    let estrutura: any = null;
+    try {
+      estrutura = await gerarJSON(promptEstrutura);
+      
+      if (!estrutura?.secoes || !Array.isArray(estrutura.secoes) || estrutura.secoes.length < 3) {
+        throw new Error("Estrutura inválida: menos de 3 seções");
+      }
+      
+      const totalPaginasEstrutura = estrutura.secoes.reduce(
+        (acc: number, s: any) => acc + (s.paginas?.length || 0), 0
+      );
+      console.log(`[Conceitos] ✓ Estrutura: ${estrutura.secoes.length} seções, ${totalPaginasEstrutura} páginas planejadas`);
+    } catch (err) {
+      console.error(`[Conceitos] ❌ Erro na estrutura:`, err);
+      throw new Error(`Falha ao gerar estrutura: ${err}`);
+    }
+
     await updateProgress(15);
 
     // ============================================
-    // GERAR EXTRAS (JSON)
+    // ETAPA 2: GERAR CONTEÚDO POR SEÇÃO (BATCH INCREMENTAL)
     // ============================================
-    console.log(`[Conceitos] Gerando extras (correspondências, flashcards, questões)...`);
+    console.log(`[Conceitos] ETAPA 2: Gerando conteúdo seção por seção...`);
+    
+    const secoesCompletas: any[] = [];
+    const totalSecoes = estrutura.secoes.length;
+
+    for (let i = 0; i < totalSecoes; i++) {
+      const secaoEstrutura = estrutura.secoes[i];
+      const progressoSecao = Math.round(20 + (i / totalSecoes) * 60); // 20% a 80%
+      
+      console.log(`[Conceitos] Gerando seção ${i + 1}/${totalSecoes}: ${secaoEstrutura.titulo}`);
+      await updateProgress(progressoSecao);
+
+      const promptSecao = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere o CONTEÚDO COMPLETO para a SEÇÃO ${i + 1}:
+Título: "${secaoEstrutura.titulo}"
+
+PÁGINAS A GERAR (com seus tipos):
+${JSON.stringify(secaoEstrutura.paginas, null, 2)}
+
+Para CADA página, retorne o objeto completo com:
+
+1. Para tipo "introducao":
+   {"tipo": "introducao", "titulo": "...", "conteudo": "Texto motivador sobre o que será aprendido...", "imagemPrompt": "Professional educational illustration..."}
+
+2. Para tipo "texto":
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA (200-400 palavras) com exemplos, termos explicados, citações legais...", "imagemPrompt": "..."}
+
+3. Para tipo "termos":
+   {"tipo": "termos", "titulo": "...", "conteudo": "Introdução breve", "termos": [{"termo": "...", "definicao": "..."}], "imagemPrompt": "..."}
+
+4. Para tipo "linha_tempo":
+   {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Contexto", "etapas": [{"titulo": "...", "descricao": "..."}], "imagemPrompt": "..."}
+
+5. Para tipo "tabela":
+   {"tipo": "tabela", "titulo": "...", "conteudo": "Descrição", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}, "imagemPrompt": "..."}
+
+6. Para tipo "atencao":
+   {"tipo": "atencao", "titulo": "...", "conteudo": "⚠️ Ponto importante com exemplo...", "imagemPrompt": "..."}
+
+7. Para tipo "dica":
+   {"tipo": "dica", "titulo": "...", "conteudo": "💡 Dica de memorização ou macete...", "imagemPrompt": "..."}
+
+8. Para tipo "caso":
+   {"tipo": "caso", "titulo": "...", "conteudo": "💼 Descrição do caso prático com análise jurídica...", "imagemPrompt": "..."}
+
+9. Para tipo "quickcheck":
+   {"tipo": "quickcheck", "titulo": "...", "conteudo": "Teste seu conhecimento:", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "Explicação...", "imagemPrompt": "..."}
+
+10. Para tipo "resumo":
+    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando:", "pontos": ["...", "...", "..."], "imagemPrompt": "..."}
+
+Retorne um JSON com a seção COMPLETA:
+{
+  "id": ${secaoEstrutura.id},
+  "titulo": "${secaoEstrutura.titulo}",
+  "slides": [
+    // Array com TODAS as páginas completas
+  ]
+}
+
+REGRAS CRÍTICAS:
+- imagemPrompt deve ser em INGLÊS, descrevendo ilustração educacional profissional
+- Páginas "texto" devem ter 200-400 palavras com exemplos práticos
+- Use blockquotes (>) para citações e cards de atenção
+- NUNCA use emojis no texto corrido (só nos cards especiais)
+
+Retorne APENAS o JSON da seção, sem texto adicional.`;
+
+      try {
+        const secaoCompleta = await gerarJSON(promptSecao);
+        
+        if (!secaoCompleta?.slides || !Array.isArray(secaoCompleta.slides)) {
+          throw new Error(`Seção ${i + 1} sem slides válidos`);
+        }
+        
+        if (secaoCompleta.slides.length < 3) {
+          throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
+        }
+        
+        secoesCompletas.push(secaoCompleta);
+        console.log(`[Conceitos] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas`);
+        
+      } catch (err) {
+        console.error(`[Conceitos] ❌ Erro na seção ${i + 1}:`, err);
+        // Criar seção de fallback mínima
+        secoesCompletas.push({
+          id: secaoEstrutura.id,
+          titulo: secaoEstrutura.titulo,
+          slides: [{
+            tipo: "texto",
+            titulo: secaoEstrutura.titulo,
+            conteudo: `Conteúdo da seção "${secaoEstrutura.titulo}" está sendo regenerado. Por favor, tente novamente em alguns instantes.`,
+            imagemPrompt: "Educational placeholder illustration"
+          }]
+        });
+      }
+    }
+
+    await updateProgress(85);
+
+    // ============================================
+    // ETAPA 3: GERAR EXTRAS (correspondências, flashcards, questões)
+    // ============================================
+    console.log(`[Conceitos] ETAPA 3: Gerando extras...`);
 
     const promptExtras = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Gere os seguintes elementos de estudo baseados no conteúdo:
+Gere elementos de estudo complementares:
 
-Retorne um JSON válido com esta estrutura EXATA:
+Retorne JSON com:
 {
   "correspondencias": [
     {"termo": "Termo do PDF", "definicao": "Definição curta (máx 60 chars)"}
   ],
   "exemplos": [
-    {"titulo": "Título do caso", "situacao": "Descrição", "analise": "Análise jurídica", "conclusao": "Conclusão"}
+    {"titulo": "Título do caso", "situacao": "Descrição", "analise": "Análise", "conclusao": "Conclusão"}
   ],
   "termos": [
     {"termo": "Termo jurídico", "definicao": "Definição completa"}
@@ -297,40 +448,61 @@ Retorne um JSON válido com esta estrutura EXATA:
     {"frente": "Pergunta", "verso": "Resposta", "exemplo": "Exemplo prático"}
   ],
   "questoes": [
-    {"pergunta": "Enunciado da questão", "alternativas": ["A) opção", "B) opção", "C) opção", "D) opção"], "correta": 0, "explicacao": "Explicação da resposta"}
+    {"pergunta": "Enunciado", "alternativas": ["A) opção", "B) opção", "C) opção", "D) opção"], "correta": 0, "explicacao": "Explicação"}
   ]
 }
 
-QUANTIDADES:
-- correspondencias: mínimo 8 pares
-- exemplos: mínimo 5 casos
-- termos: mínimo 10 termos
-- flashcards: mínimo 15 cards
-- questoes: mínimo 8 questões
+QUANTIDADES: correspondencias: 8+, exemplos: 5+, termos: 10+, flashcards: 15+, questoes: 8+
 
-Retorne APENAS o JSON, sem texto adicional.`;
+Retorne APENAS o JSON.`;
 
     let extras: any = {};
     try {
       extras = await gerarJSON(promptExtras);
       console.log(`[Conceitos] ✓ Extras gerados`);
     } catch (err) {
-      console.error(`[Conceitos] ❌ Erro nos extras, gerando fallback:`, err);
-      extras = {
-        correspondencias: [],
-        exemplos: [],
-        termos: [],
-        flashcards: [],
-        questoes: []
-      };
+      console.error(`[Conceitos] ❌ Erro nos extras (usando fallback):`, err);
+      extras = { correspondencias: [], exemplos: [], termos: [], flashcards: [], questoes: [] };
     }
 
     await updateProgress(90);
 
-    // Validar correspondências
+    // ============================================
+    // ETAPA 4: MONTAR E VALIDAR ESTRUTURA FINAL
+    // ============================================
+    console.log(`[Conceitos] ETAPA 4: Montando estrutura final...`);
+
+    const slidesData = {
+      versao: 1,
+      titulo: estrutura.titulo || topicoTitulo,
+      tempoEstimado: estrutura.tempoEstimado || "25 min",
+      objetivos: estrutura.objetivos || [],
+      secoes: secoesCompletas
+    };
+
+    // VALIDAÇÃO CRÍTICA: Contar páginas totais
+    const totalPaginas = secoesCompletas.reduce(
+      (acc, s) => acc + (s.slides?.length || 0), 0
+    );
+
+    console.log(`[Conceitos] Validação: ${totalPaginas} páginas em ${secoesCompletas.length} seções`);
+
+    // VALIDAÇÃO: Mínimo de 20 páginas para considerar válido
+    if (totalPaginas < 20) {
+      throw new Error(`Conteúdo insuficiente: apenas ${totalPaginas} páginas (mínimo: 20). A geração será marcada como erro.`);
+    }
+
+    // Validar que cada seção tem slides
+    const secoesVazias = secoesCompletas.filter(s => !s.slides || s.slides.length === 0);
+    if (secoesVazias.length > 0) {
+      throw new Error(`${secoesVazias.length} seções sem conteúdo. A geração será marcada como erro.`);
+    }
+
+    // ============================================
+    // MONTAR CORRESPONDÊNCIAS
+    // ============================================
     let correspondencias = extras.correspondencias || [];
     if (!Array.isArray(correspondencias) || correspondencias.length < 6) {
-      // Fallback: usar termos se disponíveis
       if (extras.termos && Array.isArray(extras.termos) && extras.termos.length >= 6) {
         correspondencias = extras.termos.slice(0, 10).map((t: any) => ({
           termo: t.termo || t.nome || String(t),
@@ -347,183 +519,13 @@ Retorne APENAS o JSON, sem texto adicional.`;
         definicao: String(c.definicao).trim().substring(0, 80)
       }));
 
-    console.log(`[Conceitos] Correspondências válidas: ${correspondencias.length}`);
-
-    // ============================================
-    // GERAR ESTRUTURA DE SLIDES INTERATIVOS
-    // ============================================
-    console.log(`[Conceitos] Gerando estrutura de páginas interativas...`);
-    
-    const promptSlides = `${promptBase}
-
-═══ SUA TAREFA ═══
-Transforme o conteúdo do PDF em uma estrutura de PÁGINAS INTERATIVAS para estudo.
-
-CADA PÁGINA DEVE SER SUPER EXPLICATIVA com:
-- Mínimo 200-400 palavras por página de tipo "texto"
-- Exemplos práticos imediatos após cada conceito
-- Explicação de TODOS os termos em latim e juridiquês
-- Citações de artigos, doutrina e jurisprudência do PDF
-
-Retorne um JSON válido com esta estrutura EXATA:
-{
-  "versao": 1,
-  "titulo": "${topicoTitulo}",
-  "tempoEstimado": "25 min",
-  "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"],
-  "secoes": [
-    {
-      "id": 1,
-      "titulo": "Nome da Seção",
-      "slides": [
-        {
-          "tipo": "introducao",
-          "titulo": "O que você vai aprender",
-          "conteudo": "Texto introdutório motivador...",
-          "imagemPrompt": "Professional legal illustration showing..."
-        },
-        {
-          "tipo": "texto",
-          "titulo": "Conceito Principal",
-          "conteudo": "Explicação EXTENSA e DIDÁTICA do conceito...\\n\\n📚 **EXEMPLO PRÁTICO:** Maria comprou um celular...\\n\\nO termo *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos') indica que...\\n\\n> \\"Art. 421 do CC - A liberdade contratual será exercida...\\" (Código Civil)\\n\\n> ⚠️ **ATENÇÃO:** Este ponto costuma cair em provas!",
-          "imagemPrompt": "Educational illustration of..."
-        },
-        {
-          "tipo": "termos",
-          "titulo": "Termos Importantes",
-          "conteudo": "Conheça os termos essenciais:",
-          "termos": [
-            {"termo": "Termo em latim", "definicao": "Significado claro em português"},
-            {"termo": "Termo jurídico", "definicao": "Explicação acessível"}
-          ],
-          "imagemPrompt": "Legal glossary concept..."
-        },
-        {
-          "tipo": "linha_tempo",
-          "titulo": "Evolução Histórica",
-          "conteudo": "Veja como o tema evoluiu:",
-          "etapas": [
-            {"titulo": "Etapa 1", "descricao": "Descrição da etapa"},
-            {"titulo": "Etapa 2", "descricao": "Descrição da etapa"}
-          ],
-          "imagemPrompt": "Timeline showing legal evolution..."
-        },
-        {
-          "tipo": "tabela",
-          "titulo": "Comparativo",
-          "conteudo": "Compare os principais aspectos:",
-          "tabela": {
-            "cabecalhos": ["Aspecto", "Tipo A", "Tipo B"],
-            "linhas": [
-              ["Característica 1", "Valor A1", "Valor B1"],
-              ["Característica 2", "Valor A2", "Valor B2"]
-            ]
-          },
-          "imagemPrompt": "Comparison chart concept..."
-        },
-        {
-          "tipo": "atencao",
-          "titulo": "Ponto de Atenção",
-          "conteudo": "⚠️ Cuidado! Este é um ponto importante que costuma cair em provas...\\n\\n📚 **EXEMPLO:** Imagine que...",
-          "imagemPrompt": "Warning sign concept..."
-        },
-        {
-          "tipo": "dica",
-          "titulo": "Dica de Memorização",
-          "conteudo": "💡 Use este mnemônico para lembrar: SIGLA = ...\\n\\nOutra dica: associe o conceito X com...",
-          "imagemPrompt": "Memory tip concept..."
-        },
-        {
-          "tipo": "caso",
-          "titulo": "Caso Prático",
-          "conteudo": "💼 Imagine a seguinte situação:\\n\\nJoão comprou um imóvel...\\n\\n**Análise jurídica:** Aplicando o que estudamos...\\n\\n**Conclusão:** Portanto...",
-          "imagemPrompt": "Legal case study illustration..."
-        },
-        {
-          "tipo": "quickcheck",
-          "titulo": "Verificação Rápida",
-          "conteudo": "Teste seu conhecimento:",
-          "pergunta": "Qual é a característica principal de X?",
-          "opcoes": ["Opção A", "Opção B", "Opção C", "Opção D"],
-          "resposta": 0,
-          "feedback": "Correto! A resposta é A porque..."
-        },
-        {
-          "tipo": "resumo",
-          "titulo": "Resumo da Seção",
-          "conteudo": "Recapitulando os pontos principais:",
-          "pontos": ["Ponto 1", "Ponto 2", "Ponto 3"],
-          "imagemPrompt": "Summary concept..."
-        }
-      ]
-    }
-  ]
-}
-
-REGRAS CRÍTICAS:
-1. Gere entre 35-55 páginas no total, divididas em 5-7 seções
-2. Use TODOS os tipos de páginas disponíveis de forma variada
-3. Cada seção deve ter 5-10 páginas
-4. Inclua imagemPrompt para TODOS as páginas (descrição para gerar imagem ilustrativa)
-5. O imagemPrompt deve ser em INGLÊS e descrever uma ilustração educacional profissional
-6. Use tom CONVERSACIONAL e didático no conteúdo
-7. Inclua pelo menos 4 páginas tipo "quickcheck" espalhadas pelo conteúdo
-8. Inclua pelo menos 2 páginas tipo "atencao" com pontos importantes
-9. Inclua pelo menos 2 páginas tipo "dica" com mnemônicos e macetes
-10. Garanta que o conteúdo seja COMPLETO - não pule informações importantes do PDF
-
-CONTEÚDO OBRIGATÓRIO EM CADA PÁGINA TIPO "texto":
-- Mínimo 200 palavras de explicação clara e didática
-- Exemplo prático imediato: "📚 **EXEMPLO PRÁTICO:** Maria vendeu..."
-- Explicação de termos: "O termo *habeas corpus* (que significa 'que tenhas o corpo') é..."
-- Citações quando houver no PDF: "> \\"Art. 5º, inciso XXXV...\\" (CF/88)"
-- Cards visuais: "> ⚠️ **ATENÇÃO:** ...", "> 💡 **DICA:** ..."
-
-TIPOS DE PÁGINAS DISPONÍVEIS (NÃO use collapsible):
-- introducao: Página de abertura com objetivos
-- texto: Explicação EXTENSA de um conceito com exemplos
-- termos: Lista de termos com definições
-- linha_tempo: Timeline/etapas/procedimentos
-- tabela: Quadro comparativo
-- atencao: Ponto importante/pegadinha
-- dica: Dica de memorização/estudo
-- caso: Caso prático/exemplo detalhado
-- resumo: Resumo com pontos principais
-- quickcheck: Mini-quiz rápido
-
-⛔ NÃO USE tipo "collapsible" - substitua por "texto" com subtítulos
-
-Retorne APENAS o JSON válido, sem texto adicional.`;
-
-    let slidesData: any = null;
-    try {
-      slidesData = await gerarJSON(promptSlides);
-      console.log(`[Conceitos] ✓ Páginas geradas: ${slidesData?.secoes?.length || 0} seções`);
-    } catch (err) {
-      console.error(`[Conceitos] ❌ Erro ao gerar páginas:`, err);
-      slidesData = null;
-    }
-
-    // ============================================
-    // MONTAR TERMOS COM CORRESPONDÊNCIAS
-    // ============================================
     const termosComCorrespondencias = {
       glossario: extras.termos || [],
       correspondencias: correspondencias
     };
 
-    // Contar total de páginas no slides_json
-    let totalPaginas = 0;
-    if (slidesData?.secoes && Array.isArray(slidesData.secoes)) {
-      slidesData.secoes.forEach((secao: any) => {
-        if (secao.slides && Array.isArray(secao.slides)) {
-          totalPaginas += secao.slides.length;
-        }
-      });
-    }
-
     // ============================================
-    // SALVAR NO BANCO
+    // SALVAR NO BANCO (SÓ SE VÁLIDO!)
     // ============================================
     const { error: updateError } = await supabase
       .from("conceitos_topicos")
@@ -532,7 +534,7 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
         termos: termosComCorrespondencias,
         flashcards: extras.flashcards || [],
         questoes: extras.questoes || [],
-        slides_json: slidesData, // Estrutura de slides interativos (ÚNICO formato)
+        slides_json: slidesData,
         status: "concluido",
         progresso: 100,
         tentativas: (topico.tentativas || 0) + 1,
@@ -545,12 +547,15 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
       throw updateError;
     }
 
-    console.log(`[Conceitos] ✅ Conteúdo salvo: ${topicoTitulo} (${totalPaginas} páginas)`);
+    console.log(`[Conceitos] ══════════════════════════════════════════`);
+    console.log(`[Conceitos] ✅ SUCESSO: ${topicoTitulo}`);
+    console.log(`[Conceitos] ✅ ${totalPaginas} páginas em ${secoesCompletas.length} seções`);
+    console.log(`[Conceitos] ══════════════════════════════════════════`);
 
     // ============================================
-    // DISPARAR BATCH DE IMAGENS PARA OS SLIDES
+    // DISPARAR BATCH DE IMAGENS
     // ============================================
-    if (slidesData?.secoes && Array.isArray(slidesData.secoes)) {
+    if (slidesData.secoes && Array.isArray(slidesData.secoes)) {
       const imagensParaBatch: Array<{id: number; slideId: string; prompt: string}> = [];
       
       slidesData.secoes.forEach((secao: any, secaoIdx: number) => {
@@ -567,9 +572,8 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
         }
       });
       
-      // Disparar batch se houver imagens a gerar
       if (imagensParaBatch.length > 0) {
-        console.log(`[Conceitos] Disparando batch para ${imagensParaBatch.length} imagens de slides`);
+        console.log(`[Conceitos] Disparando batch para ${imagensParaBatch.length} imagens`);
         
         fetch(`${supabaseUrl}/functions/v1/batch-imagens-iniciar`, {
           method: "POST",
@@ -595,11 +599,11 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Conteúdo gerado em formato de páginas interativas",
+        message: "Conteúdo gerado com sucesso (modo incremental)",
         topico_id,
         titulo: topicoTitulo,
         paginas: totalPaginas,
-        secoes: slidesData?.secoes?.length || 0,
+        secoes: secoesCompletas.length,
         stats: {
           correspondencias: correspondencias.length,
           exemplos: extras.exemplos?.length || 0,
@@ -611,13 +615,20 @@ Retorne APENAS o JSON válido, sem texto adicional.`;
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("[Conceitos] ❌ Erro:", error);
+    console.error("[Conceitos] ══════════════════════════════════════════");
+    console.error("[Conceitos] ❌ ERRO:", error.message || error);
+    console.error("[Conceitos] ══════════════════════════════════════════");
 
     try {
       if (topicoIdForCatch && supabaseForCatch) {
+        // Marcar como ERRO - nunca como concluído sem conteúdo válido!
         await supabaseForCatch
           .from("conceitos_topicos")
-          .update({ status: "erro", progresso: 0 })
+          .update({ 
+            status: "erro", 
+            progresso: 0,
+            posicao_fila: null
+          })
           .eq("id", topicoIdForCatch);
 
         await processarProximoDaFila(
