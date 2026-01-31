@@ -12,42 +12,96 @@ const PAGINAS_CONFIG = [
   { 
     tipo: "introducao", 
     titulo: "Introdução", 
-    promptExtra: "Escreva uma introdução clara de 400-600 palavras. Apresente o tema, sua importância no ordenamento jurídico e o que será abordado. Comece diretamente com o conteúdo (ex: 'O tema X representa...'). NÃO use frases como 'E aí!', 'Vamos lá!', 'Bora!', 'Ok,'." 
+    promptExtra: `Escreva uma introdução clara de 400-600 palavras.
+Apresente o tema, sua importância no ordenamento jurídico e o que será abordado.
+Comece diretamente com o conteúdo (ex: 'O tema X representa...').
+NÃO use frases como 'E aí!', 'Vamos lá!', 'Bora!', 'Ok,'.
+
+Use elementos visuais quando apropriado:
+> 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema]` 
   },
   { 
     tipo: "conteudo_principal", 
     titulo: "Conteúdo Completo", 
-    promptExtra: "Escreva o conteúdo principal com MÍNIMO 3000 palavras. Cubra TODO o conteúdo do PDF de forma didática e organizada. Use subtítulos (##, ###) para estruturar. Comece diretamente com o conteúdo, sem saudações ou frases de abertura informais." 
+    promptExtra: `Escreva o conteúdo principal com MÍNIMO 3000 palavras.
+Cubra TODO o conteúdo do PDF de forma didática e organizada.
+Use subtítulos (###) para estruturar cada parte.
+Comece diretamente com o conteúdo, sem saudações.
+
+OBRIGATÓRIO usar estes elementos visuais ao longo do texto:
+> ⚠️ **ATENÇÃO:** [ponto importante que o estudante deve observar]
+> 💡 **DICA:** [dica prática para entender melhor]
+> 📌 **EM RESUMO:** [resumo de uma seção]
+> 💼 **CASO PRÁTICO:** [exemplo prático da aplicação]
+
+Use pelo menos 3-5 destes elementos ao longo do conteúdo.` 
   },
   { 
     tipo: "desmembrando", 
     titulo: "Desmembrando o Tema", 
-    promptExtra: "Divida o tema em partes menores (800-1200 palavras). Explique cada conceito separadamente, com subtítulos claros. Inicie diretamente: 'Para compreender melhor o tema, analisemos...'." 
+    promptExtra: `Divida o tema em partes menores (800-1200 palavras).
+Explique cada conceito separadamente, com subtítulos claros (###).
+Inicie diretamente: 'Para compreender melhor o tema, analisemos...'.
+
+Use elementos visuais:
+> ⚠️ **ATENÇÃO:** [ponto crítico]
+> 💡 **DICA:** [dica de memorização]` 
   },
   { 
     tipo: "entendendo_na_pratica", 
     titulo: "Entendendo na Prática", 
-    promptExtra: "Apresente 5 exemplos práticos/casos concretos que ilustrem os conceitos (800-1200 palavras). Use situações reais ou hipotéticas com análise jurídica. Formato: ### Caso 1: Título\\n**Situação:** ...\\n**Análise Jurídica:** ...\\n**Conclusão:** ..." 
+    promptExtra: `Apresente 5 exemplos práticos/casos concretos (800-1200 palavras).
+Use situações reais ou hipotéticas com análise jurídica.
+
+Formato para cada caso:
+### Caso 1: [Título do Caso]
+> 💼 **CASO PRÁTICO:** [Descrição da situação]
+
+**Análise Jurídica:** [Análise do caso]
+**Conclusão:** [Conclusão do caso]` 
   },
   { 
     tipo: "quadro_comparativo", 
     titulo: "Quadro Comparativo", 
-    promptExtra: "Crie tabelas comparativas entre conceitos similares do tema (use formato markdown de tabela). Compare institutos, requisitos, efeitos, etc. Inclua pelo menos 2 tabelas relevantes." 
+    promptExtra: `Crie tabelas comparativas entre conceitos similares do tema.
+Use formato markdown de tabela.
+Compare institutos, requisitos, efeitos, etc.
+Inclua pelo menos 2 tabelas relevantes.
+
+Exemplo de formato:
+| Aspecto | Conceito A | Conceito B |
+|---------|------------|------------|
+| Definição | ... | ... |` 
   },
   { 
     tipo: "dicas_provas", 
     titulo: "Dicas para Memorizar", 
-    promptExtra: "Forneça dicas de memorização, macetes e pontos-chave para lembrar (600-800 palavras). Use técnicas como acrônimos, associações, esquemas mentais. Destaque o que mais cai em provas." 
+    promptExtra: `Forneça dicas de memorização, macetes e pontos-chave (600-800 palavras).
+Use técnicas como acrônimos, associações, esquemas mentais.
+Destaque o que mais cai em provas.
+
+OBRIGATÓRIO usar:
+> 💡 **DICA DE PROVA:** [macete ou dica específica para provas]
+> ⚠️ **ATENÇÃO:** [ponto que costuma confundir em provas]
+
+Use pelo menos 4-5 destes elementos.` 
   },
   { 
     tipo: "correspondencias", 
     titulo: "Ligar Termos", 
-    promptExtra: "Escreva uma breve instrução (2-3 frases) para um exercício interativo de ligar termos às suas definições. Seja direto e objetivo." 
+    promptExtra: `Escreva uma breve instrução (2-3 frases) para um exercício interativo.
+Explique que o estudante deve ligar os termos às suas definições corretas.
+Seja direto e objetivo.` 
   },
   { 
     tipo: "sintese_final", 
     titulo: "Síntese Final", 
-    promptExtra: "Faça um resumo conciso de tudo que foi abordado (500-700 palavras). Destaque os pontos principais e conecte os conceitos. Encerre de forma profissional, sem expressões coloquiais." 
+    promptExtra: `Faça um resumo conciso de tudo que foi abordado (500-700 palavras).
+Destaque os pontos principais e conecte os conceitos.
+Encerre de forma profissional.
+
+Use:
+> 📌 **EM RESUMO:** [síntese dos pontos principais]` 
   },
 ];
 
@@ -408,14 +462,15 @@ Retorne APENAS o JSON, sem texto adicional.`;
     console.log(`[Conceitos] Correspondências válidas: ${correspondencias.length}`);
 
     // ============================================
-    // MONTAR CONTEÚDO FINAL
+    // MONTAR CONTEÚDO FINAL COM TÍTULOS DAS SEÇÕES
     // ============================================
     const conteudoPrincipal = paginasGeradas
       .map((p, i) => {
-        const separador = i > 0 ? "\n\n---\n\n" : "";
-        return `${separador}${p.markdown}`;
+        // Adiciona título da seção como ## para criar páginas no reader
+        const tituloSecao = `## ${p.titulo.split(':')[0]}\n\n`;
+        return `${tituloSecao}${p.markdown}`;
       })
-      .join("");
+      .join("\n\n---\n\n");
 
     const termosComCorrespondencias = {
       glossario: extras.termos || [],

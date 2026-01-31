@@ -82,24 +82,34 @@ const extrairFlashcardsDoConteudo = (conteudo: string): { conteudoLimpo: string;
 };
 
 // Função para extrair capítulos do markdown - cada ## vira uma "página" no reader
-// EXCETO seções técnicas que devem ficar integradas ao conteúdo
+// Seções que devem ficar integradas ao tópico anterior (não criam nova página)
 const SECOES_INTEGRADAS = [
   'aprofundamento de termos',
   'aprofundamento',
   'flashcards',
   'resumo',
   'conclusão',
-  'quadro comparativo',
-  'dica de prova',
   'você sabia',
-  'caso prático',
   'em resumo'
 ];
 
-// Seções que devem ser páginas separadas especiais (sem número de tópico)
+// Seções especiais (sem número de tópico no header)
 const SECOES_ESPECIAIS = [
   'síntese final',
-  'síntese'
+  'síntese',
+  'ligar termos'
+];
+
+// Títulos de seções geradas pela edge function
+const SECOES_CONHECIDAS = [
+  'introdução',
+  'conteúdo completo',
+  'desmembrando o tema',
+  'entendendo na prática',
+  'quadro comparativo',
+  'dicas para memorizar',
+  'ligar termos',
+  'síntese final'
 ];
 
 // Verificar se o conteúdo é apenas um título/header sem conteúdo real
@@ -141,22 +151,16 @@ const extrairTopicos = (markdown: string, tituloTopico: string): Topico[] => {
     cleaned = cleaned.replace(new RegExp(`^#+\\s*${tituloEscapado}[:\\-–—].*\\n+`, 'i'), '');
   }
   
-  // Tentar dividir por ### primeiro (subtópicos numerados como "### 1. Título")
-  // Se não houver ###, fallback para ##
-  const temSubtopicos = /^### \d+\./gm.test(cleaned);
-  const delimitador = temSubtopicos ? /^### /gm : /^## /gm;
-  
-  const secoes = cleaned.split(delimitador);
+  // Dividir por ## (seções principais geradas pela edge function)
+  const secoes = cleaned.split(/^## /gm);
   
   const topicos: Topico[] = [];
   let conteudoIntroducao = "";
-  let sinteseConteudo = "";
   
   secoes.forEach((secao, index) => {
     if (index === 0) {
-      // Conteúdo antes do primeiro delimitador (introdução)
+      // Conteúdo antes do primeiro ## (se houver)
       const conteudoLimpo = secao.trim();
-      // Verificar se tem conteúdo real, não apenas um título
       if (conteudoLimpo.length > 50 && !isApenasHeader(conteudoLimpo)) {
         conteudoIntroducao = conteudoLimpo;
       }
@@ -165,39 +169,46 @@ const extrairTopicos = (markdown: string, tituloTopico: string): Topico[] => {
     
     const linhas = secao.split('\n');
     const tituloRaw = linhas[0].trim();
-    // Remover número do início (ex: "1. Jusnaturalismo" -> "Jusnaturalismo")
     const titulo = tituloRaw.replace(/^\d+\.\s*/, '').trim();
     const tituloLower = titulo.toLowerCase().replace(/[🔍🃏📌💡💼🎯⚠️]/g, '').trim();
     const conteudoBruto = linhas.slice(1).join('\n').trim();
     
+    // Verificar se é uma seção conhecida (Introdução, Conteúdo Completo, etc.)
+    const ehSecaoConhecida = SECOES_CONHECIDAS.some(s => tituloLower.includes(s));
+    
     // Verificar se é seção integrada (não deve ser tópico separado)
     const ehSecaoIntegrada = SECOES_INTEGRADAS.some(s => tituloLower.includes(s));
     
-    // Verificar se é seção especial (Síntese Final - página separada sem número)
+    // Verificar se é seção especial (sem número de tópico)
     const ehSecaoEspecial = SECOES_ESPECIAIS.some(s => tituloLower.includes(s));
     
-    if (ehSecaoEspecial && conteudoBruto.length > 30) {
-      // Guardar síntese para adicionar no final
-      sinteseConteudo = conteudoBruto;
-    } else if (ehSecaoIntegrada) {
-      // Adicionar ao último tópico se existir
+    // Determinar se é página de introdução
+    const ehIntroducao = tituloLower.includes('introdução');
+    
+    // Determinar se é síntese final
+    const ehSintese = tituloLower.includes('síntese');
+    
+    if (ehSecaoIntegrada && !ehSecaoConhecida) {
+      // Adicionar ao último tópico se existir (apenas para seções não conhecidas)
       if (topicos.length > 0) {
-        topicos[topicos.length - 1].conteudo += `\n\n## ${titulo}\n${conteudoBruto}`;
+        topicos[topicos.length - 1].conteudo += `\n\n### ${titulo}\n${conteudoBruto}`;
       }
     } else if (titulo && conteudoBruto.length > 30 && !isApenasHeader(conteudoBruto)) {
-      // Criar novo tópico - apenas se tiver conteúdo real
+      // Criar novo tópico
       const { conteudoLimpo, flashcards } = extrairFlashcardsDoConteudo(conteudoBruto);
       topicos.push({
         numero: topicos.length + 1,
-        titulo: titulo,
+        titulo: titulo, // Mantém o título real (Introdução, Conteúdo Completo, etc.)
         conteudo: conteudoLimpo,
-        flashcards
+        flashcards,
+        ehIntroducao,
+        ehSinteseEspecial: ehSintese || ehSecaoEspecial
       });
     }
   });
   
-  // Se temos introdução e pelo menos um tópico, adicionar introdução como primeiro
-  if (conteudoIntroducao && topicos.length > 0) {
+  // Se temos introdução antes do primeiro ## e nenhum tópico de introdução foi criado
+  if (conteudoIntroducao && topicos.length > 0 && !topicos[0].ehIntroducao) {
     const { conteudoLimpo, flashcards } = extrairFlashcardsDoConteudo(conteudoIntroducao);
     topicos.unshift({
       numero: 0,
@@ -208,18 +219,6 @@ const extrairTopicos = (markdown: string, tituloTopico: string): Topico[] => {
     });
     // Renumerar
     topicos.forEach((t, i) => t.numero = i + 1);
-  }
-  
-  // Adicionar síntese final como última página especial
-  if (sinteseConteudo) {
-    const { conteudoLimpo, flashcards } = extrairFlashcardsDoConteudo(sinteseConteudo);
-    topicos.push({
-      numero: topicos.length + 1,
-      titulo: "Síntese Final",
-      conteudo: conteudoLimpo,
-      flashcards,
-      ehSinteseEspecial: true
-    });
   }
   
   // Se não conseguiu dividir, retorna conteúdo inteiro como único tópico
