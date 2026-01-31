@@ -1,35 +1,21 @@
 
-# Plano: Alinhar Geração de Conteúdo Conceitos com OAB Trilhas
+# Plano: Alinhar Prompts de Conceitos com OAB Trilhas - Tom Conversacional e Fluido
 
 ## Problema Identificado
 
-Após análise detalhada dos dados gerados e comparação direta entre OAB Trilhas e Conceitos, identifiquei as seguintes discrepâncias:
+Após comparar os prompts de `gerar-conteudo-oab-trilhas` com `gerar-conteudo-conceitos`, identifiquei as seguintes diferenças críticas:
 
-### 1. Quadro Comparativo: "Conteúdo não disponível"
-- **OAB Trilhas:** Gera tabelas completas (ex: 7 colunas comparando todas as Escolas Penais)
-- **Conceitos:** Mostra "Conteúdo não disponível para esta seção"
-- **Causa:** O prompt não está sendo seguido, provavelmente por falta de contexto ou instruções mais enfáticas
+### Comparação dos Estilos
 
-### 2. Desmembrando o Tema: Estrutura Diferente
-- **OAB Trilhas:** Análise por conceito com bullets (Premissas, Método, Conclusões, Exemplo)
-- **Conceitos:** Análise com "Significado jurídico:", "Etimologia/Origem:", "Pronúncia correta:" - muito acadêmico
-- **Causa:** O prompt de Conceitos pede análise etimológica/linguística, não análise prática
-
-### 3. Conteúdo Completo: Sem Quadros Comparativos Internos
-- **OAB Trilhas:** Inclui tabelas comparativas dentro do Conteúdo Completo quando apropriado
-- **Conceitos:** Apenas texto corrido, tabelas só na página dedicada
-- **Solução:** Instruir a incluir tabelas comparativas no Conteúdo Completo
-
-### 4. Introdução: Estilo Ainda Conversacional
-- **OAB Trilhas:** Tom acolhedor mas direto ao ponto
-- **Conceitos:** Ainda usando "Vamos falar sobre um tema super importante..."
-- **Causa:** Prompt não está sendo estritamente seguido
-
-### 5. Elementos Visuais: Alguns Sem Fundo
-- Alguns elementos `💡 **DICA:**` aparecem sem o `>` prefix
-
-### 6. Títulos do PDF: Não Utilizados
-- Os títulos originais dos capítulos do PDF devem ser usados como subtítulos
+| Aspecto | OAB Trilhas (Correto) | Conceitos (Atual) |
+|---------|----------------------|-------------------|
+| **Introdução** | Saudação acolhedora: "Vamos falar sobre um tema super importante..." | Proíbe saudações completamente |
+| **Tom geral** | Conversacional: "Olha só, é assim que funciona...", "Entendeu a lógica?" | Direto ao ponto, seco, sem interação |
+| **Explicação de termos técnicos** | Explica no momento: "...o que significa que..." | Só lista os termos, não explica inline |
+| **Exemplos** | Cita exemplos rápidos durante a explicação | Exemplos só na página dedicada |
+| **Desmembrando** | "Olha, isso parece complicado, mas vou te mostrar passo a passo..." | Estrutura rígida com bullets (Premissas, Aplicação, etc.) |
+| **Entendendo na Prática** | "Imagina a seguinte situação..." - usa o TEMA do PDF | Casos genéricos desconectados |
+| **Dicas** | "Olha esse truque que vai salvar sua vida na prova..." | Estrutura formal com ### Mnemônicos |
 
 ---
 
@@ -37,112 +23,178 @@ Após análise detalhada dos dados gerados e comparação direta entre OAB Trilh
 
 ### Arquivo: `supabase/functions/gerar-conteudo-conceitos/index.ts`
 
-#### 1. Corrigir Prompt "Desmembrando o Tema" (linhas 58-79)
-Substituir a estrutura etimológica/linguística por análise prática igual OAB Trilhas:
+#### 1. Atualizar `promptBase` (linhas 484-540)
+Substituir o estilo "direto ao ponto" pelo estilo CONVERSACIONAL do OAB Trilhas:
 
-**De:**
+**De (atual):**
 ```text
-Para CADA termo ou conceito, analise com esta estrutura:
-### [Nome do Conceito]
-**Significado jurídico:** ...
-**Etimologia/Origem:** ...
-**Pronúncia correta:** ...
+Você é um professor de Direito didático e objetivo.
+Seu estilo é DIRETO AO PONTO - você explica os conceitos de forma clara sem enrolação.
+⛔ PROIBIDO: NÃO comece com saudações...
 ```
+
+**Para (igual OAB Trilhas):**
+```text
+Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
+Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café e ajudando um colega a entender a matéria.
+
+## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
+
+### ✅ FAÇA SEMPRE:
+- Escreva como se estivesse CONVERSANDO com o estudante
+- Use expressões naturais como:
+  • "Olha só, é assim que funciona..."
+  • "Veja bem, isso é super importante porque..."
+  • "Percebeu a diferença? Esse é o pulo do gato!"
+  • "Agora vem a parte interessante..."
+  • "Resumindo pra você não esquecer..."
+- Use perguntas retóricas para engajar ("E por que isso importa tanto?")
+- Faça analogias com situações do dia a dia
+- A cada termo técnico, EXPLIQUE o que significa: "...a personalidade civil, ou seja, a capacidade de ser titular de direitos..."
+- Cite exemplos rápidos DURANTE a explicação, não depois
+- Após conceitos complexos, faça um breve resumo informal
+
+### ❌ NÃO FAÇA:
+- Linguagem excessivamente formal/acadêmica
+- Parágrafos longos e densos sem pausas
+- Texto que pareça copiado de um livro jurídico
+- Repetir vícios de linguagem (não use a mesma expressão mais de 2x)
+- **NUNCA USE EMOJIS NO TEXTO CORRIDO**
+```
+
+#### 2. Atualizar Prompt da Introdução (linhas 13-40)
+Permitir saudação acolhedora SOMENTE na introdução:
 
 **Para:**
 ```text
-Para CADA conceito principal, estruture assim:
+Esta é a ÚNICA página que deve ter saudação.
+Comece com algo acolhedor: "Vamos falar sobre um tema super importante pra você entender..."
 
-### [Nome do Conceito/Instituto]
+Escreva 150-250 palavras MÁXIMO contendo:
+1. Saudação acolhedora e motivadora (1-2 frases)
+2. Contexto: por que isso é relevante (1-2 frases)
+3. Lista de 3-5 pontos-chave que serão abordados
+4. "Ao final dessa trilha, você vai dominar..."
 
-*   **Premissas:** Quais são os pressupostos ou fundamentos deste conceito?
-*   **Aplicação:** Como funciona na prática jurídica?
-*   **Consequências:** Quais são os efeitos jurídicos?
-*   **Exemplo:** Dê um caso concreto de aplicação
-
-Use bullets (*) para organizar cada ponto.
+Termine com:
+> 🎯 **VOCÊ SABIA?:** [curiosidade relevante]
 ```
 
-#### 2. Corrigir Prompt "Quadro Comparativo" (linhas 103-139)
-Tornar as instruções mais enfáticas e adicionar fallback:
+#### 3. Atualizar Prompt do Conteúdo Completo (linhas 43-80)
+Adicionar estilo fluido com exemplos inline e explicação de termos:
 
-**Adicionar:**
+**Para:**
 ```text
-⛔ ATENÇÃO CRÍTICA: Esta página DEVE conter tabelas Markdown.
-Se você não gerar tabelas, a página ficará vazia.
+Vá DIRETO ao conteúdo (a introdução já fez a saudação).
+Escreva com tom CONVERSACIONAL e FLUIDO - como se explicasse para um amigo.
 
-MESMO que o tema pareça não ter comparações óbvias, CRIE tabelas:
-- Compare conceitos vs exceções
-- Compare requisitos de diferentes situações
-- Compare efeitos jurídicos de diferentes hipóteses
-- Compare posicionamentos doutrinários
+REGRAS DE FLUIDEZ:
+1. A cada termo técnico, EXPLIQUE imediatamente: "...a capacidade civil, ou seja, a aptidão de exercer direitos..."
+2. Cite exemplos DURANTE a explicação, não depois: "Por exemplo, quando alguém vende um carro sem procuração..."
+3. Use transições naturais: "Agora que você entendeu X, vamos ver Y..."
+4. Antecipe dúvidas: "Você pode estar pensando: e se...? A resposta é..."
 
-NUNCA, em hipótese alguma, escreva "Conteúdo não disponível".
+Use os títulos ORIGINAIS do PDF (ex: "## 1. Escola Clássica").
+Inclua tabelas comparativas quando houver institutos para comparar.
+Mínimo 3000 palavras cobrindo TODO o PDF.
 ```
 
-#### 3. Atualizar Prompt "Conteúdo Completo" (linhas 32-56)
-Adicionar instrução para incluir tabelas comparativas quando apropriado:
+#### 4. Atualizar Prompt do Desmembrando (linhas 83-110)
+Substituir estrutura rígida por análise fluida igual OAB Trilhas:
 
-**Adicionar ao promptExtra:**
+**De (atual):**
 ```text
-### TABELAS COMPARATIVAS NO CONTEÚDO:
-Quando houver institutos, classificações ou conceitos que possam ser comparados, 
-INCLUA tabelas Markdown dentro do texto para facilitar a visualização.
-
-Exemplo:
-| Tipo | Característica A | Característica B |
-|------|------------------|------------------|
-| X    | ...              | ...              |
-| Y    | ...              | ...              |
+### [Nome do Conceito]
+*   **Premissas:** [...]
+*   **Aplicação:** [...]
+*   **Consequências:** [...]
+*   **Exemplo:** [...]
 ```
 
-#### 4. Reforçar Introdução Enxuta (linhas 11-31)
-Manter a estrutura atual mas reforçar que NÃO deve usar frases como "Vamos falar sobre":
-
-**Adicionar:**
+**Para (igual OAB Trilhas):**
 ```text
-⛔ NÃO USE estas frases:
-- "Vamos falar sobre..."
-- "É um tema super importante..."
-- "Vamos lá..."
+Pegue os conceitos-chave do PDF e DESTRINCHE cada um com tom de conversa.
 
-✅ COMECE ASSIM:
-- "[Nome do tema] é o [definição breve]."
-- "Este tema aborda [pontos principais]."
+Para CADA conceito:
+"Olha, isso parece complicado, mas vou te mostrar passo a passo..."
+
+### [Nome do Conceito]
+Explique o conceito de forma FLUIDA, como se estivesse conversando.
+Não use listas rígidas - escreva em parágrafos naturais.
+Cite exemplos práticos DURANTE a explicação.
+Ao final de cada conceito, faça um resumo rápido: "Então, resumindo: ..."
+
+Use perguntas retóricas: "E por que isso é tão importante? Porque..."
+Faça analogias: "Pense como se fosse..."
 ```
 
-#### 5. Instruir Uso de Títulos do PDF (linhas 486-497)
-Adicionar instrução no promptBase para usar os subtítulos do PDF:
+#### 5. Atualizar Prompt do Entendendo na Prática (linhas 113-132)
+Usar o TEMA DO PDF para criar casos práticos reais:
 
-**Adicionar:**
+**Para:**
 ```text
-### TÍTULOS E SUBTÍTULOS:
-Use os MESMOS títulos e subtítulos que aparecem no PDF.
-Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica" no conteúdo.
-Mantenha a estrutura original do material.
+Crie casos práticos usando ESPECIFICAMENTE o tema estudado no PDF.
+Não invente situações genéricas - use os conceitos que estão no material.
+
+Estrutura para cada caso:
+"Imagina a seguinte situação..."
+> 💼 **CASO PRÁTICO:** [Situação real baseada no tema do PDF]
+
+Análise: [Como aplicar o que foi estudado - conecte com o conteúdo]
+Conclusão: [O que acontece juridicamente]
+
+IMPORTANTE: Os casos devem refletir o DIA A DIA da aplicação do tema.
+Se o tema é "Escolas Penais", crie casos sobre como cada escola interpretaria um crime.
+Se o tema é "Personalidade Civil", crie casos sobre início/fim da personalidade.
+```
+
+#### 6. Atualizar Prompt das Dicas para Memorizar (linhas 185-207)
+Usar estilo amigável igual OAB Trilhas:
+
+**Para:**
+```text
+"Olha esse truque que vai salvar sua vida na prova..."
+
+Forneça dicas de memorização com tom amigável (400-600 palavras):
+
+### Mnemônicos que Funcionam
+"Quer uma dica? Pensa assim: [SIGLA] = [Significado]"
+
+### Pegadinhas que Sempre Caem
+"Cuidado com essa aqui..."
+> ⚠️ **PEGADINHA:** [ponto que confunde em provas]
+
+### Macetes de Prova
+"Quando você ver [X] na questão, já sabe que..."
+> 💡 **DICA:** [macete específico]
+
+Use linguagem amigável, não acadêmica.
+"Decora assim que não esquece nunca mais..."
 ```
 
 ---
 
 ## Resumo das Mudanças
 
-| Seção | Problema | Solução |
-|-------|----------|---------|
-| Desmembrando | Análise etimológica/linguística | Análise prática com bullets (Premissas, Aplicação, Consequências, Exemplo) |
-| Quadro Comparativo | "Conteúdo não disponível" | Instruções enfáticas + nunca deixar vazio |
-| Conteúdo Completo | Sem tabelas internas | Adicionar tabelas quando há comparações |
-| Introdução | "Vamos falar sobre..." | Proibir explicitamente essas frases |
-| Títulos | Genéricos | Usar títulos originais do PDF |
+| Seção | Antes | Depois |
+|-------|-------|--------|
+| **Introdução** | Proíbe saudações | Permite saudação acolhedora |
+| **Conteúdo** | Explicação seca | Fluido com exemplos inline + explicação de termos técnicos |
+| **Desmembrando** | Bullets rígidos (Premissas, Aplicação...) | Parágrafos conversacionais |
+| **Entendendo na Prática** | Casos genéricos | Casos baseados no TEMA do PDF |
+| **Dicas** | Estrutura formal | Tom amigável: "Olha esse truque..." |
+| **Tom geral** | "Direto ao ponto" | "Conversando com um amigo" |
 
 ---
 
 ## Impacto
 
-Após as alterações:
-1. **Desmembrando** terá estrutura idêntica ao OAB Trilhas (bullets com Premissas/Método/Conclusões/Exemplo)
-2. **Quadro Comparativo** sempre terá tabelas Markdown
-3. **Conteúdo Completo** incluirá tabelas comparativas quando apropriado
-4. **Introdução** será mais direta sem frases coloquiais
-5. Os títulos do PDF original serão preservados na estrutura
+Após as alterações, o conteúdo de Conceitos terá:
+1. **Introdução acolhedora** com saudação motivadora
+2. **Explicação fluida** que cita exemplos DURANTE o texto
+3. **Termos técnicos explicados** no momento que aparecem
+4. **Tom conversacional** sem vícios de linguagem
+5. **Casos práticos** conectados diretamente ao tema do PDF
+6. **Dicas amigáveis** com linguagem de "dica de amigo"
 
 Os tópicos existentes precisarão ser regenerados para aplicar o novo formato.
