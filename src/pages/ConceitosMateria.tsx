@@ -304,8 +304,12 @@ const ConceitosMateria = () => {
                     {/* Conteúdo */}
                     <div className="flex-1 p-3 flex flex-col justify-center min-h-[80px] relative">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-white transition-colors text-sm group-hover:text-primary flex-1 pr-2 line-clamp-2">
-                          {topico.titulo}
+                        <h3 className="text-white transition-colors text-sm group-hover:text-primary flex-1 pr-2 line-clamp-2">
+                          {topico.titulo
+                            .toLowerCase()
+                            .replace(/\b\w/g, (c) => c.toUpperCase())
+                            .replace(/\b(Da|Das|De|Do|Dos|E|Em|Na|Nas|No|Nos|O|A|Os|As|Para|Por|Com|Ao|À|Às)\b/gi, (m) => m.toLowerCase())
+                          }
                         </h3>
                         
                         {/* Ícone de conclusão ou badge de status */}
