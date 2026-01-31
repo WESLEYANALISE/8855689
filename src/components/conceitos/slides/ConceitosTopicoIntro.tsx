@@ -45,8 +45,8 @@ export const ConceitosTopicoIntro = ({
   const [showBrownNoiseInfo, setShowBrownNoiseInfo] = useState(false);
   const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
   
-  // Índice
-  const [showIndex, setShowIndex] = useState(false);
+  // Índice - expandido por padrão para mostrar objetivos
+  const [showIndex, setShowIndex] = useState(true);
   
   // Modais de aviso para itens bloqueados
   const [showFlashcardsBlockedModal, setShowFlashcardsBlockedModal] = useState(false);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,9 +66,40 @@ const ConceitosTopicoEstudo = () => {
   // Ref para evitar múltiplas chamadas de auto-trigger
   const autoTriggerRef = useRef(false);
   
+  // Estado do progresso do usuário
+  const [progressoLeitura, setProgressoLeitura] = useState(0);
+  const [progressoFlashcards, setProgressoFlashcards] = useState(0);
+  const [progressoQuestoes, setProgressoQuestoes] = useState(0);
+  
   useEffect(() => {
     setReaderKey(prev => prev + 1);
   }, [location.key]);
+
+  // Buscar progresso do usuário no banco
+  useEffect(() => {
+    const carregarProgresso = async () => {
+      if (!user || !id) return;
+      
+      try {
+        const { data } = await supabase
+          .from('oab_trilhas_estudo_progresso')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('topico_id', parseInt(id))
+          .single();
+        
+        if (data) {
+          setProgressoLeitura(data.progresso_leitura || 0);
+          setProgressoFlashcards(data.progresso_flashcards || 0);
+          setProgressoQuestoes(data.progresso_questoes || 0);
+        }
+      } catch (error) {
+        // Sem progresso anterior - valores já inicializados em 0
+      }
+    };
+    
+    carregarProgresso();
+  }, [user, id]);
 
   // Estado removido - não vamos mais mostrar mensagem de "travado"
 
@@ -337,6 +368,27 @@ const ConceitosTopicoEstudo = () => {
   const isNaFila = topico?.status === "na_fila";
   const progresso = topico?.progresso || 0;
 
+  // Função para salvar progresso de leitura
+  const salvarProgressoLeitura = useCallback(async (novoProgresso: number) => {
+    setProgressoLeitura(novoProgresso);
+    
+    if (!user || !id) return;
+    
+    try {
+      await supabase
+        .from('oab_trilhas_estudo_progresso')
+        .upsert({
+          user_id: user.id,
+          topico_id: parseInt(id),
+          progresso_leitura: novoProgresso,
+          leitura_completa: novoProgresso >= 100,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,topico_id' });
+    } catch (error) {
+      console.error("Erro ao salvar progresso:", error);
+    }
+  }, [user, id]);
+
   // Se está no modo páginas, renderiza o viewer de páginas
   if (viewMode === 'slides' && slidesData) {
     return (
@@ -346,9 +398,12 @@ const ConceitosTopicoEstudo = () => {
         materiaName={topico?.materia?.nome}
         onClose={() => setViewMode('intro')}
         onComplete={() => {
+          salvarProgressoLeitura(100);
           toast.success("Parabéns! Você concluiu todas as páginas!");
           setViewMode('intro');
         }}
+        onProgressChange={salvarProgressoLeitura}
+        initialProgress={progressoLeitura}
       />
     );
   }
@@ -454,6 +509,9 @@ const ConceitosTopicoEstudo = () => {
               totalSecoes={paginasStats.totalSecoes}
               totalPaginas={paginasStats.totalPaginas}
               objetivos={slidesData.objetivos}
+              progressoLeitura={progressoLeitura}
+              progressoFlashcards={progressoFlashcards}
+              progressoQuestoes={progressoQuestoes}
               hasFlashcards={flashcards.length > 0}
               hasQuestoes={questoes.length > 0}
               onStartPaginas={() => setViewMode('slides')}

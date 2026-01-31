@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ interface ConceitosSlidesViewerProps {
   materiaName?: string;
   onClose: () => void;
   onComplete?: () => void;
+  onProgressChange?: (progress: number) => void;
+  initialProgress?: number;
 }
 
 interface FlatPagina {
@@ -28,7 +30,9 @@ export const ConceitosSlidesViewer = ({
   titulo,
   materiaName,
   onClose,
-  onComplete
+  onComplete,
+  onProgressChange,
+  initialProgress = 0
 }: ConceitosSlidesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
@@ -71,6 +75,11 @@ export const ConceitosSlidesViewer = ({
   const totalPaginas = flatPaginas.length;
   const currentFlatPagina = flatPaginas[currentIndex];
   const progress = totalPaginas > 0 ? ((currentIndex + 1) / totalPaginas) * 100 : 0;
+
+  // Notificar mudança de progresso
+  useEffect(() => {
+    onProgressChange?.(Math.round(progress));
+  }, [progress, onProgressChange]);
 
   // Get current section title
   const currentSectionTitle = secoes[currentFlatPagina?.secaoIndex]?.titulo || titulo;
