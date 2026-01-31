@@ -14,20 +14,30 @@ const PAGINAS_CONFIG = [
     titulo: "Introdução", 
     promptExtra: `Escreva uma introdução BREVE de 150-250 palavras MÁXIMO.
 
+⛔ NÃO USE estas frases (PROIBIDO):
+- "Vamos falar sobre..."
+- "É um tema super importante..."
+- "Vamos lá..."
+- "Olha só..."
+- "Pensa comigo..."
+
+✅ COMECE ASSIM (OBRIGATÓRIO):
+- "[Nome do tema] é o [definição breve]."
+- "Este tema aborda [pontos principais]."
+- "[Conceito] consiste em [explicação direta]."
+
 ESTRUTURA OBRIGATÓRIA:
-1. Uma frase direta sobre a importância do tema (1-2 frases)
+1. Uma frase direta definindo o tema (1-2 frases)
 2. Por que isso é relevante para o estudante de Direito (1-2 frases)
 3. Lista com 3-5 pontos-chave que serão abordados na trilha:
    - Ponto 1
    - Ponto 2
    - Ponto 3
-   - etc.
 
 Termine OBRIGATORIAMENTE com:
 > 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema - uma frase]
 
-⛔ NÃO escreva parágrafos longos. Seja ENXUTO e objetivo.
-⛔ NÃO use saudações ou frases como "Vamos falar sobre..."` 
+⛔ NÃO escreva parágrafos longos. Seja ENXUTO e objetivo.` 
   },
   { 
     tipo: "conteudo_principal", 
@@ -37,7 +47,22 @@ Vá DIRETO ao primeiro conceito do tema. Comece explicando o conteúdo imediatam
 
 Escreva o conteúdo principal com MÍNIMO 3000 palavras.
 Cubra TODO o conteúdo do PDF de forma didática e organizada.
-Use subtítulos (###) para estruturar cada parte.
+
+### TÍTULOS E SUBTÍTULOS OBRIGATÓRIOS:
+Use os MESMOS títulos e subtítulos que aparecem no PDF.
+Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica" no conteúdo.
+Se o PDF tiver "1.1. Características", use "### 1.1. Características".
+Mantenha a ESTRUTURA ORIGINAL do material do PDF.
+
+### TABELAS COMPARATIVAS NO CONTEÚDO:
+Quando houver institutos, classificações ou conceitos que possam ser comparados, 
+INCLUA tabelas Markdown DENTRO do texto para facilitar a visualização.
+
+Exemplo de tabela inline:
+| Tipo | Característica A | Característica B |
+|------|------------------|------------------|
+| X    | ...              | ...              |
+| Y    | ...              | ...              |
 
 ### FORMATO OBRIGATÓRIO DOS ELEMENTOS VISUAIS (com > no início):
 
@@ -60,23 +85,29 @@ Use pelo menos 5-7 destes elementos ao longo do conteúdo, SEMPRE com o > no in�
     promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí", "Olá", "Tudo bem?", "Vamos lá", "Pensa comigo". 
 Comece DIRETO desmembrando o primeiro conceito.
 
-Pegue os CONCEITOS-CHAVE apresentados no Conteúdo Completo (Página 2) e DESMEMBRE cada um em partes menores (800-1200 palavras).
+Pegue os CONCEITOS-CHAVE apresentados no PDF e DESMEMBRE cada um em partes menores (800-1200 palavras).
 
-IDENTIFIQUE 4-6 termos/conceitos ESPECÍFICOS do tema e analise cada um em profundidade.
+IDENTIFIQUE 4-6 conceitos/institutos ESPECÍFICOS do tema e analise cada um com a estrutura OBRIGATÓRIA abaixo.
 
-Para CADA termo ou conceito, analise com esta estrutura:
+### ESTRUTURA PARA CADA CONCEITO (OBRIGATÓRIO):
 
-### [Nome do Conceito]
+### [Nome do Conceito/Instituto]
 
-**Significado jurídico:** O que significa exatamente no contexto do Direito
-**Etimologia/Origem:** De onde vem o termo, sua origem histórica ou linguística
-**Pronúncia correta:** Como pronunciar corretamente (se houver dúvida comum)
-**Elementos constitutivos:** Quais são os componentes ou requisitos
-**Características principais:** O que o diferencia de outros institutos
-**Natureza jurídica:** Qual sua natureza no ordenamento
+*   **Premissas:** Quais são os pressupostos ou fundamentos deste conceito? O que precisa existir para ele se aplicar?
+*   **Aplicação:** Como funciona na prática jurídica? Quando e como é utilizado?
+*   **Consequências:** Quais são os efeitos jurídicos? O que acontece quando se aplica?
+*   **Exemplo:** Dê um caso concreto de aplicação no dia a dia
 
-Use exemplos para clarificar cada elemento.
-Este NÃO é um texto sobre história, é uma ANÁLISE DETALHADA de cada conceito.` 
+### [Próximo Conceito]
+
+*   **Premissas:** [análise]
+*   **Aplicação:** [análise]
+*   **Consequências:** [análise]
+*   **Exemplo:** [caso prático]
+
+Use bullets (*) para organizar cada ponto.
+Cada conceito deve ter os 4 elementos: Premissas, Aplicação, Consequências e Exemplo.
+Este é um DESMEMBRAMENTO PRÁTICO, não análise etimológica.` 
   },
   { 
     tipo: "entendendo_na_pratica", 
@@ -103,12 +134,23 @@ NÃO faça introdução ou explicação teórica. APENAS casos práticos.`
   { 
     tipo: "quadro_comparativo", 
     titulo: "Quadro Comparativo", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações ou texto introdutório.
+    promptExtra: `⛔ ATENÇÃO CRÍTICA: Esta página DEVE conter tabelas Markdown.
+Se você não gerar tabelas, a página ficará VAZIA e INUTILIZÁVEL.
+
+⛔ PROIBIDO: NÃO comece com saudações ou texto introdutório.
 Comece DIRETAMENTE com a primeira tabela Markdown.
 
 CRIE OBRIGATORIAMENTE pelo menos 3 TABELAS COMPARATIVAS distintas.
-Cada tabela deve comparar institutos jurídicos diferentes do tema.
-⛔ NÃO escreva "Conteúdo não disponível" - SEMPRE gere tabelas baseadas no PDF.
+
+MESMO que o tema pareça não ter comparações óbvias, CRIE tabelas:
+- Compare conceitos vs exceções
+- Compare requisitos de diferentes situações
+- Compare efeitos jurídicos de diferentes hipóteses
+- Compare posicionamentos doutrinários
+- Compare classificações do tema
+
+⛔ NUNCA, em hipótese alguma, escreva "Conteúdo não disponível".
+⛔ NUNCA deixe esta página sem tabelas.
 
 ### TABELA 1: [Título da comparação principal]
 
@@ -132,11 +174,12 @@ Cada tabela deve comparar institutos jurídicos diferentes do tema.
 |----------------|--------|--------|
 | ... | ... | ... |
 
-REGRAS:
+REGRAS OBRIGATÓRIAS:
 - Mínimo 3 tabelas, máximo 5 tabelas
 - Cada tabela com mínimo 4 linhas de dados
 - Linha separadora OBRIGATÓRIA (|---|---|---|)
-- NÃO escreva texto explicativo, APENAS tabelas` 
+- NÃO escreva texto explicativo, APENAS tabelas
+- SE NÃO CONSEGUIR IDENTIFICAR comparações óbvias, compare: definição vs aplicação vs efeitos` 
   },
   { 
     tipo: "dicas_provas", 
