@@ -38,60 +38,62 @@ Termine OBRIGATORIAMENTE com:
     promptExtra: `Vá DIRETO ao conteúdo (a introdução já fez a saudação).
 Escreva com tom CONVERSACIONAL e FLUIDO - como se explicasse para um amigo.
 
-### REGRAS DE FLUIDEZ (OBRIGATÓRIO):
-1. A cada termo técnico, EXPLIQUE imediatamente o que significa:
-   "...a capacidade civil, ou seja, a aptidão de exercer direitos..."
-   "...a personalidade jurídica, isto é, a condição de sujeito de direitos..."
+### REGRAS OBRIGATÓRIAS DE FLUIDEZ E DIDÁTICA:
+
+1. **EXEMPLOS RÁPIDOS EM CADA EXPLICAÇÃO (OBRIGATÓRIO)**
+   A cada conceito novo, IMEDIATAMENTE dê um exemplo prático curto:
+   "Por exemplo, imagine que Maria compra um celular pela internet..."
+   "Um caso clássico: João assina um contrato de aluguel e..."
+   "Na prática, funciona assim: quando você vai ao cartório..."
    
-2. Cite exemplos rápidos DURANTE a explicação, não depois:
-   "Por exemplo, quando alguém vende um carro sem procuração..."
-   "Imagine que João compra um imóvel e..."
+   ⚠️ NÃO deixe nenhum conceito sem exemplo imediato!
+
+2. **EXPLICAÇÃO DE TERMOS EM LATIM E JURIDIQUÊS (OBRIGATÓRIO)**
+   Sempre que usar termo técnico, em latim ou juridiquês, EXPLIQUE imediatamente:
    
-3. Use transições naturais entre tópicos:
-   "Agora que você entendeu X, vamos ver como funciona Y..."
-   "Percebeu a lógica? Então vamos avançar para..."
+   Formato para termos em latim:
+   "...a *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos', ou seja, quando você assina um contrato, é obrigado a cumprir)..."
+   "...aplicando o princípio *in dubio pro reo* (na dúvida, a favor do réu - isso quer dizer que se o juiz tiver dúvida, deve absolver)..."
+   "...ocorre a *restitutio in integrum* (restituição integral - basicamente, devolver tudo ao estado anterior)..."
    
-4. Antecipe dúvidas do estudante:
+   Formato para juridiquês:
+   "...a capacidade civil (aptidão para exercer direitos pessoalmente - por exemplo, um menor de 16 anos NÃO tem essa capacidade)..."
+   "...configura dolo eventual (quando a pessoa assume o risco de produzir o resultado - imagine alguém dirigindo a 200km/h em área escolar)..."
+   "...há litisconsórcio (quando várias pessoas estão no mesmo lado da ação - por exemplo, 3 irmãos processando juntos o vizinho)..."
+
+3. **TRANSIÇÕES NATURAIS E ENGAJANTES:**
+   "Agora que você entendeu X, vamos ver como funciona Y na prática..."
+   "Percebeu a lógica? Então o próximo passo é entender..."
+   "Antes de avançar, veja esse exemplo rápido..."
+
+4. **ANTECIPE DÚVIDAS COMUNS:**
    "Você pode estar pensando: e se...? A resposta é..."
-   "Uma dúvida comum aqui é..."
+   "Uma confusão muito comum aqui é achar que... mas na verdade..."
 
 ### TÍTULOS E SUBTÍTULOS OBRIGATÓRIOS:
 Use os MESMOS títulos e subtítulos que aparecem no PDF.
 Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica".
 Mantenha a ESTRUTURA ORIGINAL do material do PDF.
 
-### CITAÇÕES OBRIGATÓRIAS (MUITO IMPORTANTE):
-Sempre que o PDF contiver citações de doutrinadores, jurisprudência ou enunciados, INCLUA-AS usando o formato de blockquote:
+### CITAÇÕES OBRIGATÓRIAS:
+Sempre que o PDF contiver citações de doutrinadores, jurisprudência ou enunciados, INCLUA-AS:
 
 > "A tutela da dignidade da pessoa humana na sociedade da informação inclui o direito ao esquecimento" (Enunciado n. 531 da VI Jornada de Direito Civil)
 
-> "O STJ entendeu que a empresa jornalística, ao reproduzir na manchete do jornal o cognome – 'apelido' – do autor, com manifesto proveito econômico, feriu o direito dele ao segredo da vida privada" (STJ, REsp 613.374/MG)
+> "O STJ entendeu que..." (STJ, REsp 613.374/MG)
 
-> "O direito ao esquecimento justifica-se pelo impacto que a divulgação de imagens e informações não permitidas pode causar na dimensão da personalidade dos sujeitos" (TARTUCE, 2018)
+### TABELAS COMPARATIVAS:
+Quando houver institutos para comparar, use tabelas Markdown.
 
-REGRAS PARA CITAÇÕES:
-- Copie citações EXATAS do PDF
-- Sempre inclua a fonte entre parênteses
-- Use o formato de blockquote (>) para destacar
-- Cite doutrinadores, tribunais, súmulas e enunciados quando mencionados no PDF
-
-### TABELAS COMPARATIVAS NO CONTEÚDO:
-Quando houver institutos ou conceitos para comparar, INCLUA tabelas Markdown:
-
-| Tipo | Característica A | Característica B |
-|------|------------------|------------------|
-| X    | ...              | ...              |
-| Y    | ...              | ...              |
-
-### FORMATO DOS ELEMENTOS VISUAIS (com > no início):
+### ELEMENTOS VISUAIS (use > no início):
 > ⚠️ **ATENÇÃO:** [ponto importante]
 > 💡 **DICA:** [dica prática]
-> 📌 **EM RESUMO:** [resumo de uma seção]
-> 💼 **CASO PRÁTICO:** [exemplo prático]
+> 📌 **EM RESUMO:** [resumo]
+> 💼 **CASO PRÁTICO:** [exemplo prático detalhado]
+> 📚 **EXEMPLO RÁPIDO:** [exemplo curto inline]
 
-Mínimo 4000 palavras cobrindo TODO o PDF de forma completa e detalhada.
-Use pelo menos 8-10 elementos visuais ao longo do conteúdo.
-Inclua TODAS as citações jurídicas presentes no PDF.` 
+Mínimo 4000 palavras. Use pelo menos 10-15 elementos visuais.
+CADA conceito deve ter: explicação + exemplo rápido + explicação de termos técnicos.` 
   },
   { 
     tipo: "desmembrando", 
