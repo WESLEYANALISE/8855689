@@ -438,8 +438,8 @@ const ConceitosTopicoEstudo = () => {
           </div>
         )}
 
-        {/* Estado: Conteúdo Pronto - Tela de Introdução com escolha de modo */}
-        {topico?.status === "concluido" && topico?.conteudo_gerado && viewMode === 'intro' && slidesData && (
+        {/* Estado: Conteúdo Pronto - Tela de Introdução (novo formato slides_json) */}
+        {topico?.status === "concluido" && slidesData && viewMode === 'intro' && (
           <>
             {/* Header para tela de intro */}
             <StandardPageHeader
@@ -463,8 +463,8 @@ const ConceitosTopicoEstudo = () => {
           </>
         )}
 
-        {/* Estado: Conteúdo Pronto - Modo Leitura */}
-        {topico?.status === "concluido" && topico?.conteudo_gerado && (viewMode === 'reading' || !slidesData) && viewMode !== 'intro' && (
+        {/* Fallback: Conteúdo pronto com formato antigo (conteudo_gerado) mas sem slides */}
+        {topico?.status === "concluido" && !slidesData && topico?.conteudo_gerado && (
           <OABTrilhasReader
             key={`reader-${readerKey}`}
             conteudoGerado={topico.conteudo_gerado}
@@ -481,26 +481,8 @@ const ConceitosTopicoEstudo = () => {
           />
         )}
 
-        {/* Fallback: Conteúdo pronto mas sem slides - vai direto pro reader */}
-        {topico?.status === "concluido" && topico?.conteudo_gerado && !slidesData && viewMode === 'intro' && (
-          <OABTrilhasReader
-            key={`reader-${readerKey}`}
-            conteudoGerado={topico.conteudo_gerado}
-            paginas={conteudoGerado?.paginas}
-            titulo={topico.titulo}
-            materia={topico.materia?.nome}
-            capaUrl={topico.capa_url}
-            flashcards={flashcards}
-            questoes={questoes}
-            topicoId={topico.id}
-            correspondencias={correspondencias}
-            fontSize={fontSize}
-            onFontSizeChange={handleFontSizeChange}
-          />
-        )}
-
-        {/* Estado: Sem conteúdo e não está gerando */}
-        {!topico?.conteudo_gerado && !isGerando && !isNaFila && !isErro && (
+        {/* Estado: Sem conteúdo (nem slides_json nem conteudo_gerado) e não está gerando */}
+        {!slidesData && !topico?.conteudo_gerado && !isGerando && !isNaFila && !isErro && (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <p className="mb-4">Conteúdo não disponível</p>
