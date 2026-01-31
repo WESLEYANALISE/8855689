@@ -7,16 +7,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Constantes de configuração
-const MIN_PAGINAS = 8;
-const MAX_TENTATIVAS = 3;
+// Configuração das páginas a serem geradas
+const PAGINAS_CONFIG = [
+  { tipo: "introducao", titulo: "Introdução", promptExtra: "Escreva uma introdução acolhedora de 400-600 palavras que apresente o tema de forma clara para iniciantes." },
+  { tipo: "conteudo_principal", titulo: "Conteúdo Completo", promptExtra: "Escreva o conteúdo principal com MÍNIMO 3000 palavras, cobrindo TODO o conteúdo do PDF de forma didática." },
+  { tipo: "desmembrando", titulo: "Desmembrando o Tema", promptExtra: "Divida o tema em partes menores, explicando cada conceito separadamente (800-1200 palavras)." },
+  { tipo: "entendendo_na_pratica", titulo: "Entendendo na Prática", promptExtra: "Apresente 5 exemplos práticos/casos do dia a dia que ilustrem os conceitos (800-1200 palavras)." },
+  { tipo: "quadro_comparativo", titulo: "Quadro Comparativo", promptExtra: "Crie tabelas/quadros comparativos entre conceitos similares do tema (use formato markdown de tabela)." },
+  { tipo: "dicas_provas", titulo: "Dicas para Memorizar", promptExtra: "Forneça dicas de memorização, macetes e pontos-chave para lembrar (600-800 palavras)." },
+  { tipo: "correspondencias", titulo: "Ligar Termos", promptExtra: "Introduza um exercício de ligar termos às definições. Escreva uma breve instrução." },
+  { tipo: "sintese_final", titulo: "Síntese Final", promptExtra: "Faça um resumo conciso de tudo que foi aprendido (500-700 palavras)." },
+];
+
+// Páginas extras que geram JSON estruturado
+const EXTRAS_CONFIG = [
+  { tipo: "correspondencias", minimo: 8 },
+  { tipo: "exemplos", minimo: 5 },
+  { tipo: "termos", minimo: 10 },
+  { tipo: "flashcards", minimo: 15 },
+  { tipo: "questoes", minimo: 8 },
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Guardar referências para o catch
   let topicoIdForCatch: number | null = null;
   let supabaseForCatch: any = null;
 
@@ -37,19 +53,18 @@ serve(async (req) => {
     supabaseForCatch = supabase;
 
     // ============================================
-    // SISTEMA DE FILA: Verificar se já há geração ativa
+    // SISTEMA DE FILA
     // ============================================
-    const { data: gerandoAtivo, error: checkError } = await supabase
+    const { data: gerandoAtivo } = await supabase
       .from("conceitos_topicos")
       .select("id, titulo")
       .eq("status", "gerando")
       .neq("id", topico_id)
       .limit(1);
 
-    if (!checkError && gerandoAtivo && gerandoAtivo.length > 0) {
-      console.log(`[Conceitos Fila] Geração ativa detectada: ${gerandoAtivo[0].titulo} (ID: ${gerandoAtivo[0].id})`);
+    if (gerandoAtivo && gerandoAtivo.length > 0) {
+      console.log(`[Conceitos Fila] Geração ativa: ${gerandoAtivo[0].titulo}`);
       
-      // Calcular próxima posição na fila
       const { data: maxPosicao } = await supabase
         .from("conceitos_topicos")
         .select("posicao_fila")
@@ -60,7 +75,6 @@ serve(async (req) => {
       
       const novaPosicao = (maxPosicao?.posicao_fila || 0) + 1;
       
-      // Verificar se já está na fila
       const { data: jaEnfileirado } = await supabase
         .from("conceitos_topicos")
         .select("posicao_fila, status")
@@ -68,61 +82,29 @@ serve(async (req) => {
         .single();
       
       if (jaEnfileirado?.status === "na_fila") {
-        const { count: totalFila } = await supabase
-          .from("conceitos_topicos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "na_fila");
-        
         return new Response(
-          JSON.stringify({ 
-            queued: true, 
-            position: jaEnfileirado.posicao_fila,
-            total: totalFila || 1,
-            message: `Já está na fila na posição ${jaEnfileirado.posicao_fila}`
-          }),
+          JSON.stringify({ queued: true, position: jaEnfileirado.posicao_fila }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      // Colocar na fila
       await supabase
         .from("conceitos_topicos")
-        .update({ 
-          status: "na_fila", 
-          posicao_fila: novaPosicao,
-          updated_at: new Date().toISOString() 
-        })
+        .update({ status: "na_fila", posicao_fila: novaPosicao })
         .eq("id", topico_id);
       
-      const { count: totalFila } = await supabase
-        .from("conceitos_topicos")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "na_fila");
-      
-      console.log(`[Conceitos Fila] Tópico ${topico_id} adicionado na posição ${novaPosicao} (total: ${totalFila})`);
-      
       return new Response(
-        JSON.stringify({ 
-          queued: true, 
-          position: novaPosicao,
-          total: totalFila || 1,
-          message: `Adicionado à fila na posição ${novaPosicao}`
-        }),
+        JSON.stringify({ queued: true, position: novaPosicao }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // ============================================
-    // INÍCIO DA GERAÇÃO
+    // BUSCAR TÓPICO
     // ============================================
-
-    // Buscar tópico com matéria
     const { data: topico, error: topicoError } = await supabase
       .from("conceitos_topicos")
-      .select(`
-        *,
-        materia:conceitos_materias(id, nome, codigo)
-      `)
+      .select(`*, materia:conceitos_materias(id, nome, codigo)`)
       .eq("id", topico_id)
       .single();
 
@@ -133,7 +115,6 @@ serve(async (req) => {
       );
     }
 
-    // Verificar se já está gerando
     if (topico.status === "gerando" && !force_restart) {
       return new Response(
         JSON.stringify({ message: "Geração já em andamento" }),
@@ -141,58 +122,20 @@ serve(async (req) => {
       );
     }
 
-    if (topico.status === "gerando" && force_restart) {
-      console.log(`[Conceitos] 🔁 Force restart solicitado para topico_id=${topico_id}`);
-    }
-
     // Marcar como gerando
-    const posicaoRemovida = topico.posicao_fila;
-    
     await supabase
       .from("conceitos_topicos")
-      .update({ 
-        status: "gerando", 
-        progresso: 5,
-        posicao_fila: null,
-        updated_at: new Date().toISOString() 
-      })
+      .update({ status: "gerando", progresso: 5, posicao_fila: null })
       .eq("id", topico_id);
-
-    // Atualizar posições na fila
-    if (posicaoRemovida) {
-      const { data: filaParaAtualizar } = await supabase
-        .from("conceitos_topicos")
-        .select("id, posicao_fila")
-        .eq("status", "na_fila")
-        .gt("posicao_fila", posicaoRemovida);
-      
-      if (filaParaAtualizar && filaParaAtualizar.length > 0) {
-        for (const item of filaParaAtualizar) {
-          await supabase
-            .from("conceitos_topicos")
-            .update({ posicao_fila: (item.posicao_fila || 1) - 1 })
-            .eq("id", item.id);
-        }
-      }
-    }
-
-    // Função auxiliar para atualizar progresso
-    const updateProgress = async (value: number) => {
-      await supabase
-        .from("conceitos_topicos")
-        .update({ progresso: value, updated_at: new Date().toISOString() })
-        .eq("id", topico_id);
-    };
 
     const materiaNome = topico.materia?.nome || "";
     const topicoTitulo = topico.titulo;
-    const tentativasAtuais = topico.tentativas || 0;
+    console.log(`[Conceitos] Iniciando geração página-por-página: ${topicoTitulo}`);
 
-    console.log(`[Conceitos] Gerando conteúdo para: ${materiaNome} - ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
-
-    // 1. Buscar TODO o conteúdo extraído das páginas do PDF (igual OAB)
-    await updateProgress(10);
-    const { data: paginas, error: paginasError } = await supabase
+    // ============================================
+    // BUSCAR CONTEÚDO DO PDF
+    // ============================================
+    const { data: paginas } = await supabase
       .from("conceitos_topico_paginas")
       .select("pagina, conteudo")
       .eq("topico_id", topico_id)
@@ -204,207 +147,30 @@ serve(async (req) => {
         .filter(p => p.conteudo && p.conteudo.trim().length > 0)
         .map(p => `\n--- PÁGINA ${p.pagina} ---\n${p.conteudo}`)
         .join("\n\n");
-      console.log(`[Conceitos] PDF: ${paginas.length} páginas, ${conteudoPDF.length} caracteres`);
-    } else {
-      console.log("[Conceitos] ALERTA: Nenhuma página do PDF encontrada!");
+      console.log(`[Conceitos] PDF: ${paginas.length} páginas, ${conteudoPDF.length} chars`);
     }
 
-    await updateProgress(30);
-
-    // 2. Configurar Gemini
+    // ============================================
+    // CONFIGURAR GEMINI
+    // ============================================
     const geminiKeys = [
       Deno.env.get("GEMINI_KEY_1"),
       Deno.env.get("GEMINI_KEY_2"),
       Deno.env.get("GEMINI_KEY_3"),
     ].filter(Boolean);
-
     const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
     const genAI = new GoogleGenerativeAI(geminiKey!);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // 3. PROMPT para iniciantes (igual estrutura OAB)
-    const prompt = `Você é um professor de Direito acolhedor e didático, especializado em ensinar INICIANTES.
-Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse ajudando alguém que está começando agora a estudar Direito.
+    // Função para atualizar progresso
+    const updateProgress = async (value: number) => {
+      await supabase
+        .from("conceitos_topicos")
+        .update({ progresso: value })
+        .eq("id", topico_id);
+    };
 
-## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
-
-### ✅ FAÇA SEMPRE:
-- Escreva como se estivesse CONVERSANDO com o estudante iniciante
-- Use expressões naturais como:
-  • "Olha só, você está começando a entender uma das bases do Direito..."
-  • "Veja bem, isso aqui é fundamental pra sua formação..."
-  • "Deixa eu te explicar de um jeito mais simples..."
-- Use perguntas retóricas para engajar
-- Faça analogias com situações do dia a dia
-- A cada conceito importante, explique de forma simples antes de aprofundar
-
-### ❌ NÃO FAÇA:
-- Linguagem excessivamente formal/acadêmica
-- Parágrafos longos e densos sem pausas
-- **NUNCA USE EMOJIS NO TEXTO**
-
-═══════════════════════════════════════════════════════════════════
-⛔ REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF ⛔
-═══════════════════════════════════════════════════════════════════
-
-✅ Usar 100% do texto e informações do PDF
-✅ Citar APENAS artigos/leis que aparecem LITERALMENTE no PDF
-❌ INVENTAR artigos de lei que NÃO estejam no PDF
-❌ ADICIONAR citações legais que você "sabe" mas NÃO estão no conteúdo
-
-## INFORMAÇÕES DO TEMA
-**Matéria:** ${materiaNome}
-**Tópico:** ${topicoTitulo}
-
-═══════════════════════════════════════════════════════════════════
-📄 CONTEÚDO COMPLETO DO PDF:
-═══════════════════════════════════════════════════════════════════
-
-${conteudoPDF || "Conteúdo do PDF não disponível"}
-
-═══════════════════════════════════════════════════════════════════
-📝 SUA MISSÃO: GERAR CONTEÚDO COM EXATAMENTE 8 PÁGINAS
-═══════════════════════════════════════════════════════════════════
-
-Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
-
-**PÁGINA 1 - INTRODUÇÃO** (Tipo: "introducao")
-**PÁGINA 2 - CONTEÚDO COMPLETO** (Tipo: "conteudo_principal") - Mínimo 3000 palavras
-**PÁGINA 3 - DESMEMBRANDO** (Tipo: "desmembrando")
-**PÁGINA 4 - ENTENDENDO NA PRÁTICA** (Tipo: "entendendo_na_pratica")
-**PÁGINA 5 - QUADRO COMPARATIVO** (Tipo: "quadro_comparativo")
-**PÁGINA 6 - DICAS PARA MEMORIZAR** (Tipo: "dicas_provas")
-**PÁGINA 7 - LIGAR TERMOS** (Tipo: "correspondencias")
-**PÁGINA 8 - SÍNTESE FINAL** (Tipo: "sintese_final")
-
-### FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
-
-\`\`\`json
-{
-  "paginas": [
-    {"titulo": "Introdução: ${topicoTitulo}", "tipo": "introducao", "markdown": "..."},
-    {"titulo": "Conteúdo Completo: ${topicoTitulo}", "tipo": "conteudo_principal", "markdown": "..."},
-    {"titulo": "Desmembrando o Tema", "tipo": "desmembrando", "markdown": "..."},
-    {"titulo": "Entendendo na Prática", "tipo": "entendendo_na_pratica", "markdown": "..."},
-    {"titulo": "Quadro Comparativo", "tipo": "quadro_comparativo", "markdown": "..."},
-    {"titulo": "Dicas para Memorizar", "tipo": "dicas_provas", "markdown": "..."},
-    {"titulo": "Ligar Termos", "tipo": "correspondencias", "markdown": "# Exercício: Ligar Termos\\n\\nConecte cada termo à sua definição correta."},
-    {"titulo": "Síntese Final", "tipo": "sintese_final", "markdown": "..."}
-  ],
-  "correspondencias": [
-    {"termo": "Termo do PDF", "definicao": "Definição correspondente"}
-  ],
-  "exemplos": [
-    {"titulo": "Título do caso", "situacao": "Descrição", "analise": "Análise", "conclusao": "Conclusão"}
-  ],
-  "termos": [
-    {"termo": "Termo do PDF", "definicao": "Definição conforme o PDF"}
-  ],
-  "flashcards": [
-    {"frente": "Pergunta baseada no PDF", "verso": "Resposta do PDF", "exemplo": "Exemplo prático"}
-  ],
-  "questoes": [
-    {"pergunta": "Enunciado", "alternativas": ["A)", "B)", "C)", "D)"], "correta": 0, "explicacao": "Explicação"}
-  ]
-}
-\`\`\`
-
-### QUANTIDADES OBRIGATÓRIAS:
-- Páginas: EXATAMENTE 8 páginas
-- Correspondências: Mínimo 8 pares termo/definição
-- Exemplos: Mínimo 5 casos práticos
-- Termos: Mínimo 10 termos jurídicos
-- Flashcards: Mínimo 15 flashcards
-- Questões: Mínimo 8 questões
-
-Retorne APENAS o JSON válido, sem texto adicional`;
-
-    // 4. Função auxiliar para gerar e continuar se truncado (igual OAB)
-    async function gerarComContinuacao(promptInicial: string, maxTentativas = 3): Promise<string> {
-      let textoCompleto = "";
-      let tentativas = 0;
-      let promptAtual = promptInicial;
-      
-      while (tentativas < maxTentativas) {
-        tentativas++;
-        console.log(`[Conceitos] Chamando Gemini (tentativa ${tentativas})...`);
-        
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: promptAtual }] }],
-          generationConfig: {
-            maxOutputTokens: 65000,
-            temperature: 0.6,
-          },
-        });
-        
-        const responseText = result.response.text();
-        textoCompleto += responseText;
-        console.log(`[Conceitos] Resposta ${tentativas}: ${responseText.length} chars`);
-        
-        const temFechamento = textoCompleto.includes('"questoes"') && 
-                              textoCompleto.trim().endsWith("}") ||
-                              textoCompleto.includes("```") && textoCompleto.lastIndexOf("```") > textoCompleto.lastIndexOf("```json");
-        
-        const pareceTruncado = !temFechamento && (
-          responseText.trim().endsWith(",") ||
-          responseText.trim().endsWith('"') ||
-          responseText.trim().endsWith("[") ||
-          responseText.trim().endsWith("{") ||
-          !responseText.includes("questoes")
-        );
-        
-        if (!pareceTruncado) {
-          console.log(`[Conceitos] Resposta completa após ${tentativas} tentativa(s)`);
-          break;
-        }
-        
-        console.log(`[Conceitos] Resposta truncada, solicitando continuação...`);
-        
-        const ultimasLinhas = responseText.slice(-500);
-        promptAtual = `CONTINUE exatamente de onde parou. A resposta anterior terminou com:
-
-"""
-${ultimasLinhas}
-"""
-
-Continue gerando o JSON a partir deste ponto. NÃO repita o que já foi gerado. 
-Complete TODAS as seções que faltam.
-Termine com o fechamento correto do JSON.`;
-      }
-      
-      return textoCompleto;
-    }
-
-    // Gerar conteúdo
-    await updateProgress(50);
-    const responseText = await gerarComContinuacao(prompt);
-    await updateProgress(70);
-    console.log(`[Conceitos] Resposta final: ${responseText.length} chars`);
-    
-    // ============================================
-    // SANITIZAÇÃO ROBUSTA DE JSON (padrão OAB corrigido)
-    // ============================================
-    
-    // 1. Remover markdown fences
-    let jsonStr = responseText;
-    jsonStr = jsonStr.replace(/```json\s*/g, "");
-    jsonStr = jsonStr.replace(/```\s*/g, "");
-    
-    // 2. Encontrar o objeto JSON principal
-    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[0];
-    } else {
-      const jsonStart = jsonStr.indexOf("{");
-      const jsonEnd = jsonStr.lastIndexOf("}");
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
-      }
-    }
-    
-    // 3. SANITIZAÇÃO CRÍTICA: Escapar caracteres de controle DENTRO de strings JSON
-    // O problema é que \n, \r, \t literais dentro de strings JSON são inválidos
-    // Precisamos convertê-los para suas versões escapadas (\\n, \\r, \\t)
+    // Função para sanitizar JSON
     function sanitizeJsonString(str: string): string {
       let result = "";
       let inString = false;
@@ -414,215 +180,218 @@ Termine com o fechamento correto do JSON.`;
         const char = str[i];
         const code = str.charCodeAt(i);
         
-        if (escapeNext) {
-          result += char;
-          escapeNext = false;
-          continue;
-        }
-        
-        if (char === '\\') {
-          result += char;
-          escapeNext = true;
-          continue;
-        }
-        
-        if (char === '"') {
-          inString = !inString;
-          result += char;
-          continue;
-        }
+        if (escapeNext) { result += char; escapeNext = false; continue; }
+        if (char === '\\') { result += char; escapeNext = true; continue; }
+        if (char === '"') { inString = !inString; result += char; continue; }
         
         if (inString) {
-          // Dentro de uma string: escapar caracteres de controle
-          if (code === 0x0A) { // \n
-            result += '\\n';
-          } else if (code === 0x0D) { // \r
-            result += '\\r';
-          } else if (code === 0x09) { // \t
-            result += '\\t';
-          } else if (code < 0x20 || code === 0x7F) {
-            // Outros caracteres de controle: remover
-            continue;
-          } else {
-            result += char;
-          }
+          if (code === 0x0A) result += '\\n';
+          else if (code === 0x0D) result += '\\r';
+          else if (code === 0x09) result += '\\t';
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
         } else {
-          // Fora de strings: manter espaços em branco normais, remover outros controles
-          if (char === '\n' || char === '\r' || char === '\t' || char === ' ') {
-            result += char;
-          } else if (code < 0x20 || code === 0x7F) {
-            continue;
-          } else {
-            result += char;
-          }
+          if (char === '\n' || char === '\r' || char === '\t' || char === ' ') result += char;
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
         }
       }
-      
       return result;
     }
-    
-    const sanitized = sanitizeJsonString(jsonStr);
-    console.log(`[Conceitos] JSON sanitizado: ${sanitized.length} chars`);
-    
-    // 4. Parse JSON com múltiplas estratégias de correção
-    let conteudoGerado;
-    try {
-      conteudoGerado = JSON.parse(sanitized);
-      console.log("[Conceitos] ✓ Parse JSON bem-sucedido");
-    } catch (parseError) {
-      console.log("[Conceitos] Erro no parse inicial, tentando corrigir...", parseError);
+
+    // Função para gerar e fazer parse de JSON
+    async function gerarJSON(prompt: string): Promise<any> {
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.5 },
+      });
+      
+      let text = result.response.text();
+      text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+      
+      const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      if (!match) throw new Error("JSON não encontrado na resposta");
+      
+      const sanitized = sanitizeJsonString(match[0]);
       
       try {
-        // Tentar corrigir trailing commas
+        return JSON.parse(sanitized);
+      } catch {
         const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
-        conteudoGerado = JSON.parse(fixed);
-        console.log("[Conceitos] ✓ Parse JSON após remover trailing commas");
-      } catch (secondError) {
-        console.log("[Conceitos] Tentando balancear chaves/colchetes...");
-        
-        let jsonCorrigido = sanitized.replace(/,\s*([}\]])/g, "$1");
-        
-        // Balancear chaves e colchetes
-        const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
-        const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
-        const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
-        const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
-        
-        for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
-          jsonCorrigido += "]";
-        }
-        for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
-          jsonCorrigido += "}";
-        }
-        
-        try {
-          conteudoGerado = JSON.parse(jsonCorrigido);
-          console.log("[Conceitos] ✓ Parse JSON após balanceamento");
-        } catch (finalError) {
-          console.error("[Conceitos] ❌ Falha definitiva no parse JSON:", finalError);
-          console.error("[Conceitos] Primeiros 500 chars:", sanitized.slice(0, 500));
-          console.error("[Conceitos] Últimos 500 chars:", sanitized.slice(-500));
-          await supabase.from("conceitos_topicos")
-            .update({ status: "erro", progresso: 0, tentativas: (topico.tentativas || 0) + 1 })
-            .eq("id", topico_id);
-          throw new Error("Falha ao processar resposta da IA");
-        }
+        return JSON.parse(fixed);
       }
     }
 
-    // 5. Processar conteúdo das páginas
-    let conteudoPrincipal = "";
-    const numPaginas = conteudoGerado.paginas?.length || 0;
-    
-    if (conteudoGerado.paginas && Array.isArray(conteudoGerado.paginas)) {
-      conteudoPrincipal = conteudoGerado.paginas
-        .map((p: any, i: number) => {
-          const separador = i > 0 ? "\n\n---\n\n" : "";
-          return `${separador}${p.markdown || ""}`;
-        })
-        .join("");
-      
-      console.log(`[Conceitos] ${numPaginas} páginas geradas`);
-    } else {
-      conteudoPrincipal = conteudoGerado.conteudo || "";
+    // Função para gerar texto markdown
+    async function gerarTexto(prompt: string): Promise<string> {
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 16384, temperature: 0.6 },
+      });
+      return result.response.text();
     }
 
-    // Validação de páginas (igual OAB)
-    if (numPaginas < MIN_PAGINAS) {
-      console.log(`[Conceitos Fila] ⚠️ Apenas ${numPaginas} páginas (mínimo: ${MIN_PAGINAS})`);
+    // ============================================
+    // GERAR PÁGINA POR PÁGINA
+    // ============================================
+    const paginasGeradas: { titulo: string; tipo: string; markdown: string }[] = [];
+    const baseProgress = 10;
+    const progressPerPage = 70 / PAGINAS_CONFIG.length;
+
+    const promptBase = `Você é um professor de Direito acolhedor, especializado em ensinar INICIANTES.
+Escreva como se estivesse CONVERSANDO com o estudante.
+Use expressões naturais, perguntas retóricas e analogias do dia a dia.
+**NUNCA USE EMOJIS.**
+Baseie-se 100% no conteúdo do PDF abaixo. Não invente artigos ou leis.
+
+**Matéria:** ${materiaNome}
+**Tópico:** ${topicoTitulo}
+
+═══ CONTEÚDO DO PDF ═══
+${conteudoPDF || "Conteúdo não disponível"}
+═══════════════════════`;
+
+    for (let i = 0; i < PAGINAS_CONFIG.length; i++) {
+      const config = PAGINAS_CONFIG[i];
+      const progress = Math.round(baseProgress + (i * progressPerPage));
+      await updateProgress(progress);
       
-      const novasTentativas = tentativasAtuais + 1;
+      console.log(`[Conceitos] Gerando página ${i + 1}/${PAGINAS_CONFIG.length}: ${config.tipo}`);
       
-      if (novasTentativas >= MAX_TENTATIVAS) {
-        console.log(`[Conceitos Fila] ❌ Máximo de tentativas atingido`);
-        await supabase.from("conceitos_topicos")
-          .update({ status: "erro", tentativas: novasTentativas, progresso: 0 })
-          .eq("id", topico_id);
-        
-        await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
-        
-        return new Response(
-          JSON.stringify({ error: `Falha após ${MAX_TENTATIVAS} tentativas`, tentativas: novasTentativas }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      const prompt = `${promptBase}
+
+═══ SUA TAREFA ═══
+${config.promptExtra}
+
+Retorne APENAS o conteúdo em formato Markdown. Não inclua o título da seção (já será adicionado automaticamente).`;
+
+      try {
+        const markdown = await gerarTexto(prompt);
+        paginasGeradas.push({
+          titulo: `${config.titulo}: ${topicoTitulo}`,
+          tipo: config.tipo,
+          markdown: markdown.trim()
+        });
+        console.log(`[Conceitos] ✓ Página ${config.tipo}: ${markdown.length} chars`);
+      } catch (err) {
+        console.error(`[Conceitos] ❌ Erro na página ${config.tipo}:`, err);
+        paginasGeradas.push({
+          titulo: `${config.titulo}: ${topicoTitulo}`,
+          tipo: config.tipo,
+          markdown: `Conteúdo não disponível para esta seção.`
+        });
       }
-      
-      const { data: maxPosicao } = await supabase
-        .from("conceitos_topicos")
-        .select("posicao_fila")
-        .eq("status", "na_fila")
-        .order("posicao_fila", { ascending: false })
-        .limit(1)
-        .single();
-      
-      const novaPosicao = (maxPosicao?.posicao_fila || 0) + 1;
-      
-      await supabase.from("conceitos_topicos")
-        .update({ 
-          status: "na_fila", 
-          posicao_fila: novaPosicao,
-          tentativas: novasTentativas,
-          conteudo_gerado: null,
-          progresso: 0
-        })
-        .eq("id", topico_id);
-      
-      await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
-      
-      return new Response(
-        JSON.stringify({ requeued: true, position: novaPosicao, tentativas: novasTentativas + 1 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
-    // 6. VALIDAR correspondências (igual OAB)
-    await updateProgress(85);
-    let correspondenciasValidas = conteudoGerado.correspondencias || [];
-    
-    if (!Array.isArray(correspondenciasValidas) || correspondenciasValidas.length < 8) {
-      if (conteudoGerado.termos && Array.isArray(conteudoGerado.termos) && conteudoGerado.termos.length >= 8) {
-        correspondenciasValidas = conteudoGerado.termos.slice(0, 10).map((t: any) => ({
-          termo: t.termo || t.nome || t,
-          definicao: t.definicao?.substring(0, 60) || t.descricao?.substring(0, 60) || "Conceito jurídico"
+    await updateProgress(80);
+    console.log(`[Conceitos] ${paginasGeradas.length} páginas geradas`);
+
+    // ============================================
+    // GERAR EXTRAS (JSON)
+    // ============================================
+    console.log(`[Conceitos] Gerando extras (correspondências, flashcards, questões)...`);
+
+    const promptExtras = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere os seguintes elementos de estudo baseados no conteúdo:
+
+Retorne um JSON válido com esta estrutura EXATA:
+{
+  "correspondencias": [
+    {"termo": "Termo do PDF", "definicao": "Definição curta (máx 60 chars)"}
+  ],
+  "exemplos": [
+    {"titulo": "Título do caso", "situacao": "Descrição", "analise": "Análise jurídica", "conclusao": "Conclusão"}
+  ],
+  "termos": [
+    {"termo": "Termo jurídico", "definicao": "Definição completa"}
+  ],
+  "flashcards": [
+    {"frente": "Pergunta", "verso": "Resposta", "exemplo": "Exemplo prático"}
+  ],
+  "questoes": [
+    {"pergunta": "Enunciado da questão", "alternativas": ["A) opção", "B) opção", "C) opção", "D) opção"], "correta": 0, "explicacao": "Explicação da resposta"}
+  ]
+}
+
+QUANTIDADES:
+- correspondencias: mínimo 8 pares
+- exemplos: mínimo 5 casos
+- termos: mínimo 10 termos
+- flashcards: mínimo 15 cards
+- questoes: mínimo 8 questões
+
+Retorne APENAS o JSON, sem texto adicional.`;
+
+    let extras: any = {};
+    try {
+      extras = await gerarJSON(promptExtras);
+      console.log(`[Conceitos] ✓ Extras gerados`);
+    } catch (err) {
+      console.error(`[Conceitos] ❌ Erro nos extras, gerando fallback:`, err);
+      extras = {
+        correspondencias: [],
+        exemplos: [],
+        termos: [],
+        flashcards: [],
+        questoes: []
+      };
+    }
+
+    await updateProgress(90);
+
+    // Validar correspondências
+    let correspondencias = extras.correspondencias || [];
+    if (!Array.isArray(correspondencias) || correspondencias.length < 6) {
+      // Fallback: usar termos se disponíveis
+      if (extras.termos && Array.isArray(extras.termos) && extras.termos.length >= 6) {
+        correspondencias = extras.termos.slice(0, 10).map((t: any) => ({
+          termo: t.termo || t.nome || String(t),
+          definicao: (t.definicao || t.descricao || "Conceito jurídico").substring(0, 60)
         }));
       }
     }
     
-    correspondenciasValidas = correspondenciasValidas
+    correspondencias = correspondencias
       .filter((c: any) => c && c.termo && c.definicao)
       .slice(0, 10)
       .map((c: any) => ({
         termo: String(c.termo).trim().substring(0, 50),
         definicao: String(c.definicao).trim().substring(0, 80)
       }));
-    
-    console.log(`[Conceitos] Correspondências finais: ${correspondenciasValidas.length} pares válidos`);
-    
-    if (correspondenciasValidas.length < 6) {
-      console.error(`[Conceitos] ❌ Correspondências insuficientes`);
-      await supabase.from("conceitos_topicos")
-        .update({ status: "erro", progresso: 80 })
-        .eq("id", topico_id);
-      throw new Error(`Correspondências insuficientes (${correspondenciasValidas.length}/6)`);
-    }
-    
+
+    console.log(`[Conceitos] Correspondências válidas: ${correspondencias.length}`);
+
+    // ============================================
+    // MONTAR CONTEÚDO FINAL
+    // ============================================
+    const conteudoPrincipal = paginasGeradas
+      .map((p, i) => {
+        const separador = i > 0 ? "\n\n---\n\n" : "";
+        return `${separador}${p.markdown}`;
+      })
+      .join("");
+
     const termosComCorrespondencias = {
-      glossario: conteudoGerado.termos || [],
-      correspondencias: correspondenciasValidas
+      glossario: extras.termos || [],
+      correspondencias: correspondencias
     };
-    
-    // Salvar no banco
+
+    // ============================================
+    // SALVAR NO BANCO
+    // ============================================
     const { error: updateError } = await supabase
       .from("conceitos_topicos")
       .update({
         conteudo_gerado: conteudoPrincipal,
-        exemplos: conteudoGerado.exemplos || [],
+        exemplos: extras.exemplos || [],
         termos: termosComCorrespondencias,
-        flashcards: conteudoGerado.flashcards || [],
-        questoes: conteudoGerado.questoes || [],
+        flashcards: extras.flashcards || [],
+        questoes: extras.questoes || [],
         status: "concluido",
         progresso: 100,
-        tentativas: tentativasAtuais + 1,
+        tentativas: (topico.tentativas || 0) + 1,
         posicao_fila: null,
         updated_at: new Date().toISOString(),
       })
@@ -632,7 +401,7 @@ Termine com o fechamento correto do JSON.`;
       throw updateError;
     }
 
-    console.log(`[Conceitos] ✅ Conteúdo salvo com sucesso: ${topicoTitulo}`);
+    console.log(`[Conceitos] ✅ Conteúdo salvo: ${topicoTitulo}`);
 
     // Processar próximo da fila
     await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
@@ -640,39 +409,38 @@ Termine com o fechamento correto do JSON.`;
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Conteúdo gerado com sucesso - 8 páginas",
+        message: "Conteúdo gerado página por página",
         topico_id,
         titulo: topicoTitulo,
-        paginas: numPaginas,
+        paginas: paginasGeradas.length,
         stats: {
-          correspondencias: correspondenciasValidas.length,
-          exemplos: conteudoGerado.exemplos?.length || 0,
-          termos: conteudoGerado.termos?.length || 0,
-          flashcards: conteudoGerado.flashcards?.length || 0,
-          questoes: conteudoGerado.questoes?.length || 0,
+          correspondencias: correspondencias.length,
+          exemplos: extras.exemplos?.length || 0,
+          termos: extras.termos?.length || 0,
+          flashcards: extras.flashcards?.length || 0,
+          questoes: extras.questoes?.length || 0,
         }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("[Conceitos] ❌ Erro ao gerar conteúdo:", error);
+    console.error("[Conceitos] ❌ Erro:", error);
 
     try {
-      if (topicoIdForCatch) {
-        const supabase = supabaseForCatch || createClient(
+      if (topicoIdForCatch && supabaseForCatch) {
+        await supabaseForCatch
+          .from("conceitos_topicos")
+          .update({ status: "erro", progresso: 0 })
+          .eq("id", topicoIdForCatch);
+
+        await processarProximoDaFila(
+          supabaseForCatch,
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
-
-        await supabase
-          .from("conceitos_topicos")
-          .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
-          .eq("id", topicoIdForCatch);
-
-        await processarProximoDaFila(supabase, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       }
     } catch (catchErr) {
-      console.error("[Conceitos] Erro ao processar fallback:", catchErr);
+      console.error("[Conceitos] Erro no fallback:", catchErr);
     }
 
     return new Response(
@@ -682,7 +450,7 @@ Termine com o fechamento correto do JSON.`;
   }
 });
 
-// Função auxiliar para processar próximo item da fila
+// Função auxiliar para processar próximo da fila
 async function processarProximoDaFila(supabase: any, supabaseUrl: string, supabaseServiceKey: string) {
   try {
     const { data: proximo, error } = await supabase
@@ -694,26 +462,21 @@ async function processarProximoDaFila(supabase: any, supabaseUrl: string, supaba
       .single();
 
     if (error || !proximo) {
-      console.log("[Conceitos Fila] Nenhum item na fila para processar");
+      console.log("[Conceitos Fila] Fila vazia");
       return;
     }
 
-    console.log(`[Conceitos Fila] Iniciando próximo da fila: ${proximo.titulo} (ID: ${proximo.id})`);
+    console.log(`[Conceitos Fila] Próximo: ${proximo.titulo}`);
 
-    const functionUrl = `${supabaseUrl}/functions/v1/gerar-conteudo-conceitos`;
-    
-    fetch(functionUrl, {
+    fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-conceitos`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${supabaseServiceKey}`,
       },
       body: JSON.stringify({ topico_id: proximo.id }),
-    }).catch(err => {
-      console.error("[Conceitos Fila] Erro ao iniciar próximo:", err);
-    });
-    
+    }).catch(err => console.error("[Conceitos Fila] Erro:", err));
   } catch (err) {
-    console.error("[Conceitos Fila] Erro ao buscar próximo da fila:", err);
+    console.error("[Conceitos Fila] Erro:", err);
   }
 }
