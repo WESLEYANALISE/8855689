@@ -3541,6 +3541,68 @@ export type Database = {
         }
         Relationships: []
       }
+      conceitos_batch_jobs: {
+        Row: {
+          completed_at: string | null
+          completed_items: number
+          created_at: string
+          error_message: string | null
+          id: string
+          input_file_uri: string | null
+          items_data: Json | null
+          job_name: string
+          materia_id: number | null
+          output_file_uri: string | null
+          results_data: Json | null
+          status: string
+          tipo: string
+          total_items: number
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_items?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_file_uri?: string | null
+          items_data?: Json | null
+          job_name: string
+          materia_id?: number | null
+          output_file_uri?: string | null
+          results_data?: Json | null
+          status?: string
+          tipo: string
+          total_items?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_items?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_file_uri?: string | null
+          items_data?: Json | null
+          job_name?: string
+          materia_id?: number | null
+          output_file_uri?: string | null
+          results_data?: Json | null
+          status?: string
+          tipo?: string
+          total_items?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conceitos_batch_jobs_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "conceitos_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conceitos_livro_paginas: {
         Row: {
           conteudo: string | null
@@ -3798,6 +3860,7 @@ export type Database = {
           posicao_fila: number | null
           progresso: number | null
           questoes: Json | null
+          slides_json: Json | null
           status: string | null
           subtopicos: Json | null
           tentativas: number | null
@@ -3822,6 +3885,7 @@ export type Database = {
           posicao_fila?: number | null
           progresso?: number | null
           questoes?: Json | null
+          slides_json?: Json | null
           status?: string | null
           subtopicos?: Json | null
           tentativas?: number | null
@@ -3846,6 +3910,7 @@ export type Database = {
           posicao_fila?: number | null
           progresso?: number | null
           questoes?: Json | null
+          slides_json?: Json | null
           status?: string | null
           subtopicos?: Json | null
           tentativas?: number | null

@@ -9,6 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import StandardPageHeader from "@/components/StandardPageHeader";
 import OABTrilhasReader from "@/components/oab/OABTrilhasReader";
+import { 
+  ConceitosSlidesViewer, 
+  ConceitosTopicoIntro,
+  type ConceitoSecao 
+} from "@/components/conceitos/slides";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Flashcard {
@@ -31,11 +36,17 @@ interface CorrespondenciaItem {
   definicao: string;
 }
 
+// Modo de visualização do conteúdo
+type ViewMode = 'intro' | 'slides' | 'reading';
+
 const ConceitosTopicoEstudo = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  
+  // Modo de visualização
+  const [viewMode, setViewMode] = useState<ViewMode>('intro');
   
   // Key para forçar recarregamento quando voltar de flashcards/questões
   const [readerKey, setReaderKey] = useState(0);
@@ -101,6 +112,30 @@ const ConceitosTopicoEstudo = () => {
       return false;
     },
   });
+
+  // Extrair slides JSON se disponível
+  const slidesData = useMemo(() => {
+    if (!topico?.slides_json) return null;
+    const data = topico.slides_json as any;
+    if (!data?.secoes || !Array.isArray(data.secoes)) return null;
+    return {
+      versao: data.versao || 1,
+      titulo: data.titulo || topico.titulo,
+      tempoEstimado: data.tempoEstimado || "25 min",
+      objetivos: data.objetivos || [],
+      secoes: data.secoes as ConceitoSecao[]
+    };
+  }, [topico?.slides_json, topico?.titulo]);
+
+  // Calcular estatísticas dos slides
+  const slidesStats = useMemo(() => {
+    if (!slidesData?.secoes) return { totalSlides: 0, totalSecoes: 0 };
+    const totalSlides = slidesData.secoes.reduce((acc, s) => acc + s.slides.length, 0);
+    return {
+      totalSlides,
+      totalSecoes: slidesData.secoes.length
+    };
+  }, [slidesData]);
 
   // Buscar tópico que está sendo gerado atualmente (para mostrar na fila)
   const { data: topicoGerando } = useQuery({
@@ -302,14 +337,32 @@ const ConceitosTopicoEstudo = () => {
   const isNaFila = topico?.status === "na_fila";
   const progresso = topico?.progresso || 0;
 
+  // Se está no modo slides, renderiza o viewer de slides
+  if (viewMode === 'slides' && slidesData) {
+    return (
+      <ConceitosSlidesViewer
+        secoes={slidesData.secoes}
+        titulo={slidesData.titulo}
+        materiaName={topico?.materia?.nome}
+        onClose={() => setViewMode('intro')}
+        onComplete={() => {
+          toast.success("Parabéns! Você concluiu todos os slides!");
+          setViewMode('intro');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <StandardPageHeader
-        title={topico?.titulo || "Carregando..."}
-        subtitle={topico?.materia?.nome}
-        onBack={handleBack}
-      />
+      {/* Header - esconde no modo intro quando tem slides */}
+      {!(viewMode === 'intro' && slidesData && topico?.status === "concluido") && (
+        <StandardPageHeader
+          title={topico?.titulo || "Carregando..."}
+          subtitle={topico?.materia?.nome}
+          onBack={handleBack}
+        />
+      )}
 
       {/* Conteúdo */}
       <div className="flex-1 flex flex-col">
@@ -354,7 +407,7 @@ const ConceitosTopicoEstudo = () => {
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <h2 className="text-lg font-semibold text-foreground mb-2">Gerando conteúdo...</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              A IA está criando 8 páginas de estudo para este tópico.
+              A IA está criando slides interativos para este tópico.
             </p>
             <div className="w-full max-w-xs">
               <Progress value={progresso} className="h-2" />
@@ -385,8 +438,48 @@ const ConceitosTopicoEstudo = () => {
           </div>
         )}
 
-        {/* Estado: Conteúdo Pronto */}
-        {topico?.status === "concluido" && topico?.conteudo_gerado && (
+        {/* Estado: Conteúdo Pronto - Tela de Introdução com escolha de modo */}
+        {topico?.status === "concluido" && topico?.conteudo_gerado && viewMode === 'intro' && slidesData && (
+          <>
+            {/* Header para tela de intro */}
+            <StandardPageHeader
+              title=""
+              onBack={handleBack}
+            />
+            <ConceitosTopicoIntro
+              titulo={topico.titulo}
+              materiaName={topico.materia?.nome}
+              capaUrl={topico.capa_url}
+              tempoEstimado={slidesData.tempoEstimado}
+              totalSecoes={slidesStats.totalSecoes}
+              totalSlides={slidesStats.totalSlides}
+              objetivos={slidesData.objetivos}
+              onStartSlides={() => setViewMode('slides')}
+              onStartReading={() => setViewMode('reading')}
+            />
+          </>
+        )}
+
+        {/* Estado: Conteúdo Pronto - Modo Leitura */}
+        {topico?.status === "concluido" && topico?.conteudo_gerado && (viewMode === 'reading' || !slidesData) && viewMode !== 'intro' && (
+          <OABTrilhasReader
+            key={`reader-${readerKey}`}
+            conteudoGerado={topico.conteudo_gerado}
+            paginas={conteudoGerado?.paginas}
+            titulo={topico.titulo}
+            materia={topico.materia?.nome}
+            capaUrl={topico.capa_url}
+            flashcards={flashcards}
+            questoes={questoes}
+            topicoId={topico.id}
+            correspondencias={correspondencias}
+            fontSize={fontSize}
+            onFontSizeChange={handleFontSizeChange}
+          />
+        )}
+
+        {/* Fallback: Conteúdo pronto mas sem slides - vai direto pro reader */}
+        {topico?.status === "concluido" && topico?.conteudo_gerado && !slidesData && viewMode === 'intro' && (
           <OABTrilhasReader
             key={`reader-${readerKey}`}
             conteudoGerado={topico.conteudo_gerado}
