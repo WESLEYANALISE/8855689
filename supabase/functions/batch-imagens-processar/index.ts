@@ -242,11 +242,12 @@ serve(async (req) => {
 
         // Obter URL pública
         const { data: urlData } = supabase.storage.from("imagens").getPublicUrl(fileName);
+        const imageUrl = urlData.publicUrl;
         
         results.push({
           id: item.id,
           slideId: item.slideId,
-          url: urlData.publicUrl
+          url: imageUrl
         });
 
         // Atualizar progresso no banco
@@ -258,8 +259,37 @@ serve(async (req) => {
           })
           .eq("id", job_id);
 
+        // ATUALIZAR IMEDIATAMENTE no slides_json do tópico (não esperar job terminar)
+        if (job.tipo === "imagens_slides" && job.topico_id && item.slideId) {
+          try {
+            const { data: topico } = await supabase
+              .from("conceitos_topicos")
+              .select("slides_json")
+              .eq("id", job.topico_id)
+              .single();
+
+            if (topico?.slides_json) {
+              const slidesJson = topico.slides_json as any;
+              const [secaoId, slideIdx] = item.slideId.split("-").map(Number);
+              
+              if (slidesJson.secoes?.[secaoId]?.slides?.[slideIdx]) {
+                slidesJson.secoes[secaoId].slides[slideIdx].imagemUrl = imageUrl;
+                
+                await supabase
+                  .from("conceitos_topicos")
+                  .update({ slides_json: slidesJson })
+                  .eq("id", job.topico_id);
+                
+                console.log(`[batch-imagens-processar] URL atualizada: slide ${item.slideId}`);
+              }
+            }
+          } catch (updateErr) {
+            console.error(`[batch-imagens-processar] Erro ao atualizar slide:`, updateErr);
+          }
+        }
+
         // Pequeno delay para não sobrecarregar a API
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
 
       } catch (itemError) {
         console.error(`[batch-imagens-processar] Erro no item ${item.id}:`, itemError);
