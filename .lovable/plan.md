@@ -1,93 +1,145 @@
 
-# Plano: Ajustar Prompt de Conceitos para Estrutura Igual à OAB Trilhas
+# Plano: Corrigir Geração de Conceitos e Atualizar Modelo Gemini
 
-## Problema Identificado
+## Problemas Identificados
 
-O conteúdo gerado em Conceitos está vindo com tom excessivamente informal e frases de abertura conversacionais como:
-- "E aí, futuro(a) jurista!"
-- "Ok, vamos lá!"
-- "Relaxa, a gente vai começar do comecinho"
+### 1. Prompt Vazando no Conteúdo
+Na imagem, aparece o texto "Não inclua nenhuma saudação ou comentários adicionais" no início do conteúdo gerado. Isso acontece porque a IA está repetindo as instruções do prompt no início da resposta.
 
-Isso acontece porque o prompt atual instrui a IA a escrever "como se estivesse CONVERSANDO com o estudante", resultando em texto coloquial demais.
-
-Na OAB Trilhas, o conteúdo inicia de forma profissional: "As Escolas Penais representam um fascinante panorama da evolução do pensamento jurídico-penal..."
-
-## Solução
-
-Atualizar o prompt da edge function `gerar-conteudo-conceitos` para:
-
-1. **Remover instruções de tom excessivamente informal**
-2. **Manter didatismo sem ser coloquial** - Explicar bem, mas sem frases como "E aí!"
-3. **Proibir explicitamente frases de abertura conversacionais** - "Ok vamos lá", "E aí", "Bora", etc.
-4. **Estrutura clara de 8 páginas** - Igual à OAB Trilhas
-
-## Mudanças no Prompt Base
-
-### Antes (atual):
+**Causa**: O prompt na linha 364 da edge function diz:
 ```
-Você é um professor de Direito acolhedor, especializado em ensinar INICIANTES.
-Escreva como se estivesse CONVERSANDO com o estudante.
-Use expressões naturais, perguntas retóricas e analogias do dia a dia.
+Retorne APENAS o conteúdo em formato Markdown. Não inclua o título da seção...
 ```
+A IA interpretou isso como parte do texto a ser gerado.
 
-### Depois (novo):
+### 2. Título Mostrando "Página X" em vez do Nome Real
+Na UI está aparecendo "TÓPICO 2 / Página 2" quando deveria mostrar "Conteúdo Completo".
+
+**Causa**: O frontend `ConceitosReader.tsx` está pegando o título da seção `##`, mas o parsing não está funcionando corretamente. A função `extrairTopicos` divide por `## ` e pega o título, mas pode haver problemas na extração.
+
+### 3. Modelo desatualizado gemini-2.0-flash
+Você quer atualizar de `gemini-2.0-flash` para `gemini-2.5-flash` em todas as edge functions.
+
+**Funções afetadas** (lista parcial - mais de 50 funções):
+- gerar-conteudo-conceitos
+- gemini-chat
+- formatar-leitura
+- gerar-analise-documentario
+- gerar-flashcards
+- gerar-questoes
+- gerar-resumo-obra
+- explicar-com-gemini
+- ... e muitas outras
+
+## Solução Proposta
+
+### Parte 1: Corrigir Vazamento de Prompt
+Modificar o prompt para deixar mais claro que as instruções são APENAS para a IA, não para incluir no texto:
+
+**Antes**:
 ```
-Você é um professor de Direito especialista, didático e acolhedor.
-Escreva de forma clara e acessível para estudantes iniciantes.
-Use linguagem simples, exemplos práticos e analogias quando útil.
-
-PROIBIDO:
-- Frases de abertura informais como "E aí!", "Ok, vamos lá!", "Bora!", "Relaxa"
-- Linguagem excessivamente coloquial ou gírias
-- Emojis de qualquer tipo
-- Iniciar parágrafos com expressões do tipo "Sabe o que é...?", "Olha só..."
+Retorne APENAS o conteúdo em formato Markdown. Não inclua o título da seção (já será adicionado automaticamente).
 ```
 
-## Mudanças nos Prompts por Página
+**Depois**:
+```
+INSTRUÇÕES DE FORMATO (não inclua estas instruções no texto):
+- Retorne APENAS o conteúdo em Markdown
+- Comece diretamente com o primeiro parágrafo do conteúdo
+- O título da seção já será adicionado automaticamente pelo sistema
+```
 
-Cada página terá instruções mais específicas:
+Também vou adicionar uma função de limpeza no edge function para remover frases que parecem instruções caso a IA ainda as inclua.
 
-1. **Introdução**: Apresentar o tema de forma clara e motivadora, SEM frases coloquiais
-2. **Conteúdo Principal**: Explicar TODO o PDF de forma didática e organizada
-3. **Desmembrando**: Dividir conceitos complexos em partes menores
-4. **Entendendo na Prática**: Casos práticos com análise jurídica
-5. **Quadro Comparativo**: Tabelas Markdown comparando institutos
-6. **Dicas para Memorizar**: Técnicas de memorização e pontos-chave
-7. **Ligar Termos**: Introdução breve para o exercício interativo
-8. **Síntese Final**: Resumo conciso de tudo que foi visto
-
-## Arquivo a ser Alterado
-
-**supabase/functions/gerar-conteudo-conceitos/index.ts**
-- Linhas 241-252: Atualizar `promptBase` com novo tom
-- Linhas 11-20: Atualizar `PAGINAS_CONFIG` com instruções mais específicas
-
-## Detalhes Tecnicos
-
-O prompt será alterado para remover o tom conversacional excessivo. As instruções por página serao mais específicas para garantir conteúdo profissional e didático.
-
-Exemplo do novo `PAGINAS_CONFIG`:
-
+### Parte 2: Corrigir Títulos (remover "Página X")
+O problema está na montagem do conteúdo. Atualmente o título é:
 ```typescript
-const PAGINAS_CONFIG = [
-  { 
-    tipo: "introducao", 
-    titulo: "Introdução", 
-    promptExtra: "Escreva uma introdução clara de 400-600 palavras. Apresente o tema, sua importância e o que será abordado. NÃO use frases como 'E aí!', 'Vamos lá!', 'Bora!'." 
-  },
-  { 
-    tipo: "conteudo_principal", 
-    titulo: "Conteúdo Completo", 
-    promptExtra: "Escreva o conteúdo principal com MÍNIMO 3000 palavras. Cubra TODO o PDF de forma didática e organizada. Use subtítulos (##, ###) para estruturar. Comece diretamente com o conteúdo, sem saudações." 
-  },
-  // ... demais páginas
-];
+const tituloSecao = `## ${p.titulo.split(':')[0]}\n\n`;
+```
+
+Isso gera `## Introdução`, `## Conteúdo Completo`, etc. O frontend deve estar lendo corretamente, mas preciso verificar se o parser está extraindo os títulos das seções geradas.
+
+Vou ajustar a função `extrairTopicos` no `ConceitosReader.tsx` para garantir que o título real seja usado e não "Página X".
+
+### Parte 3: Atualizar Modelo para gemini-2.5-flash
+Atualizar todas as edge functions que usam `gemini-2.0-flash` para `gemini-2.5-flash`:
+
+| Edge Function | Mudança |
+|--------------|---------|
+| gerar-conteudo-conceitos | gemini-2.0-flash → gemini-2.5-flash |
+| gemini-chat | gemini-2.0-flash → gemini-2.5-flash |
+| formatar-leitura | gemini-2.0-flash → gemini-2.5-flash |
+| gerar-analise-documentario | gemini-2.0-flash → gemini-2.5-flash |
+| chat-professora-jurista | gemini-2.0-flash → gemini-2.5-flash |
+| gerar-flashcards | gemini-2.0-flash → gemini-2.5-flash |
+| gerar-questoes | gemini-2.0-flash → gemini-2.5-flash |
+| explicar-com-gemini | gemini-2.0-flash → gemini-2.5-flash |
+| gerar-resumo-obra | gemini-2.0-flash → gemini-2.5-flash |
+| (todas as outras ~50+ funções) | gemini-2.0-flash → gemini-2.5-flash |
+
+## Arquivos a Serem Alterados
+
+### Edge Functions (principais):
+1. `supabase/functions/gerar-conteudo-conceitos/index.ts`
+   - Corrigir prompt para não vazar instruções
+   - Adicionar função de limpeza de texto
+   - Atualizar modelo para gemini-2.5-flash
+
+2. `supabase/functions/gemini-chat/index.ts`
+   - Atualizar modelo para gemini-2.5-flash
+
+3. `supabase/functions/formatar-leitura/index.ts`
+   - Atualizar modelo para gemini-2.5-flash
+
+4. `supabase/functions/gerar-analise-documentario/index.ts`
+   - Atualizar modelo para gemini-2.5-flash
+
+5. Mais ~50 outras edge functions com gemini-2.0-flash
+
+### Frontend:
+6. `src/components/conceitos/ConceitosReader.tsx`
+   - Corrigir extração de títulos das seções
+   - Garantir que "Introdução", "Conteúdo Completo", etc apareçam corretamente
+
+## Detalhes Técnicos
+
+### Nova Função de Limpeza (edge function):
+```typescript
+function limparInstrucoesDoTexto(texto: string): string {
+  // Remove frases que parecem instruções da IA
+  const padroesInstrucoes = [
+    /^(Não inclua|INSTRUÇÕES|Retorne APENAS)[^\n]*\n*/gi,
+    /^(Comece diretamente|O título será)[^\n]*\n*/gi,
+    /^(Aqui está|Segue o conteúdo)[^\n]*\n*/gi,
+  ];
+  
+  let limpo = texto;
+  for (const padrao of padroesInstrucoes) {
+    limpo = limpo.replace(padrao, '');
+  }
+  return limpo.trim();
+}
+```
+
+### Correção do Parser de Títulos (frontend):
+```typescript
+// Na função extrairTopicos
+const titulo = tituloRaw
+  .replace(/^\d+\.\s*/, '') // Remove números
+  .replace(/[🔍🃏📌💡💼🎯⚠️]/g, '') // Remove emojis
+  .split(':')[0] // Pega apenas a primeira parte antes de ":"
+  .trim();
 ```
 
 ## Resultado Esperado
 
-Após a mudança, o conteúdo gerado terá:
-- Tom profissional e didático (como na OAB Trilhas)
-- Estrutura clara em 8 páginas
-- Sem frases coloquiais de abertura
-- Conteúdo que vai direto ao assunto
+Após as correções:
+1. O conteúdo gerado NÃO terá mais frases como "Não inclua nenhuma saudação..."
+2. Os títulos aparecerão como "Introdução", "Conteúdo Completo", "Desmembrando o Tema", etc.
+3. Todas as edge functions usarão o modelo gemini-2.5-flash (mais avançado e estável)
+
+## Observações Importantes
+
+- O modelo gemini-2.5-flash é mais recente e tem melhor compreensão de instruções
+- A mudança será feita em todas as ~50+ edge functions que usam gemini-2.0-flash
+- Após as alterações, será necessário resetar um tópico de Conceitos para testar a nova geração
