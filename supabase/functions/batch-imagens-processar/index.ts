@@ -19,9 +19,29 @@ interface ProcessedResult {
   error?: string;
 }
 
-// Gerar imagem usando Gemini 2.0 Flash
+// Gerar imagem usando Gemini 2.5 Flash Image
 async function gerarImagemGemini(prompt: string, apiKey: string): Promise<string | null> {
   try {
+    // Prompt otimizado para gerar imagens sem texto e sem bordas brancas
+    const optimizedPrompt = `Create a high-quality, FULL-BLEED educational illustration for a Brazilian law course.
+
+CRITICAL REQUIREMENTS (MUST FOLLOW):
+1. NO TEXT whatsoever - no titles, no labels, no captions, no words in any language
+2. FULL-BLEED composition - the illustration must fill the ENTIRE canvas edge-to-edge
+3. NO white borders, NO margins, NO empty space around edges
+4. NO frames or decorative borders
+
+STYLE:
+- Professional, modern, cinematic illustration style
+- Rich color palette: deep blues, warm golds, burgundy reds, amber tones
+- Subtle legal/justice visual metaphors (scales, columns, books, gavels as BACKGROUND elements only)
+- Atmospheric lighting with depth and dimension
+- 16:9 landscape format, completely filled
+
+SUBJECT TO ILLUSTRATE: ${prompt}
+
+Create a visually striking, symbolic representation of this legal concept. Focus on visual metaphors, abstract shapes, or professional scenes that convey the theme WITHOUT any text.`;
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
       {
@@ -29,18 +49,7 @@ async function gerarImagemGemini(prompt: string, apiKey: string): Promise<string
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
-            parts: [{
-              text: `Generate a high-quality educational illustration for a law/legal course slide. 
-
-Style: Professional, modern, minimalist with subtle legal themes (scales of justice, books, gavels can appear subtly).
-Color palette: Deep blues, warm golds, elegant whites, with touches of red/orange for accent.
-Mood: Authoritative yet approachable, suitable for academic content.
-Format: 16:9 landscape aspect ratio.
-
-Subject: ${prompt}
-
-Create an illustration that would work as a slide header or hero image. The image should be clean, professional, and educational.`
-            }]
+            parts: [{ text: optimizedPrompt }]
           }],
           generationConfig: {
             responseModalities: ["IMAGE", "TEXT"]
