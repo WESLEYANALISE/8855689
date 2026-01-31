@@ -6,15 +6,23 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import TermoHighlight from "@/components/conceitos/TermoHighlight";
 
-// Função para processar Markdown inline básico (negrito e itálico)
-export const processInlineMarkdown = (text: string): React.ReactNode => {
+// Componente para citação inline de artigo (texto entre aspas)
+const CitacaoArtigoInline = ({ children }: { children: React.ReactNode }) => (
+  <span className="inline bg-amber-500/10 text-amber-200 px-1.5 py-0.5 rounded border-l-2 border-amber-500/50 italic">
+    "{children}"
+  </span>
+);
+
+// Função para processar Markdown inline básico (negrito, itálico e citações entre aspas)
+export const processInlineMarkdown = (text: string, enableQuoteCitation: boolean = true): React.ReactNode => {
   if (!text || typeof text !== 'string') return text;
   
   const parts: React.ReactNode[] = [];
   let key = 0;
   
-  // Regex para **negrito** e *itálico*
-  const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*)/g;
+  // Regex para **negrito**, *itálico* e "citação entre aspas"
+  // Detecta aspas duplas ("" ou "") como citações de artigos
+  const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|[""]([^""]+)[""])/g;
   let lastIndex = 0;
   let match;
   
@@ -30,6 +38,12 @@ export const processInlineMarkdown = (text: string): React.ReactNode => {
     } else if (match[3]) {
       // *itálico*
       parts.push(<em key={key++} className="italic text-amber-100/80">{match[3]}</em>);
+    } else if (match[4] && enableQuoteCitation) {
+      // "citação entre aspas" - aplica estilo de citação de artigo
+      parts.push(<CitacaoArtigoInline key={key++}>{match[4]}</CitacaoArtigoInline>);
+    } else if (match[4] && !enableQuoteCitation) {
+      // Se citação desabilitada, mantém aspas normais
+      parts.push(`"${match[4]}"`);
     }
     
     lastIndex = regex.lastIndex;
@@ -83,17 +97,17 @@ const processTextWithTermos = (text: string, disableTermos: boolean = false): Re
   return parts.length > 0 ? parts : [text];
 };
 
-// Componente wrapper para processar termos em children do React
-const TextWithTermos = ({ children, disableTermos = false }: { children: React.ReactNode; disableTermos?: boolean }): React.ReactElement => {
+// Componente wrapper para processar termos e citações em children do React
+const TextWithTermos = ({ children, disableTermos = false, enableQuotes = true }: { children: React.ReactNode; disableTermos?: boolean; enableQuotes?: boolean }): React.ReactElement => {
   const processChildren = (node: React.ReactNode): React.ReactNode => {
     if (typeof node === 'string') {
-      // Primeiro processa Markdown inline, depois termos
-      const withMarkdown = processInlineMarkdown(node);
-      if (typeof withMarkdown === 'string') {
-        const processed = processTextWithTermos(withMarkdown, disableTermos);
+      // Primeiro processa citações entre aspas, depois Markdown inline, depois termos
+      const withQuotesAndMarkdown = processInlineMarkdown(node, enableQuotes);
+      if (typeof withQuotesAndMarkdown === 'string') {
+        const processed = processTextWithTermos(withQuotesAndMarkdown, disableTermos);
         return processed.length === 1 ? processed[0] : <>{processed}</>;
       }
-      return withMarkdown;
+      return withQuotesAndMarkdown;
     }
     
     if (React.isValidElement(node) && node.props.children) {
