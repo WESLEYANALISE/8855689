@@ -1,338 +1,166 @@
 
-# Plano: Páginas Interativas com Tela Inicial Completa e Conteúdo Aprimorado
+# Plano: Melhorar Tela Introdutória e Conteúdo das Páginas
 
-## Resumo das Alterações Solicitadas
+## Problemas Identificados
 
-1. **Nomenclatura**: Trocar "slides" por "páginas" em toda a interface
-2. **Tela Inicial Completa**: Adicionar flashcards, praticar e ruído marrom igual ao modo leitura
-3. **Melhorar Estrutura de Conteúdo**: Cards mais explicativos, citações, dicas de estudo, exemplos
-4. **Remover Collapsibles**: Converter tudo para texto fluido
+1. **Seção "O que você vai aprender"**: Existe no código (linha 316-358 de `ConceitosTopicoIntro.tsx`) mas está colapsada por padrão (`showIndex` inicia como `false`). A lista só aparece quando o usuário clica.
 
----
+2. **Botões muito grandes no mobile**: Os botões de módulos (Leitura, Flashcards, Praticar) usam `p-4` e estrutura verbosa, ocupando muito espaço vertical na tela.
 
-## Parte 1: Nova Tela de Introdução (Igual ao Modo Leitura)
-
-A tela de introdução atual (`ConceitosTopicoIntro.tsx`) está muito simples. Precisamos reformulá-la para ter:
-
-### Design da Nova Tela Inicial
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                  │
-│              [IMAGEM DE CAPA COM DEGRADÊ]                       │
-│                                                                  │
-│  ─────────────── ✦ ───────────────                              │
-│                                                                  │
-│                 NOME DO TÓPICO                                  │
-│                  (Matéria)                                      │
-│                                                                  │
-│  ─────────────── ✦ ───────────────                              │
-│                                                                  │
-│  ┌───────────────────┐  ┌────────────────────┐                  │
-│  │ 📚 8 páginas      │  │ 🎧 Ruído Marrom    │                  │
-│  └───────────────────┘  │    [  Switch  ]    │                  │
-│                         └────────────────────┘                  │
-│                                                                  │
-│  ╔═══════════════════════════════════════════════════════════╗  │
-│  ║  1  ▶ Começar Leitura                                      ║  │
-│  ║     ███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  35%       ║  │
-│  ╚═══════════════════════════════════════════════════════════╝  │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  2  🔮 Flashcards                              🔒 Bloq.   │  │
-│  │     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  0%        │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  3  🎯 Praticar                                🔒 Bloq.   │  │
-│  │     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  0%        │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│        Card Explicativo do Ruído Marrom (quando ativo)          │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Elementos a Adicionar
-
-| Elemento | Origem | Funcionalidade |
-|----------|--------|----------------|
-| Ruído Marrom | `OABTrilhasReader.tsx` | Toggle com Switch + card explicativo |
-| Módulo Flashcards | `OABTrilhasReader.tsx` | Botão bloqueado até completar leitura |
-| Módulo Praticar | `OABTrilhasReader.tsx` | Botão bloqueado até completar flashcards |
-| Progresso por módulo | `OABTrilhasReader.tsx` | Barra de progresso individual |
-| Índice expandível | `OABTrilhasReader.tsx` | Lista de páginas clicável |
+3. **Conteúdo das páginas pouco explicativo**: O prompt na Edge Function pede 200-400 palavras por página, mas precisa ser mais enfático para gerar conteúdo mais denso e didático.
 
 ---
 
-## Parte 2: Renomear "Slides" para "Páginas"
+## Solução Proposta
 
-### Arquivos a Modificar
+### Parte 1: Mostrar "O que você vai aprender" por padrão (expandido)
 
-| Arquivo | Alterações |
-|---------|------------|
-| `ConceitosTopicoIntro.tsx` | "slides" → "páginas", props renomeadas |
-| `ConceitosSlidesViewer.tsx` | Variáveis e textos de "slides" → "páginas" |
-| `ConceitoSlideCard.tsx` | Comentários e labels |
-| `ConceitosTopicoEstudo.tsx` | Mensagens e variáveis |
-| `types.ts` | Manter tipos (internos), apenas comentários |
-
-### Exemplos de Mudanças
+Alterar o estado inicial de `showIndex` para `true`:
 
 ```tsx
 // ANTES
-<span className="text-sm">{totalSlides} slides</span>
+const [showIndex, setShowIndex] = useState(false);
 
-// DEPOIS
-<span className="text-sm">{totalPaginas} páginas</span>
+// DEPOIS  
+const [showIndex, setShowIndex] = useState(true);
 ```
 
+### Parte 2: Botões mais compactos e responsivos
+
+Redesenhar os botões de módulos para serem mais compactos, seguindo o padrão do `OABTrilhasReader.tsx`:
+
+**Estrutura atual (grande demais):**
 ```tsx
+<button className="w-full ... p-4">
+  <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full ...">1</div>
+      <div className="text-left">
+        <p className="font-semibold">Começar Leitura</p>
+        <p className="text-xs">{totalPaginas} páginas interativas</p>
+      </div>
+    </div>
+    <Play className="w-5 h-5" />
+  </div>
+  <Progress value={...} className="h-1.5" />
+  <p className="text-xs mt-2 text-right">0% concluído</p>
+</button>
+```
+
+**Nova estrutura compacta (igual OABTrilhasReader):**
+```tsx
+<button className="w-full ... p-3 sm:p-4">
+  <div className="flex items-center gap-3 sm:gap-4">
+    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full ...">1</div>
+    <div className="flex-1 text-left">
+      <div className="flex items-center gap-2">
+        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <span className="text-sm sm:text-base font-semibold">Começar Leitura</span>
+      </div>
+      <div className="flex items-center gap-2 mt-1">
+        <Progress value={...} className="h-1 sm:h-1.5 flex-1" />
+        <span className="text-xs w-10 text-right">{progressoLeitura}%</span>
+      </div>
+    </div>
+    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+  </div>
+</button>
+```
+
+**Melhorias:**
+- Padding menor em mobile (`p-3 sm:p-4`)
+- Ícones menores em mobile (`w-3.5 h-3.5 sm:w-4 sm:h-4`)
+- Número e círculo menores (`w-8 h-8 sm:w-10 sm:h-10`)
+- Progresso na mesma linha (inline com %)
+- Adicionar `ChevronRight` como indicador de ação
+- Remover "N páginas interativas" redundante (já mostra no stats)
+- Remover "Complete para desbloquear" (ocupa espaço)
+
+### Parte 3: Melhorar prompt de geração de conteúdo
+
+Atualizar o prompt em `gerar-conteudo-conceitos/index.ts` para enfatizar conteúdo mais extenso e didático:
+
+**Alterações no prompt de `promptSlides`:**
+
+```typescript
 // ANTES
-"A IA está criando slides interativos para este tópico."
+CADA PÁGINA DEVE SER SUPER EXPLICATIVA com:
+- Mínimo 200-400 palavras por página de tipo "texto"
 
 // DEPOIS
-"A IA está criando páginas interativas para este tópico."
+CADA PÁGINA DEVE SER EXTREMAMENTE EXPLICATIVA E DIDÁTICA:
+- Mínimo 400-600 palavras por página de tipo "texto"
+- Para conceitos complexos: 600-800 palavras
+- Cada conceito deve ter EXEMPLO PRÁTICO IMEDIATO
+- TODOS os termos em latim devem ter tradução e explicação
+- Cite doutrinas e jurisprudências do PDF
+```
+
+**Alterações no `promptBase` para enfatizar didática:**
+
+Adicionar ao prompt base:
+```
+## 📖 PROFUNDIDADE DE CONTEÚDO OBRIGATÓRIA:
+
+Para CADA página de tipo "texto":
+1. Comece explicando O QUE É o conceito (definição clara)
+2. Explique POR QUE é importante (contexto jurídico)
+3. Dê EXEMPLO PRÁTICO imediatamente
+4. Se tiver termo em latim, EXPLIQUE: "*pacta sunt servanda* (pactos devem ser cumpridos) - na prática, significa que..."
+5. Se o PDF citar doutrina/jurisprudência, INCLUA: > "Citação..." (AUTOR)
+6. Se for ponto de prova, marque: > ⚠️ **ATENÇÃO:** Este tema cai com frequência em provas!
+7. Faça transições naturais: "Agora que entendemos X, veja como Y se relaciona..."
+```
+
+**Alterações no número mínimo de páginas:**
+
+```typescript
+// ANTES
+1. Gere entre 35-55 páginas no total, divididas em 5-7 seções
+
+// DEPOIS
+1. Gere entre 45-70 páginas no total, divididas em 6-8 seções
+2. Cada seção deve ter 6-12 páginas
+3. Priorize páginas tipo "texto" com conteúdo DENSO e EXPLICATIVO
 ```
 
 ---
 
-## Parte 3: Melhorar Estrutura de Conteúdo na Edge Function
+## Arquivos a Modificar
 
-### Problemas Identificados
-
-1. O prompt atual pede "collapsible" que será removido
-2. Falta ênfase em citações de artigos/doutrina
-3. Falta instrução para incluir mais exemplos práticos
-4. Conteúdo de cada página pode ser mais extenso
-
-### Novo Prompt Aprimorado
-
-O prompt em `gerar-conteudo-conceitos` será atualizado para:
-
-```typescript
-const promptSlides = `
-...
-
-REGRAS CRÍTICAS ATUALIZADAS:
-
-1. **CONTEÚDO EXTENSO E EXPLICATIVO**
-   - Cada página deve ter conteúdo COMPLETO e auto-suficiente
-   - Mínimo de 200-400 palavras por página de tipo "texto"
-   - Explique conceitos de forma DIDÁTICA e DETALHADA
-
-2. **CITAÇÕES OBRIGATÓRIAS**
-   - Sempre que o PDF contiver citações de artigos de lei, INCLUA formatado:
-     > "Art. 5º, inciso X - São invioláveis a intimidade, a vida privada..." (CF/88)
-   - Citações de doutrinadores:
-     > "A dignidade da pessoa humana..." - FLÁVIO TARTUCE
-   - Jurisprudência:
-     > STJ, REsp 1.234.567/SP - "Ementa..."
-
-3. **EXEMPLOS PRÁTICOS EM CADA EXPLICAÇÃO**
-   Use o formato:
-   > 📚 **EXEMPLO PRÁTICO:** Maria comprou um celular com defeito...
-
-4. **EXPLICAÇÃO DE TERMOS TÉCNICOS**
-   Sempre que usar termo em latim ou juridiquês:
-   "...o princípio *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos')..."
-
-5. **CARDS DE ATENÇÃO E DICAS**
-   Use abundantemente:
-   > ⚠️ **ATENÇÃO:** Este ponto costuma cair em provas!
-   > 💡 **DICA DE MEMORIZAÇÃO:** Use o mnemônico SOLAR...
-   > 🎯 **VOCÊ SABIA?:** O STF decidiu que...
-
-6. **NÃO USE TIPO "collapsible"**
-   - Substitua por tipo "texto" com subtítulos internos
-   - Use ### dentro do conteúdo para organizar subtópicos
-
-TIPOS DE PÁGINAS PERMITIDOS (removido collapsible):
-- introducao
-- texto
-- termos
-- linha_tempo
-- tabela
-- atencao
-- dica
-- caso
-- resumo
-- quickcheck
-`;
-```
-
-### Estrutura Sugerida de Páginas por Tópico
-
-```
-Página 1: introducao - Boas-vindas e objetivos
-Página 2-5: texto - Conceitos principais (cada um com ~300 palavras)
-Página 6: termos - Glossário de termos técnicos
-Página 7: linha_tempo - Se houver evolução histórica/etapas
-Página 8: tabela - Quadro comparativo
-Página 9: atencao - Pontos que caem em prova
-Página 10: caso - Exemplo prático detalhado
-Página 11: dica - Técnicas de memorização
-Página 12: quickcheck - Verificação rápida #1
-Página 13-16: texto - Mais conceitos
-Página 17: quickcheck - Verificação rápida #2
-Página 18: resumo - Síntese final
-```
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/components/conceitos/slides/ConceitosTopicoIntro.tsx` | Mostrar objetivos expandidos por padrão, botões compactos e responsivos |
+| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Aumentar requisitos de palavras, enfatizar didática |
 
 ---
 
-## Parte 4: Integrar Flashcards e Praticar no Modo Páginas
+## Comparativo Visual dos Botões
 
-### Fluxo Atualizado
-
+### Antes (Ocupando muito espaço)
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    FLUXO DO MODO PÁGINAS                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. TELA INICIAL (intro)                                        │
-│     ├─> Módulo 1: Começar Leitura (páginas)                     │
-│     ├─> Módulo 2: Flashcards (bloqueado até 100% leitura)       │
-│     └─> Módulo 3: Praticar (bloqueado até 100% flashcards)      │
-│                                                                  │
-│  2. LEITURA DE PÁGINAS                                          │
-│     ├─> Navega entre páginas (1/N, 2/N...)                      │
-│     ├─> Ao chegar na última: "Concluir" marca leitura 100%      │
-│     └─> Volta para tela inicial                                 │
-│                                                                  │
-│  3. FLASHCARDS (após leitura)                                   │
-│     ├─> Reutiliza FlashcardStack existente                      │
-│     └─> Marca flashcards como concluídos                        │
-│                                                                  │
-│  4. PRATICAR (após flashcards)                                  │
-│     ├─> Navega para /conceitos/questoes/{id}                    │
-│     └─> Marca prática como concluída                            │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  (1)  Começar Leitura                ▶  │
+│       29 páginas interativas            │
+│  ████████░░░░░░░░░░░░░░░░░░░░░░░        │
+│                           0% concluído  │
+└─────────────────────────────────────────┘
 ```
 
-### Props Necessárias no Viewer
-
-O `ConceitosSlidesViewer` precisará receber:
-
-```typescript
-interface ConceitosSlidesViewerProps {
-  // Existentes
-  secoes: ConceitoSecao[];
-  titulo: string;
-  materiaName?: string;
-  onClose: () => void;
-  onComplete?: () => void;
-  
-  // Novos para flashcards/praticar
-  flashcards?: Flashcard[];
-  questoes?: Questao[];
-  topicoId?: number;
-  capaUrl?: string;
-  
-  // Progresso
-  progressoLeitura?: number;
-  progressoFlashcards?: number;
-  progressoQuestoes?: number;
-  onProgressUpdate?: (type: 'leitura' | 'flashcards' | 'questoes', value: number) => void;
-}
+### Depois (Compacto)
 ```
-
----
-
-## Parte 5: Arquivos a Criar/Modificar
-
-### Arquivos a MODIFICAR
-
-| Arquivo | Modificações |
-|---------|--------------|
-| `src/components/conceitos/slides/ConceitosTopicoIntro.tsx` | Redesign completo com flashcards, praticar, ruído marrom |
-| `src/components/conceitos/slides/ConceitosSlidesViewer.tsx` | Integrar tela inicial, gerenciar estados de progresso, "slides"→"páginas" |
-| `src/components/conceitos/slides/ConceitoSlideCard.tsx` | Remover renderização de collapsible, converter para texto |
-| `src/pages/ConceitosTopicoEstudo.tsx` | Passar flashcards/questoes para viewer, "slides"→"páginas" |
-| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Melhorar prompt de geração, remover collapsible, enfatizar citações |
-
-### Tipos a Atualizar
-
-```typescript
-// types.ts - remover collapsible do tipo
-export interface ConceitoSlide {
-  tipo: 
-    | 'introducao'
-    | 'texto'
-    | 'termos'
-    | 'explicacao'
-    // | 'collapsible'  <-- REMOVIDO
-    | 'linha_tempo'
-    | 'tabela'
-    | 'atencao'
-    | 'dica'
-    | 'caso'
-    | 'resumo'
-    | 'quickcheck';
-  
-  // ... resto mantido
-}
-```
-
----
-
-## Parte 6: Código da Nova Tela Inicial
-
-A nova `ConceitosTopicoIntro.tsx` terá estrutura similar ao bloco de boas-vindas do `OABTrilhasReader.tsx`:
-
-### Funcionalidades Incluídas
-
-1. **Imagem de capa com degradê**
-2. **Título centralizado com decoração ✦**
-3. **Badge de quantidade de páginas**
-4. **Toggle de ruído marrom com Switch**
-5. **Módulo 1: Começar Leitura** (sempre desbloqueado)
-6. **Módulo 2: Flashcards** (bloqueado até leitura 100%)
-7. **Módulo 3: Praticar** (bloqueado até flashcards 100%)
-8. **Card explicativo do ruído marrom** (modal ao ativar)
-9. **Índice expandível** (dropdown com lista de páginas)
-
-### Estados Gerenciados
-
-```typescript
-// Estados de progresso
-const [leituraCompleta, setLeituraCompleta] = useState(false);
-const [flashcardsCompletos, setFlashcardsCompletos] = useState(false);
-const [praticaCompleta, setPraticaCompleta] = useState(false);
-const [progressoLeitura, setProgressoLeitura] = useState(0);
-const [progressoFlashcards, setProgressoFlashcards] = useState(0);
-const [progressoQuestoes, setProgressoQuestoes] = useState(0);
-
-// Ruído marrom
-const [brownNoiseEnabled, setBrownNoiseEnabled] = useState(false);
-const [showBrownNoiseInfo, setShowBrownNoiseInfo] = useState(false);
-const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
-
-// Índice
-const [mostrarIndice, setMostrarIndice] = useState(false);
+┌─────────────────────────────────────────┐
+│ (1)  ▶ Começar Leitura   ████░░░ 35%  > │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
 ## Resumo das Alterações
 
-| Categoria | Alteração |
-|-----------|-----------|
-| **Nomenclatura** | "Slides" → "Páginas" em toda interface |
-| **Tela Inicial** | Redesign com flashcards, praticar, ruído marrom, índice |
-| **Conteúdo** | Prompt melhorado: mais citações, exemplos, explicações de termos |
-| **Collapsible** | Removido - convertido para texto com subtítulos |
-| **Progresso** | Salvar no banco por módulo (leitura, flashcards, questões) |
-| **Áudio** | Integrar ruído marrom (/audio/ruido-marrom.mp3) |
-
----
-
-## Ordem de Implementação
-
-1. Modificar `types.ts` - remover collapsible do enum de tipos
-2. Modificar `ConceitoSlideCard.tsx` - converter collapsible para texto
-3. Modificar `ConceitosTopicoIntro.tsx` - redesign completo com todos os módulos
-4. Modificar `ConceitosSlidesViewer.tsx` - integrar estados, renomear, mostrar intro primeiro
-5. Modificar `ConceitosTopicoEstudo.tsx` - passar props adicionais, renomear mensagens
-6. Modificar `gerar-conteudo-conceitos` - melhorar prompt, remover collapsible
-7. Testar fluxo completo
+| Item | Alteração |
+|------|-----------|
+| Objetivos | Mostrar expandido por padrão (`showIndex = true`) |
+| Botões | Padding responsivo, layout inline, ícones menores |
+| Conteúdo | Aumentar palavras mínimas (400-600), mais exemplos |
+| Prompt | Enfatizar termos em latim, citações, transições |
