@@ -1,3 +1,5 @@
+import { Brain } from "lucide-react";
+
 interface TypingIndicatorProps {
   nome?: string;
   variant?: 'default' | 'chat';
@@ -8,7 +10,7 @@ export const TypingIndicator = ({ nome = "Juíza", variant = 'default' }: Typing
     return (
       <div className="flex items-start gap-3 animate-fade-in">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-xs font-bold">P</span>
+          <Brain className="w-4 h-4 text-white" />
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-foreground">Professora</span>
