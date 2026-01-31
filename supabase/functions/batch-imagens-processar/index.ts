@@ -22,25 +22,31 @@ interface ProcessedResult {
 // Gerar imagem usando Gemini 2.5 Flash Image
 async function gerarImagemGemini(prompt: string, apiKey: string): Promise<string | null> {
   try {
-    // Prompt otimizado para gerar imagens sem texto e sem bordas brancas
-    const optimizedPrompt = `Create a high-quality, FULL-BLEED educational illustration for a Brazilian law course.
+    // Prompt EXTREMAMENTE REFORÇADO para evitar bordas brancas
+    const optimizedPrompt = `MANDATORY: Generate a BORDERLESS, FULL-BLEED illustration that FILLS THE ENTIRE IMAGE CANVAS with NO WHITE EDGES.
 
-CRITICAL REQUIREMENTS (MUST FOLLOW):
-1. NO TEXT whatsoever - no titles, no labels, no captions, no words in any language
-2. FULL-BLEED composition - the illustration must fill the ENTIRE canvas edge-to-edge
-3. NO white borders, NO margins, NO empty space around edges
-4. NO frames or decorative borders
+⚠️ CRITICAL - ABSOLUTELY NO WHITE BORDERS OR MARGINS ⚠️
+- The artwork MUST extend to ALL FOUR EDGES of the canvas
+- ZERO white space, ZERO empty corners, ZERO margins
+- If you see any white at the edges, the image is WRONG
+- The illustration must be EDGE-TO-EDGE with content touching all borders
 
-STYLE:
-- Professional, modern, cinematic illustration style
-- Rich color palette: deep blues, warm golds, burgundy reds, amber tones
-- Subtle legal/justice visual metaphors (scales, columns, books, gavels as BACKGROUND elements only)
-- Atmospheric lighting with depth and dimension
-- 16:9 landscape format, completely filled
+IMAGE SPECIFICATIONS:
+- Aspect ratio: 16:9 landscape, completely filled
+- Style: Cinematic, dramatic, professional illustration
+- Color palette: Deep blues (#1a2a4a), warm golds (#d4a853), burgundy (#722f37), amber (#f5a623)
+- Background: MUST have a solid color, gradient, or pattern - NEVER white
+- All corners must have color/content, not emptiness
 
-SUBJECT TO ILLUSTRATE: ${prompt}
+CONTENT GUIDELINES:
+- NO text, NO words, NO labels, NO captions in any language
+- Legal/law themes: subtle scales of justice, columns, books, gavels as background elements
+- Atmospheric lighting with depth and rich shadows
+- Dark, moody aesthetic - avoid bright/white backgrounds
 
-Create a visually striking, symbolic representation of this legal concept. Focus on visual metaphors, abstract shapes, or professional scenes that convey the theme WITHOUT any text.`;
+SUBJECT: ${prompt}
+
+Remember: The illustration must BLEED to all edges. Any visible white border means failure. Fill the ENTIRE 16:9 canvas edge-to-edge.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
