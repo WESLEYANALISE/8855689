@@ -7,129 +7,142 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Configuração das páginas a serem geradas (estrutura ALINHADA com OAB Trilhas)
+// Configuração das páginas a serem geradas (estrutura ALINHADA com OAB Trilhas - TOM CONVERSACIONAL)
 const PAGINAS_CONFIG = [
   { 
     tipo: "introducao", 
     titulo: "Introdução", 
-    promptExtra: `Escreva uma introdução BREVE de 150-250 palavras MÁXIMO.
+    promptExtra: `Esta é a ÚNICA página que deve ter saudação acolhedora.
 
-⛔ NÃO USE estas frases (PROIBIDO):
-- "Vamos falar sobre..."
-- "É um tema super importante..."
-- "Vamos lá..."
-- "Olha só..."
-- "Pensa comigo..."
+Comece com algo acolhedor e motivador:
+"Vamos falar sobre um tema super importante pra você entender..."
+"Esse é um assunto que todo estudante de Direito precisa dominar..."
 
-✅ COMECE ASSIM (OBRIGATÓRIO):
-- "[Nome do tema] é o [definição breve]."
-- "Este tema aborda [pontos principais]."
-- "[Conceito] consiste em [explicação direta]."
-
-ESTRUTURA OBRIGATÓRIA:
-1. Uma frase direta definindo o tema (1-2 frases)
-2. Por que isso é relevante para o estudante de Direito (1-2 frases)
-3. Lista com 3-5 pontos-chave que serão abordados na trilha:
+Escreva 150-250 palavras MÁXIMO contendo:
+1. Saudação acolhedora e motivadora (1-2 frases)
+2. Contexto: por que isso é relevante para o estudante de Direito (1-2 frases)
+3. Lista de 3-5 pontos-chave que serão abordados na trilha:
    - Ponto 1
    - Ponto 2
    - Ponto 3
+4. Frase de encerramento: "Ao final dessa trilha, você vai dominar..."
 
 Termine OBRIGATORIAMENTE com:
 > 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema - uma frase]
 
-⛔ NÃO escreva parágrafos longos. Seja ENXUTO e objetivo.` 
+⛔ NÃO escreva parágrafos longos. Seja ENXUTO mas acolhedor.` 
   },
   { 
     tipo: "conteudo_principal", 
     titulo: "Conteúdo Completo", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. A introdução já fez isso.
-Vá DIRETO ao primeiro conceito do tema. Comece explicando o conteúdo imediatamente.
+    promptExtra: `Vá DIRETO ao conteúdo (a introdução já fez a saudação).
+Escreva com tom CONVERSACIONAL e FLUIDO - como se explicasse para um amigo.
 
-Escreva o conteúdo principal com MÍNIMO 3000 palavras.
-Cubra TODO o conteúdo do PDF de forma didática e organizada.
+### REGRAS DE FLUIDEZ (OBRIGATÓRIO):
+1. A cada termo técnico, EXPLIQUE imediatamente o que significa:
+   "...a capacidade civil, ou seja, a aptidão de exercer direitos..."
+   "...a personalidade jurídica, isto é, a condição de sujeito de direitos..."
+   
+2. Cite exemplos rápidos DURANTE a explicação, não depois:
+   "Por exemplo, quando alguém vende um carro sem procuração..."
+   "Imagine que João compra um imóvel e..."
+   
+3. Use transições naturais entre tópicos:
+   "Agora que você entendeu X, vamos ver como funciona Y..."
+   "Percebeu a lógica? Então vamos avançar para..."
+   
+4. Antecipe dúvidas do estudante:
+   "Você pode estar pensando: e se...? A resposta é..."
+   "Uma dúvida comum aqui é..."
 
 ### TÍTULOS E SUBTÍTULOS OBRIGATÓRIOS:
 Use os MESMOS títulos e subtítulos que aparecem no PDF.
-Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica" no conteúdo.
-Se o PDF tiver "1.1. Características", use "### 1.1. Características".
+Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica".
 Mantenha a ESTRUTURA ORIGINAL do material do PDF.
 
 ### TABELAS COMPARATIVAS NO CONTEÚDO:
-Quando houver institutos, classificações ou conceitos que possam ser comparados, 
-INCLUA tabelas Markdown DENTRO do texto para facilitar a visualização.
+Quando houver institutos ou conceitos para comparar, INCLUA tabelas Markdown:
 
-Exemplo de tabela inline:
 | Tipo | Característica A | Característica B |
 |------|------------------|------------------|
 | X    | ...              | ...              |
 | Y    | ...              | ...              |
 
-### FORMATO OBRIGATÓRIO DOS ELEMENTOS VISUAIS (com > no início):
-
-> ⚠️ **ATENÇÃO:** [ponto importante que o estudante deve observar]
-
-> 💡 **DICA:** [dica prática para entender melhor]
-
+### FORMATO DOS ELEMENTOS VISUAIS (com > no início):
+> ⚠️ **ATENÇÃO:** [ponto importante]
+> 💡 **DICA:** [dica prática]
 > 📌 **EM RESUMO:** [resumo de uma seção]
+> 💼 **CASO PRÁTICO:** [exemplo prático]
 
-> 💼 **CASO PRÁTICO:** [exemplo prático da aplicação]
-
-⛔ ERRADO (não usar): ⚠️ **ATENÇÃO:** texto (SEM o > no início)
-✅ CORRETO (usar): > ⚠️ **ATENÇÃO:** texto (COM o > no início)
-
-Use pelo menos 5-7 destes elementos ao longo do conteúdo, SEMPRE com o > no início da linha.` 
+Mínimo 3000 palavras cobrindo TODO o PDF.
+Use pelo menos 5-7 elementos visuais ao longo do conteúdo.` 
   },
   { 
     tipo: "desmembrando", 
     titulo: "Desmembrando o Tema", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí", "Olá", "Tudo bem?", "Vamos lá", "Pensa comigo". 
-Comece DIRETO desmembrando o primeiro conceito.
+    promptExtra: `Vá DIRETO ao conteúdo (sem saudações - a introdução já fez isso).
 
-Pegue os CONCEITOS-CHAVE apresentados no PDF e DESMEMBRE cada um em partes menores (800-1200 palavras).
+Pegue os conceitos-chave do PDF e DESTRINCHE cada um com tom de conversa.
+Escreva 800-1200 palavras no total.
 
-IDENTIFIQUE 4-6 conceitos/institutos ESPECÍFICOS do tema e analise cada um com a estrutura OBRIGATÓRIA abaixo.
+Para CADA conceito principal (identifique 4-6 do PDF):
 
-### ESTRUTURA PARA CADA CONCEITO (OBRIGATÓRIO):
+### [Nome do Conceito]
 
-### [Nome do Conceito/Instituto]
+"Olha, isso parece complicado, mas vou te mostrar passo a passo..."
 
-*   **Premissas:** Quais são os pressupostos ou fundamentos deste conceito? O que precisa existir para ele se aplicar?
-*   **Aplicação:** Como funciona na prática jurídica? Quando e como é utilizado?
-*   **Consequências:** Quais são os efeitos jurídicos? O que acontece quando se aplica?
-*   **Exemplo:** Dê um caso concreto de aplicação no dia a dia
+Explique o conceito de forma FLUIDA, como se estivesse conversando com um amigo.
+NÃO use listas rígidas - escreva em parágrafos naturais e envolventes.
+Cite exemplos práticos DURANTE a explicação.
+
+Use perguntas retóricas para engajar:
+"E por que isso é tão importante? Porque..."
+"Percebeu a diferença? Esse é o pulo do gato!"
+
+Faça analogias com o dia a dia:
+"Pense como se fosse..."
+"É como quando você..."
+
+Ao final de cada conceito, faça um resumo rápido:
+"Então, resumindo: [conceito] significa [explicação breve]."
 
 ### [Próximo Conceito]
+...
 
-*   **Premissas:** [análise]
-*   **Aplicação:** [análise]
-*   **Consequências:** [análise]
-*   **Exemplo:** [caso prático]
-
-Use bullets (*) para organizar cada ponto.
-Cada conceito deve ter os 4 elementos: Premissas, Aplicação, Consequências e Exemplo.
-Este é um DESMEMBRAMENTO PRÁTICO, não análise etimológica.` 
+⛔ NÃO use estrutura rígida de bullets (Premissas, Aplicação, Consequências).
+✅ USE parágrafos fluidos e conversacionais com exemplos inline.` 
   },
   { 
     tipo: "entendendo_na_pratica", 
     titulo: "Entendendo na Prática", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí, tudo beleza?", "Vamos bater um papo", "Pensa comigo". 
-Comece DIRETO com o primeiro caso prático.
+    promptExtra: `Vá DIRETO aos casos práticos (sem saudações).
 
-Esta página é SOMENTE para CASOS PRÁTICOS. NÃO explique teoria aqui.
+Crie casos práticos usando ESPECIFICAMENTE o tema estudado no PDF.
+NÃO invente situações genéricas - use os conceitos que estão no material.
 
-Apresente 5 casos práticos/exemplos concretos (800-1200 palavras total).
-Cada caso deve ter a estrutura:
+Escreva 800-1200 palavras com 4-5 casos práticos.
 
-### Caso 1: [Título do Caso]
-> 💼 **CASO PRÁTICO:** [Descrição da situação - uma pessoa ou empresa enfrentando um problema real]
+Estrutura para cada caso:
 
-**Análise Jurídica:** [Como aplicar o que foi estudado neste caso]
-**Conclusão:** [O que acontece juridicamente]
+### Caso 1: [Título relacionado ao tema do PDF]
 
-### Caso 2: [Título do Caso]
+"Imagina a seguinte situação..."
+
+> 💼 **CASO PRÁTICO:** [Situação real baseada ESPECIFICAMENTE no tema do PDF]
+
+**Análise:** Como aplicar o que foi estudado - conecte diretamente com o conteúdo do PDF.
+**Conclusão:** O que acontece juridicamente.
+
+### Caso 2: [Título]
 ...
 
-NÃO faça introdução ou explicação teórica. APENAS casos práticos.` 
+IMPORTANTE: Os casos devem refletir o DIA A DIA da aplicação do tema.
+- Se o tema é "Escolas Penais", crie casos sobre como cada escola interpretaria um crime específico.
+- Se o tema é "Personalidade Civil", crie casos sobre início/fim da personalidade.
+- Se o tema é "Contratos", crie casos sobre formação, execução e rescisão.
+
+⛔ NÃO crie situações genéricas desconectadas do PDF.
+✅ USE os conceitos específicos do material para criar os casos.` 
   },
   { 
     tipo: "quadro_comparativo", 
@@ -137,8 +150,7 @@ NÃO faça introdução ou explicação teórica. APENAS casos práticos.`
     promptExtra: `⛔ ATENÇÃO CRÍTICA: Esta página DEVE conter tabelas Markdown.
 Se você não gerar tabelas, a página ficará VAZIA e INUTILIZÁVEL.
 
-⛔ PROIBIDO: NÃO comece com saudações ou texto introdutório.
-Comece DIRETAMENTE com a primeira tabela Markdown.
+Comece DIRETAMENTE com a primeira tabela Markdown (sem texto introdutório).
 
 CRIE OBRIGATORIAMENTE pelo menos 3 TABELAS COMPARATIVAS distintas.
 
@@ -149,7 +161,7 @@ MESMO que o tema pareça não ter comparações óbvias, CRIE tabelas:
 - Compare posicionamentos doutrinários
 - Compare classificações do tema
 
-⛔ NUNCA, em hipótese alguma, escreva "Conteúdo não disponível".
+⛔ NUNCA escreva "Conteúdo não disponível".
 ⛔ NUNCA deixe esta página sem tabelas.
 
 ### TABELA 1: [Título da comparação principal]
@@ -174,42 +186,50 @@ MESMO que o tema pareça não ter comparações óbvias, CRIE tabelas:
 |----------------|--------|--------|
 | ... | ... | ... |
 
-REGRAS OBRIGATÓRIAS:
-- Mínimo 3 tabelas, máximo 5 tabelas
+REGRAS:
+- Mínimo 3 tabelas, máximo 5
 - Cada tabela com mínimo 4 linhas de dados
-- Linha separadora OBRIGATÓRIA (|---|---|---|)
-- NÃO escreva texto explicativo, APENAS tabelas
-- SE NÃO CONSEGUIR IDENTIFICAR comparações óbvias, compare: definição vs aplicação vs efeitos` 
+- NÃO escreva texto explicativo, APENAS tabelas` 
   },
   { 
     tipo: "dicas_provas", 
     titulo: "Dicas para Memorizar", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí, futuro jurista!", "Vamos desmistificar", "Relaxa". 
-Comece DIRETO com a primeira dica ou mnemônico.
+    promptExtra: `Vá DIRETO às dicas (sem saudações).
 
-Forneça dicas de memorização, macetes e pontos-chave (400-600 palavras MÁXIMO).
-Seja OBJETIVO e CONCISO. 
+"Olha esse truque que vai salvar sua vida na prova..."
 
-Estruture assim:
+Forneça dicas de memorização com tom AMIGÁVEL (400-600 palavras):
 
-### Mnemônicos
+### Mnemônicos que Funcionam
+
+"Quer uma dica? Pensa assim: [SIGLA] = [Significado]"
+"Decora assim que não esquece nunca mais..."
+
 - **[SIGLA]** = [Significado] (Ex: LIMPE = Legalidade, Impessoalidade, Moralidade...)
 
-### Pegadinhas Comuns
-> ⚠️ **PEGADINHA:** [ponto que costuma confundir em provas]
+### Pegadinhas que Sempre Caem
+
+"Cuidado com essa aqui..."
+
+> ⚠️ **PEGADINHA:** [ponto que confunde em provas]
 > ⚠️ **PEGADINHA:** [outro ponto]
 
-### Dicas de Prova
+### Macetes de Prova
+
+"Quando você ver [X] na questão, já sabe que..."
+
 > 💡 **DICA:** [macete específico]
 > 💡 **DICA:** [outro macete]
 
-Use pelo menos 4-5 destes elementos em formato de lista curta.
-NÃO se alongue. Seja direto ao ponto.` 
+Use linguagem AMIGÁVEL, não acadêmica.
+Escreva como se estivesse dando dicas pra um amigo antes da prova.
+"Se cair isso, lembra que..."
+"A banca adora cobrar..."` 
   },
   { 
     tipo: "correspondencias", 
     titulo: "Ligar Termos", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações.
+    promptExtra: `Vá DIRETO à instrução (sem saudações).
 
 Escreva APENAS uma breve instrução (2-3 frases) para um exercício interativo:
 
@@ -220,23 +240,23 @@ NOTA: Os dados do jogo (pares termo/definição) serão gerados separadamente co
   { 
     tipo: "sintese_final", 
     titulo: "Síntese Final", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações.
-Comece DIRETO com: "Recapitulando tudo que vimos..."
+    promptExtra: `Vá DIRETO à síntese (sem saudações).
 
-Faça um resumo conciso de tudo que foi abordado (400-600 palavras MÁXIMO).
+Comece assim: "Recapitulando tudo que vimos..."
 
+Faça um resumo conciso de tudo que foi abordado (400-600 palavras).
 Destaque os pontos principais e conecte os conceitos.
-Encerre de forma motivadora mas concisa.
 
 Use:
 > 📌 **EM RESUMO:** [síntese dos pontos principais]
 
-Inclua um checklist final curto:
+Inclua um checklist final:
 - [ ] Conceito X compreendido
 - [ ] Diferença entre A e B clara
 - [ ] Requisitos memorizados
 
-NÃO se alongue. Seja direto e objetivo.` 
+Encerre de forma motivadora:
+"Agora você já domina os principais pontos sobre [tema]. Continue praticando!"` 
   },
 ];
 
@@ -481,33 +501,36 @@ serve(async (req) => {
     const baseProgress = 10;
     const progressPerPage = 70 / PAGINAS_CONFIG.length;
 
-    const promptBase = `Você é um professor de Direito didático e objetivo.
-Seu estilo é DIRETO AO PONTO - você explica os conceitos de forma clara sem enrolação.
+    const promptBase = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
+Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café e ajudando um colega a entender a matéria.
 
 ## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
 
-### ⛔ PROIBIDO (NUNCA FAÇA ISSO):
-- NÃO comece com saudações como "E aí", "Olá", "Tudo bem?", "Vamos lá", "Pensa comigo"
-- NÃO use "Olha só, vamos bater um papo..."
-- NÃO use "Veja bem", "Pois é", "Relaxa"
-- NÃO use "E aí, futuro jurista!", "Vamos desmistificar"
-- NÃO faça introduções longas antes de entrar no conteúdo
-- NÃO use linguagem excessivamente informal ou coloquial
-- **NUNCA USE EMOJIS NO TEXTO CORRIDO** (proibido: 😊, 📚, ⚖️, etc.)
-
 ### ✅ FAÇA SEMPRE:
-- Comece DIRETAMENTE com o conteúdo relevante
-- Primeira frase deve ser sobre o tema, não sobre você ou o estudante
-- Use linguagem clara e acessível, mas profissional
-- Use analogias quando apropriado para clarificar
-- Antecipe dúvidas de forma natural
-- Conecte os tópicos com transições fluidas
+- Escreva como se estivesse CONVERSANDO com o estudante
+- Use expressões naturais (varie, não repita a mesma mais de 2x):
+  • "Olha só, é assim que funciona..."
+  • "Veja bem, isso é super importante porque..."
+  • "Percebeu a diferença? Esse é o pulo do gato!"
+  • "Agora vem a parte interessante..."
+  • "Resumindo pra você não esquecer..."
+- Use perguntas retóricas para engajar ("E por que isso importa tanto?")
+- Faça analogias com situações do dia a dia
+- A cada termo técnico, EXPLIQUE o que significa:
+  "...a personalidade civil, ou seja, a capacidade de ser titular de direitos..."
+  "...o dolo eventual, isto é, quando o agente assume o risco de produzir o resultado..."
+- Cite exemplos rápidos DURANTE a explicação, não depois
+- Após conceitos complexos, faça um breve resumo informal
 
-### EXEMPLO CORRETO:
-"A personalidade civil é o atributo que confere ao ser humano a capacidade de ser titular de direitos e deveres..."
+### ❌ NÃO FAÇA:
+- Linguagem excessivamente formal/acadêmica (parecer livro jurídico)
+- Parágrafos longos e densos sem pausas
+- Repetir vícios de linguagem (não use a mesma expressão mais de 2x no texto)
+- **NUNCA USE EMOJIS NO TEXTO CORRIDO** (emojis SÓ nos elementos visuais como > 💡 **DICA:**)
 
-### EXEMPLO ERRADO:
-"Olha só, vamos bater um papo sério sobre um tema super importante..."
+### ⛔ SAUDAÇÕES:
+- Saudações são permitidas APENAS na página de Introdução
+- Nas demais páginas, comece DIRETO com o conteúdo
 
 ## 📋 FORMATO DOS ELEMENTOS VISUAIS (CRÍTICO!):
 
@@ -522,15 +545,14 @@ SEMPRE use o caractere > (blockquote) no INÍCIO da linha para elementos especia
 
 ⛔ FORMATO ERRADO (NÃO usar):
 ⚠️ **ATENÇÃO:** texto (FALTA o > no início!)
-💡 **DICA:** texto (FALTA o > no início!)
 
-O caractere > é OBRIGATÓRIO para que o elemento visual tenha fundo colorido diferenciado.
+O caractere > é OBRIGATÓRIO para que o elemento visual tenha fundo colorido.
 
-⛔ REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF
+## 📚 FIDELIDADE AO PDF:
 - Use 100% do texto e informações do PDF
 - Cite APENAS artigos/leis que aparecem LITERALMENTE no PDF
 - NÃO invente artigos de lei que NÃO estejam no PDF
-- NÃO adicione citações legais que você "sabe" mas NÃO estão no conteúdo
+- Use os TÍTULOS ORIGINAIS do PDF como subtítulos (ex: "## 1. Escola Clássica")
 
 **Matéria:** ${materiaNome}
 **Tópico:** ${topicoTitulo}
