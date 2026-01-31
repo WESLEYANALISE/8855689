@@ -1,99 +1,148 @@
 
-# Plano: Alinhar Conceitos com OAB Trilhas - Formatação de Conteúdo
+# Plano: Alinhar Geração de Conteúdo Conceitos com OAB Trilhas
 
 ## Problema Identificado
 
-Após análise detalhada do código e dos dados gerados, identifiquei as seguintes discrepâncias entre Conceitos e OAB Trilhas:
+Após análise detalhada dos dados gerados e comparação direta entre OAB Trilhas e Conceitos, identifiquei as seguintes discrepâncias:
 
-### 1. Blocos Especiais Sem Fundo Colorido
-O renderizador (`EnrichedMarkdownRenderer.tsx`) exige que blocos especiais comecem com `>` (blockquote):
-- **Formato correto:** `> 💡 **DICA:** texto aqui`
-- **Formato atual (errado):** `💡 **DICA:** texto aqui`
+### 1. Quadro Comparativo: "Conteúdo não disponível"
+- **OAB Trilhas:** Gera tabelas completas (ex: 7 colunas comparando todas as Escolas Penais)
+- **Conceitos:** Mostra "Conteúdo não disponível para esta seção"
+- **Causa:** O prompt não está sendo seguido, provavelmente por falta de contexto ou instruções mais enfáticas
 
-Sem o `>`, os blocos são tratados como texto normal e não recebem o fundo colorido diferenciado.
+### 2. Desmembrando o Tema: Estrutura Diferente
+- **OAB Trilhas:** Análise por conceito com bullets (Premissas, Método, Conclusões, Exemplo)
+- **Conceitos:** Análise com "Significado jurídico:", "Etimologia/Origem:", "Pronúncia correta:" - muito acadêmico
+- **Causa:** O prompt de Conceitos pede análise etimológica/linguística, não análise prática
 
-### 2. Introdução Muito Longa
-O prompt pede 300-500 palavras, mas o conteúdo gerado está muito extenso, não seguindo a estrutura enxuta com pontos-chave.
+### 3. Conteúdo Completo: Sem Quadros Comparativos Internos
+- **OAB Trilhas:** Inclui tabelas comparativas dentro do Conteúdo Completo quando apropriado
+- **Conceitos:** Apenas texto corrido, tabelas só na página dedicada
+- **Solução:** Instruir a incluir tabelas comparativas no Conteúdo Completo
 
-### 3. Quadro Comparativo Incompleto
-As tabelas comparativas não estão sendo geradas corretamente - alguns aparecem como "Conteúdo não disponível".
+### 4. Introdução: Estilo Ainda Conversacional
+- **OAB Trilhas:** Tom acolhedor mas direto ao ponto
+- **Conceitos:** Ainda usando "Vamos falar sobre um tema super importante..."
+- **Causa:** Prompt não está sendo estritamente seguido
 
-### 4. Discrepâncias no Estilo
-O OAB Trilhas usa tom conversacional com elementos estruturados, enquanto Conceitos está misturando estilos.
+### 5. Elementos Visuais: Alguns Sem Fundo
+- Alguns elementos `💡 **DICA:**` aparecem sem o `>` prefix
+
+### 6. Títulos do PDF: Não Utilizados
+- Os títulos originais dos capítulos do PDF devem ser usados como subtítulos
 
 ---
 
 ## Alterações Planejadas
 
-### Arquivo 1: `supabase/functions/gerar-conteudo-conceitos/index.ts`
+### Arquivo: `supabase/functions/gerar-conteudo-conceitos/index.ts`
 
-#### 1.1 Corrigir Prompt da Introdução (linhas 11-23)
-- Reduzir limite para **150-250 palavras**
-- Estruturar como lista de pontos-chave (3-5 bullets)
-- Remover texto introdutório longo
+#### 1. Corrigir Prompt "Desmembrando o Tema" (linhas 58-79)
+Substituir a estrutura etimológica/linguística por análise prática igual OAB Trilhas:
 
-**Novo formato:**
+**De:**
 ```text
-Escreva uma introdução BREVE de 150-250 palavras MÁXIMO.
-Estrutura OBRIGATÓRIA:
-1. Uma frase engajadora sobre o tema
-2. Por que isso é importante (1-2 frases)
-3. Lista de 3-5 pontos-chave que serão abordados:
-   - Ponto 1
-   - Ponto 2
-   - Ponto 3
-
-Termine com:
-> 🎯 **VOCÊ SABIA?:** [curiosidade relevante]
+Para CADA termo ou conceito, analise com esta estrutura:
+### [Nome do Conceito]
+**Significado jurídico:** ...
+**Etimologia/Origem:** ...
+**Pronúncia correta:** ...
 ```
 
-#### 1.2 Corrigir Formato dos Elementos Visuais (linhas 24-40)
-Enfatizar o uso obrigatório de blockquote `>` em todos os elementos:
-
-**Instruir claramente:**
+**Para:**
 ```text
-FORMATO OBRIGATÓRIO (com > no início da linha):
-> ⚠️ **ATENÇÃO:** [texto]
-> 💡 **DICA:** [texto]
-> 📌 **EM RESUMO:** [texto]
-> 💼 **CASO PRÁTICO:** [texto]
-> 🎯 **VOCÊ SABIA?:** [texto]
+Para CADA conceito principal, estruture assim:
 
-⛔ ERRADO (não usar):
-⚠️ **ATENÇÃO:** texto (SEM o > no início)
+### [Nome do Conceito/Instituto]
+
+*   **Premissas:** Quais são os pressupostos ou fundamentos deste conceito?
+*   **Aplicação:** Como funciona na prática jurídica?
+*   **Consequências:** Quais são os efeitos jurídicos?
+*   **Exemplo:** Dê um caso concreto de aplicação
+
+Use bullets (*) para organizar cada ponto.
 ```
 
-#### 1.3 Melhorar Quadro Comparativo (linhas 88-115)
-Adicionar exemplos mais claros e exigir no mínimo 3 tabelas:
+#### 2. Corrigir Prompt "Quadro Comparativo" (linhas 103-139)
+Tornar as instruções mais enfáticas e adicionar fallback:
 
+**Adicionar:**
 ```text
-CRIE OBRIGATORIAMENTE pelo menos 3 tabelas comparativas.
-Cada tabela deve comparar institutos jurídicos do tema.
-NÃO escreva "Conteúdo não disponível".
+⛔ ATENÇÃO CRÍTICA: Esta página DEVE conter tabelas Markdown.
+Se você não gerar tabelas, a página ficará vazia.
+
+MESMO que o tema pareça não ter comparações óbvias, CRIE tabelas:
+- Compare conceitos vs exceções
+- Compare requisitos de diferentes situações
+- Compare efeitos jurídicos de diferentes hipóteses
+- Compare posicionamentos doutrinários
+
+NUNCA, em hipótese alguma, escreva "Conteúdo não disponível".
 ```
 
-#### 1.4 Atualizar Prompt Base (linhas 417-456)
-Adicionar regra explícita sobre o formato blockquote para elementos visuais.
+#### 3. Atualizar Prompt "Conteúdo Completo" (linhas 32-56)
+Adicionar instrução para incluir tabelas comparativas quando apropriado:
+
+**Adicionar ao promptExtra:**
+```text
+### TABELAS COMPARATIVAS NO CONTEÚDO:
+Quando houver institutos, classificações ou conceitos que possam ser comparados, 
+INCLUA tabelas Markdown dentro do texto para facilitar a visualização.
+
+Exemplo:
+| Tipo | Característica A | Característica B |
+|------|------------------|------------------|
+| X    | ...              | ...              |
+| Y    | ...              | ...              |
+```
+
+#### 4. Reforçar Introdução Enxuta (linhas 11-31)
+Manter a estrutura atual mas reforçar que NÃO deve usar frases como "Vamos falar sobre":
+
+**Adicionar:**
+```text
+⛔ NÃO USE estas frases:
+- "Vamos falar sobre..."
+- "É um tema super importante..."
+- "Vamos lá..."
+
+✅ COMECE ASSIM:
+- "[Nome do tema] é o [definição breve]."
+- "Este tema aborda [pontos principais]."
+```
+
+#### 5. Instruir Uso de Títulos do PDF (linhas 486-497)
+Adicionar instrução no promptBase para usar os subtítulos do PDF:
+
+**Adicionar:**
+```text
+### TÍTULOS E SUBTÍTULOS:
+Use os MESMOS títulos e subtítulos que aparecem no PDF.
+Se o PDF tiver "1. Escola Clássica", use "## 1. Escola Clássica" no conteúdo.
+Mantenha a estrutura original do material.
+```
 
 ---
 
-## Resumo Técnico
+## Resumo das Mudanças
 
-| Componente | Problema | Solução |
-|------------|----------|---------|
-| Introdução | Muito longa (300-500 palavras) | Reduzir para 150-250 palavras com bullets |
-| Elementos visuais | Sem `>` prefix | Instruir uso obrigatório de blockquote |
-| Quadro Comparativo | "Conteúdo não disponível" | Exigir mínimo 3 tabelas, exemplos claros |
-| Desmembrando | Estilo narrativo | Focar em análise técnica por conceito |
+| Seção | Problema | Solução |
+|-------|----------|---------|
+| Desmembrando | Análise etimológica/linguística | Análise prática com bullets (Premissas, Aplicação, Consequências, Exemplo) |
+| Quadro Comparativo | "Conteúdo não disponível" | Instruções enfáticas + nunca deixar vazio |
+| Conteúdo Completo | Sem tabelas internas | Adicionar tabelas quando há comparações |
+| Introdução | "Vamos falar sobre..." | Proibir explicitamente essas frases |
+| Títulos | Genéricos | Usar títulos originais do PDF |
 
 ---
 
 ## Impacto
 
 Após as alterações:
-1. Os blocos de ATENÇÃO, DICA, CASO PRÁTICO terão fundo colorido diferenciado
-2. A introdução será enxuta com pontos-chave claros
-3. Os quadros comparativos terão tabelas completas e úteis
-4. O conteúdo seguirá o mesmo padrão visual do OAB Trilhas
+1. **Desmembrando** terá estrutura idêntica ao OAB Trilhas (bullets com Premissas/Método/Conclusões/Exemplo)
+2. **Quadro Comparativo** sempre terá tabelas Markdown
+3. **Conteúdo Completo** incluirá tabelas comparativas quando apropriado
+4. **Introdução** será mais direta sem frases coloquiais
+5. Os títulos do PDF original serão preservados na estrutura
 
-**Nota:** Será necessário regenerar os tópicos existentes para aplicar o novo formato.
+Os tópicos existentes precisarão ser regenerados para aplicar o novo formato.
