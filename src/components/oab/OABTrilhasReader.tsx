@@ -1317,17 +1317,13 @@ const OABTrilhasReader = ({
             </Button>
           </div>
 
-          {/* Indicador de página com nome */}
+          {/* Indicador de página - apenas número */}
           <button 
             onClick={() => setMostrarIndice(true)}
-            className="text-sm text-gray-400 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-full min-w-[100px] text-center transition-all"
+            className="text-sm text-gray-400 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full min-w-[60px] text-center transition-all"
           >
             <span className="font-bold text-white">{topicoAtual}</span>
-            <span className="mx-1 text-white/30">·</span>
-            <span className="text-white/70 text-xs truncate max-w-[80px] inline-block align-middle">
-              {topicoData?.titulo?.replace(/^(\d+\.\s*)?/, '').substring(0, 12)}
-              {(topicoData?.titulo?.length || 0) > 12 ? '…' : ''}
-            </span>
+            <span className="text-white/50">/{totalTopicos}</span>
           </button>
           
           {/* Botão Próximo ou Concluir */}
@@ -1440,34 +1436,42 @@ const OABTrilhasReader = ({
                 </h3>
               </div>
               <div className="overflow-y-auto max-h-[55vh] px-4 pb-6">
-                {topicos.map((topico, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      irParaTopico(topico.numero, topico.numero > topicoAtual ? 'left' : 'right');
-                      setMostrarIndice(false);
-                    }}
-                    className={`w-full text-left py-3 px-4 rounded-xl mb-2 transition-all flex items-center gap-3 ${
-                      topicoAtual === topico.numero
-                        ? "bg-red-500/20 border border-red-500/40"
-                        : "bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      topicoAtual === topico.numero
-                        ? "bg-red-500 text-white"
-                        : "bg-white/10 text-white/70"
-                    }`}>
-                      {topico.numero}
-                    </span>
-                    <span className={`flex-1 ${topicoAtual === topico.numero ? "text-white font-medium" : "text-white/70"}`}>
-                      {topico.titulo}
-                    </span>
-                    {topicoAtual === topico.numero && (
-                      <span className="text-red-400 text-xs">Atual</span>
-                    )}
-                  </button>
-                ))}
+                {topicos.map((topico, idx) => {
+                  // Extrair apenas o nome do tipo de página (Introdução, Conteúdo Completo, etc.)
+                  const nomeSimplificado = topico.titulo
+                    .replace(/^(\d+\.\s*)?/, '') // Remove numeração inicial
+                    .replace(/:\s*.+$/, '') // Remove ": Nome do Tema" 
+                    .trim();
+                  
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        irParaTopico(topico.numero, topico.numero > topicoAtual ? 'left' : 'right');
+                        setMostrarIndice(false);
+                      }}
+                      className={`w-full text-left py-3 px-4 rounded-xl mb-2 transition-all flex items-center gap-3 ${
+                        topicoAtual === topico.numero
+                          ? "bg-red-500/20 border border-red-500/40"
+                          : "bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        topicoAtual === topico.numero
+                          ? "bg-red-500 text-white"
+                          : "bg-white/10 text-white/70"
+                      }`}>
+                        {topico.numero}
+                      </span>
+                      <span className={`flex-1 ${topicoAtual === topico.numero ? "text-white font-medium" : "text-white/70"}`}>
+                        {nomeSimplificado}
+                      </span>
+                      {topicoAtual === topico.numero && (
+                        <span className="text-red-400 text-xs">Atual</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           </motion.div>
