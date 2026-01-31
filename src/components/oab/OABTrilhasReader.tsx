@@ -551,7 +551,8 @@ const OABTrilhasReader = ({
           setProgressoLeitura(data.progresso_leitura || 0);
           setProgressoFlashcards(data.progresso_flashcards || 0);
           setProgressoQuestoes(data.progresso_questoes || 0);
-          if (data.ultimo_topico_lido) setTopicoAtual(data.ultimo_topico_lido);
+          // NÃO restaurar posição - sempre começa do início quando entra no tópico
+          // if (data.ultimo_topico_lido) setTopicoAtual(data.ultimo_topico_lido);
         }
       } catch (error) {
         console.log("Sem progresso anterior");
@@ -1212,7 +1213,7 @@ const OABTrilhasReader = ({
                 </div>
               )}
 
-              {/* Mensagem de conclusão */}
+              {/* Mensagem e botões de conclusão */}
               {topicoAtual === totalTopicos && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -1222,8 +1223,19 @@ const OABTrilhasReader = ({
                 >
                   <div className="text-center">
                     <p className="text-red-400/70 text-sm mb-2">🎉 Você concluiu toda a leitura!</p>
-                    <p className="text-gray-400 text-xs">Revise os flashcards acima para fixar o conteúdo</p>
+                    <p className="text-gray-400 text-xs mb-4">Agora revise com os flashcards para fixar o conteúdo</p>
                   </div>
+                  
+                  {/* Botão para ir aos Flashcards */}
+                  {hasFlashcards && (
+                    <Button
+                      onClick={() => navigate(`/conceitos/topico/${topicoId}/flashcards`)}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-amber-500/25"
+                    >
+                      <Layers className="w-5 h-5 mr-2" />
+                      Revisar com Flashcards
+                    </Button>
+                  )}
                 </motion.div>
               )}
             </div>
