@@ -246,7 +246,8 @@ serve(async (req) => {
     ].filter(Boolean);
     const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
     const genAI = new GoogleGenerativeAI(geminiKey!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Usando gemini-2.5-flash-lite para geração de conteúdo de conceitos (mais rápido e econômico)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     // Função para atualizar progresso
     const updateProgress = async (value: number) => {
