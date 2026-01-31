@@ -381,59 +381,74 @@ Termine com o fechamento correto do JSON.`;
     await updateProgress(70);
     console.log(`[Conceitos] Resposta final: ${responseText.length} chars`);
     
-    // Extrair JSON da resposta (igual OAB)
+    // Extrair JSON da resposta - NOVA LÓGICA CORRIGIDA
     let jsonStr = responseText;
-    jsonStr = jsonStr.replace(/```json/g, "").replace(/```/g, "");
     
-    const jsonStart = jsonStr.indexOf("{");
-    const jsonEnd = jsonStr.lastIndexOf("}");
-    if (jsonStart !== -1 && jsonEnd !== -1) {
-      jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
+    // 1. Remover markdown fences
+    jsonStr = jsonStr.replace(/```json\s*/g, "");
+    jsonStr = jsonStr.replace(/```\s*/g, "");
+    
+    // 2. Encontrar o objeto JSON principal usando regex
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    } else {
+      // Fallback: tentar encontrar por índices
+      const jsonStart = jsonStr.indexOf("{");
+      const jsonEnd = jsonStr.lastIndexOf("}");
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
+      }
     }
     
-    // Parse JSON (igual OAB)
+    // 3. Remover APENAS caracteres de controle inválidos (NÃO \n, \r, \t que são válidos)
+    const sanitized = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+    
+    console.log(`[Conceitos] JSON extraído: ${sanitized.length} chars`);
+    
+    // Parse JSON com múltiplas estratégias
     let conteudoGerado;
     try {
-      const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return '';
-      });
-      conteudoGerado = JSON.parse(sanitizedJson);
+      conteudoGerado = JSON.parse(sanitized);
+      console.log("[Conceitos] Parse JSON bem-sucedido na primeira tentativa");
     } catch (parseError) {
-      console.log("[Conceitos] Erro no parse, tentando corrigir JSON...");
-      
-      let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return '';
-      });
-      
-      const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
-      const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
-      const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
-      const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
-      
-      for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
-        jsonCorrigido += "]";
-      }
-      for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
-        jsonCorrigido += "}";
-      }
-      
-      jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
+      console.log("[Conceitos] Erro no parse inicial, tentando corrigir...");
       
       try {
-        conteudoGerado = JSON.parse(jsonCorrigido);
-        console.log("[Conceitos] JSON corrigido com sucesso");
-      } catch (finalError) {
-        console.error("[Conceitos] Falha definitiva no parse JSON:", finalError);
-        await supabase.from("conceitos_topicos")
-          .update({ status: "erro", progresso: 0 })
-          .eq("id", topico_id);
-        throw new Error("Falha ao processar resposta da IA");
+        // Tentar corrigir trailing commas
+        const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
+        conteudoGerado = JSON.parse(fixed);
+        console.log("[Conceitos] Parse JSON bem-sucedido após remover trailing commas");
+      } catch (secondError) {
+        console.log("[Conceitos] Tentando balancear chaves/colchetes...");
+        
+        let jsonCorrigido = sanitized.replace(/,\s*([}\]])/g, "$1");
+        
+        // Balancear chaves e colchetes
+        const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
+        const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
+        const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
+        const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
+        
+        for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
+          jsonCorrigido += "]";
+        }
+        for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
+          jsonCorrigido += "}";
+        }
+        
+        try {
+          conteudoGerado = JSON.parse(jsonCorrigido);
+          console.log("[Conceitos] Parse JSON bem-sucedido após balanceamento");
+        } catch (finalError) {
+          console.error("[Conceitos] Falha definitiva no parse JSON:", finalError);
+          console.error("[Conceitos] Primeiros 500 chars:", sanitized.slice(0, 500));
+          console.error("[Conceitos] Últimos 500 chars:", sanitized.slice(-500));
+          await supabase.from("conceitos_topicos")
+            .update({ status: "erro", progresso: 0 })
+            .eq("id", topico_id);
+          throw new Error("Falha ao processar resposta da IA");
+        }
       }
     }
 
