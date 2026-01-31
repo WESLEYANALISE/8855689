@@ -12,32 +12,47 @@ const PAGINAS_CONFIG = [
   { 
     tipo: "introducao", 
     titulo: "Introdução", 
-    promptExtra: `Escreva uma introdução clara de 300-500 palavras.
-Tom acolhedor e motivador.
-Comece com algo engajador: "Vamos falar sobre um tema super importante..."
-Contextualize a importância do tema de forma natural.
-Explique o que será abordado na trilha.
+    promptExtra: `Escreva uma introdução BREVE de 150-250 palavras MÁXIMO.
 
-Use elementos visuais quando apropriado:
-> 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema]` 
+ESTRUTURA OBRIGATÓRIA:
+1. Uma frase direta sobre a importância do tema (1-2 frases)
+2. Por que isso é relevante para o estudante de Direito (1-2 frases)
+3. Lista com 3-5 pontos-chave que serão abordados na trilha:
+   - Ponto 1
+   - Ponto 2
+   - Ponto 3
+   - etc.
+
+Termine OBRIGATORIAMENTE com:
+> 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema - uma frase]
+
+⛔ NÃO escreva parágrafos longos. Seja ENXUTO e objetivo.
+⛔ NÃO use saudações ou frases como "Vamos falar sobre..."` 
   },
   { 
     tipo: "conteudo_principal", 
     titulo: "Conteúdo Completo", 
-    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações como "E aí, tudo bem?", "Olá!", "Vamos lá", "E aí, futuro jurista". A introdução já fez isso.
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. A introdução já fez isso.
 Vá DIRETO ao primeiro conceito do tema. Comece explicando o conteúdo imediatamente.
 
 Escreva o conteúdo principal com MÍNIMO 3000 palavras.
 Cubra TODO o conteúdo do PDF de forma didática e organizada.
 Use subtítulos (###) para estruturar cada parte.
 
-OBRIGATÓRIO usar estes elementos visuais ao longo do texto:
+### FORMATO OBRIGATÓRIO DOS ELEMENTOS VISUAIS (com > no início):
+
 > ⚠️ **ATENÇÃO:** [ponto importante que o estudante deve observar]
+
 > 💡 **DICA:** [dica prática para entender melhor]
+
 > 📌 **EM RESUMO:** [resumo de uma seção]
+
 > 💼 **CASO PRÁTICO:** [exemplo prático da aplicação]
 
-Use pelo menos 3-5 destes elementos ao longo do conteúdo.` 
+⛔ ERRADO (não usar): ⚠️ **ATENÇÃO:** texto (SEM o > no início)
+✅ CORRETO (usar): > ⚠️ **ATENÇÃO:** texto (COM o > no início)
+
+Use pelo menos 5-7 destes elementos ao longo do conteúdo, SEMPRE com o > no início da linha.` 
   },
   { 
     tipo: "desmembrando", 
@@ -91,28 +106,37 @@ NÃO faça introdução ou explicação teórica. APENAS casos práticos.`
     promptExtra: `⛔ PROIBIDO: NÃO comece com saudações ou texto introdutório.
 Comece DIRETAMENTE com a primeira tabela Markdown.
 
-GERE APENAS AS TABELAS COMPARATIVAS.
+CRIE OBRIGATORIAMENTE pelo menos 3 TABELAS COMPARATIVAS distintas.
+Cada tabela deve comparar institutos jurídicos diferentes do tema.
+⛔ NÃO escreva "Conteúdo não disponível" - SEMPRE gere tabelas baseadas no PDF.
 
-Crie tabelas comparativas dos principais institutos relacionados ao tema.
-Compare elementos, requisitos, efeitos de forma clara.
-Use formato Markdown de tabela CORRETO.
-Inclua pelo menos 2 tabelas relevantes.
-
-Formato OBRIGATÓRIO para cada tabela:
+### TABELA 1: [Título da comparação principal]
 
 | Aspecto | Instituto A | Instituto B |
 |---------|-------------|-------------|
-| Definição | ... | ... |
-| Requisitos | ... | ... |
-| Efeitos | ... | ... |
-| Previsão Legal | ... | ... |
+| Definição | [texto claro] | [texto claro] |
+| Requisitos | [lista objetiva] | [lista objetiva] |
+| Efeitos Jurídicos | [consequências] | [consequências] |
+| Previsão Legal | [artigos] | [artigos] |
+| Exemplo Prático | [situação] | [situação] |
 
-Garanta que cada tabela tenha:
-- Linha de cabeçalho com nomes dos institutos
-- Linha separadora (|---|---|---|)
-- Linhas de dados bem formatadas
+### TABELA 2: [Outro comparativo do tema]
 
-IMPORTANTE: NÃO escreva texto antes das tabelas. Comece direto com a tabela.` 
+| Critério | Conceito X | Conceito Y | Conceito Z |
+|----------|------------|------------|------------|
+| ... | ... | ... | ... |
+
+### TABELA 3: [Terceiro comparativo]
+
+| Característica | Tipo 1 | Tipo 2 |
+|----------------|--------|--------|
+| ... | ... | ... |
+
+REGRAS:
+- Mínimo 3 tabelas, máximo 5 tabelas
+- Cada tabela com mínimo 4 linhas de dados
+- Linha separadora OBRIGATÓRIA (|---|---|---|)
+- NÃO escreva texto explicativo, APENAS tabelas` 
   },
   { 
     tipo: "dicas_provas", 
@@ -426,7 +450,7 @@ Seu estilo é DIRETO AO PONTO - você explica os conceitos de forma clara sem en
 - NÃO use "E aí, futuro jurista!", "Vamos desmistificar"
 - NÃO faça introduções longas antes de entrar no conteúdo
 - NÃO use linguagem excessivamente informal ou coloquial
-- **NUNCA USE EMOJIS NO TEXTO** (proibido qualquer emoji como 😊, 🎯, 📚, ⚖️, etc.)
+- **NUNCA USE EMOJIS NO TEXTO CORRIDO** (proibido: 😊, 📚, ⚖️, etc.)
 
 ### ✅ FAÇA SEMPRE:
 - Comece DIRETAMENTE com o conteúdo relevante
@@ -441,6 +465,23 @@ Seu estilo é DIRETO AO PONTO - você explica os conceitos de forma clara sem en
 
 ### EXEMPLO ERRADO:
 "Olha só, vamos bater um papo sério sobre um tema super importante..."
+
+## 📋 FORMATO DOS ELEMENTOS VISUAIS (CRÍTICO!):
+
+SEMPRE use o caractere > (blockquote) no INÍCIO da linha para elementos especiais:
+
+✅ FORMATO CORRETO (usar):
+> ⚠️ **ATENÇÃO:** texto aqui
+> 💡 **DICA:** texto aqui
+> 📌 **EM RESUMO:** texto aqui
+> 💼 **CASO PRÁTICO:** texto aqui
+> 🎯 **VOCÊ SABIA?:** texto aqui
+
+⛔ FORMATO ERRADO (NÃO usar):
+⚠️ **ATENÇÃO:** texto (FALTA o > no início!)
+💡 **DICA:** texto (FALTA o > no início!)
+
+O caractere > é OBRIGATÓRIO para que o elemento visual tenha fundo colorido diferenciado.
 
 ⛔ REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF
 - Use 100% do texto e informações do PDF
