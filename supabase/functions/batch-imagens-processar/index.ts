@@ -22,31 +22,28 @@ interface ProcessedResult {
 // Gerar imagem usando Gemini 2.5 Flash Image
 async function gerarImagemGemini(prompt: string, apiKey: string): Promise<string | null> {
   try {
-    // Prompt EXTREMAMENTE REFORÇADO para evitar bordas brancas
-    const optimizedPrompt = `MANDATORY: Generate a BORDERLESS, FULL-BLEED illustration that FILLS THE ENTIRE IMAGE CANVAS with NO WHITE EDGES.
+    // Prompt com resolução EXATA para YouTube Thumbnail (1280x720)
+    const optimizedPrompt = `Generate an image with EXACT dimensions: 1280x720 pixels (YouTube thumbnail format, 16:9 aspect ratio).
 
-⚠️ CRITICAL - ABSOLUTELY NO WHITE BORDERS OR MARGINS ⚠️
-- The artwork MUST extend to ALL FOUR EDGES of the canvas
-- ZERO white space, ZERO empty corners, ZERO margins
-- If you see any white at the edges, the image is WRONG
-- The illustration must be EDGE-TO-EDGE with content touching all borders
+⚠️ CRITICAL REQUIREMENTS ⚠️
+1. RESOLUTION: Exactly 1280 pixels wide by 720 pixels tall
+2. BORDERLESS: NO white borders, margins, or empty corners - content must touch ALL FOUR EDGES
+3. FULL-BLEED: The artwork fills the ENTIRE 1280x720 canvas with ZERO white space
 
-IMAGE SPECIFICATIONS:
-- Aspect ratio: 16:9 landscape, completely filled
-- Style: Cinematic, dramatic, professional illustration
+IMAGE STYLE:
+- Cinematic, dramatic, professional illustration
 - Color palette: Deep blues (#1a2a4a), warm golds (#d4a853), burgundy (#722f37), amber (#f5a623)
-- Background: MUST have a solid color, gradient, or pattern - NEVER white
-- All corners must have color/content, not emptiness
+- Background: MUST have solid color, gradient, or pattern - NEVER white
+- Atmospheric lighting with depth and rich shadows
+- Dark, moody aesthetic
 
-CONTENT GUIDELINES:
+CONTENT RULES:
 - NO text, NO words, NO labels, NO captions in any language
 - Legal/law themes: subtle scales of justice, columns, books, gavels as background elements
-- Atmospheric lighting with depth and rich shadows
-- Dark, moody aesthetic - avoid bright/white backgrounds
 
 SUBJECT: ${prompt}
 
-Remember: The illustration must BLEED to all edges. Any visible white border means failure. Fill the ENTIRE 16:9 canvas edge-to-edge.`;
+OUTPUT: A 1280x720 pixel image that completely fills the canvas edge-to-edge with no visible borders.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
