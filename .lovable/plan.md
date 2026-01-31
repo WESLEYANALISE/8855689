@@ -1,258 +1,419 @@
 
-# Plano: Sistema de Slides Interativos Estilo Mindsmith para Conceitos
+# Plano: Sistema de Slides Interativos com Imagens Batch para Conceitos
 
 ## Visão Geral
 
-Criar um novo modo de visualização para as Trilhas de Conceitos que funciona como o Mindsmith: conteúdo dividido em **slides navegáveis** com botões "Anterior/Próximo", progresso visual, e transições suaves.
+Este plano implementa duas funcionalidades integradas:
 
-## Análise do Sistema Atual
+1. **Gemini Batch API**: Sistema para gerar imagens em massa com 50% de economia de custo
+2. **Slides Interativos**: Reformulação do sistema de Conceitos para usar slides dinâmicos com menus suspensos (Collapsible), linhas do tempo, e uma imagem ilustrativa por slide
 
-### O que já existe no projeto:
-1. **`InteractiveSlide.tsx`** - Componente de slide interativo com:
-   - Indicadores de progresso (dots)
-   - Botões anterior/próximo
-   - Tipos de slide: texto, termos, explicação, atenção, exemplo, quickcheck, storytelling, tabela, etc.
-   - Animações com Framer Motion
+---
 
-2. **`OABTrilhasAula.tsx`** - Página que usa os slides com fluxo:
-   - Intro → Seções (slides) → Matching → Flashcards → Quiz → Prova Final → Resultado
+## Parte 1: Sistema Batch API para Geração de Imagens
 
-3. **`OABTrilhasReader.tsx`** - Leitor atual de Conceitos (baseado em páginas longas de Markdown)
-
-4. **Tipos definidos em `types.ts`** - `SlideContent`, `Secao`, `AulaEstruturaV2`
-
-## Arquitetura Proposta
+### 1.1 Arquitetura do Sistema Batch
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                 TELA DE INÍCIO DO TÓPICO                    │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │   [Imagem de Capa]                                     │  │
-│  │   Título: Escolas Penais                              │  │
-│  │   Matéria: Direito Penal                              │  │
-│  │   ⏱️ 15 min  |  📄 8 seções  |  🎯 5 atividades       │  │
-│  │                                                        │  │
-│  │   [ Modo Leitura ]  [ Modo Slides ⭐ ]                 │  │
-│  │                                                        │  │
-│  │   [     COMEÇAR     ]                                  │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│              SLIDE INTERATIVO (Modo Slides)                 │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  [←]   Introdução   ●○○○○○○○   [1/24]           [X]  │  │
-│  ├───────────────────────────────────────────────────────┤  │
-│  │                                                        │  │
-│  │   📘 O que você vai aprender                          │  │
-│  │   ────────────────────────────                        │  │
-│  │                                                        │  │
-│  │   Vamos falar sobre um tema super importante          │  │
-│  │   para entender a evolução do Direito Penal...        │  │
-│  │                                                        │  │
-│  │   ┌──────────────────────────────────────────────┐    │  │
-│  │   │ 🎯 VOCÊ SABIA?                                │    │  │
-│  │   │ A Escola Clássica surgiu no século XVIII...  │    │  │
-│  │   └──────────────────────────────────────────────┘    │  │
-│  │                                                        │  │
-│  ├───────────────────────────────────────────────────────┤  │
-│  │   [  ← Anterior  ]              [  Próximo →  ]       │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    FLUXO DE GERAÇÃO BATCH                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  1. INICIAR BATCH                                                   │
+│     └─> batch-imagens-iniciar                                       │
+│         • Recebe lista de prompts + IDs                             │
+│         • Cria arquivo JSONL                                        │
+│         • Dispara job no Gemini Batch API                           │
+│         • Salva job_id na tabela batch_jobs                         │
+│                                                                      │
+│  2. MONITORAR (cron ou polling)                                     │
+│     └─> batch-imagens-status                                        │
+│         • Consulta status do job                                    │
+│         • Retorna: PENDING | RUNNING | COMPLETED | FAILED           │
+│                                                                      │
+│  3. PROCESSAR RESULTADOS                                            │
+│     └─> batch-imagens-processar                                     │
+│         • Baixa arquivo de output                                   │
+│         • Extrai imagens base64                                     │
+│         • Comprime para WebP (TinyPNG)                              │
+│         • Faz upload para Storage                                   │
+│         • Atualiza registros com URLs                               │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Alterações Planejadas
+### 1.2 Nova Tabela: `conceitos_batch_jobs`
 
-### 1. Novo Componente: `ConceitosSlidesViewer.tsx`
-**Arquivo:** `src/components/conceitos/ConceitosSlidesViewer.tsx`
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| id | uuid | Primary key |
+| job_name | text | Nome do job no Gemini |
+| tipo | text | 'capas_topicos' ou 'imagens_slides' |
+| status | text | pending, running, completed, failed |
+| total_items | integer | Quantidade de imagens a gerar |
+| completed_items | integer | Quantidade concluída |
+| input_file_uri | text | URI do arquivo JSONL de input |
+| output_file_uri | text | URI do arquivo de output |
+| created_at | timestamp | Criação |
+| completed_at | timestamp | Conclusão |
+| error_message | text | Mensagem de erro se falhar |
 
-Componente que transforma o conteúdo Markdown das páginas em slides navegáveis:
+### 1.3 Edge Functions a Criar
 
-**Funcionalidades:**
-- Divide cada página em múltiplos slides (por parágrafos/seções)
-- Navegação por botões ou gestos de swipe
-- Barra de progresso no topo
-- Indicadores de progresso (dots) por seção
-- Transições animadas entre slides
-- Suporte a diferentes tipos de conteúdo (texto, tabelas, blockquotes, listas)
+#### `batch-imagens-iniciar/index.ts`
+```typescript
+// Estrutura do body:
+{
+  tipo: 'capas_conceitos' | 'slides_conceitos',
+  items: [
+    { id: 123, prompt: "Create an image for..." },
+    { id: 124, prompt: "Create an image for..." }
+  ]
+}
 
-**Estrutura:**
+// Fluxo:
+// 1. Criar arquivo JSONL com os requests
+// 2. Upload para Cloud Storage via API
+// 3. Criar batch job via generativelanguage API
+// 4. Salvar job na tabela batch_jobs
+// 5. Retornar job_id para polling
+```
+
+#### `batch-imagens-status/index.ts`
+```typescript
+// Consulta status do job
+// Retorna progresso e estado atual
+```
+
+#### `batch-imagens-processar/index.ts`
+```typescript
+// Quando job COMPLETED:
+// 1. Baixar output JSONL
+// 2. Para cada linha, extrair imagem base64
+// 3. Comprimir com TinyPNG
+// 4. Upload para Storage
+// 5. Atualizar tabela correspondente com URL
+```
+
+### 1.4 Economia Estimada
+
+| Cenário | Custo Real-time | Custo Batch | Economia |
+|---------|-----------------|-------------|----------|
+| 50 capas de tópicos | $1.95 | $0.975 | 50% |
+| 200 imagens de slides | $7.80 | $3.90 | 50% |
+| 1000 imagens/mês | $39.00 | $19.50 | 50% |
+
+---
+
+## Parte 2: Sistema de Slides Interativos para Conceitos
+
+### 2.1 Nova Estrutura de Dados dos Slides
+
+A edge function `gerar-conteudo-conceitos` será reformulada para gerar uma estrutura de slides similar à usada em `gerar-aula-trilhas-oab`:
+
 ```typescript
 interface ConceitoSlide {
-  tipo: 'introducao' | 'conteudo' | 'destaque' | 'tabela' | 'dica' | 'atencao' | 'caso' | 'resumo';
-  titulo?: string;
-  conteudo: string;
-  secaoIndex: number;
-  slideIndex: number;
-}
-
-interface ConceitosSlidesViewerProps {
-  paginas: Array<{ titulo: string; markdown: string; tipo?: string }>;
+  tipo: 'introducao' | 'texto' | 'termos' | 'explicacao' | 'collapsible' 
+      | 'linha_tempo' | 'tabela' | 'atencao' | 'dica' | 'caso' | 'resumo' | 'quickcheck';
   titulo: string;
-  onComplete: () => void;
-  onExit: () => void;
+  conteudo: string;
+  
+  // Para tipo 'collapsible' (menu suspenso)
+  collapsibleItems?: Array<{
+    titulo: string;
+    conteudo: string;
+    icone?: string;
+  }>;
+  
+  // Para tipo 'linha_tempo'
+  etapas?: Array<{
+    titulo: string;
+    descricao: string;
+  }>;
+  
+  // Para tipo 'termos'
+  termos?: Array<{
+    termo: string;
+    definicao: string;
+  }>;
+  
+  // Para tipo 'tabela'
+  tabela?: {
+    cabecalhos: string[];
+    linhas: string[][];
+  };
+  
+  // Para tipo 'quickcheck'
+  pergunta?: string;
+  opcoes?: string[];
+  resposta?: number;
+  feedback?: string;
+  
+  // Imagem do slide
+  imagemPrompt?: string;  // Prompt para gerar a imagem
+  imagemUrl?: string;     // URL após geração
+}
+
+interface ConceitoSecao {
+  id: number;
+  titulo: string;
+  slides: ConceitoSlide[];
 }
 ```
 
-### 2. Função de Divisão de Markdown em Slides
-**Arquivo:** `src/lib/markdown-to-slides.ts`
+### 2.2 Novo Componente: `SlideCollapsible.tsx`
 
-Lógica para dividir o conteúdo Markdown em slides menores:
+Menu suspenso interativo dentro de slides:
 
 ```typescript
-// Regras de divisão:
-// 1. Cada ## heading inicia nova seção
-// 2. Cada > blockquote (DICA, ATENÇÃO, etc) vira slide próprio
-// 3. Tabelas viram slides próprios
-// 4. Parágrafos longos (>400 chars) são divididos
-// 5. Listas agrupadas em um slide
+// Funcionalidades:
+// - Múltiplos itens expansíveis
+// - Animação suave de abertura/fechamento
+// - Ícones personalizados por item
+// - Permite manter múltiplos abertos
+// - Estilo visual consistente com outros slides
 ```
 
-### 3. Componente de Slide Individual: `ConceitoSlideCard.tsx`
-**Arquivo:** `src/components/conceitos/ConceitoSlideCard.tsx`
+### 2.3 Componentes a Criar/Modificar
 
-Renderiza cada tipo de slide com visual adequado:
+| Componente | Ação | Descrição |
+|------------|------|-----------|
+| `src/components/conceitos/ConceitosSlidesViewer.tsx` | CRIAR | Container principal de slides |
+| `src/components/conceitos/ConceitoSlideCard.tsx` | CRIAR | Renderiza cada tipo de slide |
+| `src/components/conceitos/SlideCollapsible.tsx` | CRIAR | Menu suspenso interativo |
+| `src/components/conceitos/ConceitosTopicoIntro.tsx` | CRIAR | Tela inicial com opção Leitura/Slides |
+| `src/pages/ConceitosTopicoEstudo.tsx` | MODIFICAR | Adicionar toggle de modo |
 
-- **Introdução**: Fundo com gradiente, ícone de boas-vindas
-- **Conteúdo**: Texto principal com formatação Markdown
-- **Destaque**: Blockquotes com cores específicas (💡, ⚠️, 🎯)
-- **Tabela**: Tabela responsiva centralizada
-- **Dica**: Card com borda lateral colorida
-- **Caso Prático**: Simulação de cenário com ícone de case
-- **Resumo**: Pontos-chave com checkmarks
+### 2.4 Atualização da Edge Function `gerar-conteudo-conceitos`
 
-### 4. Atualizar Página de Estudo: `ConceitosTopicoEstudo.tsx`
-**Arquivo:** `src/pages/ConceitosTopicoEstudo.tsx`
+#### Novo Prompt para Gerar Slides Estruturados
 
-Adicionar toggle para alternar entre modos:
+A função será modificada para:
 
-```tsx
-// Estado para modo de visualização
-const [modoVisualizacao, setModoVisualizacao] = useState<'leitura' | 'slides'>('leitura');
+1. **Dividir o conteúdo em 30-50 slides** (não mais 8 páginas longas)
+2. **Incluir prompts de imagem** para cada slide
+3. **Usar tipos variados de slides** (collapsible, linha_tempo, tabela, etc.)
+4. **Gerar estrutura JSON** compatível com o novo viewer
 
-// No render:
-{modoVisualizacao === 'leitura' ? (
-  <OABTrilhasReader ... />
-) : (
-  <ConceitosSlidesViewer 
-    paginas={conteudoGerado?.paginas}
-    titulo={topico.titulo}
-    onComplete={() => navigate(`...flashcards`)}
-    onExit={handleBack}
-  />
-)}
-```
+#### Estrutura do Output
 
-### 5. Tela de Introdução do Tópico: `ConceitosTopicoIntro.tsx`
-**Arquivo:** `src/components/conceitos/ConceitosTopicoIntro.tsx`
-
-Tela inicial antes de começar o estudo:
-
-- Exibe capa/imagem do tópico
-- Informações: duração estimada, número de seções, atividades
-- Botões para escolher modo (Leitura vs Slides)
-- Botão "Começar" centralizado
-
-### 6. Navegação por Gestos (Mobile)
-**Arquivo:** Integrado em `ConceitosSlidesViewer.tsx`
-
-Suporte a swipe left/right para navegação em dispositivos móveis usando Framer Motion.
-
-## Fluxo de Experiência
-
-```
-1. Usuário acessa /conceitos/topico/:id
-   ↓
-2. Tela de Introdução aparece
-   - Escolhe modo: [Leitura] ou [Slides]
-   ↓
-3a. Modo Leitura → OABTrilhasReader (comportamento atual)
-   ↓
-3b. Modo Slides → ConceitosSlidesViewer
-   - Slide 1: Introdução acolhedora
-   - Slide 2-N: Conteúdo dividido
-   - Slide Final: Síntese
-   ↓
-4. Ao terminar slides → Botão "Ir para Flashcards"
-   ↓
-5. Flashcards → Questões → Conclusão
-```
-
-## Detalhes Técnicos
-
-### Algoritmo de Divisão de Markdown
-
-```typescript
-function dividirEmSlides(markdown: string): ConceitoSlide[] {
-  const slides: ConceitoSlide[] = [];
-  
-  // 1. Separar por headings (## )
-  const secoes = markdown.split(/(?=^## )/gm);
-  
-  secoes.forEach((secao, secaoIdx) => {
-    // 2. Dentro de cada seção, identificar blocos especiais
-    const blocos = identificarBlocos(secao);
-    
-    blocos.forEach((bloco, blocoIdx) => {
-      slides.push({
-        tipo: bloco.tipo,
-        titulo: bloco.titulo,
-        conteudo: bloco.conteudo,
-        secaoIndex: secaoIdx,
-        slideIndex: blocoIdx
-      });
-    });
-  });
-  
-  return slides;
-}
-
-function identificarBlocos(secao: string): Bloco[] {
-  // Detectar:
-  // - > 💡 DICA → tipo 'dica'
-  // - > ⚠️ ATENÇÃO → tipo 'atencao'  
-  // - > 💼 CASO → tipo 'caso'
-  // - | tabela | → tipo 'tabela'
-  // - Texto normal → tipo 'conteudo' (dividido se > 400 chars)
+```json
+{
+  "secoes": [
+    {
+      "id": 1,
+      "titulo": "Introdução às Escolas Penais",
+      "slides": [
+        {
+          "tipo": "introducao",
+          "titulo": "O que você vai aprender",
+          "conteudo": "Nesta trilha...",
+          "imagemPrompt": "Classical law library with scales of justice..."
+        },
+        {
+          "tipo": "collapsible",
+          "titulo": "Conceitos Fundamentais",
+          "conteudo": "Clique para explorar cada conceito:",
+          "collapsibleItems": [
+            {
+              "titulo": "Direito Penal Clássico",
+              "conteudo": "Surgiu no século XVIII...",
+              "icone": "book"
+            },
+            {
+              "titulo": "Escola Positivista",
+              "conteudo": "Foco no criminoso, não no crime...",
+              "icone": "user"
+            }
+          ],
+          "imagemPrompt": "18th century courtroom with legal scholars..."
+        },
+        {
+          "tipo": "linha_tempo",
+          "titulo": "Evolução das Escolas Penais",
+          "conteudo": "Veja como as escolas evoluíram:",
+          "etapas": [
+            {"titulo": "Século XVIII", "descricao": "Escola Clássica - Beccaria"},
+            {"titulo": "Século XIX", "descricao": "Escola Positivista - Lombroso"},
+            {"titulo": "Século XX", "descricao": "Escola Crítica - Abolicionismo"}
+          ],
+          "imagemPrompt": "Timeline showing evolution of legal thought..."
+        }
+      ]
+    }
+  ],
+  "imagensParaBatch": [
+    {"slideId": "1-0", "prompt": "Classical law library..."},
+    {"slideId": "1-1", "prompt": "18th century courtroom..."}
+  ]
 }
 ```
 
-### Estimativa de Slides por Página
+### 2.5 Fluxo de Geração com Imagens Batch
 
-| Página Original | Slides Estimados |
-|-----------------|------------------|
-| Introdução | 2-3 slides |
-| Conteúdo Completo | 8-15 slides |
-| Desmembrando | 5-8 slides |
-| Entendendo na Prática | 3-5 slides |
-| Quadro Comparativo | 3-5 slides |
-| Dicas | 3-5 slides |
-| Ligar Termos | 1 slide (interativo) |
-| Síntese Final | 2-3 slides |
-| **TOTAL** | **~25-45 slides** |
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                 FLUXO COMPLETO DE GERAÇÃO                         │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  ETAPA 1: Gerar Estrutura de Slides (imediato)                    │
+│  └─> gerar-conteudo-conceitos                                     │
+│      • Gera JSON com 30-50 slides                                 │
+│      • Inclui prompts de imagem para cada slide                   │
+│      • Salva estrutura no banco (sem imagens ainda)               │
+│      • Status: "slides_prontos"                                   │
+│                                                                    │
+│  ETAPA 2: Disparar Batch de Imagens (background)                  │
+│  └─> batch-imagens-iniciar                                        │
+│      • Coleta todos os prompts do tópico                          │
+│      • Cria job batch com todos os prompts                        │
+│      • Status: "gerando_imagens"                                  │
+│                                                                    │
+│  ETAPA 3: Monitorar e Processar (background/cron)                 │
+│  └─> batch-imagens-processar                                      │
+│      • Quando job completa, processa todas as imagens             │
+│      • Atualiza cada slide com sua imagemUrl                      │
+│      • Status: "concluido"                                        │
+│                                                                    │
+│  USUÁRIO PODE USAR A TRILHA IMEDIATAMENTE (Etapa 1)               │
+│  As imagens aparecem conforme ficam prontas                       │
+│                                                                    │
+└───────────────────────────────────────────────────────────────────┘
+```
 
-## Arquivos a Criar
+### 2.6 Interface do Usuário
 
-1. `src/components/conceitos/ConceitosSlidesViewer.tsx` - Viewer principal
-2. `src/components/conceitos/ConceitoSlideCard.tsx` - Card de slide individual
-3. `src/components/conceitos/ConceitosTopicoIntro.tsx` - Tela de introdução
-4. `src/lib/markdown-to-slides.ts` - Lógica de divisão
+#### Tela de Introdução do Tópico
 
-## Arquivos a Modificar
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ESCOLAS PENAIS                                │
+│                 Direito Penal I                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   [     IMAGEM DE CAPA     ]                                    │
+│                                                                  │
+│   ⏱️ 25 min  |  📑 6 seções  |  🎯 35 slides                    │
+│                                                                  │
+│   ┌─────────────────┐  ┌─────────────────┐                      │
+│   │  📖 Modo        │  │  🎬 Modo        │                      │
+│   │     Leitura     │  │     Slides ⭐   │                      │
+│   └─────────────────┘  └─────────────────┘                      │
+│                                                                  │
+│              [     COMEÇAR     ]                                 │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-1. `src/pages/ConceitosTopicoEstudo.tsx` - Adicionar toggle de modo e lógica de escolha
+#### Slide com Menu Collapsible
 
-## Benefícios
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  [←]   Conceitos   ●●●○○○○   [3/35]                       [X]  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   [     IMAGEM ILUSTRATIVA DO SLIDE     ]                       │
+│                                                                  │
+│   📚 Explore os Conceitos                                       │
+│   ─────────────────────────────                                 │
+│                                                                  │
+│   ┌─────────────────────────────────────────┐                   │
+│   │ ▸ Escola Clássica                   [+] │                   │
+│   └─────────────────────────────────────────┘                   │
+│   ┌─────────────────────────────────────────┐                   │
+│   │ ▾ Escola Positivista                [-] │                   │
+│   │   ─────────────────────────────────     │                   │
+│   │   A Escola Positivista surgiu com       │                   │
+│   │   Cesare Lombroso no século XIX...      │                   │
+│   │                                         │                   │
+│   │   Foco: criminoso (não o crime)         │                   │
+│   │   Método: científico/biológico          │                   │
+│   └─────────────────────────────────────────┘                   │
+│   ┌─────────────────────────────────────────┐                   │
+│   │ ▸ Escola Crítica                    [+] │                   │
+│   └─────────────────────────────────────────┘                   │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│   [  ← Anterior  ]              [  Próximo →  ]                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-1. **Melhor absorção**: Conteúdo em doses menores
-2. **Engajamento**: Sensação de progresso a cada slide
-3. **Mobile-friendly**: Navegação por gestos
-4. **Flexibilidade**: Usuário escolhe o modo preferido
-5. **Consistência**: Mesma experiência das Aulas OAB
+---
 
-## Considerações
+## Parte 3: Detalhes Técnicos de Implementação
 
-- Manter modo "Leitura" como opção para quem prefere scroll
-- Salvar preferência do usuário no localStorage
-- Animações leves para não prejudicar performance
-- Suporte offline (PWA) para slides já carregados
+### 3.1 Edge Functions a Criar
+
+| Função | Arquivo | Descrição |
+|--------|---------|-----------|
+| batch-imagens-iniciar | `supabase/functions/batch-imagens-iniciar/index.ts` | Inicia job batch |
+| batch-imagens-status | `supabase/functions/batch-imagens-status/index.ts` | Consulta status |
+| batch-imagens-processar | `supabase/functions/batch-imagens-processar/index.ts` | Processa resultados |
+
+### 3.2 Edge Function a Modificar
+
+| Função | Modificação |
+|--------|-------------|
+| gerar-conteudo-conceitos | Gerar estrutura de slides JSON em vez de Markdown paginado |
+
+### 3.3 Componentes React a Criar
+
+| Componente | Arquivo | Descrição |
+|------------|---------|-----------|
+| ConceitosSlidesViewer | `src/components/conceitos/ConceitosSlidesViewer.tsx` | Viewer principal |
+| ConceitoSlideCard | `src/components/conceitos/ConceitoSlideCard.tsx` | Card de slide |
+| SlideCollapsible | `src/components/conceitos/SlideCollapsible.tsx` | Menu expansível |
+| ConceitosTopicoIntro | `src/components/conceitos/ConceitosTopicoIntro.tsx` | Tela de intro |
+
+### 3.4 Páginas a Modificar
+
+| Página | Modificação |
+|--------|-------------|
+| ConceitosTopicoEstudo.tsx | Adicionar toggle Leitura/Slides |
+
+### 3.5 Banco de Dados
+
+| Tabela | Ação | Colunas |
+|--------|------|---------|
+| conceitos_batch_jobs | CRIAR | id, job_name, tipo, status, total_items, etc. |
+| conceitos_topicos | MODIFICAR | Adicionar `slides_json` (jsonb) para nova estrutura |
+
+---
+
+## Cronograma de Implementação
+
+### Fase 1: Sistema Batch API (Base)
+1. Criar tabela `conceitos_batch_jobs`
+2. Implementar `batch-imagens-iniciar`
+3. Implementar `batch-imagens-status`
+4. Implementar `batch-imagens-processar`
+5. Testar com capas de tópicos existentes
+
+### Fase 2: Componentes de Slides
+1. Criar `SlideCollapsible.tsx`
+2. Criar `ConceitoSlideCard.tsx` (reutilizando tipos existentes)
+3. Criar `ConceitosSlidesViewer.tsx`
+4. Criar `ConceitosTopicoIntro.tsx`
+
+### Fase 3: Reformular Geração de Conteúdo
+1. Atualizar `gerar-conteudo-conceitos` para gerar slides JSON
+2. Integrar com batch de imagens
+3. Modificar `ConceitosTopicoEstudo.tsx`
+
+### Fase 4: Integração e Testes
+1. Testar fluxo completo
+2. Verificar performance em mobile
+3. Ajustar animações e transições
+
+---
+
+## Benefícios Esperados
+
+| Aspecto | Antes | Depois |
+|---------|-------|--------|
+| **Custo de imagens** | $0.039/imagem | $0.0195/imagem (50% economia) |
+| **Formato do conteúdo** | 8 páginas longas de Markdown | 30-50 slides interativos |
+| **Engajamento** | Scroll longo | Navegação por slides |
+| **Recursos visuais** | Sem imagens nos slides | 1 imagem por slide |
+| **Interatividade** | Apenas leitura | Menus expansíveis, quickchecks |
+| **Mobile** | Scroll infinito | Swipe entre slides |
