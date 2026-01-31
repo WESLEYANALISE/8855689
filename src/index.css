@@ -152,14 +152,17 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* Anti-flash: garantir background escuro em todo o app */
+  html, body, #root {
+    background-color: hsl(0, 0%, 8%) !important;
+  }
+
   html {
-    background-color: hsl(0, 0%, 8%);
     overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground;
-    background-color: hsl(0, 0%, 8%);
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
@@ -168,8 +171,18 @@ All colors MUST be HSL.
   
   #root {
     min-height: 100vh;
-    background-color: hsl(0, 0%, 8%);
     overflow-x: hidden;
+  }
+  
+  /* Anti-flash: garantir que AnimatePresence não mostre background branco */
+  [data-motion-pop-id],
+  .framer-motion-container {
+    background-color: inherit;
+  }
+  
+  /* Anti-flash: forçar background em elementos com opacity animada */
+  .motion-opacity-container {
+    background-color: hsl(0, 0%, 8%);
   }
 
   /* Markdown styles for chat */

@@ -409,7 +409,7 @@ const ConceitosTopicoEstudo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col" style={{ backgroundColor: 'hsl(0, 0%, 8%)' }}>
       {/* Header - esconde no modo intro quando tem páginas */}
       {!(viewMode === 'intro' && slidesData && topico?.status === "concluido") && (
         <StandardPageHeader

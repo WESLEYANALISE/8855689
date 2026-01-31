@@ -551,6 +551,16 @@ const ScrollToTop = () => {
 };
 
 const App = () => {
+  // Handler global para erros assíncronos não tratados - previne tela branca
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled rejection:", event.reason);
+      event.preventDefault(); // Previne crash
+    };
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => window.removeEventListener("unhandledrejection", handleRejection);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

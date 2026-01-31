@@ -85,7 +85,7 @@ export const ConceitosTopicoIntro = ({
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
+      initial={{ opacity: 0.8 }}
       animate={{ opacity: 1 }}
       className="min-h-[calc(100vh-4rem)] flex flex-col bg-[#0a0a0f]"
     >

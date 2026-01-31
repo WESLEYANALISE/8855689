@@ -261,9 +261,9 @@ const ConceitosMateria = () => {
               return (
                 <motion.button
                   key={topico.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0.9, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
+                  transition={{ delay: index * 0.02 }}
                   onClick={() => navigate(`/conceitos/topico/${topico.id}`)}
                   className={`w-full text-left bg-neutral-800 rounded-xl border overflow-hidden transition-all group ${
                     topico.status === "gerando"
