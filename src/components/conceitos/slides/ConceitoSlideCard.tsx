@@ -34,6 +34,7 @@ interface ConceitoSlideCardProps {
   onPrevious: () => void;
   canGoBack: boolean;
   fontSize?: number;
+  direction?: 'next' | 'prev';
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -75,6 +76,22 @@ const convertCollapsibleToMarkdown = (items: CollapsibleItem[]): string => {
   }).join('\n\n');
 };
 
+// Variantes de animação para transição de slide
+const slideVariants = {
+  enter: (direction: 'next' | 'prev') => ({
+    x: direction === 'next' ? 300 : -300,
+    opacity: 0
+  }),
+  center: {
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction: 'next' | 'prev') => ({
+    x: direction === 'next' ? -300 : 300,
+    opacity: 0
+  })
+};
+
 export const ConceitoSlideCard = ({
   slide,
   paginaIndex,
@@ -82,7 +99,8 @@ export const ConceitoSlideCard = ({
   onNext,
   onPrevious,
   canGoBack,
-  fontSize = 16
+  fontSize = 16,
+  direction = 'next'
 }: ConceitoSlideCardProps) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -332,10 +350,16 @@ export const ConceitoSlideCard = ({
   return (
     <motion.div
       ref={containerRef}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
+      key={paginaIndex}
+      custom={direction}
+      variants={slideVariants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ 
+        x: { type: "spring", stiffness: 300, damping: 30 },
+        opacity: { duration: 0.2 }
+      }}
       className="min-h-[calc(100vh-8rem)] flex flex-col p-4 pb-4 max-w-2xl mx-auto"
     >
       {/* Progress dots */}

@@ -1,10 +1,11 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConceitoSlideCard } from "./ConceitoSlideCard";
 import { ConceitosSlidesFooter } from "./ConceitosSlidesFooter";
+import useSound from "use-sound";
 import type { ConceitoSecao, ConceitoSlide } from "./types";
 
 interface ConceitosSlidesViewerProps {
@@ -30,6 +31,10 @@ export const ConceitosSlidesViewer = ({
   onComplete
 }: ConceitosSlidesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  
+  // Som de virar página
+  const [playPageFlip] = useSound('/sounds/page-flip.mp3', { volume: 0.3 });
   
   // Estado de tamanho de fonte com persistência
   const [fontSize, setFontSize] = useState(() => {
@@ -72,24 +77,30 @@ export const ConceitosSlidesViewer = ({
 
   const handleNext = useCallback(() => {
     if (currentIndex < totalPaginas - 1) {
+      setDirection('next');
+      playPageFlip();
       setCurrentIndex(prev => prev + 1);
     } else {
       // Completed all pages
       onComplete?.();
     }
-  }, [currentIndex, totalPaginas, onComplete]);
+  }, [currentIndex, totalPaginas, onComplete, playPageFlip]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
+      setDirection('prev');
+      playPageFlip();
       setCurrentIndex(prev => prev - 1);
     }
-  }, [currentIndex]);
+  }, [currentIndex, playPageFlip]);
 
   const handleNavigate = useCallback((index: number) => {
     if (index >= 0 && index < totalPaginas) {
+      setDirection(index > currentIndex ? 'next' : 'prev');
+      playPageFlip();
       setCurrentIndex(index);
     }
-  }, [totalPaginas]);
+  }, [totalPaginas, currentIndex, playPageFlip]);
 
   if (!currentFlatPagina) {
     return (
@@ -133,8 +144,8 @@ export const ConceitosSlidesViewer = ({
       </div>
 
       {/* Page content */}
-      <div className="flex-1 pb-20">
-        <AnimatePresence mode="wait">
+      <div className="flex-1 pb-20 overflow-hidden">
+        <AnimatePresence mode="wait" custom={direction}>
           <ConceitoSlideCard
             key={currentIndex}
             slide={currentFlatPagina.slide}
@@ -144,6 +155,7 @@ export const ConceitosSlidesViewer = ({
             onPrevious={handlePrevious}
             canGoBack={currentIndex > 0}
             fontSize={fontSize}
+            direction={direction}
           />
         </AnimatePresence>
       </div>
