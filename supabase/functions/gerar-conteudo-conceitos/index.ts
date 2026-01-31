@@ -38,37 +38,53 @@ Termine OBRIGATORIAMENTE com:
     promptExtra: `Vá DIRETO ao conteúdo (a introdução já fez a saudação).
 Escreva com tom CONVERSACIONAL e FLUIDO - como se explicasse para um amigo.
 
+### ⚡ PROFUNDIDADE DE CONTEÚDO OBRIGATÓRIA (CRÍTICO!):
+
+Esta é a página PRINCIPAL - deve ser EXTREMAMENTE COMPLETA e DETALHADA.
+Você DEVE escrever **mínimo 5000-7000 palavras** nesta seção.
+
+Para CADA conceito do PDF:
+1. **Defina claramente** o que é o conceito (mínimo 3 parágrafos)
+2. **Explique POR QUE é importante** no contexto jurídico brasileiro
+3. **Dê MÚLTIPLOS EXEMPLOS PRÁTICOS** imediatamente (mínimo 2 exemplos por conceito)
+4. **Traduza e explique TODOS os termos em latim** com aplicação prática
+5. **Inclua jurisprudência/doutrina** quando citada no PDF
+6. **Faça transições naturais** conectando um conceito ao próximo
+
 ### REGRAS OBRIGATÓRIAS DE FLUIDEZ E DIDÁTICA:
 
-1. **EXEMPLOS RÁPIDOS EM CADA EXPLICAÇÃO (OBRIGATÓRIO)**
-   A cada conceito novo, IMEDIATAMENTE dê um exemplo prático curto:
+1. **EXEMPLOS PRÁTICOS EM ABUNDÂNCIA (OBRIGATÓRIO)**
+   A cada conceito novo, dê PELO MENOS 2 exemplos práticos:
    "Por exemplo, imagine que Maria compra um celular pela internet..."
-   "Um caso clássico: João assina um contrato de aluguel e..."
+   "Outro caso comum: João assina um contrato de aluguel e..."
    "Na prática, funciona assim: quando você vai ao cartório..."
    
-   ⚠️ NÃO deixe nenhum conceito sem exemplo imediato!
+   ⚠️ NÃO deixe nenhum conceito sem múltiplos exemplos!
 
-2. **EXPLICAÇÃO DE TERMOS EM LATIM E JURIDIQUÊS (OBRIGATÓRIO)**
-   Sempre que usar termo técnico, em latim ou juridiquês, EXPLIQUE imediatamente:
+2. **EXPLICAÇÃO DETALHADA DE TERMOS EM LATIM E JURIDIQUÊS (OBRIGATÓRIO)**
+   Sempre que usar termo técnico, em latim ou juridiquês, EXPLIQUE imediatamente COM CONTEXTO:
    
    Formato para termos em latim:
-   "...a *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos', ou seja, quando você assina um contrato, é obrigado a cumprir)..."
-   "...aplicando o princípio *in dubio pro reo* (na dúvida, a favor do réu - isso quer dizer que se o juiz tiver dúvida, deve absolver)..."
-   "...ocorre a *restitutio in integrum* (restituição integral - basicamente, devolver tudo ao estado anterior)..."
+   "...a *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos'). Na prática, isso significa que quando você assina um contrato, está juridicamente obrigado a cumprir todas as cláusulas, mesmo que depois se arrependa. Por exemplo, se João assinou contrato de aluguel por 12 meses, não pode simplesmente sair no 3º mês sem pagar a multa."
    
    Formato para juridiquês:
-   "...a capacidade civil (aptidão para exercer direitos pessoalmente - por exemplo, um menor de 16 anos NÃO tem essa capacidade)..."
-   "...configura dolo eventual (quando a pessoa assume o risco de produzir o resultado - imagine alguém dirigindo a 200km/h em área escolar)..."
-   "...há litisconsórcio (quando várias pessoas estão no mesmo lado da ação - por exemplo, 3 irmãos processando juntos o vizinho)..."
+   "...a capacidade civil (aptidão para exercer direitos pessoalmente). Isso é diferente da capacidade de direito! Capacidade de direito TODO MUNDO tem ao nascer com vida. Já a capacidade civil plena só vem aos 18 anos. Por exemplo, um menor de 16 anos PODE ter um imóvel em seu nome (capacidade de direito), mas NÃO PODE vendê-lo sozinho (falta capacidade civil)."
 
 3. **TRANSIÇÕES NATURAIS E ENGAJANTES:**
    "Agora que você entendeu X, vamos ver como funciona Y na prática..."
-   "Percebeu a lógica? Então o próximo passo é entender..."
-   "Antes de avançar, veja esse exemplo rápido..."
+   "Percebeu a lógica? Esse é o pulo do gato! O próximo passo é entender..."
+   "Antes de avançar, deixa eu te dar mais um exemplo importante..."
 
 4. **ANTECIPE DÚVIDAS COMUNS:**
    "Você pode estar pensando: e se...? A resposta é..."
    "Uma confusão muito comum aqui é achar que... mas na verdade..."
+   "Cuidado! Muita gente confunde isso com..."
+
+5. **APROFUNDE CADA TEMA:**
+   - Não passe superficialmente pelos conceitos
+   - Explique as CONSEQUÊNCIAS JURÍDICAS de cada instituto
+   - Mostre a EVOLUÇÃO HISTÓRICA quando relevante
+   - Compare com situações semelhantes para diferenciar
 
 ### TÍTULOS E SUBTÍTULOS OBRIGATÓRIOS:
 Use os MESMOS títulos e subtítulos que aparecem no PDF.
@@ -85,15 +101,16 @@ Sempre que o PDF contiver citações de doutrinadores, jurisprudência ou enunci
 ### TABELAS COMPARATIVAS:
 Quando houver institutos para comparar, use tabelas Markdown.
 
-### ELEMENTOS VISUAIS (use > no início):
-> ⚠️ **ATENÇÃO:** [ponto importante]
-> 💡 **DICA:** [dica prática]
-> 📌 **EM RESUMO:** [resumo]
+### ELEMENTOS VISUAIS (use > no início) - USE ABUNDANTEMENTE:
+> ⚠️ **ATENÇÃO:** [ponto importante - cai muito em prova!]
+> 💡 **DICA:** [dica prática de memorização]
+> 📌 **EM RESUMO:** [síntese do que foi explicado]
 > 💼 **CASO PRÁTICO:** [exemplo prático detalhado]
 > 📚 **EXEMPLO RÁPIDO:** [exemplo curto inline]
+> 🎯 **VOCÊ SABIA?:** [curiosidade relevante]
 
-Mínimo 4000 palavras. Use pelo menos 10-15 elementos visuais.
-CADA conceito deve ter: explicação + exemplo rápido + explicação de termos técnicos.` 
+**MÍNIMO 5000-7000 palavras.** Use pelo menos 15-20 elementos visuais.
+CADA conceito deve ter: explicação completa + múltiplos exemplos + explicação de termos técnicos + consequências jurídicas.` 
   },
   { 
     tipo: "desmembrando", 
@@ -538,17 +555,30 @@ Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como s
   • "Resumindo pra você não esquecer..."
 - Use perguntas retóricas para engajar ("E por que isso importa tanto?")
 - Faça analogias com situações do dia a dia
-- A cada termo técnico, EXPLIQUE o que significa:
-  "...a personalidade civil, ou seja, a capacidade de ser titular de direitos..."
-  "...o dolo eventual, isto é, quando o agente assume o risco de produzir o resultado..."
-- Cite exemplos rápidos DURANTE a explicação, não depois
+- A cada termo técnico, EXPLIQUE o que significa COM DETALHES E EXEMPLOS:
+  "...a personalidade civil (ou seja, a capacidade de ser titular de direitos). Por exemplo, um bebê recém-nascido já pode herdar bens..."
+  "...o dolo eventual (isto é, quando o agente assume o risco de produzir o resultado). Imagine alguém dirigindo a 200km/h em área escolar..."
+- Cite MÚLTIPLOS exemplos DURANTE a explicação, não depois
 - Após conceitos complexos, faça um breve resumo informal
+
+### 📖 PROFUNDIDADE DE CONTEÚDO (CRÍTICO!):
+
+Para CADA página de tipo "texto" ou "conteudo_principal":
+1. Comece explicando O QUE É o conceito (definição clara e completa)
+2. Explique POR QUE é importante (contexto jurídico brasileiro)
+3. Dê MÚLTIPLOS EXEMPLOS PRÁTICOS imediatamente (mínimo 2 por conceito)
+4. Se tiver termo em latim, EXPLIQUE com aplicação: "*pacta sunt servanda* (pactos devem ser cumpridos) - na prática, significa que se você assinou um contrato de 12 meses, não pode sair no 3º mês sem consequências..."
+5. Se o PDF citar doutrina/jurisprudência, INCLUA: > "Citação..." (AUTOR)
+6. Se for ponto de prova, marque: > ⚠️ **ATENÇÃO:** Este tema cai com frequência em provas!
+7. Faça transições naturais: "Agora que entendemos X, veja como Y se relaciona..."
+8. Aprofunde cada tema - não passe superficialmente pelos conceitos
 
 ### ❌ NÃO FAÇA:
 - Linguagem excessivamente formal/acadêmica (parecer livro jurídico)
 - Parágrafos longos e densos sem pausas
 - Repetir vícios de linguagem (não use a mesma expressão mais de 2x no texto)
 - **NUNCA USE EMOJIS NO TEXTO CORRIDO** (emojis SÓ nos elementos visuais como > 💡 **DICA:**)
+- NÃO seja superficial - cada conceito merece explicação COMPLETA
 
 ### ⛔ SAUDAÇÕES:
 - Saudações são permitidas APENAS na página de Introdução
@@ -575,6 +605,7 @@ O caractere > é OBRIGATÓRIO para que o elemento visual tenha fundo colorido.
 - Cite APENAS artigos/leis que aparecem LITERALMENTE no PDF
 - NÃO invente artigos de lei que NÃO estejam no PDF
 - Use os TÍTULOS ORIGINAIS do PDF como subtítulos (ex: "## 1. Escola Clássica")
+- Inclua TODAS as citações de doutrinadores do PDF
 
 **Matéria:** ${materiaNome}
 **Tópico:** ${topicoTitulo}
