@@ -370,6 +370,7 @@ const OABTrilhasReader = ({
   const [mostrarTelaBoasVindas, setMostrarTelaBoasVindas] = useState(true);
   const [mostrarCapaTopico, setMostrarCapaTopico] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   // Sempre começa do tópico 1 quando o Reader é montado (não persistir posição)
   const [topicoAtual, setTopicoAtual] = useState(1);
   
@@ -390,6 +391,19 @@ const OABTrilhasReader = ({
   const [progressoLeitura, setProgressoLeitura] = useState(0);
   const [progressoFlashcards, setProgressoFlashcards] = useState(0);
   const [progressoQuestoes, setProgressoQuestoes] = useState(0);
+
+  // Monitorar scroll da página para barra de progresso de leitura
+  useEffect(() => {
+    const handleScrollProgress = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      setScrollProgress(Math.min(100, Math.max(0, progress)));
+    };
+    
+    window.addEventListener('scroll', handleScrollProgress);
+    return () => window.removeEventListener('scroll', handleScrollProgress);
+  }, [topicoAtual]);
 
   // Normalizar páginas: se houver JSON embutido (bug), recupera as páginas reais
   const paginasNormalizadas = (() => {
@@ -1025,7 +1039,15 @@ const OABTrilhasReader = ({
   // Tela de Leitura
   return (
     <div className="flex flex-col min-h-screen pb-28">
-      <div ref={contentRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+      {/* Barra de Progresso de Leitura (Scroll) */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-white/10 z-50">
+        <div 
+          className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-150"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+      
+      <div ref={contentRef} className="flex-1 overflow-y-auto overflow-x-hidden pt-1">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={topicoAtual}

@@ -7,15 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Configuração das páginas a serem geradas (estrutura igual OAB Trilhas)
+// Configuração das páginas a serem geradas (estrutura ALINHADA com OAB Trilhas)
 const PAGINAS_CONFIG = [
   { 
     tipo: "introducao", 
     titulo: "Introdução", 
-    promptExtra: `Escreva uma introdução clara de 400-600 palavras.
-Apresente o tema, sua importância no ordenamento jurídico e o que será abordado.
-Comece diretamente com o conteúdo (ex: 'O tema X representa...').
-NÃO use frases como 'E aí!', 'Vamos lá!', 'Bora!', 'Ok,'.
+    promptExtra: `Escreva uma introdução clara de 300-500 palavras.
+Tom acolhedor e motivador.
+Comece com algo engajador: "Vamos falar sobre um tema super importante..."
+Contextualize a importância do tema de forma natural.
+Explique o que será abordado na trilha.
 
 Use elementos visuais quando apropriado:
 > 🎯 **VOCÊ SABIA?:** [curiosidade relevante sobre o tema]` 
@@ -26,7 +27,6 @@ Use elementos visuais quando apropriado:
     promptExtra: `Escreva o conteúdo principal com MÍNIMO 3000 palavras.
 Cubra TODO o conteúdo do PDF de forma didática e organizada.
 Use subtítulos (###) para estruturar cada parte.
-Comece diretamente com o conteúdo, sem saudações.
 
 OBRIGATÓRIO usar estes elementos visuais ao longo do texto:
 > ⚠️ **ATENÇÃO:** [ponto importante que o estudante deve observar]
@@ -39,13 +39,27 @@ Use pelo menos 3-5 destes elementos ao longo do conteúdo.`
   { 
     tipo: "desmembrando", 
     titulo: "Desmembrando o Tema", 
-    promptExtra: `Divida o tema em partes menores (800-1200 palavras).
-Explique cada conceito separadamente, com subtítulos claros (###).
-Inicie diretamente: 'Para compreender melhor o tema, analisemos...'.
+    promptExtra: `Análise detalhada de cada elemento importante do tema (800-1200 palavras).
+Decomponha os conceitos complexos em partes menores.
 
-Use elementos visuais:
-> ⚠️ **ATENÇÃO:** [ponto crítico]
-> 💡 **DICA:** [dica de memorização]` 
+Para CADA termo ou conceito importante, analise:
+- **Significado jurídico:** O que significa exatamente no contexto do Direito
+- **Etimologia/Origem:** De onde vem o termo, sua origem histórica ou linguística (quando relevante)
+- **Pronúncia correta:** Como pronunciar corretamente (quando houver dúvida comum)
+- **Elementos constitutivos:** Quais são os componentes ou requisitos
+- **Características principais:** O que o diferencia de outros institutos
+- **Natureza jurídica:** Qual sua natureza no ordenamento
+
+Inicie: "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
+Use exemplos para clarificar cada elemento.
+
+Formato sugerido para cada conceito:
+### [Nome do Conceito]
+
+**Significado:** [explicação]
+**Origem:** [etimologia ou história]
+**Elementos:** [componentes]
+**Características:** [diferenciais]` 
   },
   { 
     tipo: "entendendo_na_pratica", 
@@ -63,15 +77,24 @@ Formato para cada caso:
   { 
     tipo: "quadro_comparativo", 
     titulo: "Quadro Comparativo", 
-    promptExtra: `Crie tabelas comparativas entre conceitos similares do tema.
-Use formato markdown de tabela.
-Compare institutos, requisitos, efeitos, etc.
+    promptExtra: `Crie tabelas comparativas dos principais institutos relacionados ao tema.
+Compare elementos, requisitos, efeitos de forma clara.
+Use formato Markdown de tabela CORRETO.
 Inclua pelo menos 2 tabelas relevantes.
 
-Exemplo de formato:
-| Aspecto | Conceito A | Conceito B |
-|---------|------------|------------|
-| Definição | ... | ... |` 
+Formato OBRIGATÓRIO para cada tabela:
+
+| Aspecto | Instituto A | Instituto B |
+|---------|-------------|-------------|
+| Definição | ... | ... |
+| Requisitos | ... | ... |
+| Efeitos | ... | ... |
+| Previsão Legal | ... | ... |
+
+Garanta que cada tabela tenha:
+- Linha de cabeçalho com nomes dos institutos
+- Linha separadora (|---|---|---|)
+- Linhas de dados bem formatadas` 
   },
   { 
     tipo: "dicas_provas", 
@@ -90,18 +113,26 @@ Use pelo menos 4-5 destes elementos.`
     tipo: "correspondencias", 
     titulo: "Ligar Termos", 
     promptExtra: `Escreva uma breve instrução (2-3 frases) para um exercício interativo.
-Explique que o estudante deve ligar os termos às suas definições corretas.
-Seja direto e objetivo.` 
+O estudante vai ligar os termos às suas definições corretas arrastando os elementos.
+
+Exemplo: "Conecte cada termo à sua definição correta arrastando os elementos. Este exercício vai ajudar você a fixar os conceitos principais que estudamos."
+
+NOTA: Os dados do jogo (pares termo/definição) serão gerados separadamente.` 
   },
   { 
     tipo: "sintese_final", 
     titulo: "Síntese Final", 
     promptExtra: `Faça um resumo conciso de tudo que foi abordado (500-700 palavras).
 Destaque os pontos principais e conecte os conceitos.
-Encerre de forma profissional.
+Encerre de forma motivadora.
 
 Use:
-> 📌 **EM RESUMO:** [síntese dos pontos principais]` 
+> 📌 **EM RESUMO:** [síntese dos pontos principais]
+
+Inclua um checklist final:
+- [ ] Conceito X compreendido
+- [ ] Diferença entre A e B clara
+- [ ] Requisitos memorizados` 
   },
 ];
 
@@ -346,23 +377,40 @@ serve(async (req) => {
     const baseProgress = 10;
     const progressPerPage = 70 / PAGINAS_CONFIG.length;
 
-    const promptBase = `Você é um professor de Direito especialista, didático e acolhedor.
-Escreva de forma clara e acessível para estudantes iniciantes.
-Use linguagem simples, exemplos práticos e analogias quando útil para facilitar a compreensão.
+    const promptBase = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
+Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café e ajudando um colega a entender a matéria.
 
-REGRAS OBRIGATÓRIAS:
-- Comece diretamente com o conteúdo, sem saudações ou introduções informais
-- Use tom profissional e didático (como um manual de Direito bem escrito)
-- Estruture bem o texto com subtítulos quando aplicável
+## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
 
-PROIBIDO:
-- Frases de abertura informais: "E aí!", "Ok, vamos lá!", "Bora!", "Relaxa", "Olha só"
-- Linguagem excessivamente coloquial ou gírias
-- Emojis de qualquer tipo
-- Iniciar parágrafos com: "Sabe o que é...?", "Você já parou para pensar...?", "Então..."
-- Expressões como "futuro(a) jurista", "meu caro estudante"
+### ✅ FAÇA SEMPRE:
+- Escreva como se estivesse CONVERSANDO com o estudante
+- Use expressões naturais como:
+  • "Olha só, é assim que funciona..."
+  • "Veja bem, isso é super importante porque..."
+  • "Sabe aquela situação de...? Pois é, aqui se aplica isso!"
+  • "Deixa eu te explicar de outro jeito..."
+  • "Percebeu a diferença? Esse é o pulo do gato!"
+  • "Agora vem a parte interessante..."
+  • "Calma, não se assuste, é mais simples do que parece..."
+  • "Resumindo pra você não esquecer..."
+- Use perguntas retóricas para engajar ("E por que isso importa tanto?")
+- Faça analogias com situações do dia a dia
+- Antecipe dúvidas ("Você pode estar pensando: mas e se...? A resposta é...")
+- Conecte os tópicos com transições naturais
 
-Baseie-se 100% no conteúdo do PDF abaixo. Não invente artigos ou leis.
+### ❌ NÃO FAÇA:
+- Linguagem excessivamente formal/acadêmica
+- Parágrafos longos e densos sem pausas
+- Explicações secas e diretas demais
+- Texto que pareça copiado de um livro jurídico
+- Começar frases com "É importante ressaltar que..." ou "Cumpre observar que..."
+- **NUNCA USE EMOJIS NO TEXTO** (proibido qualquer emoji como 😊, 🎯, 📚, ⚖️, etc.)
+
+⛔ REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF
+- Use 100% do texto e informações do PDF
+- Cite APENAS artigos/leis que aparecem LITERALMENTE no PDF
+- NÃO invente artigos de lei que NÃO estejam no PDF
+- NÃO adicione citações legais que você "sabe" mas NÃO estão no conteúdo
 
 **Matéria:** ${materiaNome}
 **Tópico:** ${topicoTitulo}
