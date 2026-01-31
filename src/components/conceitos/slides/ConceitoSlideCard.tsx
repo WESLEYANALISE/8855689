@@ -76,11 +76,11 @@ const convertCollapsibleToMarkdown = (items: CollapsibleItem[]): string => {
   }).join('\n\n');
 };
 
-// Variantes de animação para transição de slide
+// Variantes de animação para transição de slide - opacity mínima para evitar flash branco
 const slideVariants = {
   enter: (direction: 'next' | 'prev') => ({
     x: direction === 'next' ? 300 : -300,
-    opacity: 0
+    opacity: 0.3
   }),
   center: {
     x: 0,
@@ -88,7 +88,7 @@ const slideVariants = {
   },
   exit: (direction: 'next' | 'prev') => ({
     x: direction === 'next' ? -300 : 300,
-    opacity: 0
+    opacity: 0.3
   })
 };
 
