@@ -11,8 +11,8 @@ function normalizarTitulo(titulo: string): string {
   return titulo
     // Remove números romanos no final: I, II, III, IV, V, VI, VII, VIII, IX, X (com "E" opcional)
     .replace(/\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X)(\s+E\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X))*\s*$/gi, '')
-    // Remove números arábicos no final: 1, 2, 3... (com "E" opcional)
-    .replace(/\s+\d+(\s+E\s+\d+)*\s*$/gi, '')
+    // Remove números arábicos pequenos no final (1-99), mas preserva anos (1800-2099)
+    .replace(/\s+(?!\d{4}\b)\d{1,2}(\s+E\s+\d{1,2})*\s*$/gi, '')
     // Remove "PARTE I", "PARTE II", etc.
     .replace(/\s+PARTE\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X|\d+)\s*$/gi, '')
     .trim();
@@ -51,8 +51,8 @@ function agruparTemasSequenciais(temas: any[]): any[] {
       }
     }
     
-    // Usar o título normalizado (sem números)
-    const tituloLimpo = normalizarTitulo(temasDoGrupo[0].titulo);
+    // Usar título ORIGINAL do primeiro tema (preserva anos como 1824, 1891)
+    const tituloLimpo = temasDoGrupo[0].titulo;
     
     temasAgrupados.push({
       ordem: ordem++,
