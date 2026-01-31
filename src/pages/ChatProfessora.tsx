@@ -234,9 +234,9 @@ const ChatProfessora = () => {
         </div>
       </header>
 
-      {/* Messages */}
+      {/* Messages - sem virtualização para evitar perda de scroll */}
       <ScrollArea ref={scrollRef} className="flex-1 relative z-10">
-        <div className="p-4 space-y-4 pb-8">
+        <div className="p-4 space-y-4 pb-8 min-h-full">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4 py-8">
               <div className="relative z-10">
@@ -257,12 +257,15 @@ const ChatProfessora = () => {
                 
                 // Se é a última mensagem do assistant e ainda não tem conteúdo, mostra typing
                 if (showTyping) {
-                  return <TypingIndicator key={index} variant="chat" />;
+                  return <TypingIndicator key={`typing-${index}`} variant="chat" />;
                 }
+                
+                // Usar ID estável para evitar re-renders e perda de scroll
+                const messageKey = `msg-${index}-${message.role}-${message.content?.length || 0}`;
                 
                 return (
                   <ChatMessageNew
-                    key={index}
+                    key={messageKey}
                     role={message.role}
                     content={message.content}
                     termos={message.termos}
@@ -273,7 +276,7 @@ const ChatProfessora = () => {
               })}
               {/* Typing indicator - mostra quando última mensagem é do usuário */}
               {isStreaming && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-                <TypingIndicator variant="chat" />
+                <TypingIndicator key="typing-indicator" variant="chat" />
               )}
             </>
           )}
