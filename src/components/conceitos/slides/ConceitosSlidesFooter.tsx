@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, 
   ChevronRight, 
+  ChevronUp,
+  ChevronDown,
   List, 
   Volume2, 
   VolumeX, 
-  X,
-  AArrowUp,
-  AArrowDown
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ConceitoSecao } from "./types";
@@ -109,14 +109,14 @@ export const ConceitosSlidesFooter = ({
       {/* Botão flutuante de controle de fonte - canto inferior direito */}
       {onFontSizeChange && (
         <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
-          {/* Botões expandidos */}
+          {/* Controles expandidos com tamanho da fonte */}
           <AnimatePresence>
             {showFontControls && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                className="flex flex-col gap-2"
+                className="flex flex-col items-center gap-1"
               >
                 <button
                   onClick={() => onFontSizeChange(fontSize + 2)}
@@ -128,8 +128,13 @@ export const ConceitosSlidesFooter = ({
                   }`}
                   title="Aumentar fonte"
                 >
-                  <AArrowUp className="w-4 h-4" />
+                  <ChevronUp className="w-5 h-5" />
                 </button>
+                
+                <div className="w-10 h-10 rounded-full bg-[#1a1a2e] border border-white/20 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">{fontSize}</span>
+                </div>
+                
                 <button
                   onClick={() => onFontSizeChange(fontSize - 2)}
                   disabled={fontSize <= 12}
@@ -140,7 +145,7 @@ export const ConceitosSlidesFooter = ({
                   }`}
                   title="Diminuir fonte"
                 >
-                  <AArrowDown className="w-4 h-4" />
+                  <ChevronDown className="w-5 h-5" />
                 </button>
               </motion.div>
             )}
