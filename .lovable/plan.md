@@ -1,151 +1,113 @@
 
-# Plano: Corrigir Piscadas Brancas no Mobile
+# Plano: Corrigir Bug de Scroll + Estilização de Citações
 
-## Diagnóstico
+## Problema 1: Mensagens Desaparecem ao Scrollar
 
-Após análise do codebase, identifiquei **múltiplas causas** para o problema de piscadas brancas no mobile:
+### Diagnóstico
+O bug ocorre por duas razões:
 
-### 1. Animações com `opacity: 0` inicial (Causa Principal)
-- **149 arquivos** usam `initial={{ opacity: 0 }}` com framer-motion
-- Quando um componente monta com `opacity: 0`, há um frame onde o background (branco do navegador) fica visível antes da animação começar
-- Em mobile, a renderização é mais lenta, tornando esse flash mais perceptível
+1. **Keys instáveis nas mensagens**: A key `msg-${index}-${message.role}-${message.content?.length || 0}` muda toda vez que o conteúdo é atualizado durante streaming, causando remontagem do componente
+2. **ScrollArea do Radix**: O componente pode ter problemas de renderização em certas condições
 
-### 2. `AnimatePresence mode="wait"` causando gaps brancos
-- Múltiplos componentes usam `AnimatePresence mode="wait"`
-- O modo "wait" desmonta o componente antigo ANTES de montar o novo
-- Durante esse intervalo, o background aparece (flash branco)
+### Solução
 
-### 3. Transições de slides horizontais com `x: 300` e `opacity: 0`
-- `ConceitoSlideCard.tsx` usa animação que move 300px horizontalmente com opacity 0
-- Durante a transição, há um momento onde nada é renderizado
+**Arquivo: `src/pages/ChatProfessora.tsx`**
 
-### 4. Falta de background escuro fixo no root
-- O `html` e `body` têm background definido, mas durante transições React, o container pode piscar
+- Usar IDs únicos estáveis para cada mensagem (baseado em timestamp/UUID)
+- Remover dependência do `content.length` na key
+- Adicionar `id` único no hook `useStreamingChat`
 
----
+**Arquivo: `src/hooks/useStreamingChat.ts`**
 
-## Solução
+- Adicionar campo `id` único a cada mensagem usando `crypto.randomUUID()`
+- Garantir que o ID persiste durante todo o ciclo de vida da mensagem
 
-### Parte 1: CSS - Garantir Background Escuro Durante Transições
-
-**Arquivo: `src/index.css`**
-
-Adicionar regras para prevenir flash branco:
-```css
-/* Prevenir flash branco durante transições */
-html, body, #root {
-  background-color: hsl(0, 0%, 8%) !important;
+```typescript
+// Exemplo de ID estável
+export interface ChatMessage {
+  id: string; // NOVO: ID único persistente
+  role: "user" | "assistant";
+  content: string;
+  termos?: TermoJuridico[];
+  isStreaming?: boolean;
 }
 
-/* Garantir que AnimatePresence não mostre background branco */
-[data-motion-pop-id],
-.framer-motion-container {
-  background-color: inherit;
-}
-
-/* Forçar background em elementos com opacity animada */
-.motion-opacity-container {
-  background-color: hsl(0, 0%, 8%);
-}
-```
-
-### Parte 2: Otimizar AnimatePresence em Componentes Críticos
-
-**Arquivo: `src/components/conceitos/slides/ConceitosSlidesViewer.tsx`**
-
-Mudar de `mode="wait"` para `mode="popLayout"` (mais suave):
-```tsx
-<AnimatePresence mode="popLayout" custom={direction}>
-```
-
-**Arquivo: `src/components/conceitos/slides/ConceitoSlideCard.tsx`**
-
-Remover o `opacity: 0` inicial e usar apenas transformação:
-```tsx
-const slideVariants = {
-  enter: (direction: 'next' | 'prev') => ({
-    x: direction === 'next' ? 300 : -300,
-    opacity: 0.3  // Nunca ir para 0 total
-  }),
-  center: {
-    x: 0,
-    opacity: 1
-  },
-  exit: (direction: 'next' | 'prev') => ({
-    x: direction === 'next' ? -300 : 300,
-    opacity: 0.3  // Manter visibilidade mínima
-  })
+// Ao criar mensagem
+const userMsg: ChatMessage = { 
+  id: crypto.randomUUID(), // ID único
+  role: "user", 
+  content: userMessage 
 };
 ```
 
-### Parte 3: Otimizar Animações de Entrada nas Páginas Principais
+---
 
-**Arquivo: `src/components/conceitos/slides/ConceitosTopicoIntro.tsx`**
+## Problema 2: Estilização de Citações e Exemplos
 
-Substituir `opacity: 0` inicial por `opacity: 0.8`:
+### Solução
+
+**Arquivo: `src/components/chat/ChatMessageNew.tsx`**
+
+Adicionar detecção automática e estilização para:
+
+1. **Citações de Artigos** (Art. X, § Y, inciso Z):
+   - Fundo âmbar/dourado com borda lateral
+   - Ícone de livro ou lei
+
+2. **Exemplos Práticos** (blocos que começam com "Exemplo:", "Ex:", "💡"):
+   - Fundo azul/roxo suave
+   - Borda arredondada diferenciada
+
+3. **Blockquotes** (citações genéricas):
+   - Fundo cinza com borda lateral
+
 ```tsx
-<motion.div 
-  initial={{ opacity: 0.8 }}  // Não mais 0
-  animate={{ opacity: 1 }}
-  className="..."
->
-```
+// Componente de citação legal
+const CitacaoLegal = ({ children }) => (
+  <div className="my-4 p-4 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg">
+    <div className="flex items-start gap-2">
+      <Scale className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+      <div className="text-amber-100">{children}</div>
+    </div>
+  </div>
+);
 
-### Parte 4: Adicionar Background Explícito nos Containers de Animação
-
-**Arquivo: `src/pages/ConceitosTopicoEstudo.tsx`**
-
-Garantir que o container sempre tenha background:
-```tsx
-<div className="min-h-screen bg-background flex flex-col" 
-     style={{ backgroundColor: 'hsl(0, 0%, 8%)' }}>
-```
-
-### Parte 5: Melhorar Transições de Lista
-
-**Arquivo: `src/pages/ConceitosMateria.tsx`**
-
-Reduzir delay stagger e remover opacity 0:
-```tsx
-<motion.button
-  initial={{ opacity: 0.9, y: 5 }}  // Valores mínimos
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: index * 0.02 }}  // Delay reduzido
-```
-
-### Parte 6: Handler Global de Unhandled Rejections
-
-**Arquivo: `src/App.tsx`**
-
-Adicionar proteção contra erros async que causam tela branca:
-```tsx
-useEffect(() => {
-  const handleRejection = (event: PromiseRejectionEvent) => {
-    console.error("Unhandled rejection:", event.reason);
-    event.preventDefault();  // Previne crash
-  };
-  window.addEventListener("unhandledrejection", handleRejection);
-  return () => window.removeEventListener("unhandledrejection", handleRejection);
-}, []);
+// Componente de exemplo prático
+const ExemploPratico = ({ children }) => (
+  <div className="my-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+    <div className="flex items-start gap-2">
+      <Lightbulb className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+      <div className="text-purple-100">{children}</div>
+    </div>
+  </div>
+);
 ```
 
 ---
 
-## Arquivos que Serão Modificados
+## Problema 3: Build Error
 
-1. `src/index.css` - Adicionar regras CSS anti-flash
-2. `src/components/conceitos/slides/ConceitosSlidesViewer.tsx` - Otimizar AnimatePresence
-3. `src/components/conceitos/slides/ConceitoSlideCard.tsx` - Suavizar transições
-4. `src/components/conceitos/slides/ConceitosTopicoIntro.tsx` - Remover opacity 0
-5. `src/pages/ConceitosTopicoEstudo.tsx` - Background explícito
-6. `src/pages/ConceitosMateria.tsx` - Otimizar lista animada
-7. `src/App.tsx` - Handler de erros globais
+**Arquivo: `src/components/oab/QuadroComparativoVisual.tsx`**
+
+Adicionar import do React no início do arquivo:
+```typescript
+import React, { useRef, useState, useCallback } from "react";
+```
+
+---
+
+## Arquivos a Modificar
+
+1. `src/hooks/useStreamingChat.ts` - Adicionar ID único às mensagens
+2. `src/pages/ChatProfessora.tsx` - Usar ID estável como key
+3. `src/components/chat/ChatMessageNew.tsx` - Adicionar estilos para citações e exemplos
+4. `src/components/oab/QuadroComparativoVisual.tsx` - Corrigir import do React
 
 ---
 
 ## Resultado Esperado
 
-- Eliminar flashes brancos durante navegação entre páginas
-- Transições mais suaves entre slides
-- Experiência mobile sem piscadas visuais
-- App mais estável contra erros assíncronos
+- Mensagens não desaparecem mais ao scrollar para cima/baixo
+- Citações de artigos de lei aparecem com fundo âmbar destacado
+- Exemplos práticos aparecem com fundo roxo/azul diferenciado
+- Build compila sem erros
