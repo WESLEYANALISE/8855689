@@ -46,7 +46,7 @@ export const ConceitosTopicoIntro = ({
   const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
   
   // Índice
-  const [showIndex, setShowIndex] = useState(true);
+  const [showIndex, setShowIndex] = useState(false);
 
   // Calcular desbloqueios
   const leituraCompleta = progressoLeitura >= 100;
