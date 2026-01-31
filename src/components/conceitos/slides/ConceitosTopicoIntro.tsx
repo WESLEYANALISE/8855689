@@ -1,6 +1,9 @@
-import { motion } from "framer-motion";
-import { Clock, BookOpen, Layers, Play, BookText, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { UniversalImage } from "@/components/ui/universal-image";
 
 interface ConceitosTopicoIntroProps {
@@ -9,10 +12,16 @@ interface ConceitosTopicoIntroProps {
   capaUrl?: string | null;
   tempoEstimado?: string;
   totalSecoes?: number;
-  totalSlides?: number;
+  totalPaginas?: number;
   objetivos?: string[];
-  onStartSlides: () => void;
-  onStartReading: () => void;
+  progressoLeitura?: number;
+  progressoFlashcards?: number;
+  progressoQuestoes?: number;
+  hasFlashcards?: boolean;
+  hasQuestoes?: boolean;
+  onStartPaginas: () => void;
+  onStartFlashcards?: () => void;
+  onStartQuestoes?: () => void;
 }
 
 export const ConceitosTopicoIntro = ({
@@ -21,19 +30,64 @@ export const ConceitosTopicoIntro = ({
   capaUrl,
   tempoEstimado = "25 min",
   totalSecoes = 6,
-  totalSlides = 35,
+  totalPaginas = 35,
   objetivos = [],
-  onStartSlides,
-  onStartReading
+  progressoLeitura = 0,
+  progressoFlashcards = 0,
+  progressoQuestoes = 0,
+  hasFlashcards = false,
+  hasQuestoes = false,
+  onStartPaginas,
+  onStartFlashcards,
+  onStartQuestoes
 }: ConceitosTopicoIntroProps) => {
+  // Ruído marrom
+  const [brownNoiseEnabled, setBrownNoiseEnabled] = useState(false);
+  const [showBrownNoiseInfo, setShowBrownNoiseInfo] = useState(false);
+  const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Índice
+  const [showIndex, setShowIndex] = useState(false);
+
+  // Calcular desbloqueios
+  const leituraCompleta = progressoLeitura >= 100;
+  const flashcardsCompletos = progressoFlashcards >= 100;
+
+  // Gerenciar áudio do ruído marrom
+  useEffect(() => {
+    if (!brownNoiseRef.current) {
+      brownNoiseRef.current = new Audio('/audio/ruido-marrom.mp3');
+      brownNoiseRef.current.loop = true;
+      brownNoiseRef.current.volume = 0.5;
+    }
+
+    if (brownNoiseEnabled) {
+      brownNoiseRef.current.play().catch(console.error);
+      // Mostrar info na primeira vez
+      const hasSeenInfo = localStorage.getItem('conceitos-brown-noise-info-seen');
+      if (!hasSeenInfo) {
+        setShowBrownNoiseInfo(true);
+        localStorage.setItem('conceitos-brown-noise-info-seen', 'true');
+      }
+    } else {
+      brownNoiseRef.current.pause();
+    }
+
+    return () => {
+      if (brownNoiseRef.current) {
+        brownNoiseRef.current.pause();
+      }
+    };
+  }, [brownNoiseEnabled]);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-[calc(100vh-4rem)] flex flex-col"
+      className="min-h-[calc(100vh-4rem)] flex flex-col bg-[#0a0a0f]"
     >
-      {/* Hero image */}
-      <div className="relative w-full aspect-video max-h-64 overflow-hidden">
+      {/* Hero image com degradê */}
+      <div className="relative w-full aspect-video max-h-72 overflow-hidden">
         <UniversalImage
           src={capaUrl}
           alt={titulo}
@@ -42,122 +96,343 @@ export const ConceitosTopicoIntro = ({
           containerClassName="w-full h-full"
           className="object-cover"
           fallback={
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <Sparkles className="w-16 h-16 text-primary/30" />
+            <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-orange-500/10 flex items-center justify-center">
+              <Sparkles className="w-16 h-16 text-red-400/30" />
             </div>
           }
         />
         
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/70 to-transparent" />
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-4 pb-8 -mt-16 relative z-10">
+      <div className="flex-1 px-4 pb-8 -mt-20 relative z-10">
         <div className="max-w-lg mx-auto">
+          {/* Decorative line */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+            <span className="text-red-400 text-lg">✦</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+          </div>
+
           {/* Title */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            className="text-center mb-6"
           >
             {materiaName && (
-              <p className="text-sm text-primary font-medium mb-1">
+              <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-2">
                 {materiaName}
               </p>
             )}
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 
+              className="text-2xl font-bold text-white"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               {titulo}
             </h1>
           </motion.div>
 
-          {/* Stats */}
+          {/* Stats row */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center gap-4 mt-4 text-muted-foreground"
+            className="flex items-center justify-center gap-4 mb-6"
           >
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 text-gray-400">
+              <BookOpen className="w-4 h-4" />
+              <span className="text-sm">{totalPaginas} páginas</span>
+            </div>
+            <div className="w-1 h-1 rounded-full bg-gray-600" />
+            <div className="flex items-center gap-1.5 text-gray-400">
               <Clock className="w-4 h-4" />
               <span className="text-sm">{tempoEstimado}</span>
             </div>
-            <div className="w-1 h-1 rounded-full bg-border" />
-            <div className="flex items-center gap-1.5">
-              <Layers className="w-4 h-4" />
-              <span className="text-sm">{totalSecoes} seções</span>
+          </motion.div>
+
+          {/* Brown noise toggle */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="flex items-center justify-between bg-white/5 rounded-xl p-4 border border-white/10 mb-6"
+          >
+            <div className="flex items-center gap-3">
+              {brownNoiseEnabled ? (
+                <Volume2 className="w-5 h-5 text-red-400" />
+              ) : (
+                <VolumeX className="w-5 h-5 text-gray-500" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-white">Ruído Marrom</p>
+                <p className="text-xs text-gray-500">Melhora o foco</p>
+              </div>
             </div>
-            <div className="w-1 h-1 rounded-full bg-border" />
-            <div className="flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4" />
-              <span className="text-sm">{totalSlides} slides</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowBrownNoiseInfo(true)}
+                className="p-1 text-gray-500 hover:text-gray-300"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+              <Switch
+                checked={brownNoiseEnabled}
+                onCheckedChange={setBrownNoiseEnabled}
+              />
             </div>
           </motion.div>
 
-          {/* Objectives */}
-          {objetivos.length > 0 && (
+          {/* Modules */}
+          <div className="space-y-3">
+            {/* Module 1: Leitura - Always unlocked */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="mt-6 p-4 rounded-xl bg-card border border-border"
             >
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                O que você vai aprender
-              </h3>
-              <ul className="space-y-2">
-                {objetivos.slice(0, 4).map((objetivo, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                    {objetivo}
-                  </li>
-                ))}
-              </ul>
+              <button
+                onClick={onStartPaginas}
+                className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/10 hover:from-red-500/30 hover:to-orange-500/20 border border-red-500/30 rounded-xl p-4 transition-all"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-sm">
+                      1
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-white">Começar Leitura</p>
+                      <p className="text-xs text-gray-400">{totalPaginas} páginas interativas</p>
+                    </div>
+                  </div>
+                  <Play className="w-5 h-5 text-red-400" />
+                </div>
+                <Progress 
+                  value={progressoLeitura} 
+                  className="h-1.5 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
+                />
+                <p className="text-xs text-gray-500 mt-2 text-right">{progressoLeitura}% concluído</p>
+              </button>
+            </motion.div>
+
+            {/* Module 2: Flashcards */}
+            {hasFlashcards && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <button
+                  onClick={leituraCompleta && onStartFlashcards ? onStartFlashcards : undefined}
+                  disabled={!leituraCompleta}
+                  className={`w-full rounded-xl p-4 transition-all ${
+                    leituraCompleta 
+                      ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
+                      : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        leituraCompleta ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-700 text-gray-500'
+                      }`}>
+                        2
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-semibold ${leituraCompleta ? 'text-white' : 'text-gray-500'}`}>
+                          Flashcards
+                        </p>
+                        <p className="text-xs text-gray-500">Memorize os conceitos</p>
+                      </div>
+                    </div>
+                    {leituraCompleta ? (
+                      <Sparkles className="w-5 h-5 text-purple-400" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-gray-600" />
+                    )}
+                  </div>
+                  <Progress 
+                    value={progressoFlashcards} 
+                    className={`h-1.5 ${leituraCompleta ? 'bg-white/10 [&>div]:bg-purple-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-2 text-right">
+                    {leituraCompleta ? `${progressoFlashcards}% concluído` : 'Complete a leitura para desbloquear'}
+                  </p>
+                </button>
+              </motion.div>
+            )}
+
+            {/* Module 3: Praticar */}
+            {hasQuestoes && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <button
+                  onClick={flashcardsCompletos && onStartQuestoes ? onStartQuestoes : undefined}
+                  disabled={!flashcardsCompletos}
+                  className={`w-full rounded-xl p-4 transition-all ${
+                    flashcardsCompletos 
+                      ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
+                      : 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        flashcardsCompletos ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-500'
+                      }`}>
+                        3
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-semibold ${flashcardsCompletos ? 'text-white' : 'text-gray-500'}`}>
+                          Praticar
+                        </p>
+                        <p className="text-xs text-gray-500">Questões para fixação</p>
+                      </div>
+                    </div>
+                    {flashcardsCompletos ? (
+                      <Target className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-gray-600" />
+                    )}
+                  </div>
+                  <Progress 
+                    value={progressoQuestoes} 
+                    className={`h-1.5 ${flashcardsCompletos ? 'bg-white/10 [&>div]:bg-emerald-500' : 'bg-white/5 [&>div]:bg-gray-600'}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-2 text-right">
+                    {flashcardsCompletos ? `${progressoQuestoes}% concluído` : 'Complete os flashcards para desbloquear'}
+                  </p>
+                </button>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Objectives (collapsible) */}
+          {objetivos.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mt-6"
+            >
+              <button
+                onClick={() => setShowIndex(!showIndex)}
+                className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <List className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-300">O que você vai aprender</span>
+                </div>
+                {showIndex ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showIndex && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <ul className="mt-3 space-y-2 px-2">
+                      {objetivos.slice(0, 5).map((objetivo, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                          {objetivo}
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
-          {/* Action buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-8 space-y-3"
-          >
-            {/* Primary: Slides mode */}
-            <Button
-              onClick={onStartSlides}
-              size="lg"
-              className="w-full gap-2"
-            >
-              <Play className="w-5 h-5" />
-              Modo Slides
-              <span className="ml-auto text-xs opacity-70">Recomendado</span>
-            </Button>
-            
-            {/* Secondary: Reading mode */}
-            <Button
-              onClick={onStartReading}
-              variant="outline"
-              size="lg"
-              className="w-full gap-2"
-            >
-              <BookText className="w-5 h-5" />
-              Modo Leitura
-            </Button>
-          </motion.div>
-
-          {/* Tip */}
+          {/* Footer tip */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-center text-xs text-muted-foreground mt-6"
+            transition={{ delay: 0.7 }}
+            className="text-center text-xs text-gray-600 mt-8"
           >
-            O modo Slides é interativo e ideal para memorização
+            As páginas são interativas e ideais para memorização
           </motion.p>
         </div>
       </div>
+
+      {/* Brown noise info modal */}
+      <AnimatePresence>
+        {showBrownNoiseInfo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowBrownNoiseInfo(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#12121a] rounded-2xl p-6 max-w-sm w-full border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="w-5 h-5 text-red-400" />
+                  <h3 className="font-semibold text-white">Ruído Marrom</h3>
+                </div>
+                <button
+                  onClick={() => setShowBrownNoiseInfo(false)}
+                  className="p-1 text-gray-500 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-3 text-sm text-gray-400">
+                <p>
+                  O ruído marrom é um som de baixa frequência que ajuda a:
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">✓</span>
+                    Melhorar a concentração nos estudos
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">✓</span>
+                    Reduzir distrações do ambiente
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">✓</span>
+                    Criar um ambiente propício para foco
+                  </li>
+                </ul>
+                <p className="text-xs text-gray-500 pt-2">
+                  Dica: Use fones de ouvido para melhor experiência.
+                </p>
+              </div>
+              
+              <Button
+                onClick={() => setShowBrownNoiseInfo(false)}
+                className="w-full mt-4 bg-red-500 hover:bg-red-600"
+              >
+                Entendi
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

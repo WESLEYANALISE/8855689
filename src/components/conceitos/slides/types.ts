@@ -23,18 +23,17 @@ export interface TabelaData {
 
 export interface ConceitoSlide {
   tipo: 
-    | 'introducao'      // Slide de abertura com título e objetivos
+    | 'introducao'      // Página de abertura com título e objetivos
     | 'texto'           // Texto explicativo simples
     | 'termos'          // Lista de termos e definições
     | 'explicacao'      // Explicação detalhada com tópicos
-    | 'collapsible'     // Menu suspenso interativo
     | 'linha_tempo'     // Timeline/etapas
     | 'tabela'          // Tabela comparativa
     | 'atencao'         // Ponto de atenção importante
     | 'dica'            // Dica de estudo/memorização
     | 'caso'            // Caso prático/exemplo
     | 'resumo'          // Resumo com pontos principais
-    | 'quickcheck';     // Mini-quiz rápido
+    | 'quickcheck';     // Mini-quiz rápido (collapsible removido - convertido para texto)
   
   titulo: string;
   conteudo: string;

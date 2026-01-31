@@ -14,10 +14,10 @@ interface ConceitosSlidesViewerProps {
   onComplete?: () => void;
 }
 
-interface FlatSlide {
+interface FlatPagina {
   slide: ConceitoSlide;
   secaoIndex: number;
-  slideIndex: number;
+  paginaIndex: number;
   globalIndex: number;
 }
 
@@ -30,41 +30,41 @@ export const ConceitosSlidesViewer = ({
 }: ConceitosSlidesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Flatten all slides for easier navigation
-  const flatSlides: FlatSlide[] = useMemo(() => {
-    const slides: FlatSlide[] = [];
+  // Flatten all pages for easier navigation
+  const flatPaginas: FlatPagina[] = useMemo(() => {
+    const paginas: FlatPagina[] = [];
     let globalIndex = 0;
     
     secoes.forEach((secao, secaoIndex) => {
-      secao.slides.forEach((slide, slideIndex) => {
-        slides.push({
+      secao.slides.forEach((slide, paginaIndex) => {
+        paginas.push({
           slide,
           secaoIndex,
-          slideIndex,
+          paginaIndex,
           globalIndex
         });
         globalIndex++;
       });
     });
     
-    return slides;
+    return paginas;
   }, [secoes]);
 
-  const totalSlides = flatSlides.length;
-  const currentFlatSlide = flatSlides[currentIndex];
-  const progress = totalSlides > 0 ? ((currentIndex + 1) / totalSlides) * 100 : 0;
+  const totalPaginas = flatPaginas.length;
+  const currentFlatPagina = flatPaginas[currentIndex];
+  const progress = totalPaginas > 0 ? ((currentIndex + 1) / totalPaginas) * 100 : 0;
 
   // Get current section title
-  const currentSectionTitle = secoes[currentFlatSlide?.secaoIndex]?.titulo || titulo;
+  const currentSectionTitle = secoes[currentFlatPagina?.secaoIndex]?.titulo || titulo;
 
   const handleNext = useCallback(() => {
-    if (currentIndex < totalSlides - 1) {
+    if (currentIndex < totalPaginas - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      // Completed all slides
+      // Completed all pages
       onComplete?.();
     }
-  }, [currentIndex, totalSlides, onComplete]);
+  }, [currentIndex, totalPaginas, onComplete]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -72,10 +72,10 @@ export const ConceitosSlidesViewer = ({
     }
   }, [currentIndex]);
 
-  if (!currentFlatSlide) {
+  if (!currentFlatPagina) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Nenhum slide disponível</p>
+        <p className="text-muted-foreground">Nenhuma página disponível</p>
       </div>
     );
   }
@@ -99,7 +99,7 @@ export const ConceitosSlidesViewer = ({
           
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500 whitespace-nowrap">
-              {currentIndex + 1}/{totalSlides}
+              {currentIndex + 1}/{totalPaginas}
             </span>
             <Button
               variant="ghost"
@@ -118,14 +118,14 @@ export const ConceitosSlidesViewer = ({
         </div>
       </div>
 
-      {/* Slide content */}
+      {/* Page content */}
       <div className="flex-1">
         <AnimatePresence mode="wait">
           <ConceitoSlideCard
             key={currentIndex}
-            slide={currentFlatSlide.slide}
-            slideIndex={currentIndex}
-            totalSlides={totalSlides}
+            slide={currentFlatPagina.slide}
+            paginaIndex={currentIndex}
+            totalPaginas={totalPaginas}
             onNext={handleNext}
             onPrevious={handlePrevious}
             canGoBack={currentIndex > 0}

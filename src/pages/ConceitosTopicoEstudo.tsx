@@ -127,12 +127,12 @@ const ConceitosTopicoEstudo = () => {
     };
   }, [topico?.slides_json, topico?.titulo]);
 
-  // Calcular estatísticas dos slides
-  const slidesStats = useMemo(() => {
-    if (!slidesData?.secoes) return { totalSlides: 0, totalSecoes: 0 };
-    const totalSlides = slidesData.secoes.reduce((acc, s) => acc + s.slides.length, 0);
+  // Calcular estatísticas das páginas
+  const paginasStats = useMemo(() => {
+    if (!slidesData?.secoes) return { totalPaginas: 0, totalSecoes: 0 };
+    const totalPaginas = slidesData.secoes.reduce((acc, s) => acc + s.slides.length, 0);
     return {
-      totalSlides,
+      totalPaginas,
       totalSecoes: slidesData.secoes.length
     };
   }, [slidesData]);
@@ -337,7 +337,7 @@ const ConceitosTopicoEstudo = () => {
   const isNaFila = topico?.status === "na_fila";
   const progresso = topico?.progresso || 0;
 
-  // Se está no modo slides, renderiza o viewer de slides
+  // Se está no modo páginas, renderiza o viewer de páginas
   if (viewMode === 'slides' && slidesData) {
     return (
       <ConceitosSlidesViewer
@@ -346,7 +346,7 @@ const ConceitosTopicoEstudo = () => {
         materiaName={topico?.materia?.nome}
         onClose={() => setViewMode('intro')}
         onComplete={() => {
-          toast.success("Parabéns! Você concluiu todos os slides!");
+          toast.success("Parabéns! Você concluiu todas as páginas!");
           setViewMode('intro');
         }}
       />
@@ -355,7 +355,7 @@ const ConceitosTopicoEstudo = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header - esconde no modo intro quando tem slides */}
+      {/* Header - esconde no modo intro quando tem páginas */}
       {!(viewMode === 'intro' && slidesData && topico?.status === "concluido") && (
         <StandardPageHeader
           title={topico?.titulo || "Carregando..."}
@@ -407,7 +407,7 @@ const ConceitosTopicoEstudo = () => {
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <h2 className="text-lg font-semibold text-foreground mb-2">Gerando conteúdo...</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              A IA está criando slides interativos para este tópico.
+              A IA está criando páginas interativas para este tópico.
             </p>
             <div className="w-full max-w-xs">
               <Progress value={progresso} className="h-2" />
@@ -451,11 +451,14 @@ const ConceitosTopicoEstudo = () => {
               materiaName={topico.materia?.nome}
               capaUrl={topico.capa_url}
               tempoEstimado={slidesData.tempoEstimado}
-              totalSecoes={slidesStats.totalSecoes}
-              totalSlides={slidesStats.totalSlides}
+              totalSecoes={paginasStats.totalSecoes}
+              totalPaginas={paginasStats.totalPaginas}
               objetivos={slidesData.objetivos}
-              onStartSlides={() => setViewMode('slides')}
-              onStartReading={() => setViewMode('reading')}
+              hasFlashcards={flashcards.length > 0}
+              hasQuestoes={questoes.length > 0}
+              onStartPaginas={() => setViewMode('slides')}
+              onStartFlashcards={() => navigate(`/conceitos/flashcards/${topico.id}`)}
+              onStartQuestoes={() => navigate(`/conceitos/questoes/${topico.id}`)}
             />
           </>
         )}
