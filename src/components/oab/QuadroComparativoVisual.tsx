@@ -198,13 +198,33 @@ export const QuadroComparativoVisual = ({ cabecalhos, linhas, titulo }: QuadroCo
 export const extrairTabelaDoMarkdown = (markdown: string): { cabecalhos: string[]; linhas: string[][] } | null => {
   if (!markdown || !markdown.includes("|")) return null;
   
-  // Encontrar linhas que parecem ser tabela
-  const lines = markdown.split('\n').filter(line => line.trim().startsWith('|') && line.trim().endsWith('|'));
+  // Encontrar linhas que parecem ser tabela (mais flexível)
+  const allLines = markdown.split('\n');
+  const tableLines: string[] = [];
+  let inTable = false;
   
-  if (lines.length < 3) return null; // Mínimo: header, separator, 1 row
+  for (const line of allLines) {
+    const trimmed = line.trim();
+    // Linha de tabela: começa e termina com |, ou tem | no meio
+    if (trimmed.includes('|')) {
+      const pipeCount = (trimmed.match(/\|/g) || []).length;
+      if (pipeCount >= 2) {
+        inTable = true;
+        tableLines.push(trimmed);
+      }
+    } else if (inTable && trimmed === '') {
+      // Linha vazia após tabela - continua checando
+      continue;
+    } else if (inTable) {
+      // Linha não-tabela - termina a detecção
+      break;
+    }
+  }
+  
+  if (tableLines.length < 3) return null; // Mínimo: header, separator, 1 row
   
   // Primeira linha = headers
-  const headerLine = lines[0];
+  const headerLine = tableLines[0];
   const cabecalhos = headerLine
     .split('|')
     .map(cell => cell.trim())
@@ -214,10 +234,13 @@ export const extrairTabelaDoMarkdown = (markdown: string): { cabecalhos: string[
   
   // Ignorar linha separadora (segunda linha com ---)
   // Restante = linhas de dados
-  const dataLines = lines.slice(2);
+  const dataLines = tableLines.slice(2);
   
   const linhas: string[][] = [];
   for (const line of dataLines) {
+    // Ignorar linhas separadoras
+    if (/^[\|\s\-:]+$/.test(line)) continue;
+    
     const cells = line
       .split('|')
       .map(cell => cell.trim())
@@ -229,6 +252,8 @@ export const extrairTabelaDoMarkdown = (markdown: string): { cabecalhos: string[
   }
   
   if (linhas.length === 0) return null;
+  
+  console.log('📊 Tabela detectada:', { cabecalhos, linhasCount: linhas.length });
   
   return { cabecalhos, linhas };
 };

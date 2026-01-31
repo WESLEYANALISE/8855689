@@ -698,9 +698,20 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                   </TabsContent>
                 </Tabs>
               ) : (
+                // Durante streaming: renderização otimizada sem processamentos pesados
                 <div className="text-[15px] leading-[1.7] text-foreground/90">
-                  {content ? renderMarkdownContent(formattedContent) : null}
-                  {isStreaming && <span className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 animate-pulse" />}
+                  {content ? (
+                    isStreaming ? (
+                      // Durante streaming: texto simples + cursor piscante (sem markdown pesado)
+                      <div className="whitespace-pre-wrap break-words">
+                        {formattedContent}
+                        <span className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 animate-pulse" />
+                      </div>
+                    ) : (
+                      renderMarkdownContent(formattedContent)
+                    )
+                  ) : null}
+                  {isStreaming && !content && <span className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 animate-pulse" />}
                 </div>
               )}
 
