@@ -428,10 +428,10 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
 
   // Renderizar conteúdo com suporte a tabelas visuais
   const renderContentWithTables = (text: string) => {
-    // Verificar se há tabela no conteúdo
+    // Verificar se há tabela válida no conteúdo
     const tabelaData = extrairTabelaDoMarkdown(text);
     
-    if (tabelaData) {
+    if (tabelaData && tabelaData.cabecalhos.length > 0 && tabelaData.linhas.length > 0) {
       // Separar texto antes e depois da tabela
       const lines = text.split('\n');
       let beforeTable = '';
@@ -441,9 +441,11 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
       
       for (const line of lines) {
         const trimmed = line.trim();
-        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        const hasPipes = (trimmed.match(/\|/g) || []).length >= 2;
+        
+        if (hasPipes) {
           inTable = true;
-        } else if (inTable && !trimmed.startsWith('|')) {
+        } else if (inTable && !hasPipes && trimmed !== '') {
           inTable = false;
           tableEnded = true;
         }
@@ -468,7 +470,18 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
       );
     }
     
-    return renderMarkdownContent(text);
+    // Se não tem tabela válida, renderizar como markdown normal
+    // mas remover linhas que parecem tabelas malformadas (só ----)
+    const cleanedText = text
+      .split('\n')
+      .filter(line => {
+        const trimmed = line.trim();
+        // Remover linhas que são só separadores de tabela
+        return !/^[\|\s\-:]+$/.test(trimmed) || trimmed === '';
+      })
+      .join('\n');
+    
+    return renderMarkdownContent(cleanedText);
   };
 
   // Renderizar conteúdo markdown
