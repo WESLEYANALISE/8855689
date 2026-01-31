@@ -7,16 +7,48 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Configuração das páginas a serem geradas
+// Configuração das páginas a serem geradas (estrutura igual OAB Trilhas)
 const PAGINAS_CONFIG = [
-  { tipo: "introducao", titulo: "Introdução", promptExtra: "Escreva uma introdução acolhedora de 400-600 palavras que apresente o tema de forma clara para iniciantes." },
-  { tipo: "conteudo_principal", titulo: "Conteúdo Completo", promptExtra: "Escreva o conteúdo principal com MÍNIMO 3000 palavras, cobrindo TODO o conteúdo do PDF de forma didática." },
-  { tipo: "desmembrando", titulo: "Desmembrando o Tema", promptExtra: "Divida o tema em partes menores, explicando cada conceito separadamente (800-1200 palavras)." },
-  { tipo: "entendendo_na_pratica", titulo: "Entendendo na Prática", promptExtra: "Apresente 5 exemplos práticos/casos do dia a dia que ilustrem os conceitos (800-1200 palavras)." },
-  { tipo: "quadro_comparativo", titulo: "Quadro Comparativo", promptExtra: "Crie tabelas/quadros comparativos entre conceitos similares do tema (use formato markdown de tabela)." },
-  { tipo: "dicas_provas", titulo: "Dicas para Memorizar", promptExtra: "Forneça dicas de memorização, macetes e pontos-chave para lembrar (600-800 palavras)." },
-  { tipo: "correspondencias", titulo: "Ligar Termos", promptExtra: "Introduza um exercício de ligar termos às definições. Escreva uma breve instrução." },
-  { tipo: "sintese_final", titulo: "Síntese Final", promptExtra: "Faça um resumo conciso de tudo que foi aprendido (500-700 palavras)." },
+  { 
+    tipo: "introducao", 
+    titulo: "Introdução", 
+    promptExtra: "Escreva uma introdução clara de 400-600 palavras. Apresente o tema, sua importância no ordenamento jurídico e o que será abordado. Comece diretamente com o conteúdo (ex: 'O tema X representa...'). NÃO use frases como 'E aí!', 'Vamos lá!', 'Bora!', 'Ok,'." 
+  },
+  { 
+    tipo: "conteudo_principal", 
+    titulo: "Conteúdo Completo", 
+    promptExtra: "Escreva o conteúdo principal com MÍNIMO 3000 palavras. Cubra TODO o conteúdo do PDF de forma didática e organizada. Use subtítulos (##, ###) para estruturar. Comece diretamente com o conteúdo, sem saudações ou frases de abertura informais." 
+  },
+  { 
+    tipo: "desmembrando", 
+    titulo: "Desmembrando o Tema", 
+    promptExtra: "Divida o tema em partes menores (800-1200 palavras). Explique cada conceito separadamente, com subtítulos claros. Inicie diretamente: 'Para compreender melhor o tema, analisemos...'." 
+  },
+  { 
+    tipo: "entendendo_na_pratica", 
+    titulo: "Entendendo na Prática", 
+    promptExtra: "Apresente 5 exemplos práticos/casos concretos que ilustrem os conceitos (800-1200 palavras). Use situações reais ou hipotéticas com análise jurídica. Formato: ### Caso 1: Título\\n**Situação:** ...\\n**Análise Jurídica:** ...\\n**Conclusão:** ..." 
+  },
+  { 
+    tipo: "quadro_comparativo", 
+    titulo: "Quadro Comparativo", 
+    promptExtra: "Crie tabelas comparativas entre conceitos similares do tema (use formato markdown de tabela). Compare institutos, requisitos, efeitos, etc. Inclua pelo menos 2 tabelas relevantes." 
+  },
+  { 
+    tipo: "dicas_provas", 
+    titulo: "Dicas para Memorizar", 
+    promptExtra: "Forneça dicas de memorização, macetes e pontos-chave para lembrar (600-800 palavras). Use técnicas como acrônimos, associações, esquemas mentais. Destaque o que mais cai em provas." 
+  },
+  { 
+    tipo: "correspondencias", 
+    titulo: "Ligar Termos", 
+    promptExtra: "Escreva uma breve instrução (2-3 frases) para um exercício interativo de ligar termos às suas definições. Seja direto e objetivo." 
+  },
+  { 
+    tipo: "sintese_final", 
+    titulo: "Síntese Final", 
+    promptExtra: "Faça um resumo conciso de tudo que foi abordado (500-700 palavras). Destaque os pontos principais e conecte os conceitos. Encerre de forma profissional, sem expressões coloquiais." 
+  },
 ];
 
 // Páginas extras que geram JSON estruturado
@@ -238,10 +270,22 @@ serve(async (req) => {
     const baseProgress = 10;
     const progressPerPage = 70 / PAGINAS_CONFIG.length;
 
-    const promptBase = `Você é um professor de Direito acolhedor, especializado em ensinar INICIANTES.
-Escreva como se estivesse CONVERSANDO com o estudante.
-Use expressões naturais, perguntas retóricas e analogias do dia a dia.
-**NUNCA USE EMOJIS.**
+    const promptBase = `Você é um professor de Direito especialista, didático e acolhedor.
+Escreva de forma clara e acessível para estudantes iniciantes.
+Use linguagem simples, exemplos práticos e analogias quando útil para facilitar a compreensão.
+
+REGRAS OBRIGATÓRIAS:
+- Comece diretamente com o conteúdo, sem saudações ou introduções informais
+- Use tom profissional e didático (como um manual de Direito bem escrito)
+- Estruture bem o texto com subtítulos quando aplicável
+
+PROIBIDO:
+- Frases de abertura informais: "E aí!", "Ok, vamos lá!", "Bora!", "Relaxa", "Olha só"
+- Linguagem excessivamente coloquial ou gírias
+- Emojis de qualquer tipo
+- Iniciar parágrafos com: "Sabe o que é...?", "Você já parou para pensar...?", "Então..."
+- Expressões como "futuro(a) jurista", "meu caro estudante"
+
 Baseie-se 100% no conteúdo do PDF abaixo. Não invente artigos ou leis.
 
 **Matéria:** ${materiaNome}
