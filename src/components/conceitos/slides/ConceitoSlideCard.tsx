@@ -33,6 +33,7 @@ interface ConceitoSlideCardProps {
   onNext: () => void;
   onPrevious: () => void;
   canGoBack: boolean;
+  fontSize?: number;
 }
 
 const iconMap: Record<string, React.ElementType> = {
@@ -80,7 +81,8 @@ export const ConceitoSlideCard = ({
   totalPaginas,
   onNext,
   onPrevious,
-  canGoBack
+  canGoBack,
+  fontSize = 16
 }: ConceitoSlideCardProps) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -130,7 +132,7 @@ export const ConceitoSlideCard = ({
       return (
         <EnrichedMarkdownRenderer 
           content={collapsibleMarkdown || ''}
-          fontSize={16}
+          fontSize={fontSize}
           theme="classicos"
         />
       );
@@ -172,7 +174,7 @@ export const ConceitoSlideCard = ({
           return (
             <EnrichedMarkdownRenderer 
               content={resumoMarkdown}
-              fontSize={16}
+              fontSize={fontSize}
               theme="classicos"
             />
           );
@@ -185,7 +187,7 @@ export const ConceitoSlideCard = ({
         return (
           <EnrichedMarkdownRenderer 
             content={dicaMarkdown}
-            fontSize={16}
+            fontSize={fontSize}
             theme="classicos"
           />
         );
@@ -321,7 +323,7 @@ export const ConceitoSlideCard = ({
     return (
       <EnrichedMarkdownRenderer 
         content={slide.conteudo}
-        fontSize={16}
+        fontSize={fontSize}
         theme="classicos"
       />
     );
