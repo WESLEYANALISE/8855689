@@ -99,59 +99,64 @@ export const ConceitosSlidesFooter = ({
 
   return (
     <>
-      {/* Footer fixo */}
+      {/* Footer fixo - Estilo modo leitura com botões laranja */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-sm border-t border-white/10 safe-area-pb">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            {/* Botão Anterior */}
-            <Button
-              variant="ghost"
-              size="icon"
+          <div className="flex items-center justify-center gap-3">
+            {/* Botão Anterior - Laranja */}
+            <button
               onClick={onPrevious}
               disabled={!canGoBack}
-              className="h-10 w-10 text-white hover:bg-white/10 disabled:opacity-30"
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                canGoBack 
+                  ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border border-orange-500/30' 
+                  : 'bg-white/5 text-gray-600 border border-white/10'
+              }`}
             >
               <ChevronLeft className="w-5 h-5" />
-            </Button>
+            </button>
 
-            {/* Centro: Índice + Ruído */}
-            <div className="flex items-center gap-2">
-              {/* Botão Índice */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowIndex(true)}
-                className="h-9 px-3 text-gray-400 hover:text-white hover:bg-white/10"
-              >
-                <List className="w-4 h-4 mr-2" />
-                <span className="text-sm">{currentIndex + 1}/{totalPaginas}</span>
-              </Button>
+            {/* Botão Índice - Laranja */}
+            <button
+              onClick={() => setShowIndex(true)}
+              className="w-11 h-11 rounded-full bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border border-orange-500/30 flex items-center justify-center transition-all"
+            >
+              <List className="w-5 h-5" />
+            </button>
 
-              {/* Botão Ruído Marrom */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setBrownNoiseEnabled(!brownNoiseEnabled)}
-                className={`h-9 w-9 ${brownNoiseEnabled ? 'text-red-400 bg-red-500/10' : 'text-gray-500 hover:text-white'} hover:bg-white/10`}
-              >
-                {brownNoiseEnabled ? (
-                  <Volume2 className="w-4 h-4" />
-                ) : (
-                  <VolumeX className="w-4 h-4" />
-                )}
-              </Button>
+            {/* Botão Ruído Marrom */}
+            <button
+              onClick={() => setBrownNoiseEnabled(!brownNoiseEnabled)}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border ${
+                brownNoiseEnabled 
+                  ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                  : 'bg-white/5 text-gray-500 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              {brownNoiseEnabled ? (
+                <Volume2 className="w-5 h-5" />
+              ) : (
+                <VolumeX className="w-5 h-5" />
+              )}
+            </button>
+
+            {/* Contador de páginas */}
+            <div className="flex items-center gap-1 px-3 text-gray-400">
+              <span className="text-sm font-medium">{currentIndex + 1}/{totalPaginas}</span>
             </div>
 
-            {/* Botão Próximo */}
-            <Button
-              variant="ghost"
-              size="icon"
+            {/* Botão Próximo - Laranja (destaque) */}
+            <button
               onClick={onNext}
               disabled={!canGoForward}
-              className="h-10 w-10 text-white hover:bg-white/10 disabled:opacity-30"
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                canGoForward 
+                  ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20' 
+                  : 'bg-white/5 text-gray-600 border border-white/10'
+              }`}
             >
               <ChevronRight className="w-5 h-5" />
-            </Button>
+            </button>
           </div>
         </div>
       </div>
