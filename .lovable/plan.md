@@ -1,195 +1,116 @@
 
-# Plano: Alinhar Trilhas de Conceitos com OAB Trilhas
+# Plano: Correções nos Prompts de Conceitos para Alinhar com OAB Trilhas
 
-## Diagnóstico
+## Problemas Identificados
 
-Após análise detalhada do código, identifiquei as seguintes diferenças entre o sistema de geração de conteúdo de **Conceitos** e **OAB Trilhas**:
+Após análise comparativa entre `gerar-conteudo-conceitos` e `gerar-conteudo-oab-trilhas`, identifiquei as seguintes diferenças que causam os problemas reportados:
 
-### Diferenças no Prompt de Geração
+### 1. Quadro Comparativo (Página 5)
+**Problema:** O prompt atual permite texto explicativo antes das tabelas. A renderização no Reader também exibe o texto antes da tabela.
 
-| Aspecto | Conceitos (Atual) | OAB Trilhas (Desejado) |
-|---------|------------------|----------------------|
-| **Introdução** | 400-600 palavras | 300-500 palavras (mais concisa) |
-| **Tom de escrita** | Profissional/didático | Conversacional ("como se estivesse tomando café com um amigo") |
-| **Desmembrando** | "Divida em partes menores" (genérico) | Análise detalhada com significado, temas, pronúncia, elementos explicativos |
-| **Quadro Comparativo** | Prompt básico de tabela | Prompt detalhado com formato visual específico |
-| **Correspondências (Ligar Termos)** | Gerado separadamente nos "extras" | Integrado como página 7 com dados para jogo interativo |
+**Solução:** 
+- Alterar prompt para gerar APENAS tabelas Markdown, sem texto introdutório
+- Alterar renderização para não exibir texto antes das tabelas
 
-### Diferenças na Interface
+### 2. Conteúdo Completo (Página 2) - Saudação Redundante
+**Problema:** O prompt permite iniciar com "E aí, tudo bem?" ou saudações, mas a saudação já está na Introdução.
 
-| Aspecto | Conceitos (Atual) | OAB Trilhas (Desejado) |
-|---------|------------------|----------------------|
-| **Barra de progresso de leitura** | Não existe | Barra no topo que progride conforme scroll |
-| **Título da página** | "Página 1" | Título da seção real |
-| **Quadro Comparativo Visual** | Renderiza markdown simples | Componente `QuadroComparativoVisual` interativo |
-| **Ligar Termos** | Não renderiza o jogo | Componente `DragDropMatchingGame` interativo |
+**Solução:** 
+- Adicionar instrução explícita: "NÃO faça saudações - vá direto ao conteúdo"
 
-## Alterações Necessárias
+### 3. Desmembrando (Página 3) - Deve usar conceitos do Conteúdo Completo
+**Problema:** O prompt genérico não deixa claro que deve desmembrar os conceitos específicos do PDF/Conteúdo.
 
-### Parte 1: Atualizar Edge Function `gerar-conteudo-conceitos`
+**Solução:** 
+- Alinhar com OAB Trilhas: "Pegue os conceitos-chave do conteúdo completo e desmembre cada um em partes menores"
 
-Alinhar o prompt com o de OAB Trilhas:
+### 4. Dicas para Memorizar (Página 6) - Muito Texto
+**Problema:** 600-800 palavras pode gerar conteúdo extenso demais.
 
-**1.1 Introdução (Página 1)**
-```
-DE: 400-600 palavras, tom formal
-PARA: 300-500 palavras, tom conversacional e acolhedor
-```
+**Solução:** 
+- Reduzir para 400-600 palavras
+- Focar em mnemônicos curtos e pegadinhas objetivas
 
-**1.2 Desmembrando (Página 3)**
-```
-DE: "Divida o tema em partes menores" (genérico)
-PARA: Análise detalhada de cada elemento:
-- Significado jurídico do termo
-- Origem e evolução histórica
-- Pronúncia correta (se aplicável)
-- Elementos constitutivos
-- Requisitos e características
-- Tom: "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
-```
+### 5. Correspondências (Página 7) - Não gera pares
+**Problema:** O prompt apenas pede "instrução breve" mas os pares devem vir da geração principal de extras. O problema está na estrutura separada.
 
-**1.3 Quadro Comparativo (Página 5)**
-```
-DE: "Crie tabelas comparativas" (básico)
-PARA: Tabelas estruturadas com:
-- Comparação de institutos similares
-- Elementos, requisitos, efeitos
-- Formato markdown correto para tabelas
-```
+**Solução:**
+- Alinhar com OAB Trilhas: gerar tudo em uma única chamada JSON com campo `correspondencias` separado
 
-**1.4 Correspondências (Página 7)**
-```
-DE: Gerado nos "extras" separadamente
-PARA: Página 7 dedicada com instrução breve + dados no campo separado
-- Mínimo 8 pares termo/definição
-- Dados para o jogo DragDropMatchingGame
-```
+### 6. Síntese Final (Página 8) - Alinhar Tom
+**Problema:** Deve seguir o mesmo estilo conversacional sem ser extenso.
 
-**1.5 Tom de escrita geral**
-```
-Adicionar ao prompt as mesmas instruções de estilo conversacional:
-- "Olha só, é assim que funciona..."
-- "Veja bem, isso é super importante porque..."
-- Perguntas retóricas para engajar
-- Analogias com situações do dia a dia
-```
+**Solução:**
+- Reduzir para 400-600 palavras
+- Estilo: "Recapitulando tudo que vimos..."
 
-### Parte 2: Adicionar Barra de Progresso de Leitura no Reader
+## Alterações Técnicas
 
-Criar barra de progresso de scroll no topo da página de leitura:
+### Arquivo 1: `supabase/functions/gerar-conteudo-conceitos/index.ts`
+
+**Mudanças no PAGINAS_CONFIG:**
 
 ```text
-┌────────────────────────────────────────────────┐
-│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░  45%            │ ← Nova barra
-├────────────────────────────────────────────────┤
-│                                                │
-│         Conteúdo da página atual               │
-│                                                │
-└────────────────────────────────────────────────┘
+Página 2 (Conteúdo Completo):
+- Adicionar: "NÃO comece com saudações como 'E aí' ou 'Tudo bem'. A introdução já fez isso."
+- Adicionar: "Vá direto ao primeiro conceito do tema."
+
+Página 3 (Desmembrando):
+- Alterar: "Pegue os conceitos-chave apresentados no Conteúdo Completo e desmembre cada um."
+- Adicionar: "Identifique 4-6 termos/conceitos principais e analise cada um em profundidade."
+
+Página 5 (Quadro Comparativo):
+- Alterar: "Gere APENAS as tabelas comparativas. SEM texto introdutório ou explicativo."
+- Adicionar: "Comece diretamente com a primeira tabela Markdown."
+
+Página 6 (Dicas para Memorizar):
+- Reduzir: "400-600 palavras (máximo)"
+- Adicionar: "Seja objetivo. Mnemônicos curtos. Pegadinhas em formato de lista."
+
+Página 8 (Síntese Final):
+- Reduzir: "400-600 palavras"
+- Alterar: "Comece direto com 'Então, recapitulando...'"
 ```
 
-Implementação:
-- Adicionar `useEffect` para monitorar scroll da página
-- Calcular porcentagem de scroll (`scrollY / (scrollHeight - clientHeight) * 100`)
-- Renderizar barra sticky no topo com gradiente vermelho/laranja
+**Mudanças na estrutura de geração:**
+- Alinhar geração de correspondências para incluir no EXTRAS_CONFIG corretamente
+- Garantir que o campo `correspondencias` é salvo separadamente e acessível pelo Reader
 
-### Parte 3: Garantir Renderização de Quadro Comparativo Visual
+### Arquivo 2: `src/components/oab/OABTrilhasReader.tsx`
 
-O componente `QuadroComparativoVisual` já é usado no OABTrilhasReader. Verificar que:
-- A detecção de tipo `quadro_comparativo` está funcionando
-- A função `extrairTabelaDoMarkdown` está parseando corretamente
-- O componente está sendo renderizado ao invés de markdown simples
+**Mudança na renderização do Quadro Comparativo (linha ~1172-1188):**
 
-### Parte 4: Garantir Funcionamento do Jogo Ligar Termos
-
-Verificar que:
-- As correspondências estão sendo extraídas do campo `termos.correspondencias`
-- A página de correspondências está sendo detectada pelo tipo
-- O componente `DragDropMatchingGame` está recebendo os dados corretos
-
-## Arquivos a Serem Alterados
-
-1. **`supabase/functions/gerar-conteudo-conceitos/index.ts`**
-   - Atualizar `PAGINAS_CONFIG` com prompts alinhados ao OAB Trilhas
-   - Adicionar instruções de tom conversacional no `promptBase`
-   - Garantir que correspondências são geradas corretamente
-
-2. **`src/components/oab/OABTrilhasReader.tsx`**
-   - Adicionar barra de progresso de leitura (scroll) no topo
-   - Criar state para `scrollProgress`
-   - Adicionar `useEffect` com event listener de scroll
-
-## Detalhes Técnicos
-
-### Nova Barra de Progresso de Scroll
-
-```tsx
-// Estado
-const [scrollProgress, setScrollProgress] = useState(0);
-
-// Efeito para monitorar scroll
-useEffect(() => {
-  const handleScroll = () => {
-    const scrollTop = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    setScrollProgress(Math.min(100, Math.max(0, progress)));
-  };
-  
-  window.addEventListener('scroll', handleScroll);
-  return () => window.removeEventListener('scroll', handleScroll);
-}, []);
-
-// Renderização (no topo da tela de leitura)
-<div className="fixed top-[header-height] left-0 right-0 h-1 bg-white/10 z-40">
-  <div 
-    className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all"
-    style={{ width: `${scrollProgress}%` }}
+```typescript
+// ANTES: Renderiza texto antes da tabela
+{topicoData.conteudo && (
+  <EnrichedMarkdownRenderer 
+    content={topicoData.conteudo.split('|')[0].trim()}
+    fontSize={fontSize}
+    theme="classicos"
   />
-</div>
+)}
+<QuadroComparativoVisual ... />
+
+// DEPOIS: Renderiza APENAS a tabela visual
+<QuadroComparativoVisual 
+  cabecalhos={tabelaExtraida.cabecalhos}
+  linhas={tabelaExtraida.linhas}
+/>
 ```
 
-### Prompts Alinhados
+## Resumo das Alterações
 
-**Introdução:**
-```
-Escreva uma introdução clara de 300-500 palavras.
-Tom acolhedor e motivador.
-Comece com algo engajador: "Vamos falar sobre um tema super importante..."
-Contextualize a importância de forma natural.
-```
-
-**Desmembrando:**
-```
-Análise detalhada de cada elemento importante:
-- Significado jurídico preciso
-- Etimologia e origem do termo
-- Pronúncia correta (quando relevante)
-- Elementos constitutivos
-- Requisitos e características
-- Natureza jurídica
-Tom: "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
-Use exemplos para clarificar cada elemento.
-```
-
-**Quadro Comparativo:**
-```
-Crie tabelas comparativas dos principais institutos:
-- Compare elementos, requisitos, efeitos
-- Use formato Markdown de tabela correto
-- Mínimo 2 tabelas relevantes
-
-| Aspecto | Instituto A | Instituto B |
-|---------|-------------|-------------|
-| Definição | ... | ... |
-| Requisitos | ... | ... |
-```
+| Arquivo | Alteração |
+|---------|-----------|
+| `gerar-conteudo-conceitos/index.ts` | Atualizar 5 prompts de páginas |
+| `OABTrilhasReader.tsx` | Remover texto antes de tabelas |
 
 ## Resultado Esperado
 
 Após as alterações:
-- Introdução mais concisa e acolhedora (300-500 palavras)
-- Barra de progresso de leitura visível no topo ao rolar
-- Seção "Desmembrando" com análise detalhada (significado, etimologia, pronúncia, etc)
-- Quadros comparativos visuais interativos
-- Jogo "Ligar Termos" funcionando com as correspondências corretas
+- Página 2: Inicia direto com explicação, sem saudações
+- Página 3: Desmembra conceitos específicos do tema
+- Página 5: Mostra APENAS as tabelas comparativas
+- Página 6: Dicas objetivas e concisas
+- Página 7: Jogo de ligar termos funcional
+- Página 8: Síntese concisa e direta
