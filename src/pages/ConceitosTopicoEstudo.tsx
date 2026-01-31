@@ -40,6 +40,18 @@ const ConceitosTopicoEstudo = () => {
   // Key para forçar recarregamento quando voltar de flashcards/questões
   const [readerKey, setReaderKey] = useState(0);
   
+  // Estado para controle de fonte - default 16px
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem("conceitos-font-size");
+    return saved ? parseInt(saved) : 16;
+  });
+  
+  // Salvar preferência de fonte
+  const handleFontSizeChange = (newSize: number) => {
+    setFontSize(newSize);
+    localStorage.setItem("conceitos-font-size", String(newSize));
+  };
+  
   // Ref para evitar múltiplas chamadas de auto-trigger
   const autoTriggerRef = useRef(false);
   
@@ -386,6 +398,8 @@ const ConceitosTopicoEstudo = () => {
             questoes={questoes}
             topicoId={topico.id}
             correspondencias={correspondencias}
+            fontSize={fontSize}
+            onFontSizeChange={handleFontSizeChange}
           />
         )}
 
