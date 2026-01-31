@@ -81,9 +81,10 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
   const parts: React.ReactNode[] = [];
   let keyIndex = 0;
   
-  // Regex para [[termo]] e Art. Xº (artigos de lei)
-  // Prioridade: [[termo]], depois Art. X
-  const combinedRegex = /\[\[([^\]]+)\]\]|(Art\.?\s*\d+[º°]?(?:\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?)?)/gi;
+  // Regex para [[termo]] e referências a artigos de lei (várias formas)
+  // Prioridade: [[termo]], depois referências a artigos
+  // Captura: Art. X, artigo X, art. X, inciso X, § X, parágrafo X, e combinações
+  const combinedRegex = /\[\[([^\]]+)\]\]|((?:artigo|art\.?)\s*\d+[º°]?(?:\s*,?\s*(?:inciso|inc\.?)\s*[IVXLCDM]+|\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?|\s*,?\s*(?:alínea)\s*['"]?[a-z]['"]?)*(?:\s*,?\s*d[ao]\s+(?:Constituição|CF|CC|CP|CPC|CPP|CDC|CLT|CTN|Lei|Código)[^,;.]*)?)/gi;
   let lastIndex = 0;
   let match;
   
