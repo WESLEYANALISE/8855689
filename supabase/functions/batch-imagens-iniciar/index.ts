@@ -25,9 +25,15 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY não configurada");
+    // Usar o mesmo sistema de chaves Gemini do resto do projeto
+    const geminiKeys = [
+      Deno.env.get("GEMINI_KEY_1"),
+      Deno.env.get("GEMINI_KEY_2"),
+      Deno.env.get("GEMINI_KEY_3"),
+    ].filter(Boolean) as string[];
+
+    if (geminiKeys.length === 0) {
+      throw new Error("Nenhuma GEMINI_KEY configurada (GEMINI_KEY_1, GEMINI_KEY_2, GEMINI_KEY_3)");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

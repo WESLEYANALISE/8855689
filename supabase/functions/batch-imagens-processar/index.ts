@@ -23,7 +23,7 @@ interface ProcessedResult {
 async function gerarImagemGemini(prompt: string, apiKey: string): Promise<string | null> {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,19 +33,17 @@ async function gerarImagemGemini(prompt: string, apiKey: string): Promise<string
               text: `Generate a high-quality educational illustration for a law/legal course slide. 
 
 Style: Professional, modern, minimalist with subtle legal themes (scales of justice, books, gavels can appear subtly).
-Color palette: Deep blues, warm golds, elegant whites.
+Color palette: Deep blues, warm golds, elegant whites, with touches of red/orange for accent.
 Mood: Authoritative yet approachable, suitable for academic content.
+Format: 16:9 landscape aspect ratio.
 
 Subject: ${prompt}
 
-Create a 16:9 landscape image that would work as a slide header or hero image.`
+Create an illustration that would work as a slide header or hero image. The image should be clean, professional, and educational.`
             }]
           }],
           generationConfig: {
-            responseModalities: ["image", "text"],
-            imageSizeOptions: {
-              aspectRatio: "ASPECT_RATIO_16_9"
-            }
+            responseModalities: ["IMAGE", "TEXT"]
           }
         })
       }
@@ -59,11 +57,8 @@ Create a 16:9 landscape image that would work as a slide header or hero image.`
     const data = await response.json();
     
     // Extrair imagem base64 da resposta
-    const parts = data.candidates?.[0]?.content?.parts;
-    if (!parts) return null;
-
-    for (const part of parts) {
-      if (part.inlineData?.mimeType?.startsWith("image/")) {
+    for (const part of data.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
         return part.inlineData.data; // base64
       }
     }
@@ -128,12 +123,26 @@ serve(async (req) => {
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    // Usar o mesmo sistema de chaves Gemini do resto do projeto
+    const geminiKeys = [
+      Deno.env.get("GEMINI_KEY_1"),
+      Deno.env.get("GEMINI_KEY_2"),
+      Deno.env.get("GEMINI_KEY_3"),
+    ].filter(Boolean) as string[];
+
+    if (geminiKeys.length === 0) {
+      throw new Error("Nenhuma GEMINI_KEY configurada (GEMINI_KEY_1, GEMINI_KEY_2, GEMINI_KEY_3)");
+    }
+    
     const TINYPNG_API_KEY = Deno.env.get("TINYPNG_API_KEY");
     
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY não configurada");
-    }
+    // Rotacionar entre as chaves disponíveis
+    let currentKeyIndex = 0;
+    const getNextKey = (): string => {
+      const key = geminiKeys[currentKeyIndex];
+      currentKeyIndex = (currentKeyIndex + 1) % geminiKeys.length;
+      return key;
+    };
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -190,8 +199,8 @@ serve(async (req) => {
       console.log(`[batch-imagens-processar] Processando ${i + 1}/${items.length}: ${item.id}`);
 
       try {
-        // Gerar imagem
-        const base64Image = await gerarImagemGemini(item.prompt, GEMINI_API_KEY);
+        // Gerar imagem usando próxima chave do pool
+        const base64Image = await gerarImagemGemini(item.prompt, getNextKey());
         
         if (!base64Image) {
           results.push({ id: item.id, slideId: item.slideId, error: "Falha na geração" });
@@ -272,39 +281,38 @@ serve(async (req) => {
 
     console.log(`[batch-imagens-processar] Job ${job_id} finalizado: ${successCount} sucesso, ${failCount} falhas`);
 
-    // Se for imagens de slides, atualizar os slides com as URLs
-    if (job.tipo === "imagens_slides" && job.materia_id) {
-      // Buscar tópicos da matéria e atualizar slides_json com as URLs
-      const { data: topicos } = await supabase
+    // Se for imagens de slides, atualizar o tópico específico com as URLs
+    if (job.tipo === "imagens_slides" && job.topico_id) {
+      // Buscar tópico específico
+      const { data: topico } = await supabase
         .from("conceitos_topicos")
         .select("id, slides_json")
-        .eq("materia_id", job.materia_id);
+        .eq("id", job.topico_id)
+        .single();
 
-      if (topicos) {
-        for (const topico of topicos) {
-          if (!topico.slides_json) continue;
-          
-          let slidesJson = topico.slides_json as any;
-          let updated = false;
+      if (topico?.slides_json) {
+        let slidesJson = topico.slides_json as any;
+        let updated = false;
 
-          // Atualizar URLs nos slides
-          for (const result of results) {
-            if (result.url && result.slideId) {
-              const [secaoId, slideIdx] = result.slideId.split("-").map(Number);
-              
-              if (slidesJson.secoes?.[secaoId]?.slides?.[slideIdx]) {
-                slidesJson.secoes[secaoId].slides[slideIdx].imagemUrl = result.url;
-                updated = true;
-              }
+        // Atualizar URLs nos slides
+        for (const result of results) {
+          if (result.url && result.slideId) {
+            const [secaoId, slideIdx] = result.slideId.split("-").map(Number);
+            
+            if (slidesJson.secoes?.[secaoId]?.slides?.[slideIdx]) {
+              slidesJson.secoes[secaoId].slides[slideIdx].imagemUrl = result.url;
+              updated = true;
             }
           }
+        }
 
-          if (updated) {
-            await supabase
-              .from("conceitos_topicos")
-              .update({ slides_json: slidesJson })
-              .eq("id", topico.id);
-          }
+        if (updated) {
+          await supabase
+            .from("conceitos_topicos")
+            .update({ slides_json: slidesJson })
+            .eq("id", topico.id);
+          
+          console.log(`[batch-imagens-processar] URLs atualizadas no tópico ${job.topico_id}`);
         }
       }
     }
