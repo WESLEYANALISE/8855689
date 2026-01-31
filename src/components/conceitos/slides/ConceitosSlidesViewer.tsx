@@ -30,6 +30,18 @@ export const ConceitosSlidesViewer = ({
   onComplete
 }: ConceitosSlidesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Estado de tamanho de fonte com persistência
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem("conceitos-slides-font-size");
+    return saved ? parseInt(saved) : 16;
+  });
+  
+  const handleFontSizeChange = useCallback((newSize: number) => {
+    const clampedSize = Math.max(12, Math.min(24, newSize));
+    setFontSize(clampedSize);
+    localStorage.setItem("conceitos-slides-font-size", String(clampedSize));
+  }, []);
 
   // Flatten all pages for easier navigation
   const flatPaginas: FlatPagina[] = useMemo(() => {
@@ -131,6 +143,7 @@ export const ConceitosSlidesViewer = ({
             onNext={handleNext}
             onPrevious={handlePrevious}
             canGoBack={currentIndex > 0}
+            fontSize={fontSize}
           />
         </AnimatePresence>
       </div>
@@ -145,6 +158,8 @@ export const ConceitosSlidesViewer = ({
         onPrevious={handlePrevious}
         canGoBack={currentIndex > 0}
         canGoForward={currentIndex < totalPaginas - 1}
+        fontSize={fontSize}
+        onFontSizeChange={handleFontSizeChange}
       />
     </div>
   );

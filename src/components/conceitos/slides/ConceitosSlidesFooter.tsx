@@ -6,7 +6,9 @@ import {
   List, 
   Volume2, 
   VolumeX, 
-  X 
+  X,
+  AArrowUp,
+  AArrowDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ConceitoSecao } from "./types";
@@ -20,6 +22,8 @@ interface ConceitosSlidesFooterProps {
   onPrevious: () => void;
   canGoBack: boolean;
   canGoForward: boolean;
+  fontSize?: number;
+  onFontSizeChange?: (size: number) => void;
 }
 
 interface FlatPageInfo {
@@ -37,7 +41,9 @@ export const ConceitosSlidesFooter = ({
   onNext,
   onPrevious,
   canGoBack,
-  canGoForward
+  canGoForward,
+  fontSize = 16,
+  onFontSizeChange
 }: ConceitosSlidesFooterProps) => {
   const [showIndex, setShowIndex] = useState(false);
   const [brownNoiseEnabled, setBrownNoiseEnabled] = useState(false);
@@ -99,6 +105,36 @@ export const ConceitosSlidesFooter = ({
 
   return (
     <>
+      {/* Botões flutuantes de controle de fonte - canto inferior esquerdo */}
+      {onFontSizeChange && (
+        <div className="fixed bottom-20 left-4 z-40 flex flex-col gap-2">
+          <button
+            onClick={() => onFontSizeChange(fontSize + 2)}
+            disabled={fontSize >= 24}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
+              fontSize >= 24
+                ? 'bg-white/5 text-gray-600 border-white/10'
+                : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30'
+            }`}
+            title="Aumentar fonte"
+          >
+            <AArrowUp className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onFontSizeChange(fontSize - 2)}
+            disabled={fontSize <= 12}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
+              fontSize <= 12
+                ? 'bg-white/5 text-gray-600 border-white/10'
+                : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30'
+            }`}
+            title="Diminuir fonte"
+          >
+            <AArrowDown className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Footer fixo - Estilo modo leitura com botões laranja */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-sm border-t border-white/10 safe-area-pb">
         <div className="max-w-2xl mx-auto px-4 py-3">
