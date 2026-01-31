@@ -69,17 +69,21 @@ const ConceitosTopicoFlashcards = () => {
     }
   }, [cardsVistos.size, totalCards]);
 
-  // Salvar progresso no banco
+  // Verificar se tem questões
+  const hasQuestoes = topico?.questoes && Array.isArray(topico.questoes) && topico.questoes.length > 0;
+
+  // Salvar progresso no banco - usando a mesma tabela do OABTrilhasReader
   const salvarProgresso = async (completo: boolean) => {
     if (!user?.id || !id) return;
     
     try {
-      await (supabase as any)
-        .from('conceitos_topicos_progresso')
+      await supabase
+        .from('oab_trilhas_estudo_progresso')
         .upsert({
           user_id: user.id,
           topico_id: parseInt(id),
           flashcards_completos: completo,
+          progresso_flashcards: 100,
           updated_at: new Date().toISOString()
         }, { 
           onConflict: 'user_id,topico_id'
@@ -194,7 +198,17 @@ const ConceitosTopicoFlashcards = () => {
               </div>
 
               <div className="flex flex-col gap-3">
-                <Button onClick={handleReset} className="bg-gradient-to-r from-purple-500 to-indigo-600">
+                {/* Botão para ir às questões se houver */}
+                {hasQuestoes && (
+                  <Button 
+                    onClick={() => navigate(`/conceitos/topico/${id}/questoes`)}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Praticar com Questões
+                  </Button>
+                )}
+                <Button onClick={handleReset} variant={hasQuestoes ? "outline" : "default"} className={!hasQuestoes ? "bg-gradient-to-r from-purple-500 to-indigo-600" : ""}>
                   Revisar Novamente
                 </Button>
                 <Button variant="outline" onClick={() => navigate(`/conceitos/topico/${id}`)}>

@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Layers, ImageIcon, FileText, RefreshCw, CheckCircle, ChevronRight } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Layers, ImageIcon, FileText, RefreshCw, CheckCircle, ChevronRight, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { PdfProcessorModal } from "@/components/conceitos/PdfProcessorModal";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ConceitosProgressBadge } from "@/components/conceitos/ConceitosProgressBadge";
 import { useConceitosAutoGeneration } from "@/hooks/useConceitosAutoGeneration";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ConceitosMateria = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,7 @@ const ConceitosMateria = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const parsedMateriaId = id ? parseInt(id) : null;
+  const { user } = useAuth();
 
   // Buscar matéria
   const { data: materia, isLoading: loadingMateria } = useQuery({
@@ -66,6 +69,37 @@ const ConceitosMateria = () => {
     },
   });
 
+  // Buscar progresso do usuário em cada tópico
+  const { data: progressoUsuario } = useQuery({
+    queryKey: ["conceitos-topicos-progresso", parsedMateriaId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !topicos) return {};
+      
+      const topicoIds = topicos.map(t => t.id);
+      const { data, error } = await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .select("topico_id, leitura_completa, progresso_leitura")
+        .eq("user_id", user.id)
+        .in("topico_id", topicoIds);
+      
+      if (error) {
+        console.error("Erro ao buscar progresso:", error);
+        return {};
+      }
+      
+      const progressoMap: Record<number, { leituraCompleta: boolean; progresso: number }> = {};
+      data?.forEach(p => {
+        progressoMap[p.topico_id] = {
+          leituraCompleta: p.leitura_completa || false,
+          progresso: p.progresso_leitura || 0
+        };
+      });
+      return progressoMap;
+    },
+    enabled: !!user?.id && !!topicos && topicos.length > 0,
+    staleTime: 1000 * 30,
+  });
+
   // Hook de geração automática
   const {
     isGenerating,
@@ -89,6 +123,11 @@ const ConceitosMateria = () => {
   });
 
   const totalTopicosCount = topicos?.length || 0;
+  
+  // Calcular contagem de tópicos concluídos pelo usuário (leitura completa)
+  const topicosConcluidosUsuario = Object.values(progressoUsuario || {}).filter(p => p.leituraCompleta).length;
+  const topicosPendentesUsuario = totalTopicosCount - topicosConcluidosUsuario;
+
   const isLoading = loadingMateria || loadingTopicos;
 
   // Capa de fallback: usar capa da matéria ou gradiente
@@ -153,7 +192,7 @@ const ConceitosMateria = () => {
 
                 {/* Info - Contagem e Progresso */}
                 <div className="rounded-xl p-3 bg-neutral-800/80 backdrop-blur-sm border border-white/10">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-4 text-sm text-gray-300">
                       <div className="flex items-center gap-1.5">
                         <BookOpen className="w-4 h-4 text-primary" />
@@ -161,10 +200,17 @@ const ConceitosMateria = () => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <CheckCircle className="w-4 h-4 text-green-400" />
-                        <span>{concluidos} prontos</span>
+                        <span>{topicosConcluidosUsuario} concluídos</span>
                       </div>
                     </div>
+                    <span className="text-xs text-gray-500">{topicosPendentesUsuario} restantes</span>
                   </div>
+                  
+                  {/* Barra de progresso geral */}
+                  <Progress 
+                    value={totalTopicosCount > 0 ? (topicosConcluidosUsuario / totalTopicosCount) * 100 : 0} 
+                    className="h-2 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-green-500 [&>div]:to-emerald-500" 
+                  />
                 </div>
               </motion.div>
             )}
@@ -207,6 +253,9 @@ const ConceitosMateria = () => {
             topicos.map((topico, index) => {
               const topicoStatus = getTopicoStatus(topico.id);
               const temCapa = !!topico.capa_url;
+              const progresso = progressoUsuario?.[topico.id];
+              const leituraCompleta = progresso?.leituraCompleta || false;
+              const progressoLeitura = progresso?.progresso || 0;
               
               return (
                 <motion.button
@@ -253,38 +302,43 @@ const ConceitosMateria = () => {
                     </div>
                     
                     {/* Conteúdo */}
-                    <div className="flex-1 p-3 flex items-center justify-between min-h-[80px] relative">
-                      <div className="flex-1 pr-2">
-                        <h3 className="font-medium text-white transition-colors text-sm group-hover:text-primary">
+                    <div className="flex-1 p-3 flex flex-col justify-center min-h-[80px] relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-white transition-colors text-sm group-hover:text-primary flex-1 pr-2 line-clamp-2">
                           {topico.titulo}
                         </h3>
                         
-                        {/* Páginas */}
-                        {topico.pagina_inicial && topico.pagina_final && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <BookOpen className="w-3 h-3 text-primary/70" />
-                            <span className="text-xs text-gray-400">
-                              págs {topico.pagina_inicial}-{topico.pagina_final}
-                            </span>
-                          </div>
+                        {/* Ícone de conclusão ou badge de status */}
+                        {leituraCompleta ? (
+                          <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-400" />
+                        ) : topicoStatus.status === "erro" ? (
+                          <ConceitosProgressBadge
+                            status={topicoStatus.status}
+                            progresso={topicoStatus.progresso}
+                            posicaoFila={topico.posicao_fila}
+                          />
+                        ) : topicoStatus.status === "na_fila" && topico.posicao_fila ? (
+                          <ConceitosProgressBadge
+                            status={topicoStatus.status}
+                            progresso={topicoStatus.progresso}
+                            posicaoFila={topico.posicao_fila}
+                          />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 flex-shrink-0 text-primary/50" />
                         )}
                       </div>
                       
-                      {/* Badge de status ou seta */}
-                      {topicoStatus.status === "erro" ? (
-                        <ConceitosProgressBadge
-                          status={topicoStatus.status}
-                          progresso={topicoStatus.progresso}
-                          posicaoFila={topico.posicao_fila}
-                        />
-                      ) : topicoStatus.status === "na_fila" && topico.posicao_fila ? (
-                        <ConceitosProgressBadge
-                          status={topicoStatus.status}
-                          progresso={topicoStatus.progresso}
-                          posicaoFila={topico.posicao_fila}
-                        />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 flex-shrink-0 text-primary/50" />
+                      {/* Barra de progresso do tópico */}
+                      {topico.status === "concluido" && (
+                        <div className="mt-1">
+                          <Progress 
+                            value={progressoLeitura} 
+                            className="h-1.5 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-orange-500" 
+                          />
+                          <span className="text-xs text-gray-500 mt-0.5 block">
+                            {leituraCompleta ? "Concluído ✓" : `${progressoLeitura}% lido`}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
