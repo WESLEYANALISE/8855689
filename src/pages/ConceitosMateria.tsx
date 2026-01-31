@@ -307,8 +307,13 @@ const ConceitosMateria = () => {
                         <h3 className="text-white transition-colors text-sm group-hover:text-primary flex-1 pr-2 line-clamp-2">
                           {topico.titulo
                             .toLowerCase()
-                            .replace(/\b\w/g, (c) => c.toUpperCase())
-                            .replace(/\b(Da|Das|De|Do|Dos|E|Em|Na|Nas|No|Nos|O|A|Os|As|Para|Por|Com|Ao|À|Às)\b/gi, (m) => m.toLowerCase())
+                            .split(' ')
+                            .map((palavra, i) => {
+                              const preposicoes = ['da', 'das', 'de', 'do', 'dos', 'e', 'em', 'na', 'nas', 'no', 'nos', 'o', 'a', 'os', 'as', 'para', 'por', 'com', 'ao', 'à', 'às'];
+                              if (i > 0 && preposicoes.includes(palavra)) return palavra;
+                              return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+                            })
+                            .join(' ')
                           }
                         </h3>
                         
