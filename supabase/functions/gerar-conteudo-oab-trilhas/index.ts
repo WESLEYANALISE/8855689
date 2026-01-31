@@ -261,7 +261,8 @@ serve(async (req) => {
 
     const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
     const genAI = new GoogleGenerativeAI(geminiKey!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Usando gemini-2.5-flash-lite para geração de conteúdo OAB (mais rápido e econômico)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     // 5. NOVO PROMPT - 8 páginas SEM cronologia + Ligar Termos como última página + ESTILO CONVERSACIONAL
     const prompt = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
