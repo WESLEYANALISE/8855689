@@ -240,7 +240,7 @@ export default function AprendaSeuJeitoEstudo() {
                 {experiencia.texto_imersivo.conclusao && (
                   <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10">
                     <CardContent className="p-4 sm:p-6">
-                      <h3 className="text-sm sm:text-base font-bold mb-2 text-left">Conclusão</h3>
+                      <h3 className="text-sm sm:text-base font-bold mb-2 text-left">Síntese Final</h3>
                       <p className="text-sm text-muted-foreground text-left">{experiencia.texto_imersivo.conclusao}</p>
                     </CardContent>
                   </Card>

@@ -172,7 +172,7 @@ const ConceitosToolsDrawer = ({
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
             </div>
             <div>
-              <span className="text-xs text-amber-500/70 uppercase tracking-wider font-medium">Conclusão</span>
+              <span className="text-xs text-amber-500/70 uppercase tracking-wider font-medium">Síntese Final</span>
               <p className="mt-2 text-amber-400 leading-relaxed" style={{ fontFamily: "'Merriweather', 'Georgia', serif", fontSize: `${fontSize}px` }}>
                 {exemplo.conclusao}
               </p>

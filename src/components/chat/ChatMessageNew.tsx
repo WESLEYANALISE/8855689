@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from "react";
+import { memo, useState, useMemo, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { QuadroComparativoVisual, extrairTabelaDoMarkdown } from "@/components/oab/QuadroComparativoVisual";
+import { ArtigoPopover } from "@/components/conceitos/ArtigoPopover";
+
+// Regex para detectar referências a artigos de lei
+const ARTIGO_REGEX = /\b(Art\.?\s*\d+[º°]?(?:[-–]\w+)?(?:\s*,?\s*(?:§|§§|parágrafo|parágrafos?)\s*(?:único|\d+)[º°]?)?(?:\s*,?\s*(?:inciso|incisos?)\s+[IVXLCDM]+(?:\s+e\s+[IVXLCDM]+)?)?(?:\s*,?\s*(?:alínea|alíneas?)\s*["']?[a-z]["']?)?(?:\s+do\s+(?:CP|CC|CPC|CPP|CDC|CLT|CF|ECA|CTN|CTB))?)\b/gi;
 
 interface TermoJuridico {
   termo: string;
@@ -528,6 +532,58 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
     return patterns.some(p => p.test(text.trim()));
   };
 
+  // Processar texto para substituir referências de artigos por ArtigoPopover clicável
+  const processArtigoReferences = (children: ReactNode): ReactNode => {
+    if (typeof children !== 'string') {
+      // Se for um array de children, processar cada um
+      if (Array.isArray(children)) {
+        return children.map((child, index) => {
+          if (typeof child === 'string') {
+            return processArtigoReferencesInString(child, index);
+          }
+          return child;
+        });
+      }
+      return children;
+    }
+    return processArtigoReferencesInString(children, 0);
+  };
+
+  // Processar string para encontrar referências de artigos
+  const processArtigoReferencesInString = (text: string, keyPrefix: number): ReactNode => {
+    const parts: ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+    
+    // Reset regex
+    ARTIGO_REGEX.lastIndex = 0;
+    
+    while ((match = ARTIGO_REGEX.exec(text)) !== null) {
+      // Adicionar texto antes do match
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+      
+      // Adicionar ArtigoPopover
+      const artigoRef = match[1];
+      parts.push(
+        <ArtigoPopover key={`artigo-${keyPrefix}-${key++}`} artigo={artigoRef}>
+          {artigoRef}
+        </ArtigoPopover>
+      );
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Adicionar texto restante
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+    
+    return parts.length > 0 ? <>{parts}</> : text;
+  };
+
   // Renderizar conteúdo markdown com suporte a citações e exemplos
   const renderMarkdownContent = (text: string) => (
     <ReactMarkdown
@@ -558,7 +614,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
           
           return (
             <p className="mb-3 leading-relaxed">
-              {children}
+              {processArtigoReferences(children)}
             </p>
           );
         },
@@ -580,7 +636,9 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                 className="flex items-start gap-2 w-full text-left p-2.5 rounded-lg bg-primary/5 hover:bg-primary/15 border border-primary/20 transition-all group"
               >
                 <span className="text-primary mt-0.5">•</span>
-                <span className="text-foreground group-hover:text-primary transition-colors">{children}</span>
+                <span className="text-foreground group-hover:text-primary transition-colors">
+                  {processArtigoReferences(children)}
+                </span>
               </motion.button>
             );
           }
@@ -588,12 +646,12 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
           return (
             <div className="flex items-start gap-2 pl-1">
               <span className="text-primary mt-0.5">•</span>
-              <span>{children}</span>
+              <span>{processArtigoReferences(children)}</span>
             </div>
           );
         },
         strong: ({ children }) => (
-          <strong className="font-semibold text-foreground">{children}</strong>
+          <strong className="font-semibold text-foreground">{processArtigoReferences(children)}</strong>
         ),
         blockquote: ({ children }) => (
           <blockquote className="my-4 p-4 bg-muted/50 border-l-4 border-primary/50 rounded-r-lg">
@@ -771,13 +829,15 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                   </TabsContent>
                 </Tabs>
               ) : (
-                // Durante streaming: renderização otimizada sem processamentos pesados
+                // Durante streaming: renderização com Markdown em tempo real
                 <div className="text-[15px] leading-[1.7] text-foreground/90">
                   {content ? (
                     isStreaming ? (
-                      // Durante streaming: texto simples + cursor piscante (sem markdown pesado)
-                      <div className="whitespace-pre-wrap break-words">
-                        {formattedContent}
+                      // Durante streaming: Markdown leve em tempo real + cursor piscante
+                      <div className="streaming-markdown prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {formattedContent}
+                        </ReactMarkdown>
                         <span className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 animate-pulse" />
                       </div>
                     ) : (

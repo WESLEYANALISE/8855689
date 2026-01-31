@@ -88,7 +88,7 @@ const SECOES_INTEGRADAS = [
   'aprofundamento',
   'flashcards',
   'resumo',
-  'conclusão',
+  'síntese final',
   'você sabia',
   'em resumo'
 ];
