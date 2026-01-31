@@ -1,269 +1,338 @@
 
-# Plano: Alinhamento Visual e Imagens Batch para Slides de Conceitos
+# Plano: Páginas Interativas com Tela Inicial Completa e Conteúdo Aprimorado
 
-## Análise do Problema
+## Resumo das Alterações Solicitadas
 
-Após analisar o código e a imagem de referência do modo leitura, identifiquei os seguintes problemas:
-
-### 1. Design Inconsistente
-- O `ConceitoSlideCard.tsx` atual usa paleta de cores diferentes (roxo, azul, amarelo, verde) ao invés da paleta vermelha/laranja do modo leitura
-- O fundo do card usa cores variadas por tipo (`bgColorMap`) enquanto o reader usa `bg-[#12121a]`
-- A tipografia não segue o padrão Playfair Display do reader
-- Os títulos estão acima do card, não integrados à imagem com degradê
-
-### 2. Imagens Não Estão Sendo Geradas
-- A edge function `gerar-conteudo-conceitos` gera os `imagemPrompt` para cada slide
-- MAS não há integração com o sistema batch para disparar a geração
-- O `batch-imagens-iniciar` existe mas não é chamado após a geração dos slides
-
-### 3. Falta de Citações e Hierarquia
-- O slide card não usa o `EnrichedMarkdownRenderer` que processa citações, blockquotes coloridos (ATENÇÃO, DICA, CASO PRÁTICO)
-- Não há processamento de citações legais estilo `> "Art. 1º..."`
+1. **Nomenclatura**: Trocar "slides" por "páginas" em toda a interface
+2. **Tela Inicial Completa**: Adicionar flashcards, praticar e ruído marrom igual ao modo leitura
+3. **Melhorar Estrutura de Conteúdo**: Cards mais explicativos, citações, dicas de estudo, exemplos
+4. **Remover Collapsibles**: Converter tudo para texto fluido
 
 ---
 
-## Solução Proposta
+## Parte 1: Nova Tela de Introdução (Igual ao Modo Leitura)
 
-### Fase 1: Alinhamento Visual com Modo Leitura
+A tela de introdução atual (`ConceitosTopicoIntro.tsx`) está muito simples. Precisamos reformulá-la para ter:
 
-#### Modificações em `ConceitoSlideCard.tsx`:
+### Design da Nova Tela Inicial
 
-1. **Unificar paleta de cores**: Substituir `colorMap` e `bgColorMap` pela paleta vermelha/laranja do reader
-2. **Tipografia**: Usar `Playfair Display` para títulos
-3. **Background do card**: Usar `bg-[#12121a]` com borda `border-white/10`
-4. **Decoração**: Adicionar os elementos decorativos vermelhos (✦ e linhas gradiente)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│              [IMAGEM DE CAPA COM DEGRADÊ]                       │
+│                                                                  │
+│  ─────────────── ✦ ───────────────                              │
+│                                                                  │
+│                 NOME DO TÓPICO                                  │
+│                  (Matéria)                                      │
+│                                                                  │
+│  ─────────────── ✦ ───────────────                              │
+│                                                                  │
+│  ┌───────────────────┐  ┌────────────────────┐                  │
+│  │ 📚 8 páginas      │  │ 🎧 Ruído Marrom    │                  │
+│  └───────────────────┘  │    [  Switch  ]    │                  │
+│                         └────────────────────┘                  │
+│                                                                  │
+│  ╔═══════════════════════════════════════════════════════════╗  │
+│  ║  1  ▶ Começar Leitura                                      ║  │
+│  ║     ███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  35%       ║  │
+│  ╚═══════════════════════════════════════════════════════════╝  │
+│                                                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  2  🔮 Flashcards                              🔒 Bloq.   │  │
+│  │     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  0%        │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  3  🎯 Praticar                                🔒 Bloq.   │  │
+│  │     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  0%        │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│        Card Explicativo do Ruído Marrom (quando ativo)          │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Elementos a Adicionar
+
+| Elemento | Origem | Funcionalidade |
+|----------|--------|----------------|
+| Ruído Marrom | `OABTrilhasReader.tsx` | Toggle com Switch + card explicativo |
+| Módulo Flashcards | `OABTrilhasReader.tsx` | Botão bloqueado até completar leitura |
+| Módulo Praticar | `OABTrilhasReader.tsx` | Botão bloqueado até completar flashcards |
+| Progresso por módulo | `OABTrilhasReader.tsx` | Barra de progresso individual |
+| Índice expandível | `OABTrilhasReader.tsx` | Lista de páginas clicável |
+
+---
+
+## Parte 2: Renomear "Slides" para "Páginas"
+
+### Arquivos a Modificar
+
+| Arquivo | Alterações |
+|---------|------------|
+| `ConceitosTopicoIntro.tsx` | "slides" → "páginas", props renomeadas |
+| `ConceitosSlidesViewer.tsx` | Variáveis e textos de "slides" → "páginas" |
+| `ConceitoSlideCard.tsx` | Comentários e labels |
+| `ConceitosTopicoEstudo.tsx` | Mensagens e variáveis |
+| `types.ts` | Manter tipos (internos), apenas comentários |
+
+### Exemplos de Mudanças
 
 ```tsx
 // ANTES
-const colorMap = {
-  introducao: "from-purple-500 to-pink-500",
-  ...
-}
+<span className="text-sm">{totalSlides} slides</span>
 
-// DEPOIS  
-const colorMap = {
-  introducao: "from-red-500 to-orange-500",
-  texto: "from-red-500 to-orange-500",
-  ...todos usam a mesma paleta
-}
-
-// ANTES - background variado
-const bgColor = bgColorMap[slide.tipo];
-
-// DEPOIS - background consistente
-className="bg-[#12121a] rounded-xl border border-white/10 p-5"
+// DEPOIS
+<span className="text-sm">{totalPaginas} páginas</span>
 ```
 
-5. **Imagem com título overlay**: Título do slide deve ficar DENTRO da imagem, na parte inferior com degradê:
-
 ```tsx
-{/* Imagem com título overlay */}
-{slide.imagemUrl && (
-  <div className="relative rounded-2xl overflow-hidden mb-6">
-    <UniversalImage src={slide.imagemUrl} aspectRatio="16/9" />
-    {/* Degradê + título */}
-    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-    <div className="absolute bottom-0 left-0 right-0 p-4">
-      <p className="text-xs text-red-400 uppercase tracking-wide">{getSlideLabel(tipo)}</p>
-      <h2 className="text-xl font-bold text-white" style={{fontFamily: "'Playfair Display'..."}}>
-        {slide.titulo}
-      </h2>
-    </div>
-  </div>
-)}
+// ANTES
+"A IA está criando slides interativos para este tópico."
+
+// DEPOIS
+"A IA está criando páginas interativas para este tópico."
 ```
 
 ---
 
-### Fase 2: Integrar EnrichedMarkdownRenderer para Citações
+## Parte 3: Melhorar Estrutura de Conteúdo na Edge Function
 
-O conteúdo dos slides deve usar o `EnrichedMarkdownRenderer` para processar:
-- Blockquotes coloridos (`> ⚠️ **ATENÇÃO:**`, `> 💡 **DICA:**`, etc.)
-- Citações legais entre aspas
-- Formatação negrito/itálico com cores âmbar
+### Problemas Identificados
 
-```tsx
-// Em renderContent() para tipo "texto" e outros
-import EnrichedMarkdownRenderer from "@/components/EnrichedMarkdownRenderer";
+1. O prompt atual pede "collapsible" que será removido
+2. Falta ênfase em citações de artigos/doutrina
+3. Falta instrução para incluir mais exemplos práticos
+4. Conteúdo de cada página pode ser mais extenso
 
-return (
-  <EnrichedMarkdownRenderer 
-    content={slide.conteudo}
-    fontSize={16}
-    theme="classicos"
-  />
-);
-```
+### Novo Prompt Aprimorado
 
----
-
-### Fase 3: Disparar Geração Batch de Imagens
-
-#### Modificar `gerar-conteudo-conceitos`:
-
-Após salvar os slides_json, disparar automaticamente o batch de imagens:
+O prompt em `gerar-conteudo-conceitos` será atualizado para:
 
 ```typescript
-// Após salvar slides_json no banco
-if (slidesData?.secoes) {
-  // Coletar todos os prompts de imagem
-  const imagensParaBatch: Array<{id: number; slideId: string; prompt: string}> = [];
+const promptSlides = `
+...
+
+REGRAS CRÍTICAS ATUALIZADAS:
+
+1. **CONTEÚDO EXTENSO E EXPLICATIVO**
+   - Cada página deve ter conteúdo COMPLETO e auto-suficiente
+   - Mínimo de 200-400 palavras por página de tipo "texto"
+   - Explique conceitos de forma DIDÁTICA e DETALHADA
+
+2. **CITAÇÕES OBRIGATÓRIAS**
+   - Sempre que o PDF contiver citações de artigos de lei, INCLUA formatado:
+     > "Art. 5º, inciso X - São invioláveis a intimidade, a vida privada..." (CF/88)
+   - Citações de doutrinadores:
+     > "A dignidade da pessoa humana..." - FLÁVIO TARTUCE
+   - Jurisprudência:
+     > STJ, REsp 1.234.567/SP - "Ementa..."
+
+3. **EXEMPLOS PRÁTICOS EM CADA EXPLICAÇÃO**
+   Use o formato:
+   > 📚 **EXEMPLO PRÁTICO:** Maria comprou um celular com defeito...
+
+4. **EXPLICAÇÃO DE TERMOS TÉCNICOS**
+   Sempre que usar termo em latim ou juridiquês:
+   "...o princípio *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos')..."
+
+5. **CARDS DE ATENÇÃO E DICAS**
+   Use abundantemente:
+   > ⚠️ **ATENÇÃO:** Este ponto costuma cair em provas!
+   > 💡 **DICA DE MEMORIZAÇÃO:** Use o mnemônico SOLAR...
+   > 🎯 **VOCÊ SABIA?:** O STF decidiu que...
+
+6. **NÃO USE TIPO "collapsible"**
+   - Substitua por tipo "texto" com subtítulos internos
+   - Use ### dentro do conteúdo para organizar subtópicos
+
+TIPOS DE PÁGINAS PERMITIDOS (removido collapsible):
+- introducao
+- texto
+- termos
+- linha_tempo
+- tabela
+- atencao
+- dica
+- caso
+- resumo
+- quickcheck
+`;
+```
+
+### Estrutura Sugerida de Páginas por Tópico
+
+```
+Página 1: introducao - Boas-vindas e objetivos
+Página 2-5: texto - Conceitos principais (cada um com ~300 palavras)
+Página 6: termos - Glossário de termos técnicos
+Página 7: linha_tempo - Se houver evolução histórica/etapas
+Página 8: tabela - Quadro comparativo
+Página 9: atencao - Pontos que caem em prova
+Página 10: caso - Exemplo prático detalhado
+Página 11: dica - Técnicas de memorização
+Página 12: quickcheck - Verificação rápida #1
+Página 13-16: texto - Mais conceitos
+Página 17: quickcheck - Verificação rápida #2
+Página 18: resumo - Síntese final
+```
+
+---
+
+## Parte 4: Integrar Flashcards e Praticar no Modo Páginas
+
+### Fluxo Atualizado
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FLUXO DO MODO PÁGINAS                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. TELA INICIAL (intro)                                        │
+│     ├─> Módulo 1: Começar Leitura (páginas)                     │
+│     ├─> Módulo 2: Flashcards (bloqueado até 100% leitura)       │
+│     └─> Módulo 3: Praticar (bloqueado até 100% flashcards)      │
+│                                                                  │
+│  2. LEITURA DE PÁGINAS                                          │
+│     ├─> Navega entre páginas (1/N, 2/N...)                      │
+│     ├─> Ao chegar na última: "Concluir" marca leitura 100%      │
+│     └─> Volta para tela inicial                                 │
+│                                                                  │
+│  3. FLASHCARDS (após leitura)                                   │
+│     ├─> Reutiliza FlashcardStack existente                      │
+│     └─> Marca flashcards como concluídos                        │
+│                                                                  │
+│  4. PRATICAR (após flashcards)                                  │
+│     ├─> Navega para /conceitos/questoes/{id}                    │
+│     └─> Marca prática como concluída                            │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Props Necessárias no Viewer
+
+O `ConceitosSlidesViewer` precisará receber:
+
+```typescript
+interface ConceitosSlidesViewerProps {
+  // Existentes
+  secoes: ConceitoSecao[];
+  titulo: string;
+  materiaName?: string;
+  onClose: () => void;
+  onComplete?: () => void;
   
-  slidesData.secoes.forEach((secao, secaoIdx) => {
-    secao.slides.forEach((slide, slideIdx) => {
-      if (slide.imagemPrompt) {
-        imagensParaBatch.push({
-          id: imagensParaBatch.length,
-          slideId: `${secaoIdx}-${slideIdx}`,
-          prompt: slide.imagemPrompt
-        });
-      }
-    });
-  });
+  // Novos para flashcards/praticar
+  flashcards?: Flashcard[];
+  questoes?: Questao[];
+  topicoId?: number;
+  capaUrl?: string;
   
-  // Disparar batch se houver imagens
-  if (imagensParaBatch.length > 0) {
-    fetch(`${supabaseUrl}/functions/v1/batch-imagens-iniciar`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
-      body: JSON.stringify({
-        tipo: "imagens_slides",
-        items: imagensParaBatch,
-        materia_id: topico.materia_id
-      })
-    }).catch(err => console.error("Erro ao iniciar batch:", err));
-  }
+  // Progresso
+  progressoLeitura?: number;
+  progressoFlashcards?: number;
+  progressoQuestoes?: number;
+  onProgressUpdate?: (type: 'leitura' | 'flashcards' | 'questoes', value: number) => void;
 }
 ```
 
 ---
 
-### Fase 4: Atualizar tipos de slides para usar imagens corretamente
+## Parte 5: Arquivos a Criar/Modificar
 
-#### Em `ConceitosSlidesViewer.tsx`:
+### Arquivos a MODIFICAR
 
-Adicionar indicador visual de carregamento de imagem:
+| Arquivo | Modificações |
+|---------|--------------|
+| `src/components/conceitos/slides/ConceitosTopicoIntro.tsx` | Redesign completo com flashcards, praticar, ruído marrom |
+| `src/components/conceitos/slides/ConceitosSlidesViewer.tsx` | Integrar tela inicial, gerenciar estados de progresso, "slides"→"páginas" |
+| `src/components/conceitos/slides/ConceitoSlideCard.tsx` | Remover renderização de collapsible, converter para texto |
+| `src/pages/ConceitosTopicoEstudo.tsx` | Passar flashcards/questoes para viewer, "slides"→"páginas" |
+| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Melhorar prompt de geração, remover collapsible, enfatizar citações |
 
-```tsx
-{/* Estado de loading para imagens */}
-{slide.imagemPrompt && !slide.imagemUrl && (
-  <div className="relative rounded-2xl overflow-hidden mb-6 aspect-video bg-[#1a1a2e] flex items-center justify-center">
-    <div className="text-center">
-      <Loader2 className="w-8 h-8 animate-spin text-red-400 mx-auto mb-2" />
-      <p className="text-xs text-muted-foreground">Gerando ilustração...</p>
-    </div>
-  </div>
-)}
+### Tipos a Atualizar
+
+```typescript
+// types.ts - remover collapsible do tipo
+export interface ConceitoSlide {
+  tipo: 
+    | 'introducao'
+    | 'texto'
+    | 'termos'
+    | 'explicacao'
+    // | 'collapsible'  <-- REMOVIDO
+    | 'linha_tempo'
+    | 'tabela'
+    | 'atencao'
+    | 'dica'
+    | 'caso'
+    | 'resumo'
+    | 'quickcheck';
+  
+  // ... resto mantido
+}
 ```
 
 ---
 
-## Arquivos a Modificar
+## Parte 6: Código da Nova Tela Inicial
 
-| Arquivo | Modificação |
-|---------|-------------|
-| `src/components/conceitos/slides/ConceitoSlideCard.tsx` | Redesign completo seguindo paleta do reader, imagem com título overlay, integrar EnrichedMarkdownRenderer |
-| `src/components/conceitos/slides/ConceitosSlidesViewer.tsx` | Adicionar loading state para imagens |
-| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Disparar batch-imagens-iniciar após salvar slides_json |
+A nova `ConceitosTopicoIntro.tsx` terá estrutura similar ao bloco de boas-vindas do `OABTrilhasReader.tsx`:
 
----
+### Funcionalidades Incluídas
 
-## Comparativo Visual
+1. **Imagem de capa com degradê**
+2. **Título centralizado com decoração ✦**
+3. **Badge de quantidade de páginas**
+4. **Toggle de ruído marrom com Switch**
+5. **Módulo 1: Começar Leitura** (sempre desbloqueado)
+6. **Módulo 2: Flashcards** (bloqueado até leitura 100%)
+7. **Módulo 3: Praticar** (bloqueado até flashcards 100%)
+8. **Card explicativo do ruído marrom** (modal ao ativar)
+9. **Índice expandível** (dropdown com lista de páginas)
 
-### Antes (Design Atual)
-- Cores variadas por tipo de slide (roxo, azul, verde)
-- Ícone + título lado a lado acima do conteúdo
-- Sem imagens
-- Conteúdo em texto simples
+### Estados Gerenciados
 
-### Depois (Alinhado com Reader)
-- Paleta vermelha/laranja consistente
-- Imagem 16:9 no topo com título overlay em degradê
-- Decoração ✦ e linhas gradiente vermelhas
-- Background `#12121a` com borda sutil
-- Citações, blockquotes coloridos, tipografia Playfair Display
-- Loading state enquanto imagens são geradas em batch
+```typescript
+// Estados de progresso
+const [leituraCompleta, setLeituraCompleta] = useState(false);
+const [flashcardsCompletos, setFlashcardsCompletos] = useState(false);
+const [praticaCompleta, setPraticaCompleta] = useState(false);
+const [progressoLeitura, setProgressoLeitura] = useState(0);
+const [progressoFlashcards, setProgressoFlashcards] = useState(0);
+const [progressoQuestoes, setProgressoQuestoes] = useState(0);
 
----
+// Ruído marrom
+const [brownNoiseEnabled, setBrownNoiseEnabled] = useState(false);
+const [showBrownNoiseInfo, setShowBrownNoiseInfo] = useState(false);
+const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
 
-## Hierarquia Visual dos Slides
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Direitos da Personalidade          5/20                    ✕  │  <- Header simples
-├─────────────────────────────────────────────────────────────────┤
-│  ●●●●●○○○○○○○○○○○○○○○                                          │  <- Progress dots
-├─────────────────────────────────────────────────────────────────┤
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                                                           │  │
-│  │           [IMAGEM ILUSTRATIVA 16:9]                       │  │
-│  │                                                           │  │
-│  │   ┌───────────────────────────────────────────────────┐   │  │
-│  │   │ CONTEÚDO                                          │   │  │  <- Label sobre degradê
-│  │   │ O Que é o Direito ao Esquecimento?                │   │  │  <- Título sobre degradê
-│  │   └─────────────────────────────(degradê preto)───────┘   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                   bg-[#12121a]                            │  │
-│  │                                                           │  │
-│  │   Agora vem a parte interessante: o Direito ao           │  │
-│  │   Esquecimento. Pense nele como a possibilidade de,      │  │
-│  │   em certas situações, não ter informações do passado    │  │
-│  │   ressurgindo para te prejudicar indefinidamente.        │  │
-│  │                                                           │  │
-│  │   > ⚠️ **ATENÇÃO:** O STF reconheceu que...              │  │  <- Blockquote colorido
-│  │                                                           │  │
-│  │   > 📌 **VOCÊ SABIA?:** O Enunciado n. 531...            │  │
-│  │                                                           │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                  │
-├─────────────────────────────────────────────────────────────────┤
-│   [  ← Anterior  ]              [  Próximo →  ]                 │  <- Navegação
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Fluxo de Geração de Imagens
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                 FLUXO ATUALIZADO                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  1. gerar-conteudo-conceitos                                    │
-│     └─> Gera slides_json com imagemPrompt para cada slide       │
-│     └─> Salva no banco                                          │
-│     └─> DISPARA batch-imagens-iniciar automaticamente           │
-│                                                                  │
-│  2. batch-imagens-iniciar                                       │
-│     └─> Cria job no conceitos_batch_jobs                        │
-│     └─> Dispara batch-imagens-processar                         │
-│                                                                  │
-│  3. batch-imagens-processar (background)                        │
-│     └─> Gera imagens uma a uma (Gemini 2.0 Flash)               │
-│     └─> Comprime com TinyPNG                                    │
-│     └─> Upload para Storage                                     │
-│     └─> Atualiza slides_json com imagemUrl                      │
-│                                                                  │
-│  USUÁRIO:                                                       │
-│  └─> Pode estudar imediatamente (slides sem imagem)             │
-│  └─> Imagens aparecem conforme são geradas                      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+// Índice
+const [mostrarIndice, setMostrarIndice] = useState(false);
 ```
 
 ---
 
 ## Resumo das Alterações
 
-1. **Design**: Unificar paleta de cores com o modo leitura (vermelho/laranja), usar Playfair Display, background `#12121a`
+| Categoria | Alteração |
+|-----------|-----------|
+| **Nomenclatura** | "Slides" → "Páginas" em toda interface |
+| **Tela Inicial** | Redesign com flashcards, praticar, ruído marrom, índice |
+| **Conteúdo** | Prompt melhorado: mais citações, exemplos, explicações de termos |
+| **Collapsible** | Removido - convertido para texto com subtítulos |
+| **Progresso** | Salvar no banco por módulo (leitura, flashcards, questões) |
+| **Áudio** | Integrar ruído marrom (/audio/ruido-marrom.mp3) |
 
-2. **Imagem com título**: Título do slide fica dentro da imagem, na parte inferior com degradê
+---
 
-3. **Citações**: Integrar `EnrichedMarkdownRenderer` para processar blockquotes coloridos e citações legais
+## Ordem de Implementação
 
-4. **Batch de imagens**: Disparar automaticamente após gerar slides_json, com loading state no viewer
-
-5. **Hierarquia**: Progress dots + Imagem com overlay + Card de conteúdo + Navegação
+1. Modificar `types.ts` - remover collapsible do enum de tipos
+2. Modificar `ConceitoSlideCard.tsx` - converter collapsible para texto
+3. Modificar `ConceitosTopicoIntro.tsx` - redesign completo com todos os módulos
+4. Modificar `ConceitosSlidesViewer.tsx` - integrar estados, renomear, mostrar intro primeiro
+5. Modificar `ConceitosTopicoEstudo.tsx` - passar props adicionais, renomear mensagens
+6. Modificar `gerar-conteudo-conceitos` - melhorar prompt, remover collapsible
+7. Testar fluxo completo
