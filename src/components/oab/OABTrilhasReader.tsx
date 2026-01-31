@@ -1170,21 +1170,12 @@ const OABTrilhasReader = ({
                     : null;
                   
                   if (isQuadroComparativo && tabelaExtraida) {
+                    // Renderiza APENAS a tabela visual, sem texto antes
                     return (
-                      <>
-                        {/* Renderizar texto antes da tabela se existir */}
-                        {topicoData.conteudo && (
-                          <EnrichedMarkdownRenderer 
-                            content={topicoData.conteudo.split('|')[0].trim()}
-                            fontSize={fontSize}
-                            theme="classicos"
-                          />
-                        )}
-                        <QuadroComparativoVisual 
-                          cabecalhos={tabelaExtraida.cabecalhos}
-                          linhas={tabelaExtraida.linhas}
-                        />
-                      </>
+                      <QuadroComparativoVisual 
+                        cabecalhos={tabelaExtraida.cabecalhos}
+                        linhas={tabelaExtraida.linhas}
+                      />
                     );
                   }
                   
