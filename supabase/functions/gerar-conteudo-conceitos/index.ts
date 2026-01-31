@@ -24,7 +24,7 @@ Use elementos visuais quando apropriado:
   { 
     tipo: "conteudo_principal", 
     titulo: "Conteúdo Completo", 
-    promptExtra: `ATENÇÃO: NÃO comece com saudações como "E aí, tudo bem?" ou "Olá!". A introdução já fez isso.
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações como "E aí, tudo bem?", "Olá!", "Vamos lá", "E aí, futuro jurista". A introdução já fez isso.
 Vá DIRETO ao primeiro conceito do tema. Comece explicando o conteúdo imediatamente.
 
 Escreva o conteúdo principal com MÍNIMO 3000 palavras.
@@ -42,47 +42,56 @@ Use pelo menos 3-5 destes elementos ao longo do conteúdo.`
   { 
     tipo: "desmembrando", 
     titulo: "Desmembrando o Tema", 
-    promptExtra: `Pegue os conceitos-chave apresentados no Conteúdo Completo e desmembre cada um em partes menores (800-1200 palavras).
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí", "Olá", "Tudo bem?", "Vamos lá", "Pensa comigo". 
+Comece DIRETO desmembrando o primeiro conceito.
 
-IDENTIFIQUE 4-6 termos/conceitos principais do tema e analise cada um em profundidade.
+Pegue os CONCEITOS-CHAVE apresentados no Conteúdo Completo (Página 2) e DESMEMBRE cada um em partes menores (800-1200 palavras).
 
-Para CADA termo ou conceito importante, analise:
-- **Significado jurídico:** O que significa exatamente no contexto do Direito
-- **Etimologia/Origem:** De onde vem o termo, sua origem histórica ou linguística
-- **Pronúncia correta:** Como pronunciar corretamente (quando houver dúvida comum)
-- **Elementos constitutivos:** Quais são os componentes ou requisitos
-- **Características principais:** O que o diferencia de outros institutos
-- **Natureza jurídica:** Qual sua natureza no ordenamento
+IDENTIFIQUE 4-6 termos/conceitos ESPECÍFICOS do tema e analise cada um em profundidade.
 
-Inicie: "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
-Use exemplos para clarificar cada elemento.
+Para CADA termo ou conceito, analise com esta estrutura:
 
-Formato sugerido para cada conceito:
 ### [Nome do Conceito]
 
-**Significado:** [explicação]
-**Origem:** [etimologia ou história]
-**Elementos:** [componentes]
-**Características:** [diferenciais]` 
+**Significado jurídico:** O que significa exatamente no contexto do Direito
+**Etimologia/Origem:** De onde vem o termo, sua origem histórica ou linguística
+**Pronúncia correta:** Como pronunciar corretamente (se houver dúvida comum)
+**Elementos constitutivos:** Quais são os componentes ou requisitos
+**Características principais:** O que o diferencia de outros institutos
+**Natureza jurídica:** Qual sua natureza no ordenamento
+
+Use exemplos para clarificar cada elemento.
+Este NÃO é um texto sobre história, é uma ANÁLISE DETALHADA de cada conceito.` 
   },
   { 
     tipo: "entendendo_na_pratica", 
     titulo: "Entendendo na Prática", 
-    promptExtra: `Apresente 5 exemplos práticos/casos concretos (800-1200 palavras).
-Use situações reais ou hipotéticas com análise jurídica.
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí, tudo beleza?", "Vamos bater um papo", "Pensa comigo". 
+Comece DIRETO com o primeiro caso prático.
 
-Formato para cada caso:
+Esta página é SOMENTE para CASOS PRÁTICOS. NÃO explique teoria aqui.
+
+Apresente 5 casos práticos/exemplos concretos (800-1200 palavras total).
+Cada caso deve ter a estrutura:
+
 ### Caso 1: [Título do Caso]
-> 💼 **CASO PRÁTICO:** [Descrição da situação]
+> 💼 **CASO PRÁTICO:** [Descrição da situação - uma pessoa ou empresa enfrentando um problema real]
 
-**Análise Jurídica:** [Análise do caso]
-**Conclusão:** [Conclusão do caso]` 
+**Análise Jurídica:** [Como aplicar o que foi estudado neste caso]
+**Conclusão:** [O que acontece juridicamente]
+
+### Caso 2: [Título do Caso]
+...
+
+NÃO faça introdução ou explicação teórica. APENAS casos práticos.` 
   },
   { 
     tipo: "quadro_comparativo", 
     titulo: "Quadro Comparativo", 
-    promptExtra: `GERE APENAS AS TABELAS COMPARATIVAS. SEM texto introdutório ou explicativo antes.
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações ou texto introdutório.
 Comece DIRETAMENTE com a primeira tabela Markdown.
+
+GERE APENAS AS TABELAS COMPARATIVAS.
 
 Crie tabelas comparativas dos principais institutos relacionados ao tema.
 Compare elementos, requisitos, efeitos de forma clara.
@@ -108,14 +117,24 @@ IMPORTANTE: NÃO escreva texto antes das tabelas. Comece direto com a tabela.`
   { 
     tipo: "dicas_provas", 
     titulo: "Dicas para Memorizar", 
-    promptExtra: `Forneça dicas de memorização, macetes e pontos-chave (400-600 palavras MÁXIMO).
-Seja OBJETIVO e CONCISO. Mnemônicos curtos. Pegadinhas em formato de lista.
-Use técnicas como acrônimos, associações, esquemas mentais.
-Destaque o que mais cai em provas.
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações. NÃO diga "E aí, futuro jurista!", "Vamos desmistificar", "Relaxa". 
+Comece DIRETO com a primeira dica ou mnemônico.
 
-OBRIGATÓRIO usar:
-> 💡 **DICA DE PROVA:** [macete ou dica específica para provas]
+Forneça dicas de memorização, macetes e pontos-chave (400-600 palavras MÁXIMO).
+Seja OBJETIVO e CONCISO. 
+
+Estruture assim:
+
+### Mnemônicos
+- **[SIGLA]** = [Significado] (Ex: LIMPE = Legalidade, Impessoalidade, Moralidade...)
+
+### Pegadinhas Comuns
 > ⚠️ **PEGADINHA:** [ponto que costuma confundir em provas]
+> ⚠️ **PEGADINHA:** [outro ponto]
+
+### Dicas de Prova
+> 💡 **DICA:** [macete específico]
+> 💡 **DICA:** [outro macete]
 
 Use pelo menos 4-5 destes elementos em formato de lista curta.
 NÃO se alongue. Seja direto ao ponto.` 
@@ -123,18 +142,21 @@ NÃO se alongue. Seja direto ao ponto.`
   { 
     tipo: "correspondencias", 
     titulo: "Ligar Termos", 
-    promptExtra: `Escreva uma breve instrução (2-3 frases) para um exercício interativo.
-O estudante vai ligar os termos às suas definições corretas arrastando os elementos.
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações.
 
-Exemplo: "Conecte cada termo à sua definição correta arrastando os elementos. Este exercício vai ajudar você a fixar os conceitos principais que estudamos."
+Escreva APENAS uma breve instrução (2-3 frases) para um exercício interativo:
+
+"Conecte cada termo à sua definição correta. Este exercício vai ajudar você a fixar os conceitos principais que estudamos."
 
 NOTA: Os dados do jogo (pares termo/definição) serão gerados separadamente com mínimo 8 pares.` 
   },
   { 
     tipo: "sintese_final", 
     titulo: "Síntese Final", 
-    promptExtra: `Faça um resumo conciso de tudo que foi abordado (400-600 palavras MÁXIMO).
-Comece DIRETO com: "Então, recapitulando tudo que vimos..."
+    promptExtra: `⛔ PROIBIDO: NÃO comece com saudações.
+Comece DIRETO com: "Recapitulando tudo que vimos..."
+
+Faça um resumo conciso de tudo que foi abordado (400-600 palavras MÁXIMO).
 
 Destaque os pontos principais e conecte os conceitos.
 Encerre de forma motivadora mas concisa.

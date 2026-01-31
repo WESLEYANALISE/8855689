@@ -203,23 +203,49 @@ const ConceitosTopicoEstudo = () => {
   const conteudoGerado = useMemo(() => {
     if (!topico?.conteudo_gerado) return null;
     
-    // O conteúdo pode estar em formato string (markdown concatenado) ou páginas separadas
+    // Primeiro, verificar se temos as páginas estruturadas em termos.paginas
+    const termos = topico?.termos as any;
+    if (termos?.paginas && Array.isArray(termos.paginas) && termos.paginas.length > 0) {
+      return {
+        paginas: termos.paginas.map((p: any, idx: number) => ({
+          titulo: p.titulo || `Página ${idx + 1}`,
+          markdown: p.markdown || '',
+          tipo: p.tipo || 'conteudo_principal'
+        }))
+      };
+    }
+    
+    // Fallback: O conteúdo pode estar em formato string (markdown concatenado)
     const conteudo = topico.conteudo_gerado;
+    
+    // Títulos padrão para fallback
+    const TITULOS_PADRAO = [
+      "Introdução",
+      "Conteúdo Completo", 
+      "Desmembrando o Tema",
+      "Entendendo na Prática",
+      "Quadro Comparativo",
+      "Dicas para Memorizar",
+      "Ligar Termos",
+      "Síntese Final"
+    ];
     
     // Se for string, dividir por separadores
     if (typeof conteudo === 'string') {
       const sections = conteudo.split(/\n---\n/);
       return {
         paginas: sections.map((section, i) => ({
-          titulo: `Página ${i + 1}`,
+          titulo: TITULOS_PADRAO[i] || `Página ${i + 1}`,
           markdown: section.trim(),
-          tipo: i === 0 ? 'introducao' : i === sections.length - 1 ? 'sintese_final' : 'conteudo_principal'
+          tipo: i === 0 ? 'introducao' : 
+                i === 6 ? 'correspondencias' :
+                i === sections.length - 1 ? 'sintese_final' : 'conteudo_principal'
         }))
       };
     }
     
     return conteudo;
-  }, [topico?.conteudo_gerado]);
+  }, [topico?.conteudo_gerado, topico?.termos]);
 
   // Extrair flashcards e questões
   const flashcards: Flashcard[] = useMemo(() => {
