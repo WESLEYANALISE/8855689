@@ -158,7 +158,6 @@ const ConceitosMateria = () => {
               alt={materia?.nome}
               className="w-full h-full object-cover"
               loading="eager"
-              fetchPriority="high"
               decoding="sync"
             />
           ) : (
@@ -235,10 +234,10 @@ const ConceitosMateria = () => {
       )}
 
       {/* Label Conteúdo */}
-      <div className="px-4 py-3">
+      <div className="px-4 pt-6 pb-3">
         <div className="max-w-lg mx-auto flex items-center gap-2 text-gray-400">
-          <BookOpen className="w-4 h-4" />
-          <span className="text-sm font-medium">Conteúdo Programático</span>
+          <BookOpen className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm font-medium whitespace-nowrap">Conteúdo Programático</span>
         </div>
       </div>
 
@@ -279,7 +278,6 @@ const ConceitosMateria = () => {
                           alt={topico.titulo}
                           className="w-full h-full object-cover"
                           loading="eager"
-                          fetchPriority="high"
                           decoding="sync"
                         />
                       ) : (
