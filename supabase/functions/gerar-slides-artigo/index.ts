@@ -2,13 +2,88 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const REVISION = "v1.0.0-slides-artigo";
+const REVISION = "v1.0.2-slides-artigo-fallback";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Pool de chaves Gemini com fallback
+function getGeminiKeys(): string[] {
+  const keys: string[] = [];
+  const key1 = Deno.env.get('GEMINI_KEY_1');
+  const key2 = Deno.env.get('GEMINI_KEY_2');
+  const key3 = Deno.env.get('GEMINI_KEY_3');
+  const keyPremium = Deno.env.get('DIREITO_PREMIUM_API_KEY');
+  
+  if (key1) keys.push(key1);
+  if (key2) keys.push(key2);
+  if (key3) keys.push(key3);
+  if (keyPremium) keys.push(keyPremium);
+  
+  return keys;
+}
+
+async function callGeminiWithFallback(prompt: string, keys: string[]): Promise<any> {
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      console.log(`🔑 Tentando chave Gemini ${i + 1}/${keys.length}...`);
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${keys[i]}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 40000,
+              responseMimeType: "application/json",
+            }
+          })
+        }
+      );
+
+      if (response.status === 429 || response.status === 503) {
+        console.log(`⚠️ Chave ${i + 1} rate limited, tentando próxima...`);
+        continue;
+      }
+
+      if (response.status === 400) {
+        const errorText = await response.text();
+        if (errorText.includes('API_KEY_INVALID') || errorText.includes('expired')) {
+          console.log(`⚠️ Chave ${i + 1} expirada/inválida, tentando próxima...`);
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Erro na chave ${i + 1}:`, response.status, errorText);
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (text) {
+        console.log(`✅ Sucesso com chave ${i + 1}`);
+        return { text, keyIndex: i + 1 };
+      } else {
+        console.log(`⚠️ Resposta vazia da chave ${i + 1}`);
+        continue;
+      }
+    } catch (error) {
+      console.error(`❌ Exceção na chave ${i + 1}:`, error);
+      continue;
+    }
+  }
+  
+  throw new Error('Todas as chaves Gemini falharam ou estão expiradas');
+}
 
 serve(async (req) => {
   console.log(`📍 Function: gerar-slides-artigo@${REVISION}`);
@@ -24,10 +99,11 @@ serve(async (req) => {
       throw new Error('Código da tabela, número do artigo e conteúdo são obrigatórios');
     }
 
-    const DIREITO_PREMIUM_API_KEY = Deno.env.get('DIREITO_PREMIUM_API_KEY');
-    if (!DIREITO_PREMIUM_API_KEY) {
-      throw new Error('DIREITO_PREMIUM_API_KEY não configurada');
+    const geminiKeys = getGeminiKeys();
+    if (geminiKeys.length === 0) {
+      throw new Error('Nenhuma chave Gemini configurada');
     }
+    console.log(`🔑 ${geminiKeys.length} chaves Gemini disponíveis`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -239,52 +315,25 @@ Gere slides no formato ConceitoSlide com os tipos:
 9. Use linguagem didática e acessível
 10. Retorne APENAS o JSON, sem markdown ou código`;
 
-    console.log('🚀 Enviando prompt para Gemini...');
+    console.log('🚀 Enviando prompt para Gemini com fallback...');
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${DIREITO_PREMIUM_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 40000,
-            responseMimeType: "application/json",
-          }
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro na API Gemini:', response.status, errorText);
-      throw new Error('Erro ao gerar slides');
-    }
-
-    const data = await response.json();
-    let slidesText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const { text: slidesText, keyIndex } = await callGeminiWithFallback(prompt, geminiKeys);
     
-    if (!slidesText) {
-      throw new Error('Resposta vazia da IA');
-    }
+    console.log(`📝 Resposta recebida da chave ${keyIndex}, processando JSON...`);
     
-    console.log('📝 Resposta recebida, processando JSON...');
-    
-    slidesText = slidesText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    let cleanedText = slidesText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
     let slidesJson;
     try {
-      slidesJson = JSON.parse(slidesText);
+      slidesJson = JSON.parse(cleanedText);
     } catch (parseError: any) {
       console.error('⚠️ Erro ao parsear JSON, tentando limpeza:', parseError.message);
       
-      const startIndex = slidesText.indexOf('{');
-      const endIndex = slidesText.lastIndexOf('}');
+      const startIndex = cleanedText.indexOf('{');
+      const endIndex = cleanedText.lastIndexOf('}');
       if (startIndex !== -1 && endIndex !== -1) {
-        slidesText = slidesText.substring(startIndex, endIndex + 1);
-        slidesJson = JSON.parse(slidesText);
+        cleanedText = cleanedText.substring(startIndex, endIndex + 1);
+        slidesJson = JSON.parse(cleanedText);
       } else {
         throw parseError;
       }
