@@ -76,19 +76,19 @@ const convertCollapsibleToMarkdown = (items: CollapsibleItem[]): string => {
   }).join('\n\n');
 };
 
-// Variantes de animação para transição de slide - opacity mínima para evitar flash branco
+// Variantes de animação para transição horizontal fluida (sem movimento vertical)
 const slideVariants = {
   enter: (direction: 'next' | 'prev') => ({
-    x: direction === 'next' ? 300 : -300,
-    opacity: 0.3
+    x: direction === 'next' ? '100%' : '-100%',
+    opacity: 1
   }),
   center: {
     x: 0,
     opacity: 1
   },
   exit: (direction: 'next' | 'prev') => ({
-    x: direction === 'next' ? -300 : 300,
-    opacity: 0.3
+    x: direction === 'next' ? '-100%' : '100%',
+    opacity: 1
   })
 };
 
@@ -357,8 +357,7 @@ export const ConceitoSlideCard = ({
       animate="center"
       exit="exit"
       transition={{ 
-        x: { type: "spring", stiffness: 300, damping: 30 },
-        opacity: { duration: 0.2 }
+        x: { type: "tween", duration: 0.3, ease: "easeInOut" }
       }}
       className="min-h-[calc(100vh-8rem)] flex flex-col p-4 pb-4 max-w-2xl mx-auto"
     >
