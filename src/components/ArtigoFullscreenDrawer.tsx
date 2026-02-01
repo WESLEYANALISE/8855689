@@ -1048,12 +1048,12 @@ export const ArtigoFullscreenDrawer = ({
 
         {/* Dialog de Recursos (ArtigoActionsMenu) */}
         {showRecursos && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="fixed inset-0 z-[55] flex items-end justify-center">
             <div 
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
               onClick={() => setShowRecursos(false)}
             />
-            <div className="relative w-full max-w-lg bg-card rounded-t-2xl p-4 pb-8 animate-in slide-in-from-bottom duration-300">
+            <div className="relative w-full max-w-lg bg-card rounded-t-2xl p-4 pb-8 transform transition-transform duration-200 ease-out">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Recursos do Artigo</h3>
                 <Button

@@ -160,7 +160,7 @@ export const AulaArtigoSlidesViewer = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-background z-50 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-background z-[60] overflow-hidden flex flex-col">
       {/* Header (for non-slides stages) */}
       {etapaAtual !== 'loading' && (
         <div className="flex-shrink-0">
