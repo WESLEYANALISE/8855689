@@ -118,34 +118,35 @@ const PALETAS_POR_AREA: Record<string, { cores: string; visual: string; mood: st
 function getPromptForSubtema(titulo: string, area: string): string {
   const areaConfig = PALETAS_POR_AREA[area] || PALETAS_POR_AREA["Direito Constitucional"];
   
-  return `Create a DARK, RICH, MOODY cinematic illustration in 16:9 LANDSCAPE format.
+  return `Create a VIBRANT, HIGH-CONTRAST cinematic illustration in 16:9 LANDSCAPE format.
 
-ABSOLUTE REQUIREMENTS - READ CAREFULLY:
-- The entire image canvas MUST be filled with dark, rich colors - absolutely NO white, NO light gray, NO pale areas anywhere
-- Background must use deep, saturated colors: dark navy, deep burgundy, rich charcoal, dark emerald - NEVER white or light tones
-- Fill every pixel from edge to edge with colored content - the image must appear as a complete rectangle with NO borders
-- NO text, NO words, NO letters, NO typography anywhere
+CRITICAL REQUIREMENTS:
+- Fill the ENTIRE canvas edge-to-edge with colorful content - NO white borders, NO margins, NO empty corners
+- Use RICH, SATURATED, VIVID colors - NOT dark, NOT muted, NOT faded
+- High contrast and clarity - the image must be visually striking and clear
+- NO text, NO words, NO letters anywhere
 
 SUBJECT: "${titulo}" - Legal topic in Brazilian ${area} law
 
-COLOR SCHEME (DARK PALETTE ONLY):
-Primary: ${areaConfig.cores}
-Background: Deep dark gradient using the darkest shades of the palette above
-Ensure rich shadows and moody atmosphere throughout
+VIBRANT COLOR PALETTE:
+${areaConfig.cores}
+- Use these colors at FULL SATURATION and BRIGHTNESS
+- Add dramatic lighting with bright highlights
+- Colors should POP and be eye-catching
 
 VISUAL COMPOSITION:
 ${areaConfig.visual}
-- All elements should blend into the dark background
-- Use dramatic chiaroscuro lighting (dark shadows with selective highlights)
-- Vignette effect with darker edges
+- Center the main subject prominently
+- Use a gradient or textured background that fills ALL edges
+- Add subtle glow effects for visual interest
 
-MOOD: ${areaConfig.mood} - but with dramatic, low-key lighting
+MOOD: ${areaConfig.mood} - with bright, professional, energetic atmosphere
 
 TECHNICAL:
-- Ultra high resolution, photorealistic
-- Dark cinematic color grading
-- The ENTIRE canvas filled with imagery - no empty or white space
-- Suitable as a thumbnail that looks complete when cropped`;
+- Ultra high resolution, photorealistic, crystal clear
+- BRIGHT cinematic lighting - not dark or moody
+- The ENTIRE canvas must be filled - no white or empty space at edges
+- Suitable as an eye-catching thumbnail`;
 }
 
 // Gerar imagem com Gemini usando fetch direto - MESMO MÉTODO DOS CONCEITOS
