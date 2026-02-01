@@ -118,32 +118,34 @@ const PALETAS_POR_AREA: Record<string, { cores: string; visual: string; mood: st
 function getPromptForSubtema(titulo: string, area: string): string {
   const areaConfig = PALETAS_POR_AREA[area] || PALETAS_POR_AREA["Direito Constitucional"];
   
-  return `Generate a CINEMATIC LANDSCAPE cover image in STRICT 16:9 HORIZONTAL format (WIDER than TALL).
+  return `Create a DARK, RICH, MOODY cinematic illustration in 16:9 LANDSCAPE format.
 
-CRITICAL REQUIREMENTS:
-1. Image MUST be LANDSCAPE orientation - significantly wider than tall
-2. NO text, NO words, NO letters, NO typography anywhere in the image
-3. Photorealistic, ultra-high resolution, cinematic quality
-4. FULL BLEED edge-to-edge composition, NO white borders, NO margins
+ABSOLUTE REQUIREMENTS - READ CAREFULLY:
+- The entire image canvas MUST be filled with dark, rich colors - absolutely NO white, NO light gray, NO pale areas anywhere
+- Background must use deep, saturated colors: dark navy, deep burgundy, rich charcoal, dark emerald - NEVER white or light tones
+- Fill every pixel from edge to edge with colored content - the image must appear as a complete rectangle with NO borders
+- NO text, NO words, NO letters, NO typography anywhere
 
-SUBJECT: "${titulo}" - Legal subtopic in ${area}
+SUBJECT: "${titulo}" - Legal topic in Brazilian ${area} law
 
-MANDATORY COLOR PALETTE (apply throughout entire composition):
-${areaConfig.cores}
+COLOR SCHEME (DARK PALETTE ONLY):
+Primary: ${areaConfig.cores}
+Background: Deep dark gradient using the darkest shades of the palette above
+Ensure rich shadows and moody atmosphere throughout
 
-VISUAL ELEMENTS (adapt to specific subtopic):
+VISUAL COMPOSITION:
 ${areaConfig.visual}
+- All elements should blend into the dark background
+- Use dramatic chiaroscuro lighting (dark shadows with selective highlights)
+- Vignette effect with darker edges
 
-MOOD & ATMOSPHERE:
-${areaConfig.mood}
+MOOD: ${areaConfig.mood} - but with dramatic, low-key lighting
 
-TECHNICAL SPECS:
-- Cinematic lighting with dramatic shadows and highlights
-- Rich color grading matching the specified palette
-- Professional legal/academic atmosphere
-- Suitable as educational content cover
-- Ultra high resolution photorealistic rendering
-- FULL BLEED: image extends to ALL edges, no white corners`;
+TECHNICAL:
+- Ultra high resolution, photorealistic
+- Dark cinematic color grading
+- The ENTIRE canvas filled with imagery - no empty or white space
+- Suitable as a thumbnail that looks complete when cropped`;
 }
 
 // Gerar imagem com Gemini usando fetch direto - MESMO MÉTODO DOS CONCEITOS
