@@ -138,6 +138,17 @@ const OABTrilhasTopicos = () => {
   const isEtica = area?.nome?.toLowerCase().includes("ética");
   const totalSubtemas = subtemas?.length || 0;
   
+  // Considera "versão nova" quando TODOS os subtemas têm slides_json com volume mínimo.
+  // Se estiver faltando slides_json ou tiver poucas páginas (ex.: versão antiga com 8), mantém o botão de regenerar.
+  const allSubtemasAreNewVersion =
+    !!subtemas &&
+    subtemas.length > 0 &&
+    subtemas.every((s) => {
+      const slides = s.slides_json as { slides?: unknown[] } | null;
+      const count = slides?.slides?.length || 0;
+      return count >= 30;
+    });
+  
   // Calcular progresso do usuário
   const subtemasConcluidosUsuario = Object.values(progressoUsuario || {}).filter(p => p.leituraCompleta).length;
 
@@ -398,8 +409,8 @@ const OABTrilhasTopicos = () => {
         </div>
       </div>
 
-      {/* Botão flutuante para reprocessar PDF - esconde quando todos os subtemas têm conteúdo gerado */}
-      {subtemas && subtemas.length > 0 && subtemasGerados < totalSubtemas && (
+      {/* Botão flutuante para reprocessar PDF - some apenas na "versão nova" */}
+      {subtemas && subtemas.length > 0 && !allSubtemasAreNewVersion && (
         <div className="fixed bottom-20 right-4">
           <Button
             variant="outline"
