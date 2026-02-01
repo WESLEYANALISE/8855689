@@ -121,7 +121,10 @@ serve(async (req) => {
     // 1) Sempre considera as primeiras 15 páginas (índice costuma estar no começo, mas pode ter 3-4 páginas)
     // 2) Adiciona páginas que contenham "ÍNDICE"/"SUMÁRIO" em qualquer posição
     // 3) Filtra por densidade de matches do padrão de linha de índice para evitar falsos positivos
+    // Observação: alguns PDFs vêm com o índice "formatado" como títulos markdown (ex.: "## 6. MEDIDA...17")
+    // então aceitamos também esse padrão.
     const indiceLineRe = /(^|\n)\s*(\d{1,2})\s*(?:[\.)\-])?\s+([^\n]+?)(?:[\.\u00B7•‧…]{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
+    const indiceHeaderRe = /(^|\n)\s*#{1,6}\s*(\d{1,2})\s*[\.)]\s+([^\n]+?)(?:\.\.\.|[\.\u00B7•‧…]{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
 
     const candidatosIndice = paginas.filter((p) => {
       // Aumentado para 15 páginas para cobrir índices longos (3-4 páginas)
@@ -132,9 +135,11 @@ serve(async (req) => {
 
     const paginasIndice = candidatosIndice.filter((p) => {
       const t = (p.conteudo || '').replace(/\r/g, '');
-      const matches = t.match(indiceLineRe);
+      const matchesLinhas = t.match(indiceLineRe);
+      const matchesHeaders = t.match(indiceHeaderRe);
+
       // índice geralmente tem várias linhas; exigir pelo menos 2 (para índices parciais em páginas)
-      return (matches?.length || 0) >= 2;
+      return (matchesLinhas?.length || 0) >= 2 || (matchesHeaders?.length || 0) >= 2;
     });
 
     const titulosIndiceNivel1 = extrairTitulosIndiceNivel1(paginasIndice);
