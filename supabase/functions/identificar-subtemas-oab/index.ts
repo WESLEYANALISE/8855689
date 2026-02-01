@@ -97,13 +97,14 @@ serve(async (req) => {
 
     // Detectar páginas do índice
     // Estratégia:
-    // 1) Sempre considera as primeiras páginas (índice costuma estar no começo)
-    // 2) Adiciona páginas que contenham "ÍNDICE"/"SUMÁRIO"
+    // 1) Sempre considera as primeiras 15 páginas (índice costuma estar no começo, mas pode ter 3-4 páginas)
+    // 2) Adiciona páginas que contenham "ÍNDICE"/"SUMÁRIO" em qualquer posição
     // 3) Filtra por densidade de matches do padrão de linha de índice para evitar falsos positivos
     const indiceLineRe = /(^|\n)\s*(\d{1,2})\s*(?:[\.)\-])?\s+([^\n]+?)(?:[\.\u00B7•‧…]{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
 
     const candidatosIndice = paginas.filter((p) => {
-      if (p.pagina <= 8) return true;
+      // Aumentado para 15 páginas para cobrir índices longos (3-4 páginas)
+      if (p.pagina <= 15) return true;
       const texto = (p.conteudo || '').toUpperCase();
       return texto.includes('ÍNDICE') || texto.includes('SUMÁRIO');
     });
@@ -111,8 +112,8 @@ serve(async (req) => {
     const paginasIndice = candidatosIndice.filter((p) => {
       const t = (p.conteudo || '').replace(/\r/g, '');
       const matches = t.match(indiceLineRe);
-      // índice geralmente tem várias linhas; exigir pelo menos 3
-      return (matches?.length || 0) >= 3;
+      // índice geralmente tem várias linhas; exigir pelo menos 2 (para índices parciais em páginas)
+      return (matches?.length || 0) >= 2;
     });
 
     const titulosIndiceNivel1 = extrairTitulosIndiceNivel1(paginasIndice);
