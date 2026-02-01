@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, BookOpen, ChevronRight, ImageIcon, FileText, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, ChevronRight, ImageIcon, FileText, RefreshCw, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { OABTrilhasPdfProcessorModal } from "@/components/oab/OABTrilhasPdfProcessorModal";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOABAutoGeneration } from "@/hooks/useOABAutoGeneration";
+
 const OABTrilhasTopicos = () => {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const navigate = useNavigate();
   const { materiaId, topicoId } = useParams();
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
   const parsedTopicoId = topicoId ? parseInt(topicoId) : null;
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Buscar área (matéria principal - ex: Direito Constitucional) - CACHE FIRST
   const { data: area, isLoading: loadingArea } = useQuery({
@@ -26,8 +32,8 @@ const OABTrilhasTopicos = () => {
       return data;
     },
     enabled: !!parsedMateriaId,
-    staleTime: 1000 * 60 * 10, // 10 minutos
-    gcTime: 1000 * 60 * 60,    // 1 hora
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 60,
   });
 
   // Buscar o tópico específico para pegar o título e capa - CACHE FIRST
@@ -43,17 +49,17 @@ const OABTrilhasTopicos = () => {
       return data;
     },
     enabled: !!parsedTopicoId,
-    staleTime: 1000 * 60 * 10, // 10 minutos
-    gcTime: 1000 * 60 * 60,    // 1 hora
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 60,
   });
 
-  // Buscar subtemas do RESUMO baseado na área e tema - CACHE FIRST
+  // Buscar subtemas do RESUMO baseado na área e tema - Com refetch automático para geração
   const { data: subtemas, isLoading: loadingSubtemas } = useQuery({
     queryKey: ["oab-trilha-subtemas-resumo", area?.nome, topico?.titulo],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("RESUMO")
-        .select("id, subtema, tema, area, url_imagem_resumo")
+        .select("id, subtema, tema, area, url_imagem_resumo, slides_json, conteudo_gerado")
         .eq("area", area!.nome)
         .eq("tema", topico!.titulo)
         .order("id");
@@ -61,13 +67,79 @@ const OABTrilhasTopicos = () => {
       return data;
     },
     enabled: !!area?.nome && !!topico?.titulo,
-    staleTime: 1000 * 60 * 5, // 5 minutos
-    gcTime: 1000 * 60 * 30,   // 30 minutos
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 30,
+    refetchInterval: (query) => {
+      // Refetch a cada 5s se houver geração em andamento
+      const data = query.state.data;
+      const hasPending = data?.some(s => !(s.slides_json || s.conteudo_gerado));
+      return hasPending ? 5000 : false;
+    },
+  });
+
+  // Buscar progresso do usuário em cada subtema
+  const { data: progressoUsuario } = useQuery({
+    queryKey: ["oab-subtemas-progresso", subtemas?.map(s => s.id).join(","), user?.id],
+    queryFn: async () => {
+      if (!user?.id || !subtemas) return {};
+      
+      const subtemaIds = subtemas.map(s => s.id);
+      const { data, error } = await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .select("topico_id, leitura_completa, progresso_leitura, progresso_flashcards, progresso_questoes")
+        .eq("user_id", user.id)
+        .in("topico_id", subtemaIds);
+      
+      if (error) {
+        console.error("Erro ao buscar progresso:", error);
+        return {};
+      }
+      
+      const progressoMap: Record<number, { 
+        leituraCompleta: boolean; 
+        progresso: number;
+        progressoFlashcards: number;
+        progressoQuestoes: number;
+      }> = {};
+      data?.forEach(p => {
+        progressoMap[p.topico_id] = {
+          leituraCompleta: p.leitura_completa || false,
+          progresso: p.progresso_leitura || 0,
+          progressoFlashcards: p.progresso_flashcards || 0,
+          progressoQuestoes: p.progresso_questoes || 0
+        };
+      });
+      return progressoMap;
+    },
+    enabled: !!user?.id && !!subtemas && subtemas.length > 0,
+    staleTime: 1000 * 30,
+  });
+
+  // Hook de geração automática
+  const {
+    isGenerating,
+    currentGeneratingTitle,
+    getSubtemaStatus,
+    concluidos: subtemasGerados,
+    pendentes: subtemasPendentes,
+  } = useOABAutoGeneration({
+    subtemas: subtemas?.map(s => ({
+      id: s.id,
+      subtema: s.subtema,
+      slides_json: s.slides_json,
+      conteudo_gerado: s.conteudo_gerado,
+    })),
+    areaNome: area?.nome || "",
+    temaNome: topico?.titulo || "",
+    enabled: true,
   });
 
   const isLoading = loadingArea || loadingTopico || loadingSubtemas;
   const isEtica = area?.nome?.toLowerCase().includes("ética");
   const totalSubtemas = subtemas?.length || 0;
+  
+  // Calcular progresso do usuário
+  const subtemasConcluidosUsuario = Object.values(progressoUsuario || {}).filter(p => p.leituraCompleta).length;
 
   // Capa de fallback: usar capa do tópico, ou da área, ou gradiente
   const fallbackCapa = topico?.capa_url || area?.capa_url;
@@ -135,16 +207,48 @@ const OABTrilhasTopicos = () => {
 
             {/* Info - Progresso */}
             <div className={`rounded-xl p-3 ${isEtica ? "bg-amber-900/30" : "bg-neutral-800/80"} backdrop-blur-sm border ${isEtica ? "border-amber-500/20" : "border-white/10"}`}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-300">Seu progresso</span>
-                <span className={`text-sm font-bold ${isEtica ? "text-amber-400" : "text-white"}`}>
-                  0/{totalSubtemas}
-                </span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4 text-sm text-gray-300">
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className={`w-4 h-4 ${isEtica ? "text-amber-400" : "text-red-400"}`} />
+                    <span>{totalSubtemas} tópicos</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>{subtemasConcluidosUsuario} concluídos</span>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">{totalSubtemas - subtemasConcluidosUsuario} restantes</span>
+              </div>
+              
+              {/* Barra de progresso geral */}
+              <Progress 
+                value={totalSubtemas > 0 ? (subtemasConcluidosUsuario / totalSubtemas) * 100 : 0} 
+                className={`h-2 bg-white/10 [&>div]:bg-gradient-to-r ${isEtica ? "[&>div]:from-amber-500 [&>div]:to-orange-500" : "[&>div]:from-red-500 [&>div]:to-rose-500"}`} 
+              />
+              
+              {/* Legenda de cores */}
+              <div className="flex items-center gap-4 mt-2 text-[10px]">
+                <span className="text-orange-400">● Leitura</span>
+                <span className="text-purple-400">● Flashcards</span>
+                <span className="text-emerald-400">● Praticar</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Indicador de geração automática */}
+      {isGenerating && currentGeneratingTitle && (
+        <div className="px-4 py-2">
+          <div className="max-w-lg mx-auto">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isEtica ? "bg-amber-900/30 border border-amber-500/30" : "bg-red-900/30 border border-red-500/30"}`}>
+              <Loader2 className={`w-4 h-4 animate-spin ${isEtica ? "text-amber-400" : "text-red-400"}`} />
+              <span className="text-xs text-gray-300">Gerando: {currentGeneratingTitle}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Label Conteúdo */}
       <div className="px-4 py-3">
@@ -158,58 +262,110 @@ const OABTrilhasTopicos = () => {
       <div className="px-4 pb-24">
         <div className="max-w-lg mx-auto space-y-3">
           {subtemas && subtemas.length > 0 ? (
-            subtemas.map((subtema, index) => (
-              <motion.button
-                key={subtema.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
-                onClick={() => navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}/estudo/${subtema.id}`)}
-                className={`w-full text-left bg-neutral-800 rounded-xl border border-white/10 overflow-hidden transition-all group ${
-                  isEtica ? "hover:border-amber-500/30" : "hover:border-red-500/30"
-                }`}
-              >
-                <div className="flex items-center">
-                  {/* Capa - usa fallbackCapa do tema/área para todos */}
-                  <div className="w-20 h-20 flex-shrink-0 relative bg-neutral-900 overflow-hidden rounded-l-xl">
-                    {(subtema.url_imagem_resumo || fallbackCapa) ? (
-                      <img 
-                        src={subtema.url_imagem_resumo || fallbackCapa}
-                        alt={subtema.subtema}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                        fetchPriority="high"
-                        decoding="sync"
-                      />
-                    ) : (
-                      <div className={`w-full h-full flex items-center justify-center ${
-                        isEtica 
-                          ? "bg-gradient-to-br from-amber-900/50 to-orange-900/50"
-                          : "bg-gradient-to-br from-red-900/50 to-rose-900/50"
+            subtemas.map((subtema, index) => {
+              const subtemaStatus = getSubtemaStatus(subtema.id);
+              const progresso = progressoUsuario?.[subtema.id];
+              const leituraCompleta = progresso?.leituraCompleta || false;
+              const progressoLeitura = progresso?.progresso || 0;
+              const progressoFlashcards = progresso?.progressoFlashcards || 0;
+              const progressoQuestoes = progresso?.progressoQuestoes || 0;
+              const hasConteudo = subtemaStatus.hasContent;
+              const isGerando = subtemaStatus.status === "gerando";
+              
+              return (
+                <motion.button
+                  key={subtema.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  onClick={() => navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}/estudo/${subtema.id}`)}
+                  className={`w-full text-left bg-neutral-800 rounded-xl border overflow-hidden transition-all group ${
+                    isGerando 
+                      ? `${isEtica ? "border-amber-500/50 bg-amber-900/20" : "border-red-500/50 bg-red-900/20"}`
+                      : `border-white/10 ${isEtica ? "hover:border-amber-500/30" : "hover:border-red-500/30"}`
+                  }`}
+                >
+                  <div className="flex items-center">
+                    {/* Capa - usa fallbackCapa do tema/área para todos */}
+                    <div className="w-20 h-20 flex-shrink-0 relative bg-neutral-900 overflow-hidden rounded-l-xl">
+                      {(subtema.url_imagem_resumo || fallbackCapa) ? (
+                        <img 
+                          src={subtema.url_imagem_resumo || fallbackCapa}
+                          alt={subtema.subtema}
+                          className="w-full h-full object-cover"
+                          loading="eager"
+                          fetchPriority="high"
+                          decoding="sync"
+                        />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center ${
+                          isEtica 
+                            ? "bg-gradient-to-br from-amber-900/50 to-orange-900/50"
+                            : "bg-gradient-to-br from-red-900/50 to-rose-900/50"
+                        }`}>
+                          <ImageIcon className={`w-6 h-6 ${isEtica ? "text-amber-500/50" : "text-red-500/50"}`} />
+                        </div>
+                      )}
+                      {/* Badge do número no canto inferior esquerdo */}
+                      <div className={`absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold ${
+                        isEtica ? "bg-amber-600 text-white" : "bg-red-600 text-white"
                       }`}>
-                        <ImageIcon className={`w-6 h-6 ${isEtica ? "text-amber-500/50" : "text-red-500/50"}`} />
+                        {String(index + 1).padStart(2, '0')}
                       </div>
-                    )}
-                    {/* Badge do número no canto inferior esquerdo */}
-                    <div className={`absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold ${
-                      isEtica ? "bg-amber-600 text-white" : "bg-red-600 text-white"
-                    }`}>
-                      {String(index + 1).padStart(2, '0')}
+                      
+                      {/* Indicador de geração sobreposto */}
+                      {isGerando && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 className={`w-5 h-5 animate-spin ${isEtica ? "text-amber-400" : "text-red-400"}`} />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Conteúdo */}
+                    <div className="flex-1 p-3 flex flex-col justify-center min-h-[80px] relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className={`font-medium text-white transition-colors text-sm flex-1 pr-2 line-clamp-2 ${
+                          isEtica ? "group-hover:text-amber-400" : "group-hover:text-red-400"
+                        }`}>
+                          {subtema.subtema}
+                        </h3>
+                        
+                        {/* Ícone de conclusão ou seta */}
+                        {leituraCompleta ? (
+                          <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-400" />
+                        ) : (
+                          <ChevronRight className={`w-5 h-5 flex-shrink-0 ${isEtica ? "text-amber-500/50" : "text-red-500/50"}`} />
+                        )}
+                      </div>
+                      
+                      {/* Barra de progresso do subtema */}
+                      {hasConteudo && (
+                        <div className="mt-1">
+                          {/* Barra de progresso geral combinada */}
+                          <Progress 
+                            value={(progressoLeitura + progressoFlashcards + progressoQuestoes) / 3} 
+                            className={`h-1.5 bg-white/10 [&>div]:bg-gradient-to-r ${isEtica ? "[&>div]:from-amber-500 [&>div]:to-orange-500" : "[&>div]:from-red-500 [&>div]:to-rose-500"}`} 
+                          />
+                          
+                          {/* Indicadores detalhados: Lido, Flashcards, Praticar */}
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <span className="text-[10px] text-orange-400">
+                              leitura {Math.round(progressoLeitura)}%
+                            </span>
+                            <span className="text-[10px] text-purple-400">
+                              flashcards {Math.round(progressoFlashcards)}%
+                            </span>
+                            <span className="text-[10px] text-emerald-400">
+                              praticar {Math.round(progressoQuestoes)}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Conteúdo */}
-                  <div className="flex-1 p-3 flex items-center justify-between min-h-[80px]">
-                    <h3 className={`font-medium text-white transition-colors text-sm ${
-                      isEtica ? "group-hover:text-amber-400" : "group-hover:text-red-400"
-                    }`}>
-                      {subtema.subtema}
-                    </h3>
-                    <ChevronRight className={`w-5 h-5 flex-shrink-0 ml-2 ${isEtica ? "text-amber-500/50" : "text-red-500/50"}`} />
-                  </div>
-                </div>
-              </motion.button>
-            ))
+                </motion.button>
+              );
+            })
           ) : (
             <div className="text-center py-12 text-gray-400">
               <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -254,7 +410,7 @@ const OABTrilhasTopicos = () => {
         temaNome={topico?.titulo || ""}
         onComplete={() => {
           setShowPdfModal(false);
-          window.location.reload();
+          queryClient.invalidateQueries({ queryKey: ["oab-trilha-subtemas-resumo"] });
         }}
       />
     </div>
