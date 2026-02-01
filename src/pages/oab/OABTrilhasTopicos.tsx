@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, BookOpen, ChevronRight, ImageIcon, FileText, RefreshCw, CheckCircle } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, ChevronRight, ImageIcon, FileText, RefreshCw, CheckCircle, Scale } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -195,13 +195,25 @@ const OABTrilhasTopicos = () => {
               <div className={`w-12 h-12 rounded-xl ${isEtica ? "bg-amber-500/30" : "bg-red-500/30"} flex items-center justify-center flex-shrink-0 backdrop-blur-sm`}>
                 <BookOpen className={`w-6 h-6 ${isEtica ? "text-amber-400" : "text-red-400"}`} />
               </div>
-              <div>
+              <div className="flex-1">
                 <span className={`text-xs font-mono ${isEtica ? "text-amber-400" : "text-red-400"}`}>
                   {area?.nome}
                 </span>
                 <h1 className="text-xl font-bold text-white" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                   {topico?.titulo}
                 </h1>
+                {/* Estatísticas inline */}
+                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                  <span>{totalSubtemas} tópicos</span>
+                  <span className="text-gray-600">•</span>
+                  <div className="flex items-center gap-1">
+                    <Scale className="w-3 h-3" />
+                    <span>{subtemas?.reduce((acc, s) => {
+                      const slides = s.slides_json as { slides?: unknown[] } | null;
+                      return acc + (slides?.slides?.length || 0);
+                    }, 0) || 0} páginas</span>
+                  </div>
+                </div>
               </div>
             </div>
 
