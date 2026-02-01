@@ -47,29 +47,48 @@ serve(async (req) => {
         .join('\n')
         .replace(/\r/g, '');
 
-      // Padrão (permissivo): "16. TITULO .... 35" ou "16 TITULO      35" ou "16) TITULO ··· 35"
-      const re = /(^|\n)\s*(\d{1,2})\s*(?:[\.)\-])?\s+([^\n]+?)(?:[\.\u00B7•‧…]{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
       const seen = new Set<string>();
       const items: Array<{ ordem: number; titulo: string; pagina_indice?: number }> = [];
 
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(texto)) !== null) {
-        const ordem = Number(m[2]);
-        const rawTitulo = (m[3] || '').trim();
-        const paginaIndice = Number(m[4]);
+      // Múltiplos padrões para capturar diferentes formatos de índice:
+      const patterns = [
+        // Padrão 1: "6. TITULO .... 17" ou "6. TITULO      17" (com pontilhados ou espaços)
+        /(^|\n)\s*(\d{1,2})\s*[\.)\-]\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][^\n]{3,}?)(?:[\.\u00B7•‧…·\-_]{3,}|\s{3,})\s*(\d{1,4})\s*(?=\n|$)/g,
+        // Padrão 2: "6 TITULO ...17" (sem ponto após número)
+        /(^|\n)\s*(\d{1,2})\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{3,}?)(?:[\.\u00B7•‧…·\-_]{3,}|\s{3,})\s*(\d{1,4})\s*(?=\n|$)/g,
+        // Padrão 3: Linha que termina com número de página após espaços (mais permissivo)
+        /(^|\n)\s*(\d{1,2})\s*[\.)\-]?\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][^\n]{5,}?)\s+(\d{1,3})\s*$/gm,
+      ];
 
-        // Normalizações mínimas
-        const titulo = rawTitulo
-          .replace(/\s+/g, ' ')
-          .replace(/[\.\u00B7•‧…]{2,}$/g, '')
-          .trim();
+      for (const re of patterns) {
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(texto)) !== null) {
+          const ordem = Number(m[2]);
+          const rawTitulo = (m[3] || '').trim();
+          const paginaIndice = Number(m[4]);
 
-        // Evitar duplicados (por ordem + título)
-        const key = `${ordem}::${titulo}`.toLowerCase();
-        if (!titulo || seen.has(key)) continue;
-        seen.add(key);
+          // Ignorar números de página muito altos (provavelmente não é índice)
+          if (paginaIndice > 500) continue;
 
-        items.push({ ordem, titulo, pagina_indice: Number.isFinite(paginaIndice) ? paginaIndice : undefined });
+          // Normalizações mínimas
+          let titulo = rawTitulo
+            .replace(/\s+/g, ' ')
+            .replace(/[\.\u00B7•‧…·\-_]{2,}$/g, '')
+            .trim();
+
+          // Remover números finais que podem ser da página
+          titulo = titulo.replace(/\s+\d{1,3}$/g, '').trim();
+
+          // Evitar títulos muito curtos ou só números
+          if (!titulo || titulo.length < 3 || /^\d+$/.test(titulo)) continue;
+
+          // Evitar duplicados (por ordem)
+          const key = `${ordem}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          items.push({ ordem, titulo, pagina_indice: Number.isFinite(paginaIndice) ? paginaIndice : undefined });
+        }
       }
 
       // Ordenar por ordem numérica
@@ -83,8 +102,10 @@ serve(async (req) => {
 
       const uniq = Array.from(byOrdem.values()).sort((a, b) => a.ordem - b.ordem);
 
+      console.log(`🔍 Extração de índice: encontrados ${uniq.length} itens nível 1`);
+
       // Limite defensivo aumentado para suportar índices maiores
-      return uniq.slice(0, 40);
+      return uniq.slice(0, 50);
     };
 
     // Criar mapa de páginas para acesso rápido
