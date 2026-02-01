@@ -77,6 +77,7 @@ const OABTrilhasSubtemaEstudo = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [autoCapaTriggered, setAutoCapaTriggered] = useState(false);
 
   const parsedResumoId = resumoId ? parseInt(resumoId) : null;
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
@@ -193,6 +194,16 @@ const OABTrilhasSubtemaEstudo = () => {
       gerarConteudoMutation.mutate();
     }
   }, [resumo?.id, resumo?.conteudo_gerado, isGeneratingContent]);
+
+  // Gerar capa automaticamente se ainda não existir
+  useEffect(() => {
+    if (!resumo || autoCapaTriggered) return;
+    if (resumo.url_imagem_resumo) return;
+    if (gerarCapaMutation.isPending) return;
+
+    setAutoCapaTriggered(true);
+    gerarCapaMutation.mutate();
+  }, [resumo?.id, resumo?.url_imagem_resumo, autoCapaTriggered, gerarCapaMutation.isPending]);
 
   // Parse conteudo_gerado (memoizado para estabilidade entre renders)
   const conteudoGerado = useMemo(
