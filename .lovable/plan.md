@@ -1,65 +1,65 @@
 
+Objetivo
+- Fazer o identificador de subtemas reconhecer e extrair corretamente índices que continuam na página seguinte “em formato de título/markdown” (ex.: “## 6. …”) para que, no tópico 507 (Imputabilidade e Concurso de Pessoas), apareçam os 9 itens (1–9) e não apenas 5.
 
-# Plano: Expandir Imagens para Cobrir Bordas Brancas
+Diagnóstico (com base no que vi no banco)
+- A página 2 do tópico 507 tem o índice numerado 1–5 em linhas comuns.
+- A página 3 continua o índice, mas os itens 6–9 aparecem como headers em markdown, por exemplo:
+  - “## 6. MEDIDA DE SEGURANÇA...17”
+  - “## 7. IMPUTABILIDADE E EMBRIAGUEZ...19”
+  - “## 8. CONCURSO DE PESSOAS...21”
+  - “## 9. CIRCUNSTÂNCIAS E ELEMENTARES...25”
+- A edge function supabase/functions/identificar-subtemas-oab:
+  - Já detecta “páginas de índice” aceitando esse formato de header (indiceHeaderRe) para filtrar paginasIndice.
+  - Porém, a função extrairTitulosIndiceNivel1() NÃO possui um regex de extração para esse formato “## N. TÍTULO ... PÁGINA”.
+- Resultado: a função vê a página 3 como índice, mas não consegue extrair os itens 6–9; por isso termina com 5 subtemas.
 
-## Problema Identificado
+Mudança proposta (alto nível)
+1) Ajustar a extração do índice (extrairTitulosIndiceNivel1)
+- Adicionar um 4º padrão ao array patterns que extraia itens no formato header/markdown com “#”:
+  - Capturar ordem (N), título, e número da página, no mesmo formato dos outros padrões.
+  - Reutilizar a mesma ideia do indiceHeaderRe, mas adaptada aos critérios de “título começa com maiúscula” (ou relaxar esse critério para não perder casos como “(IN)IMPUTABILIDADE...”).
+- Garantir que:
+  - Ele concatene corretamente múltiplas páginas de índice (já concatena).
+  - O dedupe por “ordem” não descarte o item correto (manter o primeiro por ordem, como já faz).
 
-As capas de subtemas OAB estão sendo geradas em **1280x720 pixels (16:9)**, mas o modelo Gemini às vezes inclui bordas brancas nas laterais. Essas bordas aparecem tanto na lista de subtemas quanto na tela de introdução.
+2) Melhorar robustez para títulos que começam com parênteses (opcional, mas recomendado)
+- Relaxar o “começa com letra maiúscula” para aceitar também “(” no começo do título:
+  - Ex.: permitir que o grupo do título comece com “[(A-ZÁÉÍÓÚ…]”.
+  - Isso evita perdas em PDFs onde o OCR coloca parênteses no início do item.
 
-## Solução
+3) Logging de diagnóstico (para confirmar no log sem depender só da UI)
+- Logar:
+  - Quais páginas foram consideradas “páginas de índice” (número da página).
+  - Quantos matches cada padrão encontrou (principalmente o novo padrão de headers).
+  - A lista final de itens extraídos (ordem, título, página do índice).
+- Isso ajuda a “identificar” quando o corte acontecer novamente em PDFs com 3–4 páginas de índice.
 
-Aplicar técnica de **scale + crop** via CSS para expandir levemente a imagem além do container, efetivamente "cortando" qualquer borda branca que possa existir nas extremidades.
+4) Manter a regra “índice confiável => gerar subtemas diretamente do índice”
+- Não mudar a lógica de “indiceEhConfiavel” (理解 atual está correta).
+- Após extrair os 9 itens (1–9), essa lógica vai:
+  - Calcular ranges (pagina_inicial/pagina_final) por monotonicidade.
+  - Salvar em oab_trilhas_topicos.subtemas_identificados.
+  - Salvar conteúdo por subtema na conteudo_oab_revisao.
 
-## Alterações Técnicas
+Como vou validar (checklist de testes)
+- Teste direcionado no tópico 507:
+  - Rodar a edge function identificar-subtemas-oab para topicoId=507 com areaNome/temaNome corretos (os mesmos usados na UI).
+  - Conferir no retorno JSON: subtemas.length === 9.
+  - Conferir no log: itens 6–9 foram extraídos pelo padrão novo.
+- Teste pela UI (fluxo real):
+  - Clicar em “Reprocessar PDF” / “Processar PDF” e verificar que o modal “Confirmar os subtemas identificados” mostra 9 itens, não 5.
+- Teste regressão:
+  - Reprocessar um tópico com índice em formato “linha normal” (sem headers) para garantir que não quebrou.
 
-### 1. Lista de Subtemas (`src/pages/oab/OABTrilhasTopicos.tsx`)
+Riscos e cuidados
+- Falso positivo: regex de header pegar “##” de conteúdo que não é índice.
+  - Mitigação: só aplicamos a extração em páginas já classificadas como “páginas de índice” (paginasIndice) e ainda usamos dedupe/ordem.
+- PDFs com títulos muito “sujos” no OCR:
+  - Mitigação: relaxar início do título para aceitar “(” e manter filtros de tamanho mínimo + limite de página (<=500) já existente.
 
-**Linha 295 - Thumbnail na lista:**
-```tsx
-// De:
-className="w-full h-full object-cover"
-
-// Para:
-className="w-full h-full object-cover scale-110"
-```
-
-O `scale-110` aumenta a imagem em 10%, e como o container tem `overflow-hidden`, as bordas brancas ficam fora da área visível.
-
-### 2. Tela de Introdução (`src/components/oab/OABTrilhasTopicoIntro.tsx`)
-
-**Linhas 95-108 - Capa hero:**
-```tsx
-// De:
-<UniversalImage
-  ...
-  className="object-cover"
-/>
-
-// Para:
-<UniversalImage
-  ...
-  className="object-cover scale-110"
-/>
-```
-
-### 3. Componente UniversalImage (opcional)
-
-O componente `UniversalImage` já aplica `object-cover` internamente (linha 213). A classe adicional `scale-110` passada via `className` será concatenada corretamente.
-
-## Detalhes Técnicos
-
-| Aspecto | Valor Atual | Ação |
-|---------|-------------|------|
-| Resolução de geração | 1280x720 (16:9) | Manter |
-| Técnica CSS | `object-cover` | Adicionar `scale-110` |
-| Overflow | `overflow-hidden` | Já existe nos containers |
-
-## Arquivos a Modificar
-
-1. `src/pages/oab/OABTrilhasTopicos.tsx` - Adicionar scale nas thumbnails da lista
-2. `src/components/oab/OABTrilhasTopicoIntro.tsx` - Adicionar scale na imagem hero
-
-## Resultado Esperado
-
-As imagens vão aparecer levemente ampliadas (10%), cortando automaticamente qualquer borda branca que o modelo de IA tenha gerado nas extremidades, sem perder qualidade visual significativa.
-
+Escopo de arquivos que serão alterados (quando aprovado)
+- supabase/functions/identificar-subtemas-oab/index.ts
+  - Adicionar o novo regex no array patterns dentro de extrairTitulosIndiceNivel1.
+  - (Opcional) relaxar o critério de primeiro caractere do título.
+  - Adicionar logs de diagnóstico para matches e páginas do índice.
