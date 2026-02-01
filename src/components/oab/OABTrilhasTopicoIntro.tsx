@@ -107,8 +107,8 @@ export const OABTrilhasTopicoIntro = ({
           }
         />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/70 to-transparent" />
+        {/* Gradient overlay - only at bottom where content overlaps */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0a0a0f] to-transparent" />
       </div>
 
       {/* Content */}
