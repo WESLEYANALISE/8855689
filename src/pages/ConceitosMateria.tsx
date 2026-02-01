@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Layers, ImageIcon, FileText, RefreshCw, CheckCircle, ChevronRight, Target } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Layers, ImageIcon, FileText, RefreshCw, CheckCircle, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { PdfProcessorModal } from "@/components/conceitos/PdfProcessorModal";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConceitosProgressBadge } from "@/components/conceitos/ConceitosProgressBadge";
+import { TopicoProgressoDetalhado } from "@/components/conceitos/TopicoProgressoDetalhado";
 import { useConceitosAutoGeneration } from "@/hooks/useConceitosAutoGeneration";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -78,7 +79,7 @@ const ConceitosMateria = () => {
       const topicoIds = topicos.map(t => t.id);
       const { data, error } = await supabase
         .from("oab_trilhas_estudo_progresso")
-        .select("topico_id, leitura_completa, progresso_leitura")
+        .select("topico_id, leitura_completa, progresso_leitura, progresso_flashcards, progresso_questoes")
         .eq("user_id", user.id)
         .in("topico_id", topicoIds);
       
@@ -87,11 +88,18 @@ const ConceitosMateria = () => {
         return {};
       }
       
-      const progressoMap: Record<number, { leituraCompleta: boolean; progresso: number }> = {};
+      const progressoMap: Record<number, { 
+        leituraCompleta: boolean; 
+        progresso: number;
+        progressoFlashcards: number;
+        progressoQuestoes: number;
+      }> = {};
       data?.forEach(p => {
         progressoMap[p.topico_id] = {
           leituraCompleta: p.leitura_completa || false,
-          progresso: p.progresso_leitura || 0
+          progresso: p.progresso_leitura || 0,
+          progressoFlashcards: p.progresso_flashcards || 0,
+          progressoQuestoes: p.progresso_questoes || 0
         };
       });
       return progressoMap;
@@ -255,6 +263,8 @@ const ConceitosMateria = () => {
               const progresso = progressoUsuario?.[topico.id];
               const leituraCompleta = progresso?.leituraCompleta || false;
               const progressoLeitura = progresso?.progresso || 0;
+              const progressoFlashcards = progresso?.progressoFlashcards || 0;
+              const progressoQuestoes = progresso?.progressoQuestoes || 0;
               // Conteúdo disponível (novo: slides_json). Mantém compatibilidade com legado se existir.
               const hasConteudo = !!(topico as any)?.slides_json || !!topico.conteudo_gerado;
               
@@ -340,13 +350,18 @@ const ConceitosMateria = () => {
                       {/* Barra de progresso do tópico */}
                       {topico.status === "concluido" && hasConteudo && (
                         <div className="mt-1">
+                          {/* Barra de progresso geral combinada */}
                           <Progress 
-                            value={progressoLeitura} 
+                            value={(progressoLeitura + progressoFlashcards + progressoQuestoes) / 3} 
                             className="h-1.5 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-orange-500" 
                           />
-                          <span className="text-xs text-gray-500 mt-0.5 block">
-                            {leituraCompleta ? "Concluído ✓" : `${progressoLeitura}% lido`}
-                          </span>
+                          
+                          {/* Indicadores detalhados: Lido, Flashcards, Praticar */}
+                          <TopicoProgressoDetalhado
+                            progressoLeitura={progressoLeitura}
+                            progressoFlashcards={progressoFlashcards}
+                            progressoQuestoes={progressoQuestoes}
+                          />
                         </div>
                       )}
                     </div>
