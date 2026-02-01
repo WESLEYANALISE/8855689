@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Sparkles, Info, ImageIcon } from "lucide-react";
+import { Loader2, Sparkles, Info, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import StandardPageHeader from "@/components/StandardPageHeader";
-import OABTrilhasReader from "@/components/oab/OABTrilhasReader";
+import { useAuth } from "@/contexts/AuthContext";
+import OABTrilhasTopicoIntro from "@/components/oab/OABTrilhasTopicoIntro";
+import { ConceitosSlidesViewer } from "@/components/conceitos/slides";
+import type { ConceitoSecao, ConceitoSlide } from "@/components/conceitos/slides/types";
 
 interface Flashcard {
   frente: string;
@@ -37,10 +39,14 @@ interface ConteudoGerado {
   questoes?: Questao[];
 }
 
+type ViewMode = 'intro' | 'slides';
+
 const OABTrilhasSubtemaEstudo = () => {
   const { materiaId, topicoId, resumoId } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [fontSize, setFontSize] = useState(15);
+  const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
 
   const parsedResumoId = resumoId ? parseInt(resumoId) : null;
@@ -63,10 +69,27 @@ const OABTrilhasSubtemaEstudo = () => {
     enabled: !!parsedResumoId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Polling apenas para conteúdo, não para capa
       if (data && !data.conteudo_gerado) return 3000;
       return false;
     },
+  });
+
+  // Buscar progresso do usuário
+  const { data: progresso } = useQuery({
+    queryKey: ["oab-subtema-progresso", parsedTopicoId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !parsedTopicoId) return null;
+      
+      const { data } = await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("topico_id", parsedTopicoId)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!user?.id && !!parsedTopicoId,
   });
 
   // Mutation para gerar capa manualmente
@@ -159,22 +182,80 @@ const OABTrilhasSubtemaEstudo = () => {
   
   // Detectar se houve erro na geração (conteúdo fonte vazio)
   const isErroFonte = conteudoGerado.erro === true;
-  
-  // Extrair conteúdo das páginas (novo formato) ou fallback para formato antigo
-  const extrairConteudoPrincipal = (): string => {
-    // Se houver erro, retorna vazio
-    if (isErroFonte) return "";
-    // Novo formato: páginas
-    if (conteudoGerado.paginas && conteudoGerado.paginas.length > 0) {
-      return conteudoGerado.paginas.map(p => `## ${p.titulo}\n\n${p.markdown}`).join('\n\n---\n\n');
-    }
-    // Formato antigo: resumo ou markdown
-    return conteudoGerado.resumo || conteudoGerado.markdown || resumo?.conteudo || "";
-  };
-  
-  const conteudoPrincipal = extrairConteudoPrincipal();
+
+  // Converter páginas para formato ConceitoSecao[]
+  const slidesData: ConceitoSecao[] = useMemo(() => {
+    if (!conteudoGerado.paginas || conteudoGerado.paginas.length === 0) return [];
+    
+    return [{
+      id: 1,
+      titulo: resumo?.subtema || "Conteúdo",
+      slides: conteudoGerado.paginas.map((p): ConceitoSlide => ({
+        tipo: (p.tipo as ConceitoSlide['tipo']) || 'texto',
+        titulo: p.titulo,
+        conteudo: p.markdown
+      }))
+    }];
+  }, [conteudoGerado.paginas, resumo?.subtema]);
+
+  // Flashcards e questões
   const flashcards: Flashcard[] = Array.isArray(conteudoGerado.flashcards) ? conteudoGerado.flashcards : [];
   const questoes: Questao[] = Array.isArray(conteudoGerado.questoes) ? conteudoGerado.questoes : [];
+
+  // Callbacks de navegação
+  const handleBack = () => {
+    navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}`);
+  };
+
+  const handleStartSlides = () => {
+    setViewMode('slides');
+  };
+
+  const handleCloseSlides = () => {
+    setViewMode('intro');
+  };
+
+  const handleStartFlashcards = () => {
+    navigate(`/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}/estudo/${resumoId}/flashcards`);
+  };
+
+  const handleStartQuestoes = () => {
+    navigate(`/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}/estudo/${resumoId}/questoes`);
+  };
+
+  const handleSlidesComplete = async () => {
+    // Marcar leitura como completa
+    if (user?.id && parsedTopicoId) {
+      await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .upsert({
+          user_id: user.id,
+          topico_id: parsedTopicoId,
+          leitura_completa: true,
+          progresso_leitura: 100,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,topico_id' });
+      
+      queryClient.invalidateQueries({ queryKey: ["oab-subtema-progresso"] });
+    }
+    
+    toast.success("Leitura concluída!");
+    setViewMode('intro');
+  };
+
+  const handleProgressChange = async (progress: number) => {
+    if (user?.id && parsedTopicoId) {
+      await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .upsert({
+          user_id: user.id,
+          topico_id: parsedTopicoId,
+          progresso_leitura: progress,
+          leitura_completa: progress >= 100,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,topico_id' });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -188,11 +269,17 @@ const OABTrilhasSubtemaEstudo = () => {
   if (isErroFonte) {
     return (
       <div className="min-h-screen bg-[#0d0d14]">
-        <StandardPageHeader
-          title={resumo?.subtema || "Erro"}
-          subtitle={resumo?.area}
-          backPath={`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}`}
-        />
+        <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3 max-w-2xl mx-auto">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-red-400 uppercase tracking-widest truncate">{resumo?.area}</p>
+              <h1 className="text-sm font-semibold text-white truncate">{resumo?.subtema || "Erro"}</h1>
+            </div>
+          </div>
+        </div>
         
         <div className="flex flex-col items-center justify-center py-16 text-center px-4 max-w-md mx-auto">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
@@ -211,7 +298,7 @@ const OABTrilhasSubtemaEstudo = () => {
             {conteudoGerado.acao || "Volte ao tópico e reprocesse o PDF para corrigir."}
           </p>
           <Button
-            onClick={() => window.history.back()}
+            onClick={handleBack}
             className="bg-amber-500 hover:bg-amber-600 text-white"
           >
             <Sparkles className="w-4 h-4 mr-2" />
@@ -228,11 +315,17 @@ const OABTrilhasSubtemaEstudo = () => {
   if (isGerando) {
     return (
       <div className="min-h-screen bg-[#0d0d14]">
-        <StandardPageHeader
-          title={resumo?.subtema || "Carregando..."}
-          subtitle={resumo?.area}
-          backPath={`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}`}
-        />
+        <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3 max-w-2xl mx-auto">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-red-400 uppercase tracking-widest truncate">{resumo?.area}</p>
+              <h1 className="text-sm font-semibold text-white truncate">{resumo?.subtema || "Carregando..."}</h1>
+            </div>
+          </div>
+        </div>
         
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
           <Loader2 className="w-12 h-12 animate-spin text-red-500 mb-4" />
@@ -247,48 +340,57 @@ const OABTrilhasSubtemaEstudo = () => {
     );
   }
 
-  // Renderizar o Reader estilo Conceitos
+  // Extrair objetivos do conteúdo
+  const objetivos = conteudoGerado.paginas?.slice(0, 3).map(p => p.titulo) || [];
+  const totalPaginas = slidesData[0]?.slides.length || 0;
+  const tempoEstimado = `${Math.ceil(totalPaginas * 2)} min`;
+
+  // Renderizar Slides Viewer (igual ao Conceitos)
+  if (viewMode === 'slides' && slidesData.length > 0) {
+    return (
+      <ConceitosSlidesViewer
+        secoes={slidesData}
+        titulo={resumo?.subtema || ""}
+        materiaName={resumo?.area}
+        onClose={handleCloseSlides}
+        onComplete={handleSlidesComplete}
+        onProgressChange={handleProgressChange}
+        initialProgress={progresso?.progresso_leitura || 0}
+      />
+    );
+  }
+
+  // Renderizar Tela de Introdução (igual ao Conceitos, com boas-vindas OAB)
   return (
     <div className="min-h-screen bg-[#0d0d14]">
-      <StandardPageHeader
-        title={resumo?.subtema || "Carregando..."}
-        subtitle={resumo?.area}
-        backPath={`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}`}
-      />
+      {/* Header minimalista */}
+      <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3 max-w-2xl mx-auto">
+          <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8 text-white hover:bg-white/10">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-red-400 uppercase tracking-widest truncate">{resumo?.area} • OAB</p>
+          </div>
+        </div>
+      </div>
 
-      <OABTrilhasReader
-        conteudoGerado={conteudoPrincipal}
-        paginas={conteudoGerado.paginas}
+      <OABTrilhasTopicoIntro
         titulo={resumo?.subtema || ""}
-        materia={resumo?.area}
+        materiaName={resumo?.area}
         capaUrl={resumo?.url_imagem_resumo}
-        flashcards={flashcards}
-        questoes={questoes}
-        topicoId={parsedResumoId || 0}
-        fontSize={fontSize}
-        onFontSizeChange={setFontSize}
-        onGerarCapa={() => gerarCapaMutation.mutate()}
-        isGeneratingCapa={gerarCapaMutation.isPending}
-        correspondencias={(() => {
-          // Extrair correspondências do campo termos ou dados_interativos das páginas
-          const termos = conteudoGerado.termos as any;
-          if (termos?.correspondencias && Array.isArray(termos.correspondencias)) {
-            return termos.correspondencias;
-          }
-          // Fallback: se for array simples com termo/definicao
-          if (Array.isArray(termos)) {
-            return termos.filter((t: any) => t.termo && t.definicao);
-          }
-          // Fallback 2: buscar na página de correspondências
-          const paginaCorr = conteudoGerado.paginas?.find((p: any) => p.tipo === 'correspondencias') as any;
-          if (paginaCorr?.dados_interativos?.pares) {
-            return paginaCorr.dados_interativos.pares.map((p: any) => ({
-              termo: p.termo,
-              definicao: p.definicao
-            }));
-          }
-          return [];
-        })()}
+        tempoEstimado={tempoEstimado}
+        totalPaginas={totalPaginas}
+        objetivos={objetivos}
+        progressoLeitura={progresso?.progresso_leitura || 0}
+        progressoFlashcards={progresso?.progresso_flashcards || 0}
+        progressoQuestoes={progresso?.progresso_questoes || 0}
+        hasFlashcards={flashcards.length > 0}
+        hasQuestoes={questoes.length > 0}
+        onStartPaginas={handleStartSlides}
+        onStartFlashcards={handleStartFlashcards}
+        onStartQuestoes={handleStartQuestoes}
+        onBack={handleBack}
       />
     </div>
   );
