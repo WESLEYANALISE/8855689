@@ -3514,6 +3514,39 @@ export type Database = {
         }
         Relationships: []
       }
+      codigos_capas: {
+        Row: {
+          capa_prompt: string | null
+          capa_url: string | null
+          codigo_nome: string
+          codigo_tabela: string
+          created_at: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          capa_prompt?: string | null
+          capa_url?: string | null
+          codigo_nome: string
+          codigo_tabela: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          capa_prompt?: string | null
+          capa_url?: string | null
+          codigo_nome?: string
+          codigo_tabela?: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       COMPLETE_LEI_CACHE: {
         Row: {
           area: string
