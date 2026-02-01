@@ -13,43 +13,31 @@ export const TopicoProgressoDetalhado = ({
 }: TopicoProgressoDetalhadoProps) => {
   const items = [
     {
-      label: "Lido",
+      label: "leitura",
       value: progressoLeitura,
-      colorClass: "text-orange-400",
-      bgClass: "bg-orange-500"
+      colorClass: "text-orange-400"
     },
     {
-      label: "Flashcards",
+      label: "flashcards",
       value: progressoFlashcards,
-      colorClass: "text-purple-400",
-      bgClass: "bg-purple-500"
+      colorClass: "text-purple-400"
     },
     {
-      label: "Praticar",
+      label: "praticar",
       value: progressoQuestoes,
-      colorClass: "text-emerald-400",
-      bgClass: "bg-emerald-500"
+      colorClass: "text-emerald-400"
     }
   ];
 
   return (
     <div className="flex items-center gap-3 mt-1.5">
-      {items.map((item) => {
-        const isComplete = item.value >= 100;
-        
-        return (
-          <div key={item.label} className="flex items-center gap-1">
-            {isComplete ? (
-              <CheckCircle className={`w-3 h-3 ${item.colorClass}`} />
-            ) : (
-              <div className={`w-1.5 h-1.5 rounded-full ${item.bgClass}`} />
-            )}
-            <span className={`text-[10px] ${item.colorClass}`}>
-              {Math.round(item.value)}%
-            </span>
-          </div>
-        );
-      })}
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center gap-1">
+          <span className={`text-[10px] ${item.colorClass}`}>
+            {item.label} {Math.round(item.value)}%
+          </span>
+        </div>
+      ))}
     </div>
   );
 };
