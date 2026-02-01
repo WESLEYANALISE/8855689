@@ -27,10 +27,19 @@ interface Pagina {
   titulo: string;
   tipo: string;
   markdown: string;
+  conteudo?: string;
+}
+
+interface SecaoData {
+  id: number;
+  titulo: string;
+  slides: any[];
 }
 
 interface ConteudoGerado {
   paginas?: Pagina[];
+  secoes?: SecaoData[];  // Novo formato com seções
+  objetivos?: string[];
   resumo?: string;
   markdown?: string;
   exemplos?: any;
@@ -183,8 +192,30 @@ const OABTrilhasSubtemaEstudo = () => {
   // Detectar se houve erro na geração (conteúdo fonte vazio)
   const isErroFonte = conteudoGerado.erro === true;
 
-  // Converter páginas para formato ConceitoSecao[]
+  // Converter para formato ConceitoSecao[] - suporta ambos formatos
   const slidesData: ConceitoSecao[] = useMemo(() => {
+    // Novo formato: já tem seções estruturadas
+    if (conteudoGerado.secoes && Array.isArray(conteudoGerado.secoes) && conteudoGerado.secoes.length > 0) {
+      return conteudoGerado.secoes.map((secao) => ({
+        id: secao.id,
+        titulo: secao.titulo,
+        slides: (secao.slides || []).map((slide: any): ConceitoSlide => ({
+          tipo: (slide.tipo as ConceitoSlide['tipo']) || 'texto',
+          titulo: slide.titulo,
+          conteudo: slide.conteudo || slide.markdown || '',
+          termos: slide.termos,
+          etapas: slide.etapas,
+          tabela: slide.tabela,
+          pergunta: slide.pergunta,
+          opcoes: slide.opcoes,
+          resposta: slide.resposta,
+          feedback: slide.feedback,
+          pontos: slide.pontos
+        }))
+      }));
+    }
+    
+    // Formato antigo: páginas flat (compatibilidade)
     if (!conteudoGerado.paginas || conteudoGerado.paginas.length === 0) return [];
     
     return [{
@@ -193,10 +224,10 @@ const OABTrilhasSubtemaEstudo = () => {
       slides: conteudoGerado.paginas.map((p): ConceitoSlide => ({
         tipo: (p.tipo as ConceitoSlide['tipo']) || 'texto',
         titulo: p.titulo,
-        conteudo: p.markdown
+        conteudo: p.markdown || p.conteudo || ''
       }))
     }];
-  }, [conteudoGerado.paginas, resumo?.subtema]);
+  }, [conteudoGerado, resumo?.subtema]);
 
   // Flashcards e questões
   const flashcards: Flashcard[] = Array.isArray(conteudoGerado.flashcards) ? conteudoGerado.flashcards : [];
@@ -340,9 +371,21 @@ const OABTrilhasSubtemaEstudo = () => {
     );
   }
 
-  // Extrair objetivos do conteúdo
-  const objetivos = conteudoGerado.paginas?.slice(0, 3).map(p => p.titulo) || [];
-  const totalPaginas = slidesData[0]?.slides.length || 0;
+  // Extrair objetivos do conteúdo (suporta novo e antigo formato)
+  const objetivos = useMemo(() => {
+    // Novo formato com objetivos explícitos
+    if (conteudoGerado.objetivos && Array.isArray(conteudoGerado.objetivos)) {
+      return conteudoGerado.objetivos;
+    }
+    // Extrair das seções (novo formato)
+    if (conteudoGerado.secoes && conteudoGerado.secoes.length > 0) {
+      return conteudoGerado.secoes.slice(0, 4).map(s => s.titulo);
+    }
+    // Fallback: extrair das páginas
+    return conteudoGerado.paginas?.slice(0, 3).map(p => p.titulo) || [];
+  }, [conteudoGerado]);
+  
+  const totalPaginas = slidesData.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
   const tempoEstimado = `${Math.ceil(totalPaginas * 2)} min`;
 
   // Renderizar Slides Viewer (igual ao Conceitos)
