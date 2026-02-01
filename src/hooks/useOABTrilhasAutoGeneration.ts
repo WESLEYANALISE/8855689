@@ -8,6 +8,7 @@ interface Topico {
   status: string | null;
   progresso: number | null;
   ordem: number;
+  posicao_fila?: number | null;
 }
 
 interface UseOABTrilhasAutoGenerationProps {
@@ -26,8 +27,9 @@ interface UseOABTrilhasAutoGenerationReturn {
   pendentes: number;
   percentualGeral: number;
   getTopicoStatus: (topicoId: number) => {
-    status: "concluido" | "gerando" | "pendente" | "erro";
+    status: "concluido" | "gerando" | "pendente" | "erro" | "na_fila";
     progresso: number;
+    posicaoFila?: number;
   };
 }
 
@@ -165,6 +167,9 @@ export const useOABTrilhasAutoGeneration = ({
     }
     if (topico.status === "gerando") {
       return { status: "gerando" as const, progresso: topico.progresso || 0 };
+    }
+    if (topico.status === "na_fila") {
+      return { status: "na_fila" as const, progresso: 0, posicaoFila: topico.posicao_fila || undefined };
     }
     if (topico.status === "erro") {
       return { status: "erro" as const, progresso: 0 };

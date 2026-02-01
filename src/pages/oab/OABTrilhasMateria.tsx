@@ -98,6 +98,7 @@ const OABTrilhasMateria = () => {
       status: m.status,
       progresso: m.progresso,
       ordem: m.ordem,
+      posicao_fila: m.posicao_fila,
     })),
     enabled: true,
   });
@@ -212,6 +213,28 @@ const OABTrilhasMateria = () => {
             </div>
           </div>
 
+          {/* Banner de geração em andamento */}
+          {isGenerating && currentGeneratingTitle && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-4 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-xl p-3"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="text-sm text-white truncate">Gerando: {currentGeneratingTitle}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Progress 
+                  value={currentProgress} 
+                  className="h-2 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
+                />
+                <span className="text-sm font-bold text-amber-400 min-w-[40px] text-right">{currentProgress}%</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">{concluidos} de {totalTopicosGerados} concluídos • {pendentes} pendentes</p>
+            </motion.div>
+          )}
+
           {/* Banner de conclusão */}
           {!isGenerating && concluidos === totalTopicosGerados && totalTopicosGerados > 0 && pendentes === 0 && (
             <motion.div
@@ -315,6 +338,7 @@ const OABTrilhasMateria = () => {
                                 <OABTrilhasProgressBadge
                                   status={topicoStatus.status}
                                   progresso={topicoStatus.progresso}
+                                  posicaoFila={materia.posicao_fila}
                                 />
                               );
                             })()}
