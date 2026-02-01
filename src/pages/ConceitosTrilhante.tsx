@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BookOpen, Footprints, GraduationCap, Loader2, ImagePlus } from "lucide-react";
+import { ArrowLeft, BookOpen, Footprints, GraduationCap, Loader2, ImagePlus, Scale } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import themisBackground from "@/assets/themis-estudos-background.webp";
@@ -32,7 +32,7 @@ const ConceitosTrilhante = () => {
     refetchOnMount: "always",
   });
 
-  // Buscar contagem de tópicos por matéria
+  // Buscar contagem de tópicos por matéria e total de páginas
   const { data: topicosCount } = useQuery({
     queryKey: ["conceitos-topicos-count-materia"],
     queryFn: async () => {
@@ -52,6 +52,42 @@ const ConceitosTrilhante = () => {
     },
     staleTime: 0,
     refetchOnMount: "always",
+  });
+
+  // Buscar total de páginas (slides) de todos os tópicos
+  const { data: totalPaginas } = useQuery({
+    queryKey: ["conceitos-total-paginas"],
+    queryFn: async () => {
+      const { data: topicos } = await supabase
+        .from("conceitos_topicos")
+        .select("slides_json");
+      
+      if (!topicos) return 0;
+      
+      let total = 0;
+      for (const topico of topicos) {
+        if (topico.slides_json) {
+          try {
+            const slides = typeof topico.slides_json === 'string' 
+              ? JSON.parse(topico.slides_json) 
+              : topico.slides_json;
+            // Contar slides de todas as seções
+            if (slides.secoes && Array.isArray(slides.secoes)) {
+              for (const secao of slides.secoes) {
+                if (secao.slides && Array.isArray(secao.slides)) {
+                  total += secao.slides.length;
+                }
+              }
+            }
+          } catch {
+            // Ignora erro de parse
+          }
+        }
+      }
+      
+      return total;
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   const handleGerarCapa = async (materiaId: number, e: React.MouseEvent) => {
@@ -131,14 +167,18 @@ const ConceitosTrilhante = () => {
 
         {/* Info Stats */}
         <div className="px-4 py-4">
-          <div className="flex items-center justify-center gap-6 text-sm text-white/80">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-red-400" />
+          <div className="flex items-center justify-center gap-4 text-xs sm:text-sm text-white/80">
+            <div className="flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
               <span>{totalMaterias} matérias</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Footprints className="w-4 h-4 text-yellow-400" />
+            <div className="flex items-center gap-1.5">
+              <Footprints className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
               <span>{totalTopicos} tópicos</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Scale className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+              <span>{totalPaginas || 0} páginas</span>
             </div>
           </div>
         </div>
