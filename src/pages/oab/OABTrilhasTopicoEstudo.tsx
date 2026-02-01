@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Info, Clock, ListOrdered } from "lucide-react";
+import { Loader2, Sparkles, Info, Clock, ListOrdered, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import StandardPageHeader from "@/components/StandardPageHeader";
-import OABTrilhasReader from "@/components/oab/OABTrilhasReader";
+import { useAuth } from "@/contexts/AuthContext";
+import OABTrilhasTopicoIntro from "@/components/oab/OABTrilhasTopicoIntro";
+import { ConceitosSlidesViewer } from "@/components/conceitos/slides";
+import type { ConceitoSecao, ConceitoSlide } from "@/components/conceitos/slides/types";
 
 interface Flashcard {
   frente: string;
@@ -27,24 +29,33 @@ interface QueueInfo {
   posicaoAtual: number | null;
 }
 
+interface Pagina {
+  titulo: string;
+  tipo: string;
+  markdown: string;
+}
+
+type ViewMode = 'intro' | 'slides';
+
 const OABTrilhasTopicoEstudo = () => {
   const { id, materiaId, topicoId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const targetId = id || topicoId;
   
-  const [fontSize, setFontSize] = useState(15);
+  const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const [isGeracaoTravada, setIsGeracaoTravada] = useState(false);
 
   // Buscar informações da fila
   const { data: queueInfo } = useQuery<QueueInfo>({
     queryKey: ["oab-trilha-queue-info", targetId],
     queryFn: async () => {
-      // Contar total na fila
       const { count: totalNaFila } = await supabase
         .from("oab_trilhas_topicos")
         .select("id", { count: "exact", head: true })
         .eq("status", "na_fila");
 
-      // Buscar posição deste tópico se estiver na fila
       const { data: topico } = await supabase
         .from("oab_trilhas_topicos")
         .select("posicao_fila, status")
@@ -56,7 +67,7 @@ const OABTrilhasTopicoEstudo = () => {
         posicaoAtual: topico?.status === "na_fila" ? topico.posicao_fila : null,
       };
     },
-    refetchInterval: 3000, // Atualizar a cada 3s
+    refetchInterval: 3000,
   });
 
   // Buscar dados do tópico
@@ -93,6 +104,24 @@ const OABTrilhasTopicoEstudo = () => {
     },
   });
 
+  // Buscar progresso do usuário
+  const { data: progresso } = useQuery({
+    queryKey: ["oab-topico-progresso", targetId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !targetId) return null;
+      
+      const { data } = await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("topico_id", parseInt(targetId))
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!user?.id && !!targetId,
+  });
+
   // Mutation para gerar conteúdo
   const gerarConteudoMutation = useMutation({
     mutationFn: async () => {
@@ -127,8 +156,101 @@ const OABTrilhasTopicoEstudo = () => {
     gerarConteudoMutation.mutate();
   }
 
+  // Parse conteúdo gerado
+  const parseConteudoGerado = () => {
+    if (!topico?.conteudo_gerado) return null;
+    if (typeof topico.conteudo_gerado === 'string') {
+      try {
+        return JSON.parse(topico.conteudo_gerado);
+      } catch {
+        return null;
+      }
+    }
+    return topico.conteudo_gerado;
+  };
+
+  const conteudoGerado = parseConteudoGerado();
+
+  // Converter páginas para formato ConceitoSecao[]
+  const slidesData: ConceitoSecao[] = useMemo(() => {
+    const paginas = conteudoGerado?.paginas as Pagina[] | undefined;
+    if (!paginas || paginas.length === 0) return [];
+    
+    return [{
+      id: 1,
+      titulo: topico?.titulo || "Conteúdo",
+      slides: paginas.map((p): ConceitoSlide => ({
+        tipo: (p.tipo as ConceitoSlide['tipo']) || 'texto',
+        titulo: p.titulo,
+        conteudo: p.markdown
+      }))
+    }];
+  }, [conteudoGerado?.paginas, topico?.titulo]);
+
   const flashcards: Flashcard[] = (topico?.flashcards as unknown as Flashcard[]) || [];
   const questoes: Questao[] = (topico?.questoes as unknown as Questao[]) || [];
+
+  // Callbacks
+  const handleBack = () => {
+    if (materiaId && topicoId) {
+      navigate(`/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}`);
+    } else if (topico?.materia?.id) {
+      navigate(`/oab/trilhas-aprovacao/materia/${topico.materia.id}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const handleStartSlides = () => {
+    setViewMode('slides');
+  };
+
+  const handleCloseSlides = () => {
+    setViewMode('intro');
+  };
+
+  const handleStartFlashcards = () => {
+    // Navigate to flashcards page
+    toast.info("Navegando para flashcards...");
+  };
+
+  const handleStartQuestoes = () => {
+    // Navigate to questoes page
+    toast.info("Navegando para questões...");
+  };
+
+  const handleSlidesComplete = async () => {
+    if (user?.id && targetId) {
+      await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .upsert({
+          user_id: user.id,
+          topico_id: parseInt(targetId),
+          leitura_completa: true,
+          progresso_leitura: 100,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,topico_id' });
+      
+      queryClient.invalidateQueries({ queryKey: ["oab-topico-progresso"] });
+    }
+    
+    toast.success("Leitura concluída!");
+    setViewMode('intro');
+  };
+
+  const handleProgressChange = async (progress: number) => {
+    if (user?.id && targetId) {
+      await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .upsert({
+          user_id: user.id,
+          topico_id: parseInt(targetId),
+          progresso_leitura: progress,
+          leitura_completa: progress >= 100,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,topico_id' });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -151,15 +273,17 @@ const OABTrilhasTopicoEstudo = () => {
 
     return (
       <div className="min-h-screen bg-[#0d0d14]">
-        <StandardPageHeader
-          title={topico?.titulo || "Carregando..."}
-          subtitle={topico?.materia?.nome}
-          backPath={materiaId && topicoId 
-            ? `/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}` 
-            : topico?.materia?.id 
-              ? `/oab/trilhas-aprovacao/materia/${topico.materia.id}` 
-              : undefined}
-        />
+        <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3 max-w-2xl mx-auto">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-red-400 uppercase tracking-widest truncate">{topico?.materia?.nome}</p>
+              <h1 className="text-sm font-semibold text-white truncate">{topico?.titulo || "Carregando..."}</h1>
+            </div>
+          </div>
+        </div>
         
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
           <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-${accentColor}-500/20 flex items-center justify-center`}>
@@ -194,15 +318,17 @@ const OABTrilhasTopicoEstudo = () => {
   if (isGerando) {
     return (
       <div className="min-h-screen bg-[#0d0d14]">
-        <StandardPageHeader
-          title={topico?.titulo || "Carregando..."}
-          subtitle={topico?.materia?.nome}
-          backPath={materiaId && topicoId 
-            ? `/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}` 
-            : topico?.materia?.id 
-              ? `/oab/trilhas-aprovacao/materia/${topico.materia.id}` 
-              : undefined}
-        />
+        <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3 max-w-2xl mx-auto">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-red-400 uppercase tracking-widest truncate">{topico?.materia?.nome}</p>
+              <h1 className="text-sm font-semibold text-white truncate">{topico?.titulo || "Carregando..."}</h1>
+            </div>
+          </div>
+        </div>
         
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
           {!isGeracaoTravada ? (
@@ -256,41 +382,57 @@ const OABTrilhasTopicoEstudo = () => {
     );
   }
 
-  // Renderizar o novo Reader
+  // Extrair objetivos do conteúdo
+  const objetivos = (conteudoGerado?.paginas as Pagina[] | undefined)?.slice(0, 3).map(p => p.titulo) || [];
+  const totalPaginas = slidesData[0]?.slides.length || 0;
+  const tempoEstimado = `${Math.ceil(totalPaginas * 2)} min`;
+
+  // Renderizar Slides Viewer (igual ao Conceitos)
+  if (viewMode === 'slides' && slidesData.length > 0) {
+    return (
+      <ConceitosSlidesViewer
+        secoes={slidesData}
+        titulo={topico?.titulo || ""}
+        materiaName={topico?.materia?.nome}
+        onClose={handleCloseSlides}
+        onComplete={handleSlidesComplete}
+        onProgressChange={handleProgressChange}
+        initialProgress={progresso?.progresso_leitura || 0}
+      />
+    );
+  }
+
+  // Renderizar Tela de Introdução (igual ao Conceitos, com boas-vindas OAB)
   return (
     <div className="min-h-screen bg-[#0d0d14]">
-      <StandardPageHeader
-        title={topico?.titulo || "Carregando..."}
-        subtitle={topico?.materia?.nome}
-        backPath={materiaId && topicoId 
-          ? `/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}` 
-          : topico?.materia?.id 
-            ? `/oab/trilhas-aprovacao/materia/${topico.materia.id}` 
-            : undefined}
-      />
+      {/* Header minimalista */}
+      <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3 max-w-2xl mx-auto">
+          <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8 text-white hover:bg-white/10">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-red-400 uppercase tracking-widest truncate">{topico?.materia?.nome} • OAB</p>
+          </div>
+        </div>
+      </div>
 
-      <OABTrilhasReader
-        conteudoGerado={topico?.conteudo_gerado || ""}
+      <OABTrilhasTopicoIntro
         titulo={topico?.titulo || ""}
-        materia={topico?.materia?.nome}
+        materiaName={topico?.materia?.nome}
         capaUrl={topico?.materia?.capa_url || topico?.capa_url}
-        flashcards={flashcards}
-        questoes={questoes}
-        topicoId={parseInt(targetId!)}
-        fontSize={fontSize}
-        onFontSizeChange={setFontSize}
-        correspondencias={(() => {
-          // Extrair correspondências do campo termos (pode ser array legado ou objeto com correspondencias)
-          const termos = topico?.termos as any;
-          if (termos?.correspondencias && Array.isArray(termos.correspondencias)) {
-            return termos.correspondencias;
-          }
-          // Fallback: se for array simples, usar como correspondências
-          if (Array.isArray(termos)) {
-            return termos.filter((t: any) => t.termo && t.definicao);
-          }
-          return [];
-        })()}
+        tempoEstimado={tempoEstimado}
+        totalPaginas={totalPaginas}
+        objetivos={objetivos}
+        progressoLeitura={progresso?.progresso_leitura || 0}
+        progressoFlashcards={progresso?.progresso_flashcards || 0}
+        progressoQuestoes={progresso?.progresso_questoes || 0}
+        hasFlashcards={flashcards.length > 0}
+        hasQuestoes={questoes.length > 0}
+        onStartPaginas={handleStartSlides}
+        onStartFlashcards={handleStartFlashcards}
+        onStartQuestoes={handleStartQuestoes}
+        onBack={handleBack}
       />
     </div>
   );

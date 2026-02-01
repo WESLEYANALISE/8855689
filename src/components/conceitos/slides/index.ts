@@ -2,6 +2,7 @@
 export { SlideCollapsible } from './SlideCollapsible';
 export { ConceitoSlideCard } from './ConceitoSlideCard';
 export { ConceitosSlidesViewer } from './ConceitosSlidesViewer';
+export { ConceitosSlidesFooter } from './ConceitosSlidesFooter';
 export { ConceitosTopicoIntro } from './ConceitosTopicoIntro';
 
 // Export types
