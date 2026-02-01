@@ -1,104 +1,118 @@
 
-# Plano: Corrigir Extração de Títulos de Tópicos do PDF
+# Plano: Ajustar Animação e Som de Transição de Páginas nos Conceitos
 
-## Problema Identificado
-
-Analisando os logs da edge function `identificar-temas-conceitos`, identifiquei a **causa raiz** do truncamento dos títulos:
-
-### O que está acontecendo
-
-1. **Gemini retorna títulos COMPLETOS:**
-   ```json
-   "titulo": "Da Independência à Constituição de 1824"
-   "titulo": "Constituição de 1824"
-   "titulo": "Do Império à Proclamação da República e a Constituição de 1891"
-   ```
-
-2. **Após o agrupamento, os títulos ficam TRUNCADOS:**
-   ```
-   1. Da Independência à Constituição de
-   2. Constituição de
-   3. Do Império à Proclamação da República e a Constituição de
-   ```
-
-### Causa Raiz
-
-A função `normalizarTitulo` (linha 10-19) contém uma regex que **remove números arábicos do final do título**:
-
-```javascript
-// Remove números arábicos no final: 1, 2, 3... (com "E" opcional)
-.replace(/\s+\d+(\s+E\s+\d+)*\s*$/gi, '')
-```
-
-Esta regex foi criada para agrupar temas como "Perfil Histórico I" + "Perfil Histórico II" → "Perfil Histórico".
-
-**Porém**, ela também remove os **anos** (1824, 1891, 1934, 1937, 1946, 1967, 1988) que fazem parte do título original!
+## Objetivo
+Tornar a transição entre páginas no visualizador de Conceitos mais fluida e usar o mesmo som de virar página da OAB Trilhas.
 
 ---
 
-## Solução Técnica
+## Mudanças Identificadas
 
-Modificar a regex para:
-1. **Não remover anos** (números com 4 dígitos típicos de anos: 1800-2099)
-2. **Continuar removendo** números de sequenciamento (I, II, III, 1, 2, 3)
+### 1. Som de Transição
 
-### Arquivo a Modificar
+**Problema Atual:**
+- `ConceitosSlidesViewer.tsx` usa: `/sounds/page-flip.mp3`
 
-`supabase/functions/identificar-temas-conceitos/index.ts`
+**Solução (igual à OAB Trilhas):**
+- `OABTrilhasReader.tsx` usa: `https://files.catbox.moe/g2jrb7.mp3`
+- Trocar para usar o mesmo som externo com volume 0.4
 
-### Alteração na função `normalizarTitulo`
+**Arquivo a modificar:** `src/components/conceitos/slides/ConceitosSlidesViewer.tsx`
 
+---
+
+### 2. Animação de Transição
+
+**Problema Atual (linha 80-93 do ConceitoSlideCard.tsx):**
 ```javascript
-// ANTES (problemático):
-.replace(/\s+\d+(\s+E\s+\d+)*\s*$/gi, '')
-
-// DEPOIS (corrigido):
-// Remove números arábicos pequenos no final (1-99), mas preserva anos (1800-2099)
-.replace(/\s+(?!\d{4}\b)\d{1,2}(\s+E\s+\d{1,2})*\s*$/gi, '')
+const slideVariants = {
+  enter: (direction) => ({ x: direction === 'next' ? '100%' : '-100%', opacity: 1 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction) => ({ x: direction === 'next' ? '-100%' : '100%', opacity: 1 })
+};
+// Transition: tween, 0.3s, easeInOut
 ```
 
-**Explicação da nova regex:**
-- `(?!\d{4}\b)` = Negative lookahead que **não** captura se forem 4 dígitos (anos)
-- `\d{1,2}` = Captura apenas números de 1 ou 2 dígitos (1, 2, 3... até 99)
-- Isso preserva "1824", "1891", "1988" mas remove "I E II", "1 E 2"
-
-### Alteração adicional no agrupamento
-
-Também vou ajustar a linha 55 para usar o **título original** do primeiro tema do grupo, não o título normalizado:
-
+**Solução (inspirada no OABTrilhasReader - linha 637-641):**
 ```javascript
-// ANTES:
-const tituloLimpo = normalizarTitulo(temasDoGrupo[0].titulo);
-
-// DEPOIS:
-// Usar título original do primeiro tema (preserva anos)
-const tituloLimpo = temasDoGrupo[0].titulo;
+const slideVariants = {
+  enter: (dir) => ({ x: dir === 'next' ? 80 : -80, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir) => ({ x: dir === 'next' ? -80 : 80, opacity: 0 })
+};
+// Transition: spring mais suave OU tween com duração menor
 ```
 
-A normalização será usada **apenas para agrupar** (comparar títulos), mas o título salvo será o original.
+A animação da OAB Trilhas usa:
+- Deslocamento menor (80px ao invés de 100%)
+- Fade in/out com opacidade
+- Transição tipo spring com stiffness/damping moderados
+
+**Arquivo a modificar:** `src/components/conceitos/slides/ConceitoSlideCard.tsx`
+
+---
+
+## Implementação Técnica
+
+### Arquivo 1: `ConceitosSlidesViewer.tsx`
+
+Linha 41 - Trocar o hook `useSound` pelo áudio direto:
+```typescript
+// Remover: const [playPageFlip] = useSound('/sounds/page-flip.mp3', { volume: 0.3 });
+
+// Adicionar ref para áudio (igual OABTrilhasReader):
+const pageTurnAudioRef = useRef<HTMLAudioElement | null>(null);
+
+useEffect(() => {
+  const audio = new Audio('https://files.catbox.moe/g2jrb7.mp3');
+  audio.volume = 0.4;
+  audio.preload = 'auto';
+  pageTurnAudioRef.current = audio;
+  
+  return () => { pageTurnAudioRef.current = null; };
+}, []);
+
+// Nas funções handleNext/handlePrevious/handleNavigate:
+// Trocar playPageFlip() por:
+if (pageTurnAudioRef.current) {
+  pageTurnAudioRef.current.currentTime = 0;
+  pageTurnAudioRef.current.play().catch(() => {});
+}
+```
+
+### Arquivo 2: `ConceitoSlideCard.tsx`
+
+Linhas 79-93 - Ajustar variantes de animação:
+```typescript
+const slideVariants = {
+  enter: (direction: 'next' | 'prev') => ({
+    x: direction === 'next' ? 80 : -80,
+    opacity: 0
+  }),
+  center: {
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction: 'next' | 'prev') => ({
+    x: direction === 'next' ? -80 : 80,
+    opacity: 0
+  })
+};
+```
+
+Linha 359-361 - Ajustar transição para spring mais suave:
+```typescript
+transition={{ 
+  x: { type: "spring", stiffness: 300, damping: 30 },
+  opacity: { duration: 0.2 }
+}}
+```
 
 ---
 
 ## Resultado Esperado
 
-### Antes da correção:
-```
-1. Da Independência à Constituição de (págs 3-4)
-2. Constituição de (págs 5-12)
-3. Do Império à Proclamação da República e a Constituição de (págs 7-7)
-```
+1. A transição entre páginas será mais fluida, com um deslocamento curto de 80px combinado com fade
+2. O som será o mesmo usado na OAB Trilhas (som mais agradável e consistente)
+3. A experiência será uniforme entre as duas áreas do app
 
-### Depois da correção:
-```
-1. Da Independência à Constituição de 1824 (págs 3-4)
-2. Constituição de 1824 (págs 5-6)
-3. Do Império à Proclamação da República e a Constituição de 1891 (págs 7-7)
-```
-
----
-
-## Arquivo a Modificar
-
-| Arquivo | Modificação |
-|---------|-------------|
-| `supabase/functions/identificar-temas-conceitos/index.ts` | Ajustar regex para preservar anos e usar título original |
