@@ -15,6 +15,7 @@ import {
   type ConceitoSecao 
 } from "@/components/conceitos/slides";
 import { useAuth } from "@/contexts/AuthContext";
+import { markImageLoaded } from "@/hooks/useImagePreload";
 
 interface Flashcard {
   frente: string;
@@ -167,6 +168,40 @@ const ConceitosTopicoEstudo = () => {
       totalSecoes: slidesData.secoes.length
     };
   }, [slidesData]);
+
+  // 🚀 PRELOAD: Pré-carregar capa + primeiras imagens dos slides quando tópico carrega
+  useEffect(() => {
+    if (!topico) return;
+    
+    const imagesToPreload: string[] = [];
+    
+    // Capa do tópico
+    if (topico.capa_url) {
+      imagesToPreload.push(topico.capa_url);
+    }
+    
+    // Primeiras 5 imagens dos slides
+    if (slidesData?.secoes) {
+      let count = 0;
+      for (const secao of slidesData.secoes) {
+        for (const slide of secao.slides) {
+          if (slide.imagemUrl && count < 5) {
+            imagesToPreload.push(slide.imagemUrl);
+            count++;
+          }
+          if (count >= 5) break;
+        }
+        if (count >= 5) break;
+      }
+    }
+    
+    // Preload em paralelo
+    imagesToPreload.forEach(url => {
+      const img = new Image();
+      img.onload = () => markImageLoaded(url);
+      img.src = url;
+    });
+  }, [topico, slidesData]);
 
   // Buscar tópico que está sendo gerado atualmente (para mostrar na fila)
   const { data: topicoGerando } = useQuery({

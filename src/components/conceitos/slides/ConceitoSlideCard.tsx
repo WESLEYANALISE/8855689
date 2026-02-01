@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { SlideLinhaTempo } from "@/components/aula-v2/SlideLinhaTempo";
 import { SlideTabela } from "@/components/aula-v2/SlideTabela";
 import { UniversalImage } from "@/components/ui/universal-image";
+import { isImageCached } from "@/hooks/useImagePreload";
 import EnrichedMarkdownRenderer from "@/components/EnrichedMarkdownRenderer";
 import confetti from "canvas-confetti";
 import type { ConceitoSlide, CollapsibleItem } from "./types";
@@ -138,6 +139,9 @@ export const ConceitoSlideCard = ({
   const isQuickCheck = slide.tipo === 'quickcheck';
   const isCorrect = selectedOption === slide.resposta;
   const hasImage = slide.imagemUrl || slide.imagemPrompt;
+  
+  // Verificar se imagem já está em cache para desabilitar blur placeholder
+  const imageIsCached = slide.imagemUrl ? isImageCached(slide.imagemUrl) : false;
 
   // Render specialized content based on page type - collapsible agora vira texto
   const renderContent = () => {
@@ -398,6 +402,7 @@ export const ConceitoSlideCard = ({
                 alt={slide.titulo || "Ilustração"}
                 aspectRatio="16/9"
                 blurCategory="juridico"
+                disableBlur={imageIsCached}
                 containerClassName="w-full"
               />
             ) : (
