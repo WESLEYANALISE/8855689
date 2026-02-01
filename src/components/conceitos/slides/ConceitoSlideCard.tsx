@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ElementType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileText, 
@@ -38,7 +38,7 @@ interface ConceitoSlideCardProps {
   direction?: 'next' | 'prev';
 }
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, ElementType> = {
   introducao: Sparkles,
   texto: FileText,
   termos: BookOpen,
