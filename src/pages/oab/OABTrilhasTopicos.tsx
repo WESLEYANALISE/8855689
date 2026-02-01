@@ -315,7 +315,7 @@ const OABTrilhasTopicos = () => {
                         <img 
                           src={subtema.url_imagem_resumo || fallbackCapa}
                           alt={subtema.subtema}
-                          className="w-full h-full object-cover scale-110"
+                          className="absolute inset-[-10%] w-[120%] h-[120%] object-cover"
                           loading="eager"
                           fetchPriority="high"
                           decoding="sync"
