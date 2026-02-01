@@ -292,34 +292,34 @@ ${JSON.stringify(secaoEstrutura.paginas, null, 2)}
 Para CADA página, retorne o objeto completo com:
 
 1. Para tipo "introducao":
-   {"tipo": "introducao", "titulo": "...", "conteudo": "Texto motivador sobre o que será aprendido..."}
+   {"tipo": "introducao", "titulo": "...", "conteudo": "Texto motivador sobre o que será aprendido...", "imagemPrompt": "CINEMATIC 16:9 horizontal illustration, EDGE-TO-EDGE composition, NO white borders, NO margins, FULL BLEED image extending to all edges, dark rich background covering entire frame, professional educational scene about..."}
 
 2. Para tipo "texto":
-   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA (200-400 palavras) com exemplos práticos..."}
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA (200-400 palavras) com exemplos práticos...", "imagemPrompt": "CINEMATIC 16:9 horizontal, FULL BLEED edge-to-edge, NO white corners, NO borders, dark moody background filling entire frame..."}
 
 3. Para tipo "termos":
-   {"tipo": "termos", "titulo": "...", "conteudo": "Introdução breve", "termos": [{"termo": "...", "definicao": "..."}]}
+   {"tipo": "termos", "titulo": "...", "conteudo": "Introdução breve", "termos": [{"termo": "...", "definicao": "..."}], "imagemPrompt": "..."}
 
 4. Para tipo "linha_tempo":
-   {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Contexto", "etapas": [{"titulo": "...", "descricao": "..."}]}
+   {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Contexto", "etapas": [{"titulo": "...", "descricao": "..."}], "imagemPrompt": "..."}
 
 5. Para tipo "tabela":
-   {"tipo": "tabela", "titulo": "...", "conteudo": "Descrição", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}}
+   {"tipo": "tabela", "titulo": "...", "conteudo": "Descrição", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}, "imagemPrompt": "..."}
 
 6. Para tipo "atencao":
-   {"tipo": "atencao", "titulo": "...", "conteudo": "Ponto importante com exemplo..."}
+   {"tipo": "atencao", "titulo": "...", "conteudo": "Ponto importante com exemplo...", "imagemPrompt": "..."}
 
 7. Para tipo "dica":
-   {"tipo": "dica", "titulo": "...", "conteudo": "Dica de memorização ou macete..."}
+   {"tipo": "dica", "titulo": "...", "conteudo": "Dica de memorização ou macete...", "imagemPrompt": "..."}
 
 8. Para tipo "caso":
-   {"tipo": "caso", "titulo": "...", "conteudo": "Descrição do caso prático com análise jurídica..."}
+   {"tipo": "caso", "titulo": "...", "conteudo": "Descrição do caso prático com análise jurídica...", "imagemPrompt": "..."}
 
 9. Para tipo "quickcheck":
-   {"tipo": "quickcheck", "titulo": "...", "conteudo": "Teste seu conhecimento:", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "Explicação..."}
+   {"tipo": "quickcheck", "titulo": "...", "conteudo": "Teste seu conhecimento:", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "Explicação...", "imagemPrompt": "..."}
 
 10. Para tipo "resumo":
-    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando:", "pontos": ["...", "...", "..."]}
+    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando:", "pontos": ["...", "...", "..."], "imagemPrompt": "..."}
 
 Retorne um JSON com a seção COMPLETA:
 {
@@ -331,6 +331,8 @@ Retorne um JSON com a seção COMPLETA:
 }
 
 REGRAS CRÍTICAS:
+- imagemPrompt deve ser em INGLÊS, formato 16:9 HORIZONTAL OBRIGATÓRIO
+- imagemPrompt DEVE incluir: "FULL BLEED edge-to-edge, NO white borders, NO white corners, NO margins, dark rich background extending to ALL edges"
 - Páginas "texto" devem ter 200-400 palavras com exemplos práticos
 - Use blockquotes (>) para citações e cards de atenção
 - NUNCA use emojis no texto corrido
