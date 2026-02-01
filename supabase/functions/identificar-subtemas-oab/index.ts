@@ -42,6 +42,9 @@ serve(async (req) => {
     // Observação: OCR às vezes remove o ponto após o número ("16 " ao invés de "16."),
     // e às vezes troca os pontilhados por caracteres similares. Por isso o regex é permissivo.
     const extrairTitulosIndiceNivel1 = (paginasIndice: Array<{ pagina: number; conteudo: string | null }>) => {
+      // Log diagnóstico: páginas consideradas como índice
+      console.log(`📑 Páginas de índice analisadas: [${paginasIndice.map(p => p.pagina).join(', ')}]`);
+      
       const texto = paginasIndice
         .map(p => p.conteudo || '')
         .join('\n')
@@ -50,19 +53,44 @@ serve(async (req) => {
       const seen = new Set<string>();
       const items: Array<{ ordem: number; titulo: string; pagina_indice?: number }> = [];
 
+      // Contador de matches por padrão para diagnóstico
+      const matchCounts: Record<string, number> = {};
+
       // Múltiplos padrões para capturar diferentes formatos de índice:
-      const patterns = [
+      const patterns: Array<{ name: string; regex: RegExp }> = [
         // Padrão 1: "6. TITULO .... 17" ou "6. TITULO      17" (com pontilhados ou espaços)
-        /(^|\n)\s*(\d{1,2})\s*[\.)\-]\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][^\n]{3,}?)(?:[\.\u00B7•‧…·\-_]{3,}|\s{3,})\s*(\d{1,4})\s*(?=\n|$)/g,
+        { 
+          name: 'padrao1_ponto_pontilhado',
+          regex: /(^|\n)\s*(\d{1,2})\s*[\.)\-]\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ(][^\n]{3,}?)(?:[\.\u00B7•‧…·\-_]{3,}|\s{3,})\s*(\d{1,4})\s*(?=\n|$)/g
+        },
         // Padrão 2: "6 TITULO ...17" (sem ponto após número)
-        /(^|\n)\s*(\d{1,2})\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{3,}?)(?:[\.\u00B7•‧…·\-_]{3,}|\s{3,})\s*(\d{1,4})\s*(?=\n|$)/g,
+        { 
+          name: 'padrao2_sem_ponto',
+          regex: /(^|\n)\s*(\d{1,2})\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ(][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ(\s]{3,}?)(?:[\.\u00B7•‧…·\-_]{3,}|\s{3,})\s*(\d{1,4})\s*(?=\n|$)/g
+        },
         // Padrão 3: Linha que termina com número de página após espaços (mais permissivo)
-        /(^|\n)\s*(\d{1,2})\s*[\.)\-]?\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][^\n]{5,}?)\s+(\d{1,3})\s*$/gm,
+        { 
+          name: 'padrao3_linha_final',
+          regex: /(^|\n)\s*(\d{1,2})\s*[\.)\-]?\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ(][^\n]{5,}?)\s+(\d{1,3})\s*$/gm
+        },
+        // Padrão 4: Headers markdown "## 6. TITULO...17" ou "# 6) TITULO ... 17" (índice em formato de título)
+        { 
+          name: 'padrao4_header_markdown',
+          regex: /(^|\n)\s*#{1,6}\s*(\d{1,2})\s*[\.)\-]?\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ(][^\n]{3,}?)(?:[\.\u00B7•‧…·\-_]{2,}|\s{2,})\s*(\d{1,4})\s*(?=\n|$)/g
+        },
+        // Padrão 5: Variação de header com título e número no final após ... (ex: "## 6. MEDIDA DE SEGURANÇA...17")
+        { 
+          name: 'padrao5_header_titulo_num',
+          regex: /(^|\n)\s*#{1,6}\s*(\d{1,2})\s*[\.)\-]\s+([^\n]+?)\.{2,}\s*(\d{1,4})\s*(?=\n|$)/g
+        },
       ];
 
-      for (const re of patterns) {
+      for (const { name, regex: re } of patterns) {
+        matchCounts[name] = 0;
         let m: RegExpExecArray | null;
         while ((m = re.exec(texto)) !== null) {
+          matchCounts[name]++;
+          
           const ordem = Number(m[2]);
           const rawTitulo = (m[3] || '').trim();
           const paginaIndice = Number(m[4]);
@@ -91,6 +119,12 @@ serve(async (req) => {
         }
       }
 
+      // Log diagnóstico: matches por padrão
+      console.log(`🔍 Matches por padrão regex:`);
+      for (const [name, count] of Object.entries(matchCounts)) {
+        console.log(`   - ${name}: ${count} matches`);
+      }
+
       // Ordenar por ordem numérica
       items.sort((a, b) => a.ordem - b.ordem);
 
@@ -102,7 +136,9 @@ serve(async (req) => {
 
       const uniq = Array.from(byOrdem.values()).sort((a, b) => a.ordem - b.ordem);
 
-      console.log(`🔍 Extração de índice: encontrados ${uniq.length} itens nível 1`);
+      // Log diagnóstico: itens finais extraídos
+      console.log(`📋 Itens de índice extraídos (${uniq.length} total):`);
+      uniq.forEach(i => console.log(`   ${i.ordem}. "${i.titulo}" => pág ${i.pagina_indice ?? '?'}`));
 
       // Limite defensivo aumentado para suportar índices maiores
       return uniq.slice(0, 50);
