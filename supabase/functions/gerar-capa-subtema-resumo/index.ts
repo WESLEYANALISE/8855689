@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,6 +125,7 @@ CRITICAL REQUIREMENTS:
 1. Image MUST be LANDSCAPE orientation - significantly wider than tall
 2. NO text, NO words, NO letters, NO typography anywhere in the image
 3. Photorealistic, ultra-high resolution, cinematic quality
+4. FULL BLEED edge-to-edge composition, NO white borders, NO margins
 
 SUBJECT: "${titulo}" - Legal subtopic in ${area}
 
@@ -141,7 +143,8 @@ TECHNICAL SPECS:
 - Rich color grading matching the specified palette
 - Professional legal/academic atmosphere
 - Suitable as educational content cover
-- Ultra high resolution photorealistic rendering`;
+- Ultra high resolution photorealistic rendering
+- FULL BLEED: image extends to ALL edges, no white corners`;
 }
 
 async function gerarImagemComGemini(prompt: string): Promise<string | null> {
@@ -153,35 +156,25 @@ async function gerarImagemComGemini(prompt: string): Promise<string | null> {
   
   console.log(`[Capa Subtema] Tentando ${API_KEYS.length} chaves Gemini disponíveis`);
   
+  // Usando gemini-2.5-flash-image (mesmo modelo dos Conceitos)
   for (let i = 0; i < API_KEYS.length; i++) {
     try {
-      console.log(`[Capa Subtema] Tentando chave ${i + 1}...`);
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${API_KEYS[i]}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseModalities: ["IMAGE", "TEXT"]
-            }
-          })
-        }
-      );
+      console.log(`[Capa Subtema] Tentando chave ${i + 1} com gemini-2.5-flash-preview-05-20...`);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`[Capa Subtema] Chave ${i + 1} falhou: ${response.status} - ${errorText.substring(0, 200)}`);
-        continue;
-      }
+      const genAI = new GoogleGenerativeAI(API_KEYS[i]!);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash-preview-05-20",
+        generationConfig: {
+          responseModalities: ["image", "text"] as any,
+        } as any,
+      });
       
-      const data = await response.json();
+      const result = await model.generateContent(prompt);
       
-      for (const part of data.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
+      for (const part of result.response.candidates?.[0]?.content?.parts || []) {
+        if ((part as any).inlineData) {
           console.log(`[Capa Subtema] ✅ Sucesso com chave ${i + 1}`);
-          return part.inlineData.data;
+          return (part as any).inlineData.data;
         }
       }
       
@@ -228,7 +221,7 @@ async function comprimirComTinyPNG(base64Data: string): Promise<{ buffer: ArrayB
 
     const result = await response.json();
     
-    // Baixar versão WebP em 16:9 landscape (1280x720)
+    // Baixar versão WebP em 16:9 landscape (1280x720) - MESMO QUE CONCEITOS
     const webpResponse = await fetch(result.output.url, {
       method: "POST",
       headers: {
