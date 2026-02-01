@@ -16482,6 +16482,7 @@ export type Database = {
           id: number
           "ordem subtema": string | null
           "ordem Tema": string | null
+          slides_json: Json | null
           subtema: string | null
           tema: string | null
           timepoints_exemplos: Json | null
@@ -16504,6 +16505,7 @@ export type Database = {
           id?: number
           "ordem subtema"?: string | null
           "ordem Tema"?: string | null
+          slides_json?: Json | null
           subtema?: string | null
           tema?: string | null
           timepoints_exemplos?: Json | null
@@ -16526,6 +16528,7 @@ export type Database = {
           id?: number
           "ordem subtema"?: string | null
           "ordem Tema"?: string | null
+          slides_json?: Json | null
           subtema?: string | null
           tema?: string | null
           timepoints_exemplos?: Json | null
