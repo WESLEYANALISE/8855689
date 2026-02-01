@@ -38,6 +38,45 @@ serve(async (req) => {
     const totalPaginas = paginas.length;
     console.log(`📚 Analisando ${totalPaginas} páginas do tópico`);
 
+    // Extrair títulos do índice (nível 1) de forma determinística para evitar “subtemas extras”
+    const extrairTitulosIndiceNivel1 = (paginasIndice: Array<{ pagina: number; conteudo: string | null }>) => {
+      const texto = paginasIndice
+        .map(p => p.conteudo || '')
+        .join('\n')
+        .replace(/\r/g, '');
+
+      // Padrão: "1. TITULO ........ 3" (captura apenas o título do item nível 1)
+      const re = /(^|\n)\s*(\d{1,2})\s*\.\s*([^\n]+?)(?:\.{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
+      const seen = new Set<string>();
+      const items: Array<{ ordem: number; titulo: string; pagina_indice?: number }> = [];
+
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(texto)) !== null) {
+        const ordem = Number(m[2]);
+        const rawTitulo = (m[3] || '').trim();
+        const paginaIndice = Number(m[4]);
+
+        // Normalizações mínimas
+        const titulo = rawTitulo
+          .replace(/\s+/g, ' ')
+          .replace(/\.{2,}$/g, '')
+          .trim();
+
+        // Evitar duplicados
+        const key = `${ordem}::${titulo}`.toLowerCase();
+        if (!titulo || seen.has(key)) continue;
+        seen.add(key);
+
+        items.push({ ordem, titulo, pagina_indice: Number.isFinite(paginaIndice) ? paginaIndice : undefined });
+      }
+
+      // Ordenar por ordem numérica
+      items.sort((a, b) => a.ordem - b.ordem);
+
+      // Limite defensivo
+      return items.slice(0, 15);
+    };
+
     // Criar mapa de páginas para acesso rápido
     const paginasMap = new Map<number, string>();
     paginas.forEach(p => {
@@ -54,6 +93,14 @@ serve(async (req) => {
              /\d+\.\s+[A-Z].*\.{3,}\s*\d+/.test(p.conteudo || '');
     });
 
+    const titulosIndiceNivel1 = extrairTitulosIndiceNivel1(paginasIndice);
+    if (titulosIndiceNivel1.length) {
+      console.log(`📑 Índice detectado: ${titulosIndiceNivel1.length} itens nível 1`);
+      titulosIndiceNivel1.forEach(i => console.log(`  - ${i.ordem}. ${i.titulo}${i.pagina_indice ? ` (índice pág ${i.pagina_indice})` : ''}`));
+    } else {
+      console.log("ℹ️ Nenhum item de índice (nível 1) detectado via regex; usando identificação sem guia do índice.");
+    }
+
     // Limite dinâmico
     const limitePorPagina = totalPaginas > 100 ? 300 
                           : totalPaginas > 50 ? 500 
@@ -68,11 +115,19 @@ serve(async (req) => {
       })
       .join('\n\n');
 
+    const indiceObrigatorio = titulosIndiceNivel1.length
+      ? `\n## 📑 ÍNDICE DETECTADO (ITENS NÍVEL 1 - OBRIGATÓRIOS)\n${titulosIndiceNivel1
+          .map(i => `${i.ordem}. ${i.titulo}`)
+          .join('\n')}\n`
+      : '';
+
     const prompt = `Você é um especialista em análise de materiais de estudo para OAB.
 
 CONTEXTO:
 - Área: ${areaNome}
 - Tema: ${temaNome}
+
+${indiceObrigatorio}
 
 CONTEÚDO (${paginas.length} páginas):
 ${conteudoAnalise}
@@ -97,12 +152,15 @@ Cada subtema será um item de estudo separado na tabela RESUMO.
 
 ## REGRAS:
 
-1. Extraia entre 3 a 10 subtemas dependendo do tamanho do material
+1. Se o ÍNDICE DETECTADO (itens nível 1) estiver presente acima, você DEVE retornar EXATAMENTE esses itens como subtemas (sem criar outros)
+2. NUNCA inclua subtópicos/linhas secundárias do índice como subtema (somente os itens numerados nível 1: "1.", "2.", ...)
+3. Caso não haja índice detectado, extraia entre 3 a 10 subtemas dependendo do tamanho do material
 2. Cada subtema deve ser uma seção lógica do conteúdo
 3. Use títulos claros e descritivos
 4. Mantenha a ordem sequencial das páginas
 5. O último subtema deve terminar na página ${totalPaginas}
 6. Se o material for curto (< 10 páginas), pode ter menos subtemas
+7. Não invente subtemas que não existem no índice
 
 RESPONDA APENAS COM JSON válido, sem texto adicional:`;
 
@@ -210,12 +268,61 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
     }
 
     // Validar e normalizar subtemas
-    const subtemasValidados = subtemas.map((s: any, idx: number) => ({
+    let subtemasValidados = subtemas.map((s: any, idx: number) => ({
       ordem: idx + 1,
-      titulo: s.titulo,
-      pagina_inicial: Math.max(1, s.pagina_inicial || 1),
-      pagina_final: Math.min(totalPaginas, s.pagina_final || totalPaginas)
+      titulo: (s.titulo || '').toString().trim(),
+      pagina_inicial: Math.max(1, Number(s.pagina_inicial || 1)),
+      pagina_final: Math.min(totalPaginas, Number(s.pagina_final || totalPaginas))
     }));
+
+    // Se temos itens nível 1 do índice, forçar correspondência e remover “extras”
+    if (titulosIndiceNivel1.length) {
+      const norm = (t: string) =>
+        t
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu, '')
+          .replace(/[^a-z0-9\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+      const indiceNorm = titulosIndiceNivel1.map(i => ({ ...i, n: norm(i.titulo) }));
+
+      // Mapear por “match aproximado” (contains) e cair para ordem do índice
+      const escolhidos: Array<{ ordem: number; titulo: string; pagina_inicial: number; pagina_final: number }> = [];
+      for (const item of indiceNorm) {
+        const match = subtemasValidados.find(s => {
+          const ns = norm(s.titulo);
+          return ns === item.n || ns.includes(item.n) || item.n.includes(ns);
+        });
+
+        escolhidos.push({
+          ordem: item.ordem,
+          titulo: match?.titulo || item.titulo,
+          pagina_inicial: match?.pagina_inicial || 1,
+          pagina_final: match?.pagina_final || totalPaginas,
+        });
+      }
+
+      // Ajustar páginas para ficarem contínuas e sem sobreposição
+      escolhidos.sort((a, b) => a.ordem - b.ordem);
+      for (let i = 0; i < escolhidos.length; i++) {
+        const atual = escolhidos[i];
+        const prox = escolhidos[i + 1];
+        const start = Math.max(1, atual.pagina_inicial);
+        const end = prox ? Math.max(start, Math.min(totalPaginas, (prox.pagina_inicial || start) - 1)) : totalPaginas;
+        atual.pagina_inicial = start;
+        atual.pagina_final = end;
+      }
+
+      // Reindexar ordem sequencial (1..N) para a UI, mantendo títulos do índice
+      subtemasValidados = escolhidos.map((s, idx) => ({
+        ordem: idx + 1,
+        titulo: s.titulo,
+        pagina_inicial: s.pagina_inicial,
+        pagina_final: s.pagina_final,
+      }));
+    }
 
     console.log(`✅ ${subtemasValidados.length} subtemas identificados`);
 
