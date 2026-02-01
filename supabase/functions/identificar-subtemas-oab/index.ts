@@ -74,7 +74,8 @@ serve(async (req) => {
       items.sort((a, b) => a.ordem - b.ordem);
 
       // Limite defensivo
-      return items.slice(0, 15);
+      // Limite defensivo aumentado para suportar índices maiores
+      return items.slice(0, 30);
     };
 
     // Criar mapa de páginas para acesso rápido
