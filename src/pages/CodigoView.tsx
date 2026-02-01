@@ -29,7 +29,7 @@ import { ArtigoActionsMenu } from "@/components/ArtigoActionsMenu";
 import { formatForWhatsApp } from "@/lib/formatWhatsApp";
 import { useProgressiveArticles } from "@/hooks/useProgressiveArticles";
 import { getCodigoFromTable } from "@/lib/codigoMappings";
-import { AulaArtigoBreakdown } from "@/components/aula-v2/AulaArtigoBreakdown";
+import { AulaArtigoSlidesViewer } from "@/components/AulaArtigoSlidesViewer";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { LeiHeader } from "@/components/LeiHeader";
@@ -623,7 +623,7 @@ const CodigoView = () => {
         numeroArtigo={perguntaData.numeroArtigo} 
       />
 
-      <AulaArtigoBreakdown
+      <AulaArtigoSlidesViewer
         isOpen={aulaArtigoModalOpen}
         onClose={() => setAulaArtigoModalOpen(false)}
         codigoTabela={tableName}

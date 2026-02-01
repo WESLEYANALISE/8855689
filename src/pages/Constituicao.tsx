@@ -20,7 +20,7 @@ import { ArtigoFullscreenDrawer } from "@/components/ArtigoFullscreenDrawer";
 import { useProgressiveArticles } from "@/hooks/useProgressiveArticles";
 import { LeiHeader } from "@/components/LeiHeader";
 import { ModoVisualizacaoArtigos } from "@/components/ModoVisualizacaoArtigos";
-import { AulaArtigoBreakdown } from "@/components/aula-v2/AulaArtigoBreakdown";
+import { AulaArtigoSlidesViewer } from "@/components/AulaArtigoSlidesViewer";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { VadeMecumDesktopLayout } from "@/components/vade-mecum/VadeMecumDesktopLayout";
 
@@ -397,7 +397,7 @@ const Constituicao = () => {
         numeroArtigo={perguntaData.numeroArtigo} 
       />
 
-      <AulaArtigoBreakdown
+      <AulaArtigoSlidesViewer
         isOpen={aulaArtigoModalOpen}
         onClose={() => setAulaArtigoModalOpen(false)}
         codigoTabela={tableName}
