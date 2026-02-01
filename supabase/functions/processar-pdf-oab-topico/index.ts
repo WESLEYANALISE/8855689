@@ -38,148 +38,27 @@ serve(async (req) => {
       throw new Error("A URL fornecida é de uma pasta do Google Drive. Por favor, forneça a URL direta do arquivo PDF.");
     }
 
-    // Extrair ID do arquivo do Google Drive
-    let fileId: string | null = null;
-    let downloadUrl = pdfUrl;
-    
-    if (pdfUrl.includes('drive.google.com')) {
-      const filePattern = pdfUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-      if (filePattern) {
-        fileId = filePattern[1];
-      }
+    // Converter URL do Google Drive para formato de download direto
+    function converterUrlDrive(url: string): string {
+      const patterns = [
+        /\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /id=([a-zA-Z0-9_-]+)/,
+        /\/d\/([a-zA-Z0-9_-]+)/
+      ];
       
-      if (!fileId) {
-        const dPattern = pdfUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (dPattern) {
-          fileId = dPattern[1];
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) {
+          const fileId = match[1];
+          return `https://drive.google.com/uc?export=download&id=${fileId}`;
         }
       }
       
-      if (!fileId) {
-        const queryPattern = pdfUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (queryPattern) {
-          fileId = queryPattern[1];
-        }
-      }
-      
-      if (!fileId) {
-        throw new Error("Não foi possível extrair o ID do arquivo da URL do Google Drive.");
-      }
-      console.log(`ID do arquivo extraído: ${fileId}`);
+      return url;
     }
 
-    // Tentar múltiplas estratégias de download do Google Drive
-    const downloadStrategies = fileId ? [
-      `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
-      `https://drive.google.com/uc?export=download&id=${fileId}&confirm=1`,
-      `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`,
-    ] : [downloadUrl];
-
-    let pdfBuffer: ArrayBuffer | null = null;
-    let lastError = '';
-
-    for (const url of downloadStrategies) {
-      console.log("Tentando URL:", url);
-      
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/pdf,*/*'
-          },
-          redirect: 'follow'
-        });
-        
-        if (!response.ok) {
-          lastError = `Status ${response.status}`;
-          continue;
-        }
-
-        const contentType = response.headers.get('content-type') || '';
-        console.log("Content-Type recebido:", contentType);
-        
-        // Se for HTML, pode ser página de confirmação - tentar extrair link de confirmação
-        if (contentType.includes('text/html')) {
-          const html = await response.text();
-          
-          // Procurar link de confirmação na página HTML
-          const confirmMatch = html.match(/href="([^"]*confirm=t[^"]*)"/);
-          if (confirmMatch && fileId) {
-            let confirmUrl = confirmMatch[1].replace(/&amp;/g, '&');
-            if (!confirmUrl.startsWith('http')) {
-              confirmUrl = `https://drive.google.com${confirmUrl}`;
-            }
-            console.log("Encontrado link de confirmação, tentando...");
-            
-            const confirmResponse = await fetch(confirmUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-              }
-            });
-            
-            if (confirmResponse.ok) {
-              const confirmContentType = confirmResponse.headers.get('content-type') || '';
-              if (!confirmContentType.includes('text/html')) {
-                pdfBuffer = await confirmResponse.arrayBuffer();
-                console.log("PDF baixado via link de confirmação");
-                break;
-              }
-            }
-          }
-          
-          // Tentar encontrar UUID token para arquivos grandes
-          const uuidMatch = html.match(/name="uuid" value="([^"]+)"/);
-          if (uuidMatch && fileId) {
-            const uuid = uuidMatch[1];
-            const largeFileUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t&uuid=${uuid}`;
-            console.log("Tentando download de arquivo grande com UUID...");
-            
-            const largeResponse = await fetch(largeFileUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-              }
-            });
-            
-            if (largeResponse.ok) {
-              const largeContentType = largeResponse.headers.get('content-type') || '';
-              if (!largeContentType.includes('text/html')) {
-                pdfBuffer = await largeResponse.arrayBuffer();
-                console.log("PDF baixado via UUID de arquivo grande");
-                break;
-              }
-            }
-          }
-          
-          lastError = 'Retornou HTML';
-          continue;
-        }
-
-        // PDF encontrado!
-        pdfBuffer = await response.arrayBuffer();
-        console.log("PDF baixado com sucesso");
-        break;
-        
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : 'Erro desconhecido';
-        console.log("Falha nesta estratégia:", lastError);
-      }
-    }
-
-    if (!pdfBuffer) {
-      throw new Error(`Não foi possível baixar o PDF do Google Drive. Verifique se o arquivo está compartilhado como "Qualquer pessoa com o link". Último erro: ${lastError}`);
-    }
-    
-    // Convert to base64 in chunks
-    const uint8Array = new Uint8Array(pdfBuffer);
-    let binary = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, i + chunkSize);
-      binary += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    const base64Pdf = btoa(binary);
-
-    console.log(`PDF baixado: ${Math.round(pdfBuffer.byteLength / 1024)} KB`);
+    const urlConvertida = converterUrlDrive(pdfUrl);
+    console.log("URL convertida para Mistral OCR:", urlConvertida);
 
     // Obter chave Mistral
     const mistralKey = Deno.env.get('MISTRAL_API_KEY');
@@ -200,7 +79,7 @@ serve(async (req) => {
         model: 'mistral-ocr-latest',
         document: {
           type: 'document_url',
-          document_url: `data:application/pdf;base64,${base64Pdf}`
+          document_url: urlConvertida
         }
       })
     });
