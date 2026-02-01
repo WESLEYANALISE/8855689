@@ -44,8 +44,8 @@ export const TopicoProgressoDetalhado = ({
             ) : (
               <div className={`w-1.5 h-1.5 rounded-full ${item.bgClass}`} />
             )}
-            <span className={`text-[10px] ${isComplete ? item.colorClass : 'text-gray-500'}`}>
-              {isComplete ? item.label : `${Math.round(item.value)}%`}
+            <span className={`text-[10px] ${item.colorClass}`}>
+              {Math.round(item.value)}%
             </span>
           </div>
         );
