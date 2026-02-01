@@ -120,19 +120,22 @@ function getPromptForSubtema(titulo: string, area: string): string {
   
   return `Create a VIBRANT, HIGH-CONTRAST cinematic illustration in 16:9 LANDSCAPE format.
 
-CRITICAL REQUIREMENTS:
-- Fill the ENTIRE canvas edge-to-edge with colorful content - NO white borders, NO margins, NO empty corners
-- Use RICH, SATURATED, VIVID colors - NOT dark, NOT muted, NOT faded
-- High contrast and clarity - the image must be visually striking and clear
-- NO text, NO words, NO letters anywhere
+ABSOLUTELY CRITICAL - NO TEXT WHATSOEVER:
+- ZERO text, ZERO words, ZERO letters, ZERO numbers, ZERO titles, ZERO labels anywhere in the image
+- Do NOT include the subject title or any writing - this is a pure visual illustration
+- No banners, no signs, no captions, no watermarks, no typography of any kind
 
-SUBJECT: "${titulo}" - Legal topic in Brazilian ${area} law
+OTHER REQUIREMENTS:
+- Fill the ENTIRE canvas edge-to-edge with colorful content - NO white borders, NO margins
+- Use RICH, SATURATED, VIVID colors - NOT dark, NOT muted, NOT faded
+- High contrast and clarity - visually striking and clear
+
+VISUAL THEME (represent visually, NOT with text): ${area} law concept
 
 VIBRANT COLOR PALETTE:
 ${areaConfig.cores}
 - Use these colors at FULL SATURATION and BRIGHTNESS
 - Add dramatic lighting with bright highlights
-- Colors should POP and be eye-catching
 
 VISUAL COMPOSITION:
 ${areaConfig.visual}
@@ -144,9 +147,8 @@ MOOD: ${areaConfig.mood} - with bright, professional, energetic atmosphere
 
 TECHNICAL:
 - Ultra high resolution, photorealistic, crystal clear
-- BRIGHT cinematic lighting - not dark or moody
-- The ENTIRE canvas must be filled - no white or empty space at edges
-- Suitable as an eye-catching thumbnail`;
+- BRIGHT cinematic lighting
+- Pure visual illustration with NO TEXT`;
 }
 
 // Gerar imagem com Gemini usando fetch direto - MESMO MÉTODO DOS CONCEITOS
