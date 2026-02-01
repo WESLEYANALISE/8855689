@@ -1,118 +1,211 @@
 
-# Plano: Ajustar Animação e Som de Transição de Páginas nos Conceitos
+# Plano: Unificar OAB Trilhas com Sistema de Conceitos
 
-## Objetivo
-Tornar a transição entre páginas no visualizador de Conceitos mais fluida e usar o mesmo som de virar página da OAB Trilhas.
+## Resumo
 
----
-
-## Mudanças Identificadas
-
-### 1. Som de Transição
-
-**Problema Atual:**
-- `ConceitosSlidesViewer.tsx` usa: `/sounds/page-flip.mp3`
-
-**Solução (igual à OAB Trilhas):**
-- `OABTrilhasReader.tsx` usa: `https://files.catbox.moe/g2jrb7.mp3`
-- Trocar para usar o mesmo som externo com volume 0.4
-
-**Arquivo a modificar:** `src/components/conceitos/slides/ConceitosSlidesViewer.tsx`
+O objetivo é fazer com que a experiência de estudo na OAB Trilhas (1ª Fase) seja **100% igual** à experiência dos Conceitos, incluindo:
+- **Sistema de páginas interativas** (slides)
+- **Tela de introdução** com progresso de leitura, flashcards e praticar
+- **Footer unificado** com navegação, índice e ruído marrom
+- **Boas-vindas focadas na OAB** (única diferença)
 
 ---
 
-### 2. Animação de Transição
+## Estrutura Atual
 
-**Problema Atual (linha 80-93 do ConceitoSlideCard.tsx):**
-```javascript
-const slideVariants = {
-  enter: (direction) => ({ x: direction === 'next' ? '100%' : '-100%', opacity: 1 }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction) => ({ x: direction === 'next' ? '-100%' : '100%', opacity: 1 })
-};
-// Transition: tween, 0.3s, easeInOut
+### Conceitos (modelo a ser copiado)
+```
+ConceitosTopicoEstudo.tsx
+├── ViewMode: 'intro' | 'slides' | 'reading'
+├── ConceitosTopicoIntro (tela de boas-vindas/progresso)
+│   ├── Hero image com capa
+│   ├── Objetivos do tópico
+│   ├── Módulo 1: Leitura (sempre desbloqueado)
+│   ├── Módulo 2: Flashcards (desbloqueado após leitura 100%)
+│   └── Módulo 3: Praticar (desbloqueado após flashcards 100%)
+├── ConceitosSlidesViewer (visualizador de páginas)
+│   ├── ConceitoSlideCard (renderiza cada página)
+│   └── ConceitosSlidesFooter (navegação, índice, ruído marrom)
+└── OABTrilhasReader (fallback para conteúdo antigo)
 ```
 
-**Solução (inspirada no OABTrilhasReader - linha 637-641):**
-```javascript
-const slideVariants = {
-  enter: (dir) => ({ x: dir === 'next' ? 80 : -80, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir) => ({ x: dir === 'next' ? -80 : 80, opacity: 0 })
-};
-// Transition: spring mais suave OU tween com duração menor
+### OAB Trilhas Atual
 ```
-
-A animação da OAB Trilhas usa:
-- Deslocamento menor (80px ao invés de 100%)
-- Fade in/out com opacidade
-- Transição tipo spring com stiffness/damping moderados
-
-**Arquivo a modificar:** `src/components/conceitos/slides/ConceitoSlideCard.tsx`
+OABTrilhasTopicoEstudo.tsx / OABTrilhasSubtemaEstudo.tsx
+├── Direto para OABTrilhasReader
+│   ├── Tela de boas-vindas interna
+│   ├── Navegação própria (diferente de Conceitos)
+│   └── Sem sistema de slides estruturados
+```
 
 ---
 
-## Implementação Técnica
+## Implementação
 
-### Arquivo 1: `ConceitosSlidesViewer.tsx`
+### 1. Criar Componente de Introdução para OAB
 
-Linha 41 - Trocar o hook `useSound` pelo áudio direto:
+**Novo arquivo:** `src/components/oab/OABTrilhasTopicoIntro.tsx`
+
+Baseado no `ConceitosTopicoIntro`, mas com:
+- Texto de boas-vindas focado na **OAB 1ª Fase**
+- Cores vermelhas (tema OAB) ao invés de laranja/vermelho genérico
+- Mensagem motivacional: *"Prepare-se para dominar este tema da OAB!"*
+
 ```typescript
-// Remover: const [playPageFlip] = useSound('/sounds/page-flip.mp3', { volume: 0.3 });
-
-// Adicionar ref para áudio (igual OABTrilhasReader):
-const pageTurnAudioRef = useRef<HTMLAudioElement | null>(null);
-
-useEffect(() => {
-  const audio = new Audio('https://files.catbox.moe/g2jrb7.mp3');
-  audio.volume = 0.4;
-  audio.preload = 'auto';
-  pageTurnAudioRef.current = audio;
-  
-  return () => { pageTurnAudioRef.current = null; };
-}, []);
-
-// Nas funções handleNext/handlePrevious/handleNavigate:
-// Trocar playPageFlip() por:
-if (pageTurnAudioRef.current) {
-  pageTurnAudioRef.current.currentTime = 0;
-  pageTurnAudioRef.current.play().catch(() => {});
+interface OABTrilhasTopicoIntroProps {
+  titulo: string;
+  materiaName?: string;
+  capaUrl?: string | null;
+  tempoEstimado?: string;
+  totalSecoes?: number;
+  totalPaginas?: number;
+  objetivos?: string[];
+  progressoLeitura?: number;
+  progressoFlashcards?: number;
+  progressoQuestoes?: number;
+  hasFlashcards?: boolean;
+  hasQuestoes?: boolean;
+  onStartPaginas: () => void;
+  onStartFlashcards?: () => void;
+  onStartQuestoes?: () => void;
 }
 ```
 
-### Arquivo 2: `ConceitoSlideCard.tsx`
+---
 
-Linhas 79-93 - Ajustar variantes de animação:
-```typescript
-const slideVariants = {
-  enter: (direction: 'next' | 'prev') => ({
-    x: direction === 'next' ? 80 : -80,
-    opacity: 0
-  }),
-  center: {
-    x: 0,
-    opacity: 1
-  },
-  exit: (direction: 'next' | 'prev') => ({
-    x: direction === 'next' ? -80 : 80,
-    opacity: 0
-  })
-};
-```
+### 2. Criar Viewer de Slides para OAB
 
-Linha 359-361 - Ajustar transição para spring mais suave:
+**Novo arquivo:** `src/components/oab/OABTrilhasSlidesViewer.tsx`
+
+Reutiliza os componentes existentes de Conceitos:
+- `ConceitoSlideCard` - renderiza cada página
+- `ConceitosSlidesFooter` - navegação e controles
+
+Ou simplesmente **reutilizar** `ConceitosSlidesViewer` diretamente nas páginas OAB.
+
+---
+
+### 3. Modificar OABTrilhasSubtemaEstudo.tsx
+
+Adicionar lógica de view modes igual a Conceitos:
+
 ```typescript
-transition={{ 
-  x: { type: "spring", stiffness: 300, damping: 30 },
-  opacity: { duration: 0.2 }
-}}
+type ViewMode = 'intro' | 'slides' | 'reading';
+
+const [viewMode, setViewMode] = useState<ViewMode>('intro');
+
+// Extrair slides_json se disponível (novo formato)
+const slidesData = useMemo(() => {
+  // Parse do conteudo_gerado.paginas para formato ConceitoSecao[]
+}, [conteudoGerado]);
+
+// Renderização condicional:
+if (viewMode === 'slides' && slidesData) {
+  return <ConceitosSlidesViewer ... />;
+}
+
+if (viewMode === 'intro' && slidesData) {
+  return <OABTrilhasTopicoIntro ... />;
+}
+
+// Fallback para OABTrilhasReader (conteúdo antigo)
 ```
 
 ---
 
-## Resultado Esperado
+### 4. Modificar OABTrilhasTopicoEstudo.tsx
 
-1. A transição entre páginas será mais fluida, com um deslocamento curto de 80px combinado com fade
-2. O som será o mesmo usado na OAB Trilhas (som mais agradável e consistente)
-3. A experiência será uniforme entre as duas áreas do app
+Mesma lógica acima para tópicos da tabela `oab_trilhas_topicos`.
 
+---
+
+### 5. Converter Formato de Páginas para Slides
+
+O `conteudo_gerado` atual tem formato:
+```json
+{
+  "paginas": [
+    { "titulo": "Introdução", "markdown": "...", "tipo": "introducao" },
+    ...
+  ]
+}
+```
+
+Precisa ser convertido para formato `ConceitoSecao[]`:
+```typescript
+interface ConceitoSecao {
+  id: number;
+  titulo: string;
+  slides: ConceitoSlide[];
+}
+
+interface ConceitoSlide {
+  tipo: 'introducao' | 'texto' | 'resumo' | ...;
+  titulo: string;
+  conteudo: string;
+  // outros campos...
+}
+```
+
+Criar função de mapeamento:
+```typescript
+const convertPaginasToSecoes = (paginas: Pagina[]): ConceitoSecao[] => {
+  // Agrupa páginas em seções ou cria uma única seção
+  return [{
+    id: 1,
+    titulo: "Conteúdo",
+    slides: paginas.map(p => ({
+      tipo: p.tipo || 'texto',
+      titulo: p.titulo,
+      conteudo: p.markdown
+    }))
+  }];
+};
+```
+
+---
+
+## Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/oab/OABTrilhasTopicoIntro.tsx` | Tela de introdução estilo Conceitos, focada OAB |
+
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Mudanças |
+|---------|----------|
+| `src/pages/oab/OABTrilhasSubtemaEstudo.tsx` | Adicionar ViewMode, usar slides viewer + intro |
+| `src/pages/oab/OABTrilhasTopicoEstudo.tsx` | Mesma lógica de ViewMode |
+| `src/components/conceitos/slides/index.ts` | Exportar tipos/componentes para reutilização |
+
+---
+
+## Experiência do Usuário Final
+
+1. **Usuário entra no subtema/tópico da OAB**
+2. **Vê tela de Introdução (OABTrilhasTopicoIntro)**
+   - Hero image com capa
+   - Título e matéria
+   - Estatísticas (X páginas, tempo estimado)
+   - Objetivos do conteúdo
+   - 3 módulos: Leitura → Flashcards → Praticar
+3. **Clica em "Começar Leitura"**
+4. **Entra no ConceitosSlidesViewer** (idêntico a Conceitos)
+   - Páginas interativas com animação
+   - Footer com navegação, índice, ruído marrom
+   - Progress bar no header
+5. **Ao completar leitura, volta para Intro**
+   - Flashcards desbloqueados
+6. **Fluxo continua igual a Conceitos**
+
+---
+
+## Considerações Técnicas
+
+- **Reutilização máxima**: Usar os mesmos componentes de slide/footer de Conceitos
+- **Mapeamento de dados**: Converter formato de páginas OAB para formato slides
+- **Progresso**: Salvar na tabela `oab_trilhas_estudo_progresso`
+- **Cores**: Manter tema vermelho da OAB (já usado nos componentes)
