@@ -398,8 +398,8 @@ const OABTrilhasTopicos = () => {
         </div>
       </div>
 
-      {/* Botão flutuante para reprocessar PDF quando já existem subtemas */}
-      {subtemas && subtemas.length > 0 && (
+      {/* Botão flutuante para reprocessar PDF - esconde quando todos os subtemas têm conteúdo gerado */}
+      {subtemas && subtemas.length > 0 && subtemasGerados < totalSubtemas && (
         <div className="fixed bottom-20 right-4">
           <Button
             variant="outline"
