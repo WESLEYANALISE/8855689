@@ -222,7 +222,7 @@ const OABTrilhasMateria = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span className="text-sm text-white truncate">Gerando: {currentGeneratingTitle}</span>
+                <span className="text-sm text-white truncate">Gerando: {currentGeneratingTitle?.toLowerCase().replace(/(?:^|\s)\S/g, (l) => l.toUpperCase())}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Progress 

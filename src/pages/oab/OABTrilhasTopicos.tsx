@@ -267,7 +267,7 @@ const OABTrilhasTopicos = () => {
           <div className="max-w-lg mx-auto">
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isEtica ? "bg-amber-900/30 border border-amber-500/30" : "bg-red-900/30 border border-red-500/30"}`}>
               <Loader2 className={`w-4 h-4 animate-spin ${isEtica ? "text-amber-400" : "text-red-400"}`} />
-              <span className="text-xs text-gray-300">Gerando: {currentGeneratingTitle}</span>
+              <span className="text-xs text-gray-300">Gerando: {currentGeneratingTitle?.toLowerCase().replace(/(?:^|\s)\S/g, (l) => l.toUpperCase())}</span>
             </div>
           </div>
         </div>
@@ -350,7 +350,9 @@ const OABTrilhasTopicos = () => {
                         <h3 className={`font-medium text-white transition-colors text-sm flex-1 pr-2 line-clamp-2 ${
                           isEtica ? "group-hover:text-amber-400" : "group-hover:text-red-400"
                         }`}>
-                          {subtema.subtema}
+                          {subtema.subtema
+                            ?.toLowerCase()
+                            .replace(/(?:^|\s)\S/g, (l) => l.toUpperCase())}
                         </h3>
                         
                         {/* Ícone de conclusão ou seta */}
