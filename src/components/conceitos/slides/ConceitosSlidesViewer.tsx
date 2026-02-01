@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConceitoSlideCard } from "./ConceitoSlideCard";
 import { ConceitosSlidesFooter } from "./ConceitosSlidesFooter";
-import useSound from "use-sound";
 import type { ConceitoSecao, ConceitoSlide } from "./types";
 
 interface ConceitosSlidesViewerProps {
@@ -37,8 +36,24 @@ export const ConceitosSlidesViewer = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   
-  // Som de virar página
-  const [playPageFlip] = useSound('/sounds/page-flip.mp3', { volume: 0.3 });
+  // Som de virar página (mesmo da OAB Trilhas)
+  const pageTurnAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  useEffect(() => {
+    const audio = new Audio('https://files.catbox.moe/g2jrb7.mp3');
+    audio.volume = 0.4;
+    audio.preload = 'auto';
+    pageTurnAudioRef.current = audio;
+    
+    return () => { pageTurnAudioRef.current = null; };
+  }, []);
+  
+  const playPageFlip = useCallback(() => {
+    if (pageTurnAudioRef.current) {
+      pageTurnAudioRef.current.currentTime = 0;
+      pageTurnAudioRef.current.play().catch(() => {});
+    }
+  }, []);
   
   // Estado de tamanho de fonte com persistência
   const [fontSize, setFontSize] = useState(() => {
