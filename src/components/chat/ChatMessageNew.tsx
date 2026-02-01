@@ -830,103 +830,58 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                   </TabsContent>
                 </Tabs>
               ) : (
-                // Durante streaming: renderização com Markdown em tempo real e animação fluida
-                <div className="text-[15px] leading-[1.7] text-foreground/90">
+                // Durante streaming: renderização com Markdown em tempo real - SEM animação para evitar flickering
+                <div className="text-[13px] leading-[1.7] text-foreground/90">
                   {content ? (
                     isStreaming ? (
-                      // Durante streaming: Markdown em tempo real com animação fluida + cursor piscante
-                      <motion.div 
-                        className="streaming-markdown prose prose-sm dark:prose-invert max-w-none"
-                        initial={{ opacity: 0.8 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.15 }}
-                      >
+                      // Durante streaming: Markdown em tempo real SEM animação de opacidade no container
+                      <div className="streaming-markdown prose prose-sm dark:prose-invert max-w-none">
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            // Parágrafos com animação de entrada
+                            // Parágrafos sem animação durante streaming para evitar flickering
                             p: ({ children }) => (
-                              <motion.p 
-                                className="mb-3"
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2 }}
-                              >
+                              <p className="mb-3">
                                 {children}
-                              </motion.p>
+                              </p>
                             ),
-                            // Headers com animação
+                            // Headers sem animação
                             h1: ({ children }) => (
-                              <motion.h1 
-                                className="text-xl font-bold mt-6 mb-3 text-primary"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.25 }}
-                              >
+                              <h1 className="text-lg font-bold mt-4 mb-2 text-primary">
                                 {children}
-                              </motion.h1>
+                              </h1>
                             ),
                             h2: ({ children }) => (
-                              <motion.h2 
-                                className="text-lg font-bold mt-5 mb-2 text-foreground"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.25 }}
-                              >
+                              <h2 className="text-base font-bold mt-4 mb-2 text-foreground">
                                 {children}
-                              </motion.h2>
+                              </h2>
                             ),
                             h3: ({ children }) => (
-                              <motion.h3 
-                                className="text-base font-semibold mt-4 mb-2 text-foreground/90"
-                                initial={{ opacity: 0, x: -5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.2 }}
-                              >
+                              <h3 className="text-sm font-semibold mt-3 mb-2 text-foreground/90">
                                 {children}
-                              </motion.h3>
+                              </h3>
                             ),
-                            // Listas com animação
+                            // Listas sem animação
                             ul: ({ children }) => (
-                              <motion.ul 
-                                className="list-disc pl-5 mb-3 space-y-1"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.2 }}
-                              >
+                              <ul className="list-disc pl-5 mb-3 space-y-1">
                                 {children}
-                              </motion.ul>
+                              </ul>
                             ),
                             ol: ({ children }) => (
-                              <motion.ol 
-                                className="list-decimal pl-5 mb-3 space-y-1"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.2 }}
-                              >
+                              <ol className="list-decimal pl-5 mb-3 space-y-1">
                                 {children}
-                              </motion.ol>
+                              </ol>
                             ),
                             li: ({ children }) => (
-                              <motion.li 
-                                className="mb-1"
-                                initial={{ opacity: 0, x: 5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.15 }}
-                              >
+                              <li className="mb-1">
                                 {children}
-                              </motion.li>
+                              </li>
                             ),
                             // Blockquotes com estilo especial
                             blockquote: ({ children }) => (
-                              <motion.blockquote 
-                                className="border-l-4 border-amber-500/50 bg-amber-500/10 pl-4 py-2 my-3 italic text-foreground/80"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.25 }}
-                              >
+                              <blockquote className="border-l-4 border-amber-500/50 bg-amber-500/10 pl-4 py-2 my-3 italic text-foreground/80">
                                 {children}
-                              </motion.blockquote>
+                              </blockquote>
                             ),
                             // Negrito e ênfase
                             strong: ({ children }) => (
@@ -945,21 +900,17 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                         >
                           {formattedContent}
                         </ReactMarkdown>
-                        <motion.span 
-                          className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 rounded-sm"
-                          animate={{ opacity: [1, 0.3, 1] }}
-                          transition={{ duration: 0.8, repeat: Infinity }}
+                        <span 
+                          className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 rounded-sm animate-pulse"
                         />
-                      </motion.div>
+                      </div>
                     ) : (
                       renderMarkdownContent(formattedContent)
                     )
                   ) : null}
                   {isStreaming && !content && (
-                    <motion.span 
-                      className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 rounded-sm"
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 0.8, repeat: Infinity }}
+                    <span 
+                      className="inline-block w-1.5 h-5 bg-primary/70 ml-0.5 rounded-sm animate-pulse"
                     />
                   )}
                 </div>
