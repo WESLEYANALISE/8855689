@@ -214,7 +214,7 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
       console.log("Tentando chave Gemini...");
 
       try {
-        // Usando gemini-2.5-flash (atualizado do 2.0-flash)
+        // Usando gemini-2.5-flash com tokens aumentados para evitar truncamento
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
           {
@@ -224,7 +224,7 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: {
                 temperature: 0.2,
-                maxOutputTokens: 8192
+                maxOutputTokens: 16384 // Aumentado para evitar truncamento de JSON
               }
             })
           }
@@ -259,6 +259,40 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
 
     console.log("Resposta Gemini:", textResponse.substring(0, 800));
 
+    // Função para reparar JSON truncado
+    function repararJsonTruncado(json: string): string {
+      let reparado = json.trim();
+      
+      // Contar chaves e colchetes abertos/fechados
+      let chaves = 0, colchetes = 0;
+      for (const char of reparado) {
+        if (char === '{') chaves++;
+        if (char === '}') chaves--;
+        if (char === '[') colchetes++;
+        if (char === ']') colchetes--;
+      }
+      
+      // Se truncado no meio de um objeto/array, tentar fechar
+      if (chaves > 0 || colchetes > 0) {
+        console.log(`⚠️ JSON truncado detectado (chaves: ${chaves}, colchetes: ${colchetes})`);
+        
+        // Remover último objeto incompleto se termina com vírgula ou após propriedade
+        reparado = reparado
+          .replace(/,\s*"[^"]*":\s*\d*\s*$/, '') // Remove "prop": 123 incompleto
+          .replace(/,\s*"[^"]*":\s*"[^"]*$/, '') // Remove "prop": "valor incompleto
+          .replace(/,\s*\{[^}]*$/, '') // Remove objeto incompleto final
+          .replace(/,\s*$/, ''); // Remove vírgula final
+        
+        // Fechar arrays e objetos restantes
+        while (colchetes > 0) { reparado += ']'; colchetes--; }
+        while (chaves > 0) { reparado += '}'; chaves--; }
+        
+        console.log(`✅ JSON reparado (adicionado fechamentos)`);
+      }
+      
+      return reparado;
+    }
+
     // Tentar extrair JSON da resposta
     let parsed: any;
     let temas: any[] = [];
@@ -269,6 +303,15 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
         temas = parsed.temas || [];
       } catch (parseError) {
         console.error("Erro ao parsear JSON:", parseError);
+        // Tentar reparar JSON truncado
+        try {
+          const jsonReparado = repararJsonTruncado(textResponse);
+          parsed = JSON.parse(jsonReparado);
+          temas = parsed.temas || [];
+          console.log(`✅ JSON reparado com sucesso: ${temas.length} temas`);
+        } catch (repairError) {
+          console.error("Falha ao reparar JSON:", repairError);
+        }
       }
     }
 
@@ -277,9 +320,10 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
       const jsonMatch = textResponse.match(/\{[\s\S]*"temas"[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          parsed = JSON.parse(jsonMatch[0]);
+          const jsonExtraido = repararJsonTruncado(jsonMatch[0]);
+          parsed = JSON.parse(jsonExtraido);
           temas = parsed.temas || [];
-          console.log("JSON extraído de texto misto");
+          console.log(`JSON extraído e reparado: ${temas.length} temas`);
         } catch (e) {
           console.error("Falha ao extrair JSON embutido");
         }
