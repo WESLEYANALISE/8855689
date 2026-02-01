@@ -123,6 +123,107 @@ serve(async (req) => {
       console.log("ℹ️ Nenhum item de índice (nível 1) detectado via regex; usando identificação sem guia do índice.");
     }
 
+    // ✅ Se o índice tem página inicial confiável, gerar subtemas DIRETAMENTE do índice.
+    // Isso evita que o Gemini troque títulos (ex.: item 16 virar "CULPABILIDADE") ou misture faixas de páginas.
+    const indiceComPaginas = titulosIndiceNivel1.filter(i => Number.isFinite(i.pagina_indice));
+    const indiceEhConfiavel =
+      titulosIndiceNivel1.length >= 3 &&
+      indiceComPaginas.length / titulosIndiceNivel1.length >= 0.7;
+
+    if (titulosIndiceNivel1.length && indiceEhConfiavel) {
+      const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+      // Ordenar por ordem
+      const itens = [...titulosIndiceNivel1].sort((a, b) => a.ordem - b.ordem);
+
+      // Construir ranges a partir das páginas do índice
+      const subtemasValidados = itens.map((it, idx) => {
+        const prox = itens[idx + 1];
+
+        const startRaw = Number(it.pagina_indice ?? 1);
+        const endRaw = prox?.pagina_indice ? Number(prox.pagina_indice) - 1 : totalPaginas;
+
+        // Garantir monotonicidade e limites
+        const pagina_inicial = clamp(startRaw, 1, totalPaginas);
+        const pagina_final = clamp(Math.max(endRaw, pagina_inicial), 1, totalPaginas);
+
+        return {
+          ordem: idx + 1,
+          titulo: (it.titulo || '').toString().trim(),
+          pagina_inicial,
+          pagina_final,
+        };
+      });
+
+      console.log(`✅ Subtemas (via índice): ${subtemasValidados.length}`);
+      subtemasValidados.forEach((s: any) => {
+        console.log(`  ${s.ordem}. ${s.titulo} (págs ${s.pagina_inicial}-${s.pagina_final})`);
+      });
+
+      // =========================================
+      // Salvar conteúdo na tabela conteudo_oab_revisao
+      // =========================================
+      console.log("📝 Salvando conteúdo extraído por subtema na tabela conteudo_oab_revisao...");
+
+      // Deletar registros antigos para este tema
+      await supabase
+        .from('conteudo_oab_revisao')
+        .delete()
+        .eq('tema', temaNome);
+
+      // Inserir conteúdo de cada subtema
+      for (const subtema of subtemasValidados) {
+        let conteudoDoSubtema = '';
+
+        for (let pag = subtema.pagina_inicial; pag <= subtema.pagina_final; pag++) {
+          const conteudoPagina = paginasMap.get(pag);
+          if (conteudoPagina) {
+            conteudoDoSubtema += `\n\n--- PÁGINA ${pag} ---\n\n${conteudoPagina}`;
+          }
+        }
+
+        conteudoDoSubtema = conteudoDoSubtema.trim();
+
+        if (conteudoDoSubtema.length > 0) {
+          const { error: upsertError } = await supabase
+            .from('conteudo_oab_revisao')
+            .upsert({
+              tema: temaNome,
+              subtema: subtema.titulo,
+              pagina_inicial: subtema.pagina_inicial,
+              pagina_final: subtema.pagina_final,
+              conteudo_original: conteudoDoSubtema,
+              area: areaNome,
+              topico_id: topicoId
+            }, { onConflict: 'tema,subtema' });
+
+          if (upsertError) {
+            console.error(`Erro ao salvar subtema "${subtema.titulo}":`, upsertError);
+          }
+        } else {
+          console.warn(`⚠️ Subtema "${subtema.titulo}" sem conteúdo!`);
+        }
+      }
+
+      // Atualizar tópico com subtemas identificados
+      await supabase
+        .from('oab_trilhas_topicos')
+        .update({
+          status: 'aguardando_confirmacao',
+          subtemas_identificados: subtemasValidados
+        })
+        .eq('id', topicoId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          subtemas: subtemasValidados,
+          message: `${subtemasValidados.length} subtemas identificados via índice e conteúdo salvo`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Limite dinâmico
     const limitePorPagina = totalPaginas > 100 ? 300 
                           : totalPaginas > 50 ? 500 
