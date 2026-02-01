@@ -336,13 +336,13 @@ export const AulaArtigoSlidesViewer = ({
                   className="text-center mb-6"
                 >
                   <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-2">
-                    {slidesData.area}
+                    {codigoNome}
                   </p>
                   <h1 
                     className="text-2xl font-bold text-white"
                     style={{ fontFamily: "'Playfair Display', serif" }}
                   >
-                    {slidesData.titulo}
+                    Art. {numeroArtigo}
                   </h1>
                   <p className="text-sm text-gray-400 mt-2">
                     Prepare-se para dominar este artigo!
@@ -359,11 +359,6 @@ export const AulaArtigoSlidesViewer = ({
                   <div className="flex items-center gap-1 text-gray-400">
                     <Clock className="w-4 h-4" />
                     <span>{slidesData.tempoEstimado || "25 min"}</span>
-                  </div>
-                  <div className="w-1 h-1 rounded-full bg-gray-600" />
-                  <div className="flex items-center gap-1 text-gray-400">
-                    <List className="w-4 h-4" />
-                    <span>{totalSecoes} seções</span>
                   </div>
                   <div className="w-1 h-1 rounded-full bg-gray-600" />
                   <div className="flex items-center gap-1 text-gray-400">
@@ -403,9 +398,12 @@ export const AulaArtigoSlidesViewer = ({
                   className="space-y-3 mb-8"
                 >
                   {/* Leitura */}
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={handleStartSlides}
-                    className="w-full bg-gradient-to-r from-orange-500/20 to-orange-600/10 border border-orange-500/30 rounded-xl p-4 text-left"
+                    onKeyDown={(e) => e.key === 'Enter' && handleStartSlides()}
+                    className="w-full bg-gradient-to-r from-orange-500/20 to-orange-600/10 border border-orange-500/30 rounded-xl p-4 text-left cursor-pointer hover:border-orange-500/50 transition-colors active:scale-[0.98]"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
@@ -424,7 +422,7 @@ export const AulaArtigoSlidesViewer = ({
                       )}
                     </div>
                     <Progress value={slidesProgress} className="h-1 bg-orange-500/20" />
-                  </button>
+                  </div>
 
                   {/* Flashcards */}
                   <button
