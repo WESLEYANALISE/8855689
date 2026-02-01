@@ -225,21 +225,6 @@ const ConceitosMateria = () => {
         </div>
       </div>
 
-      {/* Banner de conclusão */}
-      {!isGenerating && concluidos === totalTopicosGerados && totalTopicosGerados > 0 && pendentes === 0 && (
-        <div className="px-4 py-3">
-          <div className="max-w-lg mx-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-xl p-3 flex items-center gap-2"
-            >
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-white">Todos os {totalTopicosGerados} conteúdos foram gerados!</span>
-            </motion.div>
-          </div>
-        </div>
-      )}
 
       {/* Label Conteúdo */}
       <div className="px-4 pt-6 pb-3">
