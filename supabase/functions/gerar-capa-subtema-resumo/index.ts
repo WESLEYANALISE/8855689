@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -147,44 +146,76 @@ TECHNICAL SPECS:
 - FULL BLEED: image extends to ALL edges, no white corners`;
 }
 
+// Gerar imagem com Gemini usando fetch direto - MESMO MÉTODO DOS CONCEITOS
 async function gerarImagemComGemini(prompt: string): Promise<string | null> {
-  const API_KEYS = [
-    Deno.env.get('GEMINI_KEY_1'),
-    Deno.env.get('GEMINI_KEY_2'),
-    Deno.env.get('GEMINI_KEY_3'),
-  ].filter(Boolean);
+  const keys: string[] = [];
+  const key1 = Deno.env.get('GEMINI_KEY_1');
+  const key2 = Deno.env.get('GEMINI_KEY_2');
+  const key3 = Deno.env.get('GEMINI_KEY_3');
   
-  console.log(`[Capa Subtema] Tentando ${API_KEYS.length} chaves Gemini disponíveis`);
+  if (key1) keys.push(key1);
+  if (key2) keys.push(key2);
+  if (key3) keys.push(key3);
   
-  // Usando gemini-2.5-flash-image (mesmo modelo dos Conceitos)
-  for (let i = 0; i < API_KEYS.length; i++) {
+  if (keys.length === 0) {
+    throw new Error('Nenhuma chave Gemini configurada');
+  }
+  
+  console.log(`[Capa Subtema] Tentando ${keys.length} chaves Gemini disponíveis`);
+  
+  // MODELO CORRETO PARA GERAÇÃO DE IMAGEM - IGUAL AOS CONCEITOS
+  const modelName = "gemini-2.5-flash-image";
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < keys.length; i++) {
+    const apiKey = keys[i];
     try {
-      console.log(`[Capa Subtema] Tentando chave ${i + 1} com gemini-2.5-flash-preview-05-20...`);
+      console.log(`[Capa Subtema] Tentando chave ${i + 1}/${keys.length} com ${modelName}...`);
       
-      const genAI = new GoogleGenerativeAI(API_KEYS[i]!);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash-preview-05-20",
-        generationConfig: {
-          responseModalities: ["image", "text"] as any,
-        } as any,
-      });
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ 
+              role: 'user', 
+              parts: [{ text: prompt }] 
+            }]
+          }),
+        }
+      );
+
+      if (response.status === 429 || response.status === 503) {
+        console.log(`[Capa Subtema] Chave ${i + 1} com rate limit, tentando próxima...`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Capa Subtema] Erro na chave ${i + 1}:`, response.status, errorText.substring(0, 200));
+        continue;
+      }
+
+      const data = await response.json();
       
-      const result = await model.generateContent(prompt);
-      
-      for (const part of result.response.candidates?.[0]?.content?.parts || []) {
-        if ((part as any).inlineData) {
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data) {
           console.log(`[Capa Subtema] ✅ Sucesso com chave ${i + 1}`);
-          return (part as any).inlineData.data;
+          return part.inlineData.data; // Retorna base64 puro
         }
       }
       
-      console.log(`[Capa Subtema] Chave ${i + 1} não retornou imagem`);
-    } catch (err) {
-      console.log(`[Capa Subtema] Chave ${i + 1} erro:`, err);
-      continue;
+      console.log(`[Capa Subtema] Chave ${i + 1} não retornou imagem, tentando próxima...`);
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`[Capa Subtema] Erro na chave ${i + 1}:`, lastError.message);
     }
   }
   
+  console.error('[Capa Subtema] Todas as chaves Gemini falharam');
   return null;
 }
 
