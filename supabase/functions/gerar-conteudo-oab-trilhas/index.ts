@@ -7,8 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Constantes de configuração
-const MIN_PAGINAS = 8;
+// Constantes de configuração - AUMENTAR PARA PADRÃO CONCEITOS
+const MIN_PAGINAS = 30;
 const MAX_TENTATIVAS = 3;
 
 serve(async (req) => {
@@ -16,7 +16,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Guardar referências para o catch (req.json só pode ser lido 1x)
   let topicoIdForCatch: number | null = null;
   let supabaseForCatch: any = null;
 
@@ -49,7 +48,6 @@ serve(async (req) => {
     if (!checkError && gerandoAtivo && gerandoAtivo.length > 0) {
       console.log(`[OAB Fila] Geração ativa detectada: ${gerandoAtivo[0].titulo} (ID: ${gerandoAtivo[0].id})`);
       
-      // Calcular próxima posição na fila
       const { data: maxPosicao } = await supabase
         .from("oab_trilhas_topicos")
         .select("posicao_fila")
@@ -60,7 +58,6 @@ serve(async (req) => {
       
       const novaPosicao = (maxPosicao?.posicao_fila || 0) + 1;
       
-      // Verificar se já está na fila
       const { data: jaEnfileirado } = await supabase
         .from("oab_trilhas_topicos")
         .select("posicao_fila, status")
@@ -68,7 +65,6 @@ serve(async (req) => {
         .single();
       
       if (jaEnfileirado?.status === "na_fila") {
-        // Já está na fila, retornar posição atual
         const { count: totalFila } = await supabase
           .from("oab_trilhas_topicos")
           .select("id", { count: "exact", head: true })
@@ -85,7 +81,6 @@ serve(async (req) => {
         );
       }
       
-      // Colocar na fila
       await supabase
         .from("oab_trilhas_topicos")
         .update({ 
@@ -95,7 +90,6 @@ serve(async (req) => {
         })
         .eq("id", topico_id);
       
-      // Contar total na fila
       const { count: totalFila } = await supabase
         .from("oab_trilhas_topicos")
         .select("id", { count: "exact", head: true })
@@ -117,8 +111,6 @@ serve(async (req) => {
     // ============================================
     // INÍCIO DA GERAÇÃO
     // ============================================
-
-    // Buscar tópico com matéria
     const { data: topico, error: topicoError } = await supabase
       .from("oab_trilhas_topicos")
       .select(`
@@ -135,7 +127,6 @@ serve(async (req) => {
       );
     }
 
-    // Verificar se já está gerando (permitir restart forçado)
     if (topico.status === "gerando" && !force_restart) {
       return new Response(
         JSON.stringify({ message: "Geração já em andamento" }),
@@ -147,7 +138,6 @@ serve(async (req) => {
       console.log(`[OAB Trilhas] 🔁 Force restart solicitado para topico_id=${topico_id}`);
     }
 
-    // Marcar como gerando com progresso inicial, limpar posição da fila
     const posicaoRemovida = topico.posicao_fila;
     
     await supabase
@@ -160,9 +150,7 @@ serve(async (req) => {
       })
       .eq("id", topico_id);
 
-    // Atualizar posições na fila (decrementar todos acima da posição removida)
     if (posicaoRemovida) {
-      // Buscar todos na fila com posição maior e atualizar
       const { data: filaParaAtualizar } = await supabase
         .from("oab_trilhas_topicos")
         .select("id, posicao_fila")
@@ -180,7 +168,6 @@ serve(async (req) => {
       }
     }
 
-    // Função auxiliar para atualizar progresso
     const updateProgress = async (value: number) => {
       await supabase
         .from("oab_trilhas_topicos")
@@ -192,11 +179,12 @@ serve(async (req) => {
     const topicoTitulo = topico.titulo;
     const tentativasAtuais = topico.tentativas || 0;
 
-    console.log(`[OAB Trilhas] Gerando conteúdo para: ${areaNome} - ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
+    console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
+    console.log(`[OAB Trilhas] Gerando conteúdo INCREMENTAL: ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
 
-    // 1. Buscar TODO o conteúdo extraído das páginas do PDF
+    // 1. Buscar conteúdo extraído das páginas do PDF
     await updateProgress(10);
-    const { data: paginas, error: paginasError } = await supabase
+    const { data: paginas } = await supabase
       .from("oab_trilhas_topico_paginas")
       .select("pagina, conteudo")
       .eq("topico_id", topico_id)
@@ -208,12 +196,12 @@ serve(async (req) => {
         .filter(p => p.conteudo && p.conteudo.trim().length > 0)
         .map(p => `\n--- PÁGINA ${p.pagina} ---\n${p.conteudo}`)
         .join("\n\n");
-      console.log(`[OAB Trilhas] PDF: ${paginas.length} páginas, ${conteudoPDF.length} caracteres`);
+      console.log(`[OAB Trilhas] PDF: ${paginas.length} páginas, ${conteudoPDF.length} chars`);
     } else {
       console.log("[OAB Trilhas] ALERTA: Nenhuma página do PDF encontrada!");
     }
 
-    await updateProgress(20);
+    await updateProgress(15);
 
     // 2. Buscar contexto adicional do RESUMO se existir
     let conteudoResumo = "";
@@ -233,7 +221,7 @@ serve(async (req) => {
       console.log(`[OAB Trilhas] RESUMO: ${resumos.length} subtemas`);
     }
 
-    await updateProgress(30);
+    await updateProgress(20);
 
     // 3. Buscar contexto da Base de Conhecimento OAB
     let contextoBase = "";
@@ -250,7 +238,7 @@ serve(async (req) => {
       console.log("[OAB Trilhas] Base de conhecimento não disponível");
     }
 
-    await updateProgress(40);
+    await updateProgress(25);
 
     // 4. Configurar Gemini
     const geminiKeys = [
@@ -261,436 +249,351 @@ serve(async (req) => {
 
     const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
     const genAI = new GoogleGenerativeAI(geminiKey!);
-    // Usando gemini-2.5-flash-lite para geração de conteúdo OAB (mais rápido e econômico)
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-    // 5. NOVO PROMPT - 8 páginas SEM cronologia + Ligar Termos como última página + ESTILO CONVERSACIONAL
-    const prompt = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
-Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café e ajudando um colega a entender a matéria para a OAB.
+    // Função para sanitizar JSON
+    function sanitizeJsonString(str: string): string {
+      let result = "";
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const code = str.charCodeAt(i);
+        
+        if (escapeNext) { result += char; escapeNext = false; continue; }
+        if (char === '\\') { result += char; escapeNext = true; continue; }
+        if (char === '"') { inString = !inString; result += char; continue; }
+        
+        if (inString) {
+          if (code === 0x0A) result += '\\n';
+          else if (code === 0x0D) result += '\\r';
+          else if (code === 0x09) result += '\\t';
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
+        } else {
+          if (char === '\n' || char === '\r' || char === '\t' || char === ' ') result += char;
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
+        }
+      }
+      return result;
+    }
 
-## 🎯 SEU ESTILO DE ESCRITA OBRIGATÓRIO:
+    // Função para gerar e fazer parse de JSON com retry
+    async function gerarJSON(prompt: string, maxRetries = 2): Promise<any> {
+      let lastError: any = null;
+      
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`[OAB Trilhas] Retry ${attempt}/${maxRetries}...`);
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+          }
+          
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.5 },
+          });
+          
+          let text = result.response.text();
+          text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+          
+          const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+          if (!match) throw new Error("JSON não encontrado na resposta");
+          
+          const sanitized = sanitizeJsonString(match[0]);
+          
+          try {
+            return JSON.parse(sanitized);
+          } catch {
+            const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
+            return JSON.parse(fixed);
+          }
+        } catch (err) {
+          lastError = err;
+          console.error(`[OAB Trilhas] Tentativa ${attempt + 1} falhou:`, err);
+        }
+      }
+      
+      throw lastError;
+    }
 
-### ✅ FAÇA SEMPRE:
-- Escreva como se estivesse CONVERSANDO com o estudante
-- Use expressões naturais como:
-  • "Olha só, é assim que funciona..."
-  • "Veja bem, isso é super importante porque..."
-  • "Sabe aquela situação de...? Pois é, aqui se aplica isso!"
-  • "Deixa eu te explicar de outro jeito..."
-  • "Percebeu a diferença? Esse é o pulo do gato!"
-  • "Agora vem a parte interessante..."
-  • "Calma, não se assuste, é mais simples do que parece..."
-  • "Resumindo pra você não esquecer..."
-- Use perguntas retóricas para engajar ("E por que isso importa tanto pra prova?")
-- Faça analogias com situações do dia a dia
-- Antecipe dúvidas ("Você pode estar pensando: mas e se...? A resposta é...")
-- Conecte os tópicos com transições naturais ("Agora que você já entendeu X, vamos ver Y...")
-- A cada conceito importante, dê uma pausa e explique de forma simples antes de aprofundar
-- Após conceitos complexos, faça um breve resumo informal ("Então, resumindo: ...")
+    // ============================================
+    // PROMPT BASE (ESTILO CONCEITOS)
+    // ============================================
+    const promptBase = `Você é um professor de Direito descontraído, didático e apaixonado por ensinar.
+Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café.
 
-### ❌ NÃO FAÇA:
-- Linguagem excessivamente formal/acadêmica
-- Parágrafos longos e densos sem pausas ou interações
-- Explicações secas e diretas demais
-- Texto que pareça copiado de um livro jurídico
-- Começar frases com "É importante ressaltar que..." ou "Cumpre observar que..."
-- **NUNCA USE EMOJIS NO TEXTO** (proibido qualquer emoji como 😊, 🎯, 📚, ⚖️, etc.)
+## 🎯 ESTILO DE ESCRITA (OBRIGATÓRIO):
+- Escreva como CONVERSA, use expressões como "Olha só...", "Percebeu?", "Veja bem..."
+- Perguntas retóricas para engajar: "E por que isso importa tanto pra OAB?"
+- Analogias com situações do dia a dia
+- Explicar TODO termo técnico ou em latim
+- Exemplos práticos imediatos
+- NUNCA mencione "PDF", "material", "documento" - escreva como conhecimento SEU
 
-═══════════════════════════════════════════════════════════════════
-⛔⛔⛔ REGRA ABSOLUTA: FIDELIDADE 100% AO CONTEÚDO DO PDF ⛔⛔⛔
-═══════════════════════════════════════════════════════════════════
+## 📖 PROFUNDIDADE (CRÍTICO!):
+- Mínimo 200-400 palavras por página tipo "texto"
+- Sempre incluir: "📚 **EXEMPLO PRÁTICO:** ..."
+- Sempre traduzir latim: "O termo *pacta sunt servanda* (que significa 'os pactos devem ser cumpridos')..."
+- Usar blockquotes para citações: > "Art. 421 do CC..."
+- Cards visuais: > ⚠️ **ATENÇÃO:**, > 💡 **DICA:**
 
-O CONTEÚDO ABAIXO FOI EXTRAÍDO DE UM PDF OFICIAL. VOCÊ DEVE:
-✅ Usar 100% do texto e informações do PDF
-✅ Citar APENAS artigos/leis que aparecem LITERALMENTE no PDF
-✅ Explicar cada conceito presente no material de forma didática E CONVERSACIONAL
-✅ NÃO pular nenhum tópico ou seção do PDF
-
-VOCÊ NÃO PODE:
-❌ INVENTAR artigos de lei que NÃO estejam no PDF
-❌ ADICIONAR citações legais que você "sabe" mas NÃO estão no conteúdo
-❌ CRIAR jurisprudência, números de processos ou decisões não presentes
-❌ OMITIR informações importantes do PDF
-
-## INFORMAÇÕES DO TEMA
-**Área:** ${areaNome}
+**Matéria:** ${areaNome} - OAB 1ª Fase
 **Tópico:** ${topicoTitulo}
 
-═══════════════════════════════════════════════════════════════════
-📄 CONTEÚDO COMPLETO DO PDF (USE 100% DESTE MATERIAL):
-═══════════════════════════════════════════════════════════════════
+═══ REFERÊNCIA DE ESTUDO ═══
+${conteudoPDF || "Conteúdo não disponível"}
+${conteudoResumo ? `\n═══ SUBTEMAS ═══\n${conteudoResumo}` : ""}
+${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
+═══════════════════════`;
 
-${conteudoPDF || "Conteúdo do PDF não disponível"}
+    // ============================================
+    // ETAPA 1: GERAR ESTRUTURA/ESQUELETO (IGUAL CONCEITOS)
+    // ============================================
+    console.log(`[OAB Trilhas] ETAPA 1: Gerando estrutura/esqueleto...`);
+    await updateProgress(30);
+    
+    const promptEstrutura = `${promptBase}
 
-${conteudoResumo ? `
-═══════════════════════════════════════════════════════════════════
-📚 SUBTEMAS JÁ IDENTIFICADOS:
-═══════════════════════════════════════════════════════════════════
+═══ SUA TAREFA ═══
+Crie APENAS a ESTRUTURA/ESQUELETO do conteúdo interativo.
+NÃO gere o conteúdo completo agora, apenas títulos e tipos de página.
 
-${conteudoResumo}
-` : ""}
-
-${contextoBase ? `
-═══════════════════════════════════════════════════════════════════
-📖 CONTEXTO ADICIONAL DA BASE OAB:
-═══════════════════════════════════════════════════════════════════
-
-${contextoBase}
-` : ""}
-
-═══════════════════════════════════════════════════════════════════
-📝 SUA MISSÃO: GERAR CONTEÚDO COM EXATAMENTE 8 PÁGINAS
-═══════════════════════════════════════════════════════════════════
-
-Crie um material de estudo em formato JSON com EXATAMENTE 8 PÁGINAS:
-
-### ESTRUTURA OBRIGATÓRIA (8 PÁGINAS):
-
-**PÁGINA 1 - INTRODUÇÃO** (Tom: acolhedor e motivador)
-- Tipo: "introducao"
-- Comece com algo engajador: "Vamos falar sobre um tema super importante pra sua prova..."
-- Visão geral do tema em 300-500 palavras
-- Contextualize a importância para a OAB de forma natural
-- "Ao final dessa trilha, você vai dominar..."
-
-**PÁGINA 2 - CONTEÚDO COMPLETO** (Tom: professor explicando, conversando)
-- Tipo: "conteudo_principal"
-- Explique TODO o tema usando 100% do conteúdo do PDF
-- Organize com subtítulos claros (##, ###)
-- Use tom CONVERSACIONAL: "Vamos lá!", "Entendeu a lógica?", "Aqui vem o pulo do gato..."
-- A cada novo conceito, faça uma pequena introdução conversacional antes de explicar
-- Após conceitos importantes, faça um breve resumo informal ("Resumindo: ...")
-- Antecipe dúvidas do estudante e responda de forma natural
-- Inclua todos os conceitos, definições, classificações
-- Cite os artigos de lei EXATAMENTE como aparecem no PDF
-- Mínimo 3000 palavras - cubra TUDO do PDF
-
-**PÁGINA 3 - DESMEMBRANDO** (Tom: "Agora deixa eu destrinchar isso pra você...")
-- Tipo: "desmembrando"
-- Análise detalhada de cada elemento importante
-- Decomponha conceitos complexos em partes menores
-- "Olha, isso parece complicado, mas vou te mostrar passo a passo..."
-- Use exemplos para clarificar
-
-**PÁGINA 4 - ENTENDENDO NA PRÁTICA** (Tom: "Imagina a seguinte situação...")
-- Tipo: "entendendo_na_pratica"
-- Casos práticos baseados no conteúdo
-- "Vou te dar um exemplo bem concreto..."
-- Situações reais de aplicação
-- Como resolver questões na prova
-
-**PÁGINA 5 - QUADRO COMPARATIVO**
-- Tipo: "quadro_comparativo"
-- Crie tabelas comparativas dos principais institutos
-- Compare elementos, requisitos, efeitos
-- Use formato Markdown de tabela
-
-**PÁGINA 6 - DICAS PARA MEMORIZAR** (Tom: "Olha esse truque que vai salvar sua vida na prova...")
-- Tipo: "dicas_provas"
-- Técnicas de memorização (mnemônicos, associações)
-- "Quer uma dica? Pensa assim..."
-- Pegadinhas comuns nas provas
-- Pontos mais cobrados na OAB
-
-**PÁGINA 7 - LIGAR TERMOS (EXERCÍCIO INTERATIVO)**
-- Tipo: "correspondencias"
-- NÃO é conteúdo markdown normal!
-- Será um jogo de arrastar e conectar termos às definições
-- O conteúdo deve ser simples: apenas uma introdução breve
-- Os dados reais do jogo vão no campo "correspondencias" separado
-
-**PÁGINA 8 - SÍNTESE FINAL** (Tom: "Então, recapitulando tudo que vimos...")
-- Tipo: "sintese_final"
-- Resumo de todos os pontos-chave
-- "Vamos revisar rapidinho..."
-- Checklist do que estudar
-- Esquema visual usando Markdown
-
-### FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
-
-\`\`\`json
+Retorne um JSON com esta estrutura EXATA:
 {
-  "paginas": [
+  "titulo": "${topicoTitulo}",
+  "tempoEstimado": "25 min",
+  "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3", "Objetivo 4"],
+  "secoes": [
     {
-      "titulo": "Introdução: ${topicoTitulo}",
-      "tipo": "introducao",
-      "markdown": "# Introdução\\n\\n[Visão geral do tema - TOM CONVERSACIONAL]"
+      "id": 1,
+      "titulo": "Nome da Seção",
+      "paginas": [
+        {"tipo": "introducao", "titulo": "O que você vai aprender"},
+        {"tipo": "texto", "titulo": "Conceito Principal X"},
+        {"tipo": "texto", "titulo": "Detalhamento de Y"},
+        {"tipo": "termos", "titulo": "Termos Importantes"},
+        {"tipo": "quickcheck", "titulo": "Verificação Rápida"}
+      ]
     },
     {
-      "titulo": "Conteúdo Completo: ${topicoTitulo}",
-      "tipo": "conteudo_principal",
-      "markdown": "# ${topicoTitulo}\\n\\n[TODO o conteúdo do PDF explicado de forma CONVERSACIONAL em 3000+ palavras]"
-    },
-    {
-      "titulo": "Desmembrando o Tema",
-      "tipo": "desmembrando",
-      "markdown": "# Desmembrando\\n\\n[Análise detalhada com tom de conversa]"
-    },
-    {
-      "titulo": "Entendendo na Prática",
-      "tipo": "entendendo_na_pratica",
-      "markdown": "# Entendendo na Prática\\n\\n[Casos práticos]"
-    },
-    {
-      "titulo": "Quadro Comparativo",
-      "tipo": "quadro_comparativo",
-      "markdown": "# Quadro Comparativo\\n\\n[Tabelas comparativas]"
-    },
-    {
-      "titulo": "Dicas para Memorizar",
-      "tipo": "dicas_provas",
-      "markdown": "# Dicas para Memorizar\\n\\n[Técnicas e pegadinhas com linguagem amigável]"
-    },
-    {
-      "titulo": "Ligar Termos",
-      "tipo": "correspondencias",
-      "markdown": "# Exercício: Ligar Termos\\n\\nConecte cada termo à sua definição correta arrastando os elementos."
-    },
-    {
-      "titulo": "Síntese Final",
-      "tipo": "sintese_final",
-      "markdown": "# Síntese Final\\n\\n[Resumo e checklist com tom de conclusão amigável]"
-    }
-  ],
-  "correspondencias": [
-    {
-      "termo": "Nome do termo/conceito do PDF",
-      "definicao": "Definição correspondente do PDF"
-    },
-    {
-      "termo": "Outro termo",
-      "definicao": "Outra definição"
-    }
-  ],
-  "exemplos": [
-    {
-      "titulo": "Título do caso",
-      "situacao": "Descrição do caso prático",
-      "analise": "Análise jurídica",
-      "conclusao": "Conclusão"
-    }
-  ],
-  "termos": [
-    {
-      "termo": "Termo do PDF",
-      "definicao": "Definição conforme o PDF"
-    }
-  ],
-  "flashcards": [
-    {
-      "frente": "Pergunta baseada no PDF",
-      "verso": "Resposta do PDF",
-      "exemplo": "Exemplo prático"
-    }
-  ],
-  "questoes": [
-    {
-      "pergunta": "Enunciado estilo OAB",
-      "alternativas": ["A)", "B)", "C)", "D)"],
-      "correta": 0,
-      "explicacao": "Explicação"
+      "id": 2,
+      "titulo": "Segunda Seção",
+      "paginas": [...]
     }
   ]
 }
-\`\`\`
 
-### QUANTIDADES OBRIGATÓRIAS:
-- Páginas: EXATAMENTE 8 páginas (estrutura acima)
-- Página 2 (Conteúdo): Mínimo 3000 palavras
-- Correspondências: Mínimo 8 pares termo/definição para o jogo
-- Exemplos: Mínimo 5 casos práticos
-- Termos: Mínimo 10 termos jurídicos
-- Flashcards: Mínimo 15 flashcards
-- Questões: Mínimo 8 questões estilo OAB
+REGRAS:
+1. Gere entre 5-7 seções (para alcançar 35-55 páginas totais)
+2. Cada seção deve ter 6-10 páginas
+3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
+4. Distribua bem os tipos (não só "texto")
+5. Cada seção deve ter pelo menos 1 quickcheck
+6. Use títulos descritivos para cada página
+7. Cubra TODO o conteúdo do material
 
-IMPORTANTE: 
-- Use ABSOLUTAMENTE TODO o conteúdo do PDF
-- NÃO invente artigos ou citações legais
-- MANTENHA O TOM CONVERSACIONAL em todas as páginas - como se estivesse explicando para um amigo
-- O campo "correspondencias" é SEPARADO das páginas - são os dados para o jogo interativo
-- Retorne APENAS o JSON válido, sem texto adicional`;
+Retorne APENAS o JSON, sem texto adicional.`;
 
-    // 6. Função auxiliar para gerar e continuar se truncado
-    async function gerarComContinuacao(promptInicial: string, maxTentativas = 3): Promise<string> {
-      let textoCompleto = "";
-      let tentativas = 0;
-      let promptAtual = promptInicial;
+    let estrutura: any = null;
+    try {
+      estrutura = await gerarJSON(promptEstrutura);
       
-      while (tentativas < maxTentativas) {
-        tentativas++;
-        console.log(`[OAB Trilhas] Chamando Gemini (tentativa ${tentativas})...`);
+      if (!estrutura?.secoes || !Array.isArray(estrutura.secoes) || estrutura.secoes.length < 3) {
+        throw new Error("Estrutura inválida: menos de 3 seções");
+      }
+      
+      const totalPaginasEstrutura = estrutura.secoes.reduce(
+        (acc: number, s: any) => acc + (s.paginas?.length || 0), 0
+      );
+      console.log(`[OAB Trilhas] ✓ Estrutura: ${estrutura.secoes.length} seções, ${totalPaginasEstrutura} páginas planejadas`);
+    } catch (err) {
+      console.error(`[OAB Trilhas] ❌ Erro na estrutura:`, err);
+      throw new Error(`Falha ao gerar estrutura: ${err}`);
+    }
+
+    await updateProgress(35);
+
+    // ============================================
+    // ETAPA 2: GERAR CONTEÚDO POR SEÇÃO (BATCH INCREMENTAL - IGUAL CONCEITOS)
+    // ============================================
+    console.log(`[OAB Trilhas] ETAPA 2: Gerando conteúdo seção por seção...`);
+    
+    const secoesCompletas: any[] = [];
+    const totalSecoes = estrutura.secoes.length;
+
+    for (let i = 0; i < totalSecoes; i++) {
+      const secaoEstrutura = estrutura.secoes[i];
+      const progressoSecao = Math.round(35 + (i / totalSecoes) * 40); // 35% a 75%
+      
+      console.log(`[OAB Trilhas] Gerando seção ${i + 1}/${totalSecoes}: ${secaoEstrutura.titulo}`);
+      await updateProgress(progressoSecao);
+
+      const promptSecao = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere o CONTEÚDO COMPLETO para a SEÇÃO ${i + 1}:
+Título: "${secaoEstrutura.titulo}"
+
+PÁGINAS A GERAR (com seus tipos):
+${JSON.stringify(secaoEstrutura.paginas, null, 2)}
+
+Para CADA página, retorne o objeto completo com:
+
+1. Para tipo "introducao":
+   {"tipo": "introducao", "titulo": "...", "conteudo": "Texto motivador sobre o que será aprendido na OAB..."}
+
+2. Para tipo "texto":
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA (200-400 palavras) com exemplos, termos explicados, citações legais..."}
+
+3. Para tipo "termos":
+   {"tipo": "termos", "titulo": "...", "conteudo": "Introdução breve", "termos": [{"termo": "...", "definicao": "..."}]}
+
+4. Para tipo "linha_tempo":
+   {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Contexto", "etapas": [{"titulo": "...", "descricao": "..."}]}
+
+5. Para tipo "tabela":
+   {"tipo": "tabela", "titulo": "...", "conteudo": "Descrição", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}}
+
+6. Para tipo "atencao":
+   {"tipo": "atencao", "titulo": "...", "conteudo": "⚠️ Ponto importante que CAI NA OAB..."}
+
+7. Para tipo "dica":
+   {"tipo": "dica", "titulo": "...", "conteudo": "💡 Dica de memorização ou macete para a prova OAB..."}
+
+8. Para tipo "caso":
+   {"tipo": "caso", "titulo": "...", "conteudo": "💼 Caso prático que pode aparecer na OAB..."}
+
+9. Para tipo "quickcheck":
+   {"tipo": "quickcheck", "titulo": "...", "conteudo": "Teste seu conhecimento:", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "Explicação..."}
+
+10. Para tipo "resumo":
+    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando para a OAB:", "pontos": ["...", "...", "..."]}
+
+Retorne um JSON com a seção COMPLETA:
+{
+  "id": ${secaoEstrutura.id},
+  "titulo": "${secaoEstrutura.titulo}",
+  "slides": [
+    // Array com TODAS as páginas completas
+  ]
+}
+
+REGRAS CRÍTICAS:
+- Páginas "texto" devem ter 200-400 palavras com exemplos práticos
+- Use blockquotes (>) para citações e cards de atenção
+- NUNCA use emojis no texto corrido (só nos cards especiais)
+- Foco em como o tema CAI NA OAB
+
+Retorne APENAS o JSON da seção, sem texto adicional.`;
+
+      try {
+        const secaoCompleta = await gerarJSON(promptSecao);
         
-        const result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: promptAtual }] }],
-          generationConfig: {
-            maxOutputTokens: 65000,
-            temperature: 0.6,
-          },
-        });
-        
-        const responseText = result.response.text();
-        textoCompleto += responseText;
-        console.log(`[OAB Trilhas] Resposta ${tentativas}: ${responseText.length} chars`);
-        
-        // Verificar se a resposta está completa (tem o fechamento do JSON)
-        const temFechamento = textoCompleto.includes('"questoes"') && 
-                              textoCompleto.trim().endsWith("}") ||
-                              textoCompleto.includes("```") && textoCompleto.lastIndexOf("```") > textoCompleto.lastIndexOf("```json");
-        
-        // Verificar se parece truncado no meio de uma string ou array
-        const pareceTruncado = !temFechamento && (
-          responseText.trim().endsWith(",") ||
-          responseText.trim().endsWith('"') ||
-          responseText.trim().endsWith("[") ||
-          responseText.trim().endsWith("{") ||
-          !responseText.includes("questoes")
-        );
-        
-        if (!pareceTruncado) {
-          console.log(`[OAB Trilhas] Resposta completa após ${tentativas} tentativa(s)`);
-          break;
+        if (!secaoCompleta?.slides || !Array.isArray(secaoCompleta.slides)) {
+          throw new Error(`Seção ${i + 1} sem slides válidos`);
         }
         
-        console.log(`[OAB Trilhas] Resposta truncada, solicitando continuação...`);
+        if (secaoCompleta.slides.length < 3) {
+          throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
+        }
         
-        // Preparar prompt de continuação com contexto
-        const ultimasLinhas = responseText.slice(-500);
-        promptAtual = `CONTINUE exatamente de onde parou. A resposta anterior terminou com:
-
-"""
-${ultimasLinhas}
-"""
-
-Continue gerando o JSON a partir deste ponto. NÃO repita o que já foi gerado. 
-Mantenha a mesma estrutura e formato JSON.
-Complete TODAS as seções que faltam: correspondencias, exemplos, termos, flashcards, questoes.
-Termine com o fechamento correto do JSON.`;
+        secoesCompletas.push(secaoCompleta);
+        console.log(`[OAB Trilhas] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas`);
+        
+      } catch (err) {
+        console.error(`[OAB Trilhas] ❌ Erro na seção ${i + 1}:`, err);
+        secoesCompletas.push({
+          id: secaoEstrutura.id,
+          titulo: secaoEstrutura.titulo,
+          slides: [{
+            tipo: "texto",
+            titulo: secaoEstrutura.titulo,
+            conteudo: `Conteúdo da seção "${secaoEstrutura.titulo}" está sendo regenerado. Por favor, tente novamente em alguns instantes.`
+          }]
+        });
       }
-      
-      return textoCompleto;
     }
 
-    // Gerar conteúdo com lógica de continuação
-    await updateProgress(50);
-    const responseText = await gerarComContinuacao(prompt);
-    await updateProgress(70);
-    console.log(`[OAB Trilhas] Resposta final: ${responseText.length} chars`);
-    
-    // Extrair JSON da resposta (pode estar em múltiplas partes)
-    let jsonStr = responseText;
-    
-    // Remover marcadores de código duplicados se houver
-    jsonStr = jsonStr.replace(/```json/g, "").replace(/```/g, "");
-    
-    // Encontrar o JSON principal
-    const jsonStart = jsonStr.indexOf("{");
-    const jsonEnd = jsonStr.lastIndexOf("}");
-    if (jsonStart !== -1 && jsonEnd !== -1) {
-      jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1);
-    }
-    
-    // Tentar corrigir JSON truncado se necessário
-    let conteudoGerado;
+    await updateProgress(80);
+
+    // ============================================
+    // ETAPA 3: GERAR EXTRAS (correspondências, flashcards, questões)
+    // ============================================
+    console.log(`[OAB Trilhas] ETAPA 3: Gerando extras (flashcards, questões)...`);
+
+    const promptExtras = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere elementos de estudo complementares para a OAB:
+
+Retorne JSON com:
+{
+  "correspondencias": [
+    {"termo": "Termo do conteúdo", "definicao": "Definição curta (máx 60 chars)"}
+  ],
+  "exemplos": [
+    {"titulo": "Título do caso", "situacao": "Descrição", "analise": "Análise", "conclusao": "Conclusão"}
+  ],
+  "termos": [
+    {"termo": "Termo jurídico", "definicao": "Definição completa"}
+  ],
+  "flashcards": [
+    {"frente": "Pergunta estilo OAB", "verso": "Resposta", "exemplo": "Exemplo prático"}
+  ],
+  "questoes": [
+    {"pergunta": "Enunciado estilo OAB", "alternativas": ["A) opção", "B) opção", "C) opção", "D) opção"], "correta": 0, "explicacao": "Explicação"}
+  ]
+}
+
+QUANTIDADES:
+- correspondencias: 8-10 pares (para jogo Ligar Termos)
+- exemplos: 5-8 casos práticos
+- termos: 10-15 termos importantes
+- flashcards: 15-20 cards
+- questoes: 8-12 questões estilo OAB
+
+Retorne APENAS o JSON, sem texto adicional.`;
+
+    let extras: any = { correspondencias: [], exemplos: [], termos: [], flashcards: [], questoes: [] };
     try {
-      // Sanitizar caracteres de controle antes do parse
-      const sanitizedJson = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return ''; // Remove outros caracteres de controle
-      });
-      conteudoGerado = JSON.parse(sanitizedJson);
-    } catch (parseError) {
-      console.log("[OAB Trilhas] Erro no parse, tentando corrigir JSON...");
-      
-      // Sanitizar caracteres de controle
-      let jsonCorrigido = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === '\n') return '\\n';
-        if (char === '\r') return '\\r';
-        if (char === '\t') return '\\t';
-        return '';
-      });
-      
-      // Adicionar fechamentos faltantes
-      const aberturasObj = (jsonCorrigido.match(/{/g) || []).length;
-      const fechamentosObj = (jsonCorrigido.match(/}/g) || []).length;
-      const aberturasArr = (jsonCorrigido.match(/\[/g) || []).length;
-      const fechamentosArr = (jsonCorrigido.match(/]/g) || []).length;
-      
-      // Adicionar fechamentos faltantes
-      for (let i = 0; i < aberturasArr - fechamentosArr; i++) {
-        jsonCorrigido += "]";
-      }
-      for (let i = 0; i < aberturasObj - fechamentosObj; i++) {
-        jsonCorrigido += "}";
-      }
-      
-      // Remover vírgula antes de fechamento
-      jsonCorrigido = jsonCorrigido.replace(/,\s*([}\]])/g, "$1");
-      
-      try {
-        conteudoGerado = JSON.parse(jsonCorrigido);
-        console.log("[OAB Trilhas] JSON corrigido com sucesso");
-      } catch (finalError) {
-        console.error("[OAB Trilhas] Falha definitiva no parse JSON:", finalError);
-        // Marcar como erro para tentar novamente depois
-        await supabase.from("oab_trilhas_topicos")
-          .update({ status: "erro", progresso: 0 })
-          .eq("id", topico_id);
-        throw new Error("Falha ao processar resposta da IA");
-      }
+      extras = await gerarJSON(promptExtras);
+      console.log(`[OAB Trilhas] ✓ Extras: ${extras.correspondencias?.length || 0} corresp, ${extras.flashcards?.length || 0} flashcards, ${extras.questoes?.length || 0} questões`);
+    } catch (err) {
+      console.error(`[OAB Trilhas] ⚠️ Erro nos extras (usando vazios):`, err);
     }
 
-    // 7. Processar o conteúdo das páginas
-    let conteudoPrincipal = "";
-    const numPaginas = conteudoGerado.paginas?.length || 0;
-    
-    if (conteudoGerado.paginas && Array.isArray(conteudoGerado.paginas)) {
-      // Concatenar todas as páginas em um único markdown com separadores
-      conteudoPrincipal = conteudoGerado.paginas
-        .map((p: any, i: number) => {
-          const separador = i > 0 ? "\n\n---\n\n" : "";
-          return `${separador}${p.markdown || ""}`;
-        })
-        .join("");
-      
-      console.log(`[OAB Trilhas] ${numPaginas} páginas geradas`);
-    } else {
-      // Fallback para formato antigo
-      conteudoPrincipal = conteudoGerado.conteudo || "";
-    }
+    await updateProgress(85);
 
     // ============================================
-    // VALIDAÇÃO DE PÁGINAS E REPROCESSAMENTO AUTOMÁTICO
+    // MONTAR CONTEÚDO FINAL (FORMATO IGUAL CONCEITOS)
     // ============================================
-    if (numPaginas < MIN_PAGINAS) {
-      console.log(`[OAB Fila] ⚠️ Apenas ${numPaginas} páginas (mínimo: ${MIN_PAGINAS})`);
+    const totalPaginas = secoesCompletas.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
+    console.log(`[OAB Trilhas] Total de páginas geradas: ${totalPaginas}`);
+
+    // Validação de páginas mínimas
+    if (totalPaginas < MIN_PAGINAS) {
+      console.log(`[OAB Trilhas] ⚠️ Apenas ${totalPaginas} páginas (mínimo: ${MIN_PAGINAS})`);
       
       const novasTentativas = tentativasAtuais + 1;
       
       if (novasTentativas >= MAX_TENTATIVAS) {
-        console.log(`[OAB Fila] ❌ Máximo de tentativas (${MAX_TENTATIVAS}) atingido, marcando como erro`);
+        console.log(`[OAB Trilhas] ❌ Máximo de tentativas atingido, marcando como erro`);
         await supabase.from("oab_trilhas_topicos")
-          .update({ 
-            status: "erro", 
-            tentativas: novasTentativas,
-            progresso: 0 
-          })
+          .update({ status: "erro", tentativas: novasTentativas, progresso: 0 })
           .eq("id", topico_id);
         
-        // Processar próximo da fila
         await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
         
         return new Response(
-          JSON.stringify({ 
-            error: `Falha após ${MAX_TENTATIVAS} tentativas (${numPaginas}/${MIN_PAGINAS} páginas)`,
-            tentativas: novasTentativas
-          }),
+          JSON.stringify({ error: `Falha após ${MAX_TENTATIVAS} tentativas (${totalPaginas}/${MIN_PAGINAS} páginas)` }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      // Calcular próxima posição na fila
+      // Recolocar na fila
       const { data: maxPosicao } = await supabase
         .from("oab_trilhas_topicos")
         .select("posicao_fila")
@@ -701,9 +604,6 @@ Termine com o fechamento correto do JSON.`;
       
       const novaPosicao = (maxPosicao?.posicao_fila || 0) + 1;
       
-      console.log(`[OAB Fila] Recolocando na fila: posição ${novaPosicao}, tentativa ${novasTentativas + 1}`);
-      
-      // Limpar conteúdo e recolocar no final da fila
       await supabase.from("oab_trilhas_topicos")
         .update({ 
           status: "na_fila", 
@@ -714,82 +614,56 @@ Termine com o fechamento correto do JSON.`;
         })
         .eq("id", topico_id);
       
-      // Processar próximo da fila
       await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
       
       return new Response(
-        JSON.stringify({ 
-          requeued: true,
-          reason: `${numPaginas}/${MIN_PAGINAS} páginas`,
-          position: novaPosicao,
-          tentativas: novasTentativas + 1
-        }),
+        JSON.stringify({ requeued: true, reason: `${totalPaginas}/${MIN_PAGINAS} páginas`, position: novaPosicao }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 8. VALIDAR correspondências antes de salvar - mínimo 8 pares para o jogo "Ligar Termos"
-    await updateProgress(85);
-    let correspondenciasValidas = conteudoGerado.correspondencias || [];
-    
-    // Verificar se tem correspondências suficientes
-    if (!Array.isArray(correspondenciasValidas) || correspondenciasValidas.length < 8) {
-      console.log(`[OAB Trilhas] ⚠️ Correspondências insuficientes (${correspondenciasValidas.length}), tentando extrair do conteúdo...`);
-      
-      // Tentar extrair correspondências a partir das páginas
-      const paginaLigarTermos = conteudoGerado.paginas?.find((p: any) => 
-        p.titulo?.toLowerCase().includes("ligar") || 
-        p.tipo === "correspondencias" ||
-        p.markdown?.toLowerCase().includes("ligar termos")
-      );
-      
-      // Extrair termos do próprio conteúdo se existirem listas de termos/definições
-      if (paginaLigarTermos?.dados_interativos?.pares) {
-        correspondenciasValidas = paginaLigarTermos.dados_interativos.pares;
-        console.log(`[OAB Trilhas] ✓ Extraídas ${correspondenciasValidas.length} correspondências da página 7`);
-      } else if (conteudoGerado.termos && Array.isArray(conteudoGerado.termos) && conteudoGerado.termos.length >= 8) {
-        // Converter termos do glossário em correspondências (usar descrição curta)
-        correspondenciasValidas = conteudoGerado.termos.slice(0, 10).map((t: any) => ({
-          termo: t.termo || t.nome || t,
-          definicao: t.definicao?.substring(0, 60) || t.descricao?.substring(0, 60) || "Conceito jurídico"
-        }));
-        console.log(`[OAB Trilhas] ✓ Convertidos ${correspondenciasValidas.length} termos em correspondências`);
-      }
-    }
-    
-    // Validar cada par de correspondência
+    // Montar estrutura final no formato de Conceitos
+    const conteudoFinal = {
+      versao: 1,
+      titulo: topicoTitulo,
+      tempoEstimado: estrutura.tempoEstimado || "25 min",
+      area: areaNome,
+      objetivos: estrutura.objetivos || [],
+      secoes: secoesCompletas,
+      // Manter também o formato de páginas flat para compatibilidade
+      paginas: secoesCompletas.flatMap(s => s.slides || []).map((slide: any) => ({
+        titulo: slide.titulo,
+        tipo: slide.tipo,
+        markdown: slide.conteudo
+      }))
+    };
+
+    await updateProgress(90);
+
+    // Validar correspondências
+    let correspondenciasValidas = extras.correspondencias || [];
     correspondenciasValidas = correspondenciasValidas
       .filter((c: any) => c && c.termo && c.definicao)
-      .slice(0, 10) // Máximo 10 pares
+      .slice(0, 10)
       .map((c: any) => ({
         termo: String(c.termo).trim().substring(0, 50),
         definicao: String(c.definicao).trim().substring(0, 80)
       }));
-    
-    console.log(`[OAB Trilhas] Correspondências finais: ${correspondenciasValidas.length} pares válidos`);
-    
-    // Se ainda não tiver correspondências suficientes, marcar como erro para retry
-    if (correspondenciasValidas.length < 6) {
-      console.error(`[OAB Trilhas] ❌ Falha: apenas ${correspondenciasValidas.length} correspondências (mínimo 6)`);
-      await supabase.from("oab_trilhas_topicos")
-        .update({ status: "erro", progresso: 80 })
-        .eq("id", topico_id);
-      throw new Error(`Correspondências insuficientes para o jogo Ligar Termos (${correspondenciasValidas.length}/6)`);
-    }
-    
+
     const termosComCorrespondencias = {
-      glossario: conteudoGerado.termos || [],
+      glossario: extras.termos || [],
       correspondencias: correspondenciasValidas
     };
-    
+
+    // Salvar no banco
     const { error: updateError } = await supabase
       .from("oab_trilhas_topicos")
       .update({
-        conteudo_gerado: conteudoPrincipal,
-        exemplos: conteudoGerado.exemplos || [],
+        conteudo_gerado: conteudoFinal,  // Agora salva o JSON completo, não markdown
+        exemplos: extras.exemplos || [],
         termos: termosComCorrespondencias,
-        flashcards: conteudoGerado.flashcards || [],
-        questoes: conteudoGerado.questoes || [],
+        flashcards: extras.flashcards || [],
+        questoes: extras.questoes || [],
         status: "concluido",
         progresso: 100,
         tentativas: tentativasAtuais + 1,
@@ -803,45 +677,50 @@ Termine com o fechamento correto do JSON.`;
     }
 
     console.log(`[OAB Trilhas] ✅ Conteúdo salvo com sucesso: ${topicoTitulo}`);
-    console.log(`[OAB Trilhas] Stats: ${numPaginas} páginas, ${correspondenciasValidas.length} correspondências, ${conteudoGerado.flashcards?.length || 0} flashcards`);
+    console.log(`[OAB Trilhas] Stats: ${totalPaginas} páginas, ${secoesCompletas.length} seções`);
 
-    // 9. NÃO gerar capa automaticamente - usar capa da matéria (area.capa_url)
-    console.log("[OAB Trilhas] Capa será herdada da matéria, não gerando individual");
+    await updateProgress(95);
 
     // ============================================
-    // PROCESSAR PRÓXIMO DA FILA
+    // GERAR CAPA DO TÓPICO (IGUAL CONCEITOS)
     // ============================================
+    console.log(`[OAB Trilhas] Gerando capa do tópico...`);
+    try {
+      await supabase.functions.invoke("gerar-capa-topico-oab", {
+        body: { 
+          topico_id,
+          titulo: topicoTitulo,
+          area: areaNome
+        }
+      });
+      console.log(`[OAB Trilhas] ✓ Capa solicitada`);
+    } catch (e) {
+      console.log(`[OAB Trilhas] ⚠️ Capa não gerada (continuando sem):`, e);
+    }
+
+    // Processar próximo da fila
     await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Conteúdo gerado com sucesso - 8 páginas incluindo Ligar Termos",
+        message: `Conteúdo gerado com sucesso - ${totalPaginas} páginas em ${secoesCompletas.length} seções`,
         topico_id,
         titulo: topicoTitulo,
         area: areaNome,
-        paginas: numPaginas,
         stats: {
+          secoes: secoesCompletas.length,
+          paginas: totalPaginas,
           correspondencias: correspondenciasValidas.length,
-          exemplos: conteudoGerado.exemplos?.length || 0,
-          termos: conteudoGerado.termos?.length || 0,
-          flashcards: conteudoGerado.flashcards?.length || 0,
-          questoes: conteudoGerado.questoes?.length || 0,
+          flashcards: extras.flashcards?.length || 0,
+          questoes: extras.questoes?.length || 0,
         }
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("[OAB Trilhas] ❌ Erro ao gerar conteúdo:", error);
-    console.log(`[OAB Trilhas] ❌ Erro detalhado:`, {
-      topico_id: topicoIdForCatch,
-      erro: error.message,
-      stack: error.stack?.substring(0, 500)
-    });
 
-    // Tentar fazer retry automático
     try {
       if (topicoIdForCatch) {
         const supabase = supabaseForCatch || createClient(
@@ -849,7 +728,6 @@ Termine com o fechamento correto do JSON.`;
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        // Buscar tentativas atuais
         const { data: topicoAtual } = await supabase
           .from("oab_trilhas_topicos")
           .select("tentativas")
@@ -857,10 +735,8 @@ Termine com o fechamento correto do JSON.`;
           .single();
 
         const tentativas = (topicoAtual?.tentativas || 0) + 1;
-        const MAX_TENTATIVAS = 3;
 
         if (tentativas < MAX_TENTATIVAS) {
-          // Calcular próxima posição na fila
           const { data: maxPos } = await supabase
             .from("oab_trilhas_topicos")
             .select("posicao_fila")
@@ -871,7 +747,6 @@ Termine com o fechamento correto do JSON.`;
 
           const novaPosicao = (maxPos?.posicao_fila || 0) + 1;
 
-          // Recolocar na fila para nova tentativa
           await supabase
             .from("oab_trilhas_topicos")
             .update({ 
@@ -886,16 +761,14 @@ Termine com o fechamento correto do JSON.`;
 
           console.log(`[OAB Fila] ♻️ Erro recuperável, recolocando na fila (tentativa ${tentativas}/${MAX_TENTATIVAS})`);
         } else {
-          // Esgotou tentativas, marcar como erro definitivo
           await supabase
             .from("oab_trilhas_topicos")
             .update({ status: "erro", tentativas, progresso: 0, updated_at: new Date().toISOString() })
             .eq("id", topicoIdForCatch);
 
-          console.log(`[OAB Fila] ❌ Erro após ${MAX_TENTATIVAS} tentativas, marcando como falha definitiva`);
+          console.log(`[OAB Fila] ❌ Erro após ${MAX_TENTATIVAS} tentativas`);
         }
         
-        // Processar próximo da fila mesmo em caso de erro
         await processarProximoDaFila(supabase, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       }
     } catch (catchErr) {
@@ -904,10 +777,7 @@ Termine com o fechamento correto do JSON.`;
 
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
@@ -930,7 +800,6 @@ async function processarProximoDaFila(supabase: any, supabaseUrl: string, supaba
 
     console.log(`[OAB Fila] Iniciando próximo da fila: ${proximo.titulo} (ID: ${proximo.id})`);
 
-    // Usar fetch diretamente para não bloquear a resposta atual
     const functionUrl = `${supabaseUrl}/functions/v1/gerar-conteudo-oab-trilhas`;
     
     fetch(functionUrl, {
