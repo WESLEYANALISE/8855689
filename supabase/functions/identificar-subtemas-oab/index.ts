@@ -39,14 +39,16 @@ serve(async (req) => {
     console.log(`📚 Analisando ${totalPaginas} páginas do tópico`);
 
     // Extrair títulos do índice (nível 1) de forma determinística para evitar “subtemas extras”
+    // Observação: OCR às vezes remove o ponto após o número ("16 " ao invés de "16."),
+    // e às vezes troca os pontilhados por caracteres similares. Por isso o regex é permissivo.
     const extrairTitulosIndiceNivel1 = (paginasIndice: Array<{ pagina: number; conteudo: string | null }>) => {
       const texto = paginasIndice
         .map(p => p.conteudo || '')
         .join('\n')
         .replace(/\r/g, '');
 
-      // Padrão: "1. TITULO ........ 3" (captura apenas o título do item nível 1)
-      const re = /(^|\n)\s*(\d{1,2})\s*\.\s*([^\n]+?)(?:\.{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
+      // Padrão (permissivo): "16. TITULO .... 35" ou "16 TITULO      35" ou "16) TITULO ··· 35"
+      const re = /(^|\n)\s*(\d{1,2})\s*(?:[\.)\-])?\s+([^\n]+?)(?:[\.\u00B7•‧…]{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
       const seen = new Set<string>();
       const items: Array<{ ordem: number; titulo: string; pagina_indice?: number }> = [];
 
@@ -59,10 +61,10 @@ serve(async (req) => {
         // Normalizações mínimas
         const titulo = rawTitulo
           .replace(/\s+/g, ' ')
-          .replace(/\.{2,}$/g, '')
+          .replace(/[\.\u00B7•‧…]{2,}$/g, '')
           .trim();
 
-        // Evitar duplicados
+        // Evitar duplicados (por ordem + título)
         const key = `${ordem}::${titulo}`.toLowerCase();
         if (!titulo || seen.has(key)) continue;
         seen.add(key);
@@ -73,9 +75,16 @@ serve(async (req) => {
       // Ordenar por ordem numérica
       items.sort((a, b) => a.ordem - b.ordem);
 
-      // Limite defensivo
+      // Se houver repetição do mesmo "ordem", manter o primeiro (índice às vezes repete a linha no OCR)
+      const byOrdem = new Map<number, { ordem: number; titulo: string; pagina_indice?: number }>();
+      for (const it of items) {
+        if (!byOrdem.has(it.ordem)) byOrdem.set(it.ordem, it);
+      }
+
+      const uniq = Array.from(byOrdem.values()).sort((a, b) => a.ordem - b.ordem);
+
       // Limite defensivo aumentado para suportar índices maiores
-      return items.slice(0, 30);
+      return uniq.slice(0, 40);
     };
 
     // Criar mapa de páginas para acesso rápido
@@ -87,11 +96,23 @@ serve(async (req) => {
     });
 
     // Detectar páginas do índice
-    const paginasIndice = paginas.filter(p => {
+    // Estratégia:
+    // 1) Sempre considera as primeiras páginas (índice costuma estar no começo)
+    // 2) Adiciona páginas que contenham "ÍNDICE"/"SUMÁRIO"
+    // 3) Filtra por densidade de matches do padrão de linha de índice para evitar falsos positivos
+    const indiceLineRe = /(^|\n)\s*(\d{1,2})\s*(?:[\.)\-])?\s+([^\n]+?)(?:[\.\u00B7•‧…]{3,}|\s{2,}|\t)+\s*(\d{1,4})\s*(?=\n|$)/g;
+
+    const candidatosIndice = paginas.filter((p) => {
+      if (p.pagina <= 8) return true;
       const texto = (p.conteudo || '').toUpperCase();
-      return texto.includes('ÍNDICE') || 
-             texto.includes('SUMÁRIO') ||
-             /\d+\.\s+[A-Z].*\.{3,}\s*\d+/.test(p.conteudo || '');
+      return texto.includes('ÍNDICE') || texto.includes('SUMÁRIO');
+    });
+
+    const paginasIndice = candidatosIndice.filter((p) => {
+      const t = (p.conteudo || '').replace(/\r/g, '');
+      const matches = t.match(indiceLineRe);
+      // índice geralmente tem várias linhas; exigir pelo menos 3
+      return (matches?.length || 0) >= 3;
     });
 
     const titulosIndiceNivel1 = extrairTitulosIndiceNivel1(paginasIndice);
