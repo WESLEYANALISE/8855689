@@ -1,160 +1,89 @@
 
-# Plano: Unificar Subtema OAB (RESUMO) 100% Igual aos Conceitos
+# Plano: Corrigir Progresso e Capa dos Subtemas OAB
 
-## Visão Geral
+## Resumo dos Problemas Identificados
 
-Tornar a experiência de estudo dos Subtemas OAB (tabela `RESUMO`) idêntica à dos Conceitos, com:
-- 35-55 slides em 5-7 seções estruturadas
-- 10 tipos de slide (termos, quickcheck, tabela, linha_tempo, etc.)
-- Geração de capas via Gemini + TinyPNG 1280x720 (mesmo modelo dos Conceitos)
-- Nova coluna `slides_json` na tabela RESUMO
+### Problema 1: Progresso de 25% Incorreto
+O sistema está buscando/salvando progresso com `topico_id` (468) quando deveria usar `resumo_id` (6946). A tabela `oab_trilhas_estudo_progresso` armazena progresso por subtema (resumo), não por tópico pai.
 
----
-
-## Mudanças Necessárias
-
-### 1. Migração SQL (nova coluna)
-
-Adicionar coluna `slides_json` na tabela `RESUMO`:
-
-```sql
-ALTER TABLE public."RESUMO" 
-ADD COLUMN IF NOT EXISTS slides_json JSONB;
-```
+### Problema 2: Capa Não Gerada
+A edge function `gerar-capa-subtema-resumo` não foi redeployada após a correção do modelo. A versão em produção ainda usa o SDK `@google/generative-ai` com modelo inexistente `gemini-2.5-flash-preview-05-20`.
 
 ---
 
-### 2. Edge Function de Geração de Conteúdo
+## Correções Necessárias
 
-**Arquivo:** `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
-
-**Mudança:** Reescrever para usar o mesmo fluxo incremental de `gerar-conteudo-conceitos`:
-
-**Fluxo Novo (igual Conceitos):**
-1. **ETAPA 1:** Gerar estrutura/esqueleto (5-7 seções, 35-55 páginas planejadas)
-2. **ETAPA 2:** Gerar conteúdo por seção (batch incremental com retry)
-3. **ETAPA 3:** Gerar extras (correspondências, flashcards, questões)
-4. **ETAPA 4:** Montar `slidesData` e salvar em `slides_json` + `conteudo_gerado`
-5. **ETAPA 5:** Disparar geração de capa
-
-**Tipos de slide a gerar:**
-- introducao, texto, termos, linha_tempo, tabela
-- atencao, dica, caso, resumo, quickcheck
-
-**Validação:** Mínimo 20 páginas (igual Conceitos)
-
----
-
-### 3. Edge Function de Geração de Capa
-
-**Arquivo:** `supabase/functions/gerar-capa-subtema-resumo/index.ts`
-
-**Mudanças:**
-- Trocar modelo `gemini-2.0-flash-exp-image-generation` para `gemini-2.5-flash-image` (mesmo dos Conceitos)
-- Garantir resize para 1280x720 (cover) no TinyPNG
-
----
-
-### 4. Frontend (Leitura)
+### 1. Corrigir Query de Progresso no Frontend
 
 **Arquivo:** `src/pages/oab/OABTrilhasSubtemaEstudo.tsx`
 
-**Mudanças:**
-1. Query já busca `*`, então `slides_json` virá automaticamente
-2. No `useMemo` de `slidesData`, adicionar prioridade para `resumo.slides_json`:
+**Mudança:** Substituir `topico_id` por `resumo_id` nas queries e mutations de progresso:
 
 ```typescript
-const slidesData = useMemo(() => {
-  // 1. PRIORIDADE: slides_json na raiz do resumo
-  if (resumo?.slides_json) {
-    const data = resumo.slides_json as any;
-    if (data?.secoes && Array.isArray(data.secoes) && data.secoes.length > 0) {
-      return data.secoes.map(secao => ({...}));
-    }
-  }
-  
-  // 2. Fallback: conteudo_gerado.secoes
-  // 3. Fallback antigo: conteudo_gerado.paginas
-}, [resumo?.slides_json, conteudoGerado]);
+// ANTES (errado):
+const { data: progresso } = useQuery({
+  queryKey: ["oab-subtema-progresso", parsedTopicoId, user?.id],
+  queryFn: async () => {
+    ...
+    .eq("topico_id", parsedTopicoId)  // ❌ Errado
+  },
+});
+
+// DEPOIS (correto):
+const { data: progresso } = useQuery({
+  queryKey: ["oab-subtema-progresso", parsedResumoId, user?.id],  
+  queryFn: async () => {
+    ...
+    .eq("topico_id", parsedResumoId)  // ✅ Usar resumo_id
+  },
+});
 ```
 
-3. Usar objetivos de `resumo.slides_json.objetivos` se disponível
+**Também corrigir em:**
+- `handleSlidesComplete()` - linha 336-349
+- `handleProgressChange()` - linha 355-367
 
 ---
 
-## Estrutura do slides_json
+### 2. Redeploy da Edge Function de Capa
 
-```text
-{
-  "versao": 1,
-  "titulo": "Nome do Subtema",
-  "tempoEstimado": "25 min",
-  "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"],
-  "secoes": [
-    {
-      "id": 1,
-      "titulo": "Nome da Seção",
-      "slides": [
-        { "tipo": "introducao", "titulo": "...", "conteudo": "..." },
-        { "tipo": "texto", "titulo": "...", "conteudo": "..." },
-        { "tipo": "termos", "titulo": "...", "conteudo": "...", "termos": [...] },
-        { "tipo": "quickcheck", "titulo": "...", "pergunta": "...", ... }
-      ]
-    }
-  ]
-}
-```
+A edge function `gerar-capa-subtema-resumo` precisa ser redeployada para usar a versão corrigida que:
+- Usa fetch direto (não SDK)
+- Usa modelo `gemini-2.5-flash-image`
+- Usa rotação de 3 chaves Gemini
+- Comprime para WebP 1280x720 via TinyPNG
 
 ---
 
-## Compatibilidade
+## Resultado Esperado
 
-- **Conteúdos antigos:** Continuam funcionando via fallback `conteudo_gerado.paginas`
-- **Novos conteúdos:** Terão `slides_json` preenchido
-- **Transição suave:** O frontend lê `slides_json` primeiro, se não existir usa `conteudo_gerado`
-
----
-
-## Resultado Final
-
-Após implementação:
-- Subtema OAB terá 35-55 páginas (igual Conceitos)
-- Mesmos tipos de slide interativos
-- Mesma qualidade de capas (Gemini 2.5-flash-image + TinyPNG 1280x720)
-- Mesmo viewer, footer e sistema de progresso
+Após as correções:
+1. **Progresso**: Cada subtema (resumo) terá seu progresso individual, iniciando em 0%
+2. **Capa**: Será gerada com o modelo correto `gemini-2.5-flash-image` igual aos Conceitos
 
 ---
 
-## Seção Técnica - Detalhes de Implementação
+## Seção Técnica
 
-### Prompt de Estrutura (cópia do Conceitos)
+### Estrutura de IDs na Rota
 
-```text
-Gere entre 5-7 seções
-Cada seção deve ter 6-10 páginas (total final: 35-55 páginas)
-TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
-Distribua bem os tipos (não só "texto")
-Cada seção deve ter pelo menos 1 quickcheck
-```
+A rota `/oab/trilhas-aprovacao/materia/{materiaId}/topicos/{topicoId}/estudo/{resumoId}` tem:
+- `materiaId` (3) - ID da matéria OAB
+- `topicoId` (468) - ID do tópico (agrupador)
+- `resumoId` (6946) - ID do subtema específico (usado para progresso)
 
-### Modelo Gemini para Imagem
+### Logs Confirmando o Problema da Capa
 
 ```text
-Modelo atual (RESUMO): gemini-2.0-flash-exp-image-generation
-Modelo correto (Conceitos): gemini-2.5-flash-image
+[Capa Subtema] Tentando chave 1 com gemini-2.5-flash-preview-05-20...
+models/gemini-2.5-flash-preview-05-20 is not found for API version v1beta
 ```
 
-### TinyPNG Resize
+A função deployada ainda usa o modelo antigo inexistente.
 
-```text
-Configuração: { method: "cover", width: 1280, height: 720 }
-Output: image/webp
-```
+### Comparação de Modelos
 
-### Validação de Páginas
-
-```text
-Mínimo: 20 páginas
-Ideal: 35-55 páginas
-Cada seção: pelo menos 3 slides
-```
+| Função | Modelo Atual (Deploy) | Modelo Correto |
+|--------|----------------------|----------------|
+| `gerar-capa-subtema-resumo` | `gemini-2.5-flash-preview-05-20` | `gemini-2.5-flash-image` |
+| `gerar-capa-topico-conceitos` | `gemini-2.5-flash-image` | `gemini-2.5-flash-image` |
