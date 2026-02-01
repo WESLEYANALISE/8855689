@@ -961,6 +961,7 @@ export type Database = {
           estrutura_completa: Json
           id: string
           numero_artigo: string
+          slides_json: Json | null
           updated_at: string
           visualizacoes: number | null
         }
@@ -974,6 +975,7 @@ export type Database = {
           estrutura_completa: Json
           id?: string
           numero_artigo: string
+          slides_json?: Json | null
           updated_at?: string
           visualizacoes?: number | null
         }
@@ -987,6 +989,7 @@ export type Database = {
           estrutura_completa?: Json
           id?: string
           numero_artigo?: string
+          slides_json?: Json | null
           updated_at?: string
           visualizacoes?: number | null
         }

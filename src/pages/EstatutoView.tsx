@@ -20,7 +20,7 @@ import { ArtigoFullscreenDrawer } from "@/components/ArtigoFullscreenDrawer";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { VadeMecumDesktopLayout } from "@/components/vade-mecum/VadeMecumDesktopLayout";
 import { LeiHeader } from "@/components/LeiHeader";
-import { AulaArtigoBreakdown } from "@/components/aula-v2/AulaArtigoBreakdown";
+import { AulaArtigoSlidesViewer } from "@/components/AulaArtigoSlidesViewer";
 
 interface Article {
   id: number;
@@ -442,7 +442,7 @@ const EstatutoView = () => {
         numeroArtigo={perguntaData.numeroArtigo} 
       />
 
-      <AulaArtigoBreakdown
+      <AulaArtigoSlidesViewer
         isOpen={aulaArtigoModalOpen}
         onClose={() => setAulaArtigoModalOpen(false)}
         codigoTabela={tableName}

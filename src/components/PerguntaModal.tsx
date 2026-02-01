@@ -32,12 +32,27 @@ const PerguntaModal = ({
     toast
   } = useToast();
   
-  const perguntasProntas = [
-    "O que significa este artigo na prática?", 
-    "Quais são as exceções ou ressalvas?", 
-    "Como se aplica em casos reais?", 
-    "Tem relação com outros artigos?"
-  ];
+  // Perguntas pré-prontas dinâmicas baseadas no artigo
+  const getPerguntasProntas = () => {
+    const perguntasBase = [
+      "O que significa este artigo na prática?",
+      "Quais são as exceções ou ressalvas?",
+      "Como se aplica em casos reais?",
+      "Tem relação com outros artigos?"
+    ];
+    
+    const perguntasEspecificas = [
+      `Quais são as pegadinhas comuns em provas sobre o Art. ${numeroArtigo}?`,
+      "Pode dar um exemplo prático do dia a dia?",
+      "Qual a consequência de violar este artigo?",
+      "Como memorizar os pontos principais?"
+    ];
+    
+    // Alternar entre base e específicas
+    return [...perguntasBase.slice(0, 2), ...perguntasEspecificas.slice(0, 2)];
+  };
+  
+  const perguntasProntas = getPerguntasProntas();
   
   // Enviar mensagem inicial da professora quando o modal abre
   useEffect(() => {
