@@ -50,6 +50,26 @@ interface ConteudoGerado {
 
 type ViewMode = 'intro' | 'slides';
 
+const mapOabPaginaTipoToSlideTipo = (tipo?: string): ConceitoSlide['tipo'] => {
+  switch (tipo) {
+    case 'introducao':
+      return 'introducao';
+    case 'quadro_comparativo':
+      return 'tabela';
+    case 'dicas_provas':
+      return 'dica';
+    case 'sintese_final':
+      return 'resumo';
+    // Tipos OAB que viram texto padrão
+    case 'conteudo_principal':
+    case 'desmembrando':
+    case 'entendendo_na_pratica':
+    case 'correspondencias':
+    default:
+      return 'texto';
+  }
+};
+
 const OABTrilhasSubtemaEstudo = () => {
   const { materiaId, topicoId, resumoId } = useParams();
   const navigate = useNavigate();
@@ -174,20 +194,21 @@ const OABTrilhasSubtemaEstudo = () => {
     }
   }, [resumo?.id, resumo?.conteudo_gerado, isGeneratingContent]);
 
-  // Parse conteudo_gerado
-  const parseConteudoGerado = (): ConteudoGerado & { erro?: boolean; mensagem?: string; detalhe?: string; acao?: string } => {
-    if (!resumo?.conteudo_gerado) return {};
-    if (typeof resumo.conteudo_gerado === 'string') {
-      try {
-        return JSON.parse(resumo.conteudo_gerado);
-      } catch {
-        return {};
+  // Parse conteudo_gerado (memoizado para estabilidade entre renders)
+  const conteudoGerado = useMemo(
+    (): (ConteudoGerado & { erro?: boolean; mensagem?: string; detalhe?: string; acao?: string }) => {
+      if (!resumo?.conteudo_gerado) return {};
+      if (typeof resumo.conteudo_gerado === 'string') {
+        try {
+          return JSON.parse(resumo.conteudo_gerado);
+        } catch {
+          return {};
+        }
       }
-    }
-    return resumo.conteudo_gerado as ConteudoGerado;
-  };
-  
-  const conteudoGerado = parseConteudoGerado();
+      return resumo.conteudo_gerado as ConteudoGerado;
+    },
+    [resumo?.conteudo_gerado]
+  );
   
   // Detectar se houve erro na geração (conteúdo fonte vazio)
   const isErroFonte = conteudoGerado.erro === true;
@@ -200,7 +221,7 @@ const OABTrilhasSubtemaEstudo = () => {
         id: secao.id,
         titulo: secao.titulo,
         slides: (secao.slides || []).map((slide: any): ConceitoSlide => ({
-          tipo: (slide.tipo as ConceitoSlide['tipo']) || 'texto',
+          tipo: mapOabPaginaTipoToSlideTipo(slide.tipo),
           titulo: slide.titulo,
           conteudo: slide.conteudo || slide.markdown || '',
           termos: slide.termos,
@@ -222,12 +243,21 @@ const OABTrilhasSubtemaEstudo = () => {
       id: 1,
       titulo: resumo?.subtema || "Conteúdo",
       slides: conteudoGerado.paginas.map((p): ConceitoSlide => ({
-        tipo: (p.tipo as ConceitoSlide['tipo']) || 'texto',
+        tipo: mapOabPaginaTipoToSlideTipo(p.tipo),
         titulo: p.titulo,
         conteudo: p.markdown || p.conteudo || ''
       }))
     }];
   }, [conteudoGerado, resumo?.subtema]);
+
+  // Debug: garantir que nenhuma página está sendo descartada
+  useEffect(() => {
+    const paginasCount = Array.isArray(conteudoGerado.paginas) ? conteudoGerado.paginas.length : 0;
+    const slidesCount = slidesData.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
+    if (paginasCount || slidesCount) {
+      console.log('[OABTrilhasSubtemaEstudo] paginas:', paginasCount, 'slides:', slidesCount);
+    }
+  }, [conteudoGerado.paginas, slidesData]);
 
   // Flashcards e questões
   const flashcards: Flashcard[] = Array.isArray(conteudoGerado.flashcards) ? conteudoGerado.flashcards : [];
