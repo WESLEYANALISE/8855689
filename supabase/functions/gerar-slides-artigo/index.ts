@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const REVISION = "v1.0.2-slides-artigo-fallback";
+const REVISION = "v1.1.0-slides-artigo-full";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
@@ -40,7 +40,7 @@ async function callGeminiWithFallback(prompt: string, keys: string[]): Promise<a
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 40000,
+              maxOutputTokens: 65536,
               responseMimeType: "application/json",
             }
           })
@@ -119,9 +119,14 @@ serve(async (req) => {
       .eq('numero_artigo', numeroArtigo)
       .single();
 
-    // Se já existe slides_json, retorna do cache
-    if (existingAula?.slides_json && !fetchError) {
-      console.log('✅ slides_json encontrado no cache, retornando...');
+    // Se já existe slides_json COM SEÇÕES SUFICIENTES, retorna do cache
+    const slidesSecoes = existingAula?.slides_json?.secoes;
+    const hasSufficientSlides = slidesSecoes && 
+      slidesSecoes.length >= 4 &&
+      slidesSecoes.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) >= 30;
+    
+    if (existingAula?.slides_json && hasSufficientSlides && !fetchError) {
+      console.log('✅ slides_json completo encontrado no cache, retornando...');
       
       await supabase
         .from('aulas_artigos')
@@ -137,9 +142,9 @@ serve(async (req) => {
       });
     }
 
-    console.log('📝 Gerando slides no formato ConceitosSlidesViewer...');
+    console.log('📝 Gerando slides completos no formato ConceitosSlidesViewer...');
 
-    const prompt = `Você é um PROFESSOR JURÍDICO PREMIADO. Sua missão é criar SLIDES INTERATIVOS sobre este artigo de lei no formato específico para o componente de slides.
+    const prompt = `Você é um PROFESSOR JURÍDICO PREMIADO. Sua missão é criar uma AULA COMPLETA E EXTENSA sobre este artigo de lei no formato específico para o componente de slides interativos.
 
 CÓDIGO: ${codigoTabela}
 NOME DO CÓDIGO: ${codigoNome || codigoTabela}
@@ -148,21 +153,72 @@ TEXTO COMPLETO DO ARTIGO:
 ${conteudoArtigo}
 
 ═══════════════════════════════════════════════════════════════════
-                    FORMATO DOS SLIDES (IMPORTANTE!)
+                    ⚠️ REQUISITO CRÍTICO: GERE MUITO CONTEÚDO! ⚠️
 ═══════════════════════════════════════════════════════════════════
 
-Gere slides no formato ConceitoSlide com os tipos:
+Você DEVE gerar:
+- MÍNIMO 5-7 SEÇÕES diferentes
+- MÍNIMO 6-10 SLIDES por seção
+- TOTAL: 40-60 SLIDES no total
+
+Isso é essencial para uma aula completa como preparatório OAB!
+
+═══════════════════════════════════════════════════════════════════
+                    SEÇÕES OBRIGATÓRIAS (5-7 seções)
+═══════════════════════════════════════════════════════════════════
+
+SEÇÃO 1 - INTRODUÇÃO (6-8 slides):
+- Slide introducao: Apresentação do artigo
+- Slide texto: Texto LITERAL da lei
+- Slide termos: 4-6 termos jurídicos importantes
+- Slide explicacao: O que o artigo significa na prática
+- Slide dica: Por que esse artigo é importante
+- Slides adicionais explicando o contexto
+
+SEÇÃO 2 - ANÁLISE APROFUNDADA (8-12 slides):
+- Múltiplos slides de explicacao detalhando cada elemento
+- Slide tabela: Comparativo se houver conceitos distintos
+- Slides de texto aprofundando cada parte do artigo
+- Slide atencao: Palavras-chave que caem em prova
+
+SEÇÃO 3 - APLICAÇÃO PRÁTICA (8-10 slides):
+- Múltiplos slides de caso: 3-4 exemplos práticos diferentes
+- Slide linha_tempo: Se houver procedimento/prazos
+- Slides de explicacao sobre jurisprudência
+- Slide dica: Como identificar em casos reais
+
+SEÇÃO 4 - EXCEÇÕES E PEGADINHAS (6-8 slides):
+- Slide atencao: Exceções importantes
+- Slide tabela: Regra vs Exceção
+- Slides de explicacao sobre nuances
+- Slide dica: Como as bancas tentam confundir
+
+SEÇÃO 5 - CONEXÕES E RELAÇÕES (6-8 slides):
+- Slides de texto: Relação com outros artigos
+- Slide explicacao: Onde este artigo se encaixa no sistema
+- Slide termos: Termos relacionados a outros temas
+
+SEÇÃO 6 - REVISÃO FINAL (8-10 slides):
+- Slide resumo: 6-8 pontos principais
+- Múltiplos slides quickcheck: 4-5 perguntas de verificação
+- Slide dica: Técnica final de memorização
+- Slide resumo: Checklist do que lembrar na prova
+
+═══════════════════════════════════════════════════════════════════
+                    TIPOS DE SLIDES DISPONÍVEIS
+═══════════════════════════════════════════════════════════════════
+
 - introducao: Página de abertura com título e objetivos
-- texto: Texto explicativo simples
-- termos: Lista de termos jurídicos e definições
-- explicacao: Explicação detalhada
-- linha_tempo: Timeline/etapas de procedimento
-- tabela: Quadro comparativo
-- atencao: Ponto de atenção importante
-- dica: Dica de memorização
-- caso: Caso prático/exemplo
-- resumo: Resumo com pontos principais
-- quickcheck: Mini-quiz rápido
+- texto: Texto explicativo (use markdown com **negrito** para destaques)
+- termos: Lista de termos jurídicos com campo "termos": [{"termo": "", "definicao": ""}]
+- explicacao: Explicação detalhada em parágrafos
+- linha_tempo: Timeline com campo "etapas": [{"titulo": "", "descricao": ""}]
+- tabela: Quadro comparativo com "tabela": {"cabecalhos": [], "linhas": [[]]}
+- atencao: Ponto de atenção importante (⚠️)
+- dica: Dica de memorização (💡)
+- caso: Caso prático com narrativa envolvente
+- resumo: Lista de pontos com "pontos": []
+- quickcheck: Mini-quiz com "pergunta", "opcoes"[], "resposta"(0-3), "feedback"
 
 ═══════════════════════════════════════════════════════════════════
                     ESTRUTURA JSON OBRIGATÓRIA
@@ -171,149 +227,79 @@ Gere slides no formato ConceitoSlide com os tipos:
 {
   "versao": 1,
   "titulo": "Art. ${numeroArtigo} - [Título descritivo curto]",
-  "tempoEstimado": "[X] min",
+  "tempoEstimado": "25 min",
   "area": "${codigoNome || codigoTabela}",
   "objetivos": [
     "Compreender o texto do artigo",
-    "Aplicar na prática",
-    "Identificar exceções e pegadinhas"
+    "Identificar conceitos-chave",
+    "Aplicar na prática jurídica",
+    "Reconhecer exceções e pegadinhas",
+    "Dominar para provas OAB e concursos"
   ],
   "secoes": [
     {
       "id": 1,
-      "titulo": "[Nome da Seção]",
+      "titulo": "Introdução",
       "slides": [
-        {
-          "tipo": "introducao",
-          "titulo": "Art. ${numeroArtigo}",
-          "conteudo": "[Breve introdução ao que o artigo trata, 2-3 linhas]"
-        },
-        {
-          "tipo": "texto",
-          "titulo": "O Que Diz a Lei",
-          "conteudo": "[Texto exato do artigo com formatação markdown - use **negrito** para palavras-chave]"
-        },
-        {
-          "tipo": "termos",
-          "titulo": "Vocabulário Jurídico",
-          "conteudo": "",
-          "termos": [
-            {"termo": "TERMO 1", "definicao": "Definição clara e didática"},
-            {"termo": "TERMO 2", "definicao": "Definição clara e didática"},
-            {"termo": "TERMO 3", "definicao": "Definição clara e didática"}
-          ]
-        },
-        {
-          "tipo": "explicacao",
-          "titulo": "Entendendo o Artigo",
-          "conteudo": "[Explicação didática e detalhada do artigo, usando markdown com tópicos e subtópicos. Mínimo 3 parágrafos explicando cada elemento.]"
-        },
-        {
-          "tipo": "tabela",
-          "titulo": "Quadro Comparativo",
-          "conteudo": "Veja as diferenças:",
-          "tabela": {
-            "cabecalhos": ["Aspecto", "Tipo A", "Tipo B"],
-            "linhas": [
-              ["Característica 1", "Valor A", "Valor B"],
-              ["Característica 2", "Valor A", "Valor B"]
-            ]
-          }
-        },
-        {
-          "tipo": "caso",
-          "titulo": "Exemplo Prático",
-          "conteudo": "[Situação do dia-a-dia que ilustra o artigo. Use nomes, contexto e narrativa envolvente. Mínimo 2 parágrafos.]"
-        },
-        {
-          "tipo": "atencao",
-          "titulo": "Cuidado!",
-          "conteudo": "[Pegadinhas comuns em provas, exceções importantes, erros frequentes. Seja específico!]"
-        },
-        {
-          "tipo": "dica",
-          "titulo": "Como Memorizar",
-          "conteudo": "[Técnica de memorização: mnemônico, associação visual, etc.]"
-        },
-        {
-          "tipo": "resumo",
-          "titulo": "Pontos Principais",
-          "conteudo": "",
-          "pontos": [
-            "Ponto 1 - frase clara",
-            "Ponto 2 - frase clara",
-            "Ponto 3 - frase clara",
-            "Ponto 4 - frase clara"
-          ]
-        },
-        {
-          "tipo": "quickcheck",
-          "titulo": "Verificação Rápida",
-          "conteudo": "",
-          "pergunta": "[Pergunta estilo concurso sobre o artigo]",
-          "opcoes": ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
-          "resposta": 0,
-          "feedback": "[Explicação de por que a resposta correta está certa e as outras erradas]"
-        }
+        {"tipo": "introducao", "titulo": "Art. ${numeroArtigo}", "conteudo": "..."},
+        {"tipo": "texto", "titulo": "O Que Diz a Lei", "conteudo": "Texto literal do artigo..."},
+        ...mais 4-6 slides
       ]
+    },
+    {
+      "id": 2,
+      "titulo": "Análise Aprofundada", 
+      "slides": [...8-12 slides]
+    },
+    {
+      "id": 3,
+      "titulo": "Aplicação Prática",
+      "slides": [...8-10 slides]
+    },
+    {
+      "id": 4,
+      "titulo": "Exceções e Pegadinhas",
+      "slides": [...6-8 slides]
+    },
+    {
+      "id": 5,
+      "titulo": "Conexões",
+      "slides": [...6-8 slides]
+    },
+    {
+      "id": 6,
+      "titulo": "Revisão Final",
+      "slides": [...8-10 slides com múltiplos quickcheck]
     }
   ],
   "flashcards": [
-    {"frente": "Pergunta 1", "verso": "Resposta 1", "exemplo": "Exemplo prático"},
-    {"frente": "Pergunta 2", "verso": "Resposta 2", "exemplo": "Exemplo prático"},
-    {"frente": "Pergunta 3", "verso": "Resposta 3", "exemplo": "Exemplo prático"},
-    {"frente": "Pergunta 4", "verso": "Resposta 4", "exemplo": "Exemplo prático"},
-    {"frente": "Pergunta 5", "verso": "Resposta 5", "exemplo": "Exemplo prático"},
-    {"frente": "Pergunta 6", "verso": "Resposta 6", "exemplo": "Exemplo prático"}
+    {"frente": "O que estabelece o Art. ${numeroArtigo}?", "verso": "...", "exemplo": "..."},
+    ...mais 9 flashcards (total 10)
   ],
   "questoes": [
-    {
-      "question": "[Questão estilo OAB/concurso sobre o artigo]",
-      "options": ["a) Alternativa", "b) Alternativa", "c) Alternativa", "d) Alternativa"],
-      "correctAnswer": 0,
-      "explicacao": "[Explicação completa]"
-    },
-    {
-      "question": "[Questão 2]",
-      "options": ["a) Alt", "b) Alt", "c) Alt", "d) Alt"],
-      "correctAnswer": 1,
-      "explicacao": "[Explicação]"
-    },
-    {
-      "question": "[Questão 3]",
-      "options": ["a) Alt", "b) Alt", "c) Alt", "d) Alt"],
-      "correctAnswer": 2,
-      "explicacao": "[Explicação]"
-    },
-    {
-      "question": "[Questão 4]",
-      "options": ["a) Alt", "b) Alt", "c) Alt", "d) Alt"],
-      "correctAnswer": 0,
-      "explicacao": "[Explicação]"
-    },
-    {
-      "question": "[Questão 5]",
-      "options": ["a) Alt", "b) Alt", "c) Alt", "d) Alt"],
-      "correctAnswer": 3,
-      "explicacao": "[Explicação]"
-    }
+    {"question": "[Questão estilo OAB]", "options": ["a)...", "b)...", "c)...", "d)..."], "correctAnswer": 0, "explicacao": "..."},
+    ...mais 7 questões (total 8)
   ]
 }
 
 ═══════════════════════════════════════════════════════════════════
-                    REGRAS CRÍTICAS
+                    REGRAS DE FORMATAÇÃO
 ═══════════════════════════════════════════════════════════════════
 
-1. Gere entre 8-15 slides por seção
-2. Use 1-3 seções dependendo da complexidade do artigo
-3. NUNCA invente jurisprudência ou súmulas específicas
-4. Slides quickcheck devem ter exatamente 4 opções
-5. Campo "resposta" é o índice (0-3) da opção correta
-6. Tabela só quando houver REALMENTE comparação a fazer
-7. Flashcards devem ter 6 itens
-8. Questões devem ter 5 itens
-9. Use linguagem didática e acessível
-10. Retorne APENAS o JSON, sem markdown ou código`;
+1. NÃO use ** para negrito no meio do texto - escreva normalmente
+2. Parágrafos claros e bem separados
+3. Linguagem didática e acessível
+4. Exemplos com nomes reais (João, Maria, etc)
+5. Conteúdo denso mas fácil de ler
+6. Cada slide deve ter conteúdo suficiente (não muito curto!)
+7. QuickCheck deve ter EXATAMENTE 4 opções
+8. Campo "resposta" é índice 0-3 da opção correta
+
+═══════════════════════════════════════════════════════════════════
+LEMBRE-SE: Gere 40-60 slides distribuídos em 5-7 seções!
+═══════════════════════════════════════════════════════════════════
+
+Retorne APENAS o JSON válido, sem markdown ou código.`;
 
     console.log('🚀 Enviando prompt para Gemini com fallback...');
 
@@ -339,12 +325,66 @@ Gere slides no formato ConceitoSlide com os tipos:
       }
     }
 
-    console.log('✅ JSON parseado com sucesso!');
-    console.log(`📊 Seções: ${slidesJson.secoes?.length || 0}, Total slides: ${slidesJson.secoes?.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) || 0}`);
+    // Limpar formatação markdown indesejada de todos os slides
+    if (slidesJson.secoes) {
+      for (const secao of slidesJson.secoes) {
+        if (secao.slides) {
+          for (const slide of secao.slides) {
+            // Limpar ** do conteúdo
+            if (slide.conteudo) {
+              slide.conteudo = slide.conteudo.replace(/\*\*/g, '');
+            }
+            if (slide.titulo) {
+              slide.titulo = slide.titulo.replace(/\*\*/g, '');
+            }
+            if (slide.pontos) {
+              slide.pontos = slide.pontos.map((p: string) => p.replace(/\*\*/g, ''));
+            }
+            if (slide.termos) {
+              slide.termos = slide.termos.map((t: any) => ({
+                ...t,
+                termo: t.termo?.replace(/\*\*/g, ''),
+                definicao: t.definicao?.replace(/\*\*/g, '')
+              }));
+            }
+            if (slide.feedback) {
+              slide.feedback = slide.feedback.replace(/\*\*/g, '');
+            }
+            if (slide.opcoes) {
+              slide.opcoes = slide.opcoes.map((o: string) => o.replace(/\*\*/g, ''));
+            }
+          }
+        }
+      }
+    }
+
+    // Limpar flashcards
+    if (slidesJson.flashcards) {
+      slidesJson.flashcards = slidesJson.flashcards.map((f: any) => ({
+        ...f,
+        frente: f.frente?.replace(/\*\*/g, ''),
+        verso: f.verso?.replace(/\*\*/g, ''),
+        exemplo: f.exemplo?.replace(/\*\*/g, '')
+      }));
+    }
+
+    // Limpar questões
+    if (slidesJson.questoes) {
+      slidesJson.questoes = slidesJson.questoes.map((q: any) => ({
+        ...q,
+        question: q.question?.replace(/\*\*/g, ''),
+        explicacao: q.explicacao?.replace(/\*\*/g, ''),
+        options: q.options?.map((o: string) => o.replace(/\*\*/g, ''))
+      }));
+    }
+
+    console.log('✅ JSON parseado e limpo com sucesso!');
+    const totalSlides = slidesJson.secoes?.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) || 0;
+    console.log(`📊 Seções: ${slidesJson.secoes?.length || 0}, Total slides: ${totalSlides}`);
 
     // Salvar ou atualizar no banco
     if (existingAula) {
-      console.log('📦 Atualizando registro existente com slides_json...');
+      console.log('📦 Atualizando registro existente com slides_json completo...');
       await supabase
         .from('aulas_artigos')
         .update({ 
@@ -361,7 +401,7 @@ Gere slides no formato ConceitoSlide com os tipos:
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      console.log('📦 Criando novo registro com slides_json...');
+      console.log('📦 Criando novo registro com slides_json completo...');
       const { data: newAula, error: insertError } = await supabase
         .from('aulas_artigos')
         .insert({
@@ -369,7 +409,7 @@ Gere slides no formato ConceitoSlide com os tipos:
           numero_artigo: numeroArtigo,
           conteudo_artigo: conteudoArtigo,
           slides_json: slidesJson,
-          estrutura_completa: slidesJson, // Backwards compatibility
+          estrutura_completa: slidesJson,
           visualizacoes: 1
         })
         .select()
