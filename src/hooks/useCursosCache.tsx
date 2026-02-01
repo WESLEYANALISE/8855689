@@ -32,6 +32,6 @@ export const useCursosCache = () => {
     cursos, 
     loading, 
     invalidateCache: refresh, 
-    lastUpdate: isFetchingFresh ? new Date() : null 
+    lastUpdate: null 
   };
 };
