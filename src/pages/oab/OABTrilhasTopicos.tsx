@@ -172,9 +172,9 @@ const OABTrilhasTopicos = () => {
                 <div className="flex items-center">
                   {/* Capa - usa fallbackCapa do tema/área para todos */}
                   <div className="w-20 h-20 flex-shrink-0 relative bg-neutral-900 overflow-hidden rounded-l-xl">
-                    {fallbackCapa ? (
+                    {(subtema.url_imagem_resumo || fallbackCapa) ? (
                       <img 
-                        src={fallbackCapa}
+                        src={subtema.url_imagem_resumo || fallbackCapa}
                         alt={subtema.subtema}
                         className="w-full h-full object-cover"
                         loading="eager"
