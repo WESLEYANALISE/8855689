@@ -233,6 +233,23 @@ const OABTrilhasSubtemaEstudo = () => {
   const flashcards: Flashcard[] = Array.isArray(conteudoGerado.flashcards) ? conteudoGerado.flashcards : [];
   const questoes: Questao[] = Array.isArray(conteudoGerado.questoes) ? conteudoGerado.questoes : [];
 
+  // Extrair objetivos do conteúdo (mover antes dos returns condicionais para evitar erro de hooks)
+  const objetivos = useMemo(() => {
+    // Novo formato com objetivos explícitos
+    if (conteudoGerado.objetivos && Array.isArray(conteudoGerado.objetivos)) {
+      return conteudoGerado.objetivos;
+    }
+    // Extrair das seções (novo formato)
+    if (conteudoGerado.secoes && conteudoGerado.secoes.length > 0) {
+      return conteudoGerado.secoes.slice(0, 4).map(s => s.titulo);
+    }
+    // Fallback: extrair das páginas
+    return conteudoGerado.paginas?.slice(0, 3).map(p => p.titulo) || [];
+  }, [conteudoGerado]);
+  
+  const totalPaginas = slidesData.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
+  const tempoEstimado = `${Math.ceil(totalPaginas * 2)} min`;
+
   // Callbacks de navegação
   const handleBack = () => {
     navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}`);
@@ -371,22 +388,6 @@ const OABTrilhasSubtemaEstudo = () => {
     );
   }
 
-  // Extrair objetivos do conteúdo (suporta novo e antigo formato)
-  const objetivos = useMemo(() => {
-    // Novo formato com objetivos explícitos
-    if (conteudoGerado.objetivos && Array.isArray(conteudoGerado.objetivos)) {
-      return conteudoGerado.objetivos;
-    }
-    // Extrair das seções (novo formato)
-    if (conteudoGerado.secoes && conteudoGerado.secoes.length > 0) {
-      return conteudoGerado.secoes.slice(0, 4).map(s => s.titulo);
-    }
-    // Fallback: extrair das páginas
-    return conteudoGerado.paginas?.slice(0, 3).map(p => p.titulo) || [];
-  }, [conteudoGerado]);
-  
-  const totalPaginas = slidesData.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
-  const tempoEstimado = `${Math.ceil(totalPaginas * 2)} min`;
 
   // Renderizar Slides Viewer (igual ao Conceitos)
   if (viewMode === 'slides' && slidesData.length > 0) {
