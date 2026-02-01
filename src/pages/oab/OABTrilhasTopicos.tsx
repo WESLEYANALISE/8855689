@@ -292,7 +292,7 @@ const OABTrilhasTopicos = () => {
                         <img 
                           src={subtema.url_imagem_resumo || fallbackCapa}
                           alt={subtema.subtema}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover scale-110"
                           loading="eager"
                           fetchPriority="high"
                           decoding="sync"

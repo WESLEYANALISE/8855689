@@ -99,7 +99,7 @@ export const OABTrilhasTopicoIntro = ({
           priority
           blurCategory="juridico"
           containerClassName="w-full h-full"
-          className="object-cover"
+          className="object-cover scale-110"
           fallback={
             <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-orange-500/10 flex items-center justify-center">
               <Sparkles className="w-16 h-16 text-red-400/30" />
