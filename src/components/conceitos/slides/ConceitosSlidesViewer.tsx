@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConceitoSlideCard } from "./ConceitoSlideCard";
 import { ConceitosSlidesFooter } from "./ConceitosSlidesFooter";
+import { markImageLoaded, isImageCached } from "@/hooks/useImagePreload";
 import type { ConceitoSecao, ConceitoSlide } from "./types";
-
 interface ConceitosSlidesViewerProps {
   secoes: ConceitoSecao[];
   titulo: string;
@@ -95,6 +95,29 @@ export const ConceitosSlidesViewer = ({
   useEffect(() => {
     onProgressChange?.(Math.round(progress));
   }, [progress, onProgressChange]);
+
+  // 🚀 PRELOAD: Pré-carregar imagens dos slides adjacentes (±3 slides)
+  useEffect(() => {
+    const preloadRange = 3;
+    const imagesToPreload: string[] = [];
+
+    for (let offset = -preloadRange; offset <= preloadRange; offset++) {
+      const targetIndex = currentIndex + offset;
+      if (targetIndex >= 0 && targetIndex < flatPaginas.length) {
+        const slide = flatPaginas[targetIndex].slide;
+        if (slide.imagemUrl && !isImageCached(slide.imagemUrl)) {
+          imagesToPreload.push(slide.imagemUrl);
+        }
+      }
+    }
+
+    // Preload em paralelo
+    imagesToPreload.forEach(url => {
+      const img = new Image();
+      img.onload = () => markImageLoaded(url);
+      img.src = url;
+    });
+  }, [currentIndex, flatPaginas]);
 
   // Get current section title
   const currentSectionTitle = secoes[currentFlatPagina?.secaoIndex]?.titulo || titulo;

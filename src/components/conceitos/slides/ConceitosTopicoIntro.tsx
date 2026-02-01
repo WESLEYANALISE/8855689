@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, BookOpen, Layers, Play, BookText, Sparkles, Lock, Volume2, VolumeX, HelpCircle, X, ChevronDown, ChevronUp, Target, List, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { UniversalImage } from "@/components/ui/universal-image";
+import { isImageCached } from "@/hooks/useImagePreload";
 
 interface ConceitosTopicoIntroProps {
   titulo: string;
@@ -55,6 +56,9 @@ export const ConceitosTopicoIntro = ({
   // Calcular desbloqueios
   const leituraCompleta = progressoLeitura >= 100;
   const flashcardsCompletos = progressoFlashcards >= 100;
+  
+  // Verificar se a capa já está em cache
+  const capaIsCached = useMemo(() => capaUrl ? isImageCached(capaUrl) : true, [capaUrl]);
 
   // Gerenciar áudio do ruído marrom
   useEffect(() => {
@@ -96,6 +100,7 @@ export const ConceitosTopicoIntro = ({
           alt={titulo}
           priority
           blurCategory="juridico"
+          disableBlur={capaIsCached}
           containerClassName="w-full h-full"
           className="object-cover"
           fallback={
