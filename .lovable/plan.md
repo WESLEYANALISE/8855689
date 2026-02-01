@@ -1,89 +1,65 @@
 
-# Plano: Corrigir Progresso e Capa dos Subtemas OAB
 
-## Resumo dos Problemas Identificados
+# Plano: Expandir Imagens para Cobrir Bordas Brancas
 
-### Problema 1: Progresso de 25% Incorreto
-O sistema está buscando/salvando progresso com `topico_id` (468) quando deveria usar `resumo_id` (6946). A tabela `oab_trilhas_estudo_progresso` armazena progresso por subtema (resumo), não por tópico pai.
+## Problema Identificado
 
-### Problema 2: Capa Não Gerada
-A edge function `gerar-capa-subtema-resumo` não foi redeployada após a correção do modelo. A versão em produção ainda usa o SDK `@google/generative-ai` com modelo inexistente `gemini-2.5-flash-preview-05-20`.
+As capas de subtemas OAB estão sendo geradas em **1280x720 pixels (16:9)**, mas o modelo Gemini às vezes inclui bordas brancas nas laterais. Essas bordas aparecem tanto na lista de subtemas quanto na tela de introdução.
 
----
+## Solução
 
-## Correções Necessárias
+Aplicar técnica de **scale + crop** via CSS para expandir levemente a imagem além do container, efetivamente "cortando" qualquer borda branca que possa existir nas extremidades.
 
-### 1. Corrigir Query de Progresso no Frontend
+## Alterações Técnicas
 
-**Arquivo:** `src/pages/oab/OABTrilhasSubtemaEstudo.tsx`
+### 1. Lista de Subtemas (`src/pages/oab/OABTrilhasTopicos.tsx`)
 
-**Mudança:** Substituir `topico_id` por `resumo_id` nas queries e mutations de progresso:
+**Linha 295 - Thumbnail na lista:**
+```tsx
+// De:
+className="w-full h-full object-cover"
 
-```typescript
-// ANTES (errado):
-const { data: progresso } = useQuery({
-  queryKey: ["oab-subtema-progresso", parsedTopicoId, user?.id],
-  queryFn: async () => {
-    ...
-    .eq("topico_id", parsedTopicoId)  // ❌ Errado
-  },
-});
-
-// DEPOIS (correto):
-const { data: progresso } = useQuery({
-  queryKey: ["oab-subtema-progresso", parsedResumoId, user?.id],  
-  queryFn: async () => {
-    ...
-    .eq("topico_id", parsedResumoId)  // ✅ Usar resumo_id
-  },
-});
+// Para:
+className="w-full h-full object-cover scale-110"
 ```
 
-**Também corrigir em:**
-- `handleSlidesComplete()` - linha 336-349
-- `handleProgressChange()` - linha 355-367
+O `scale-110` aumenta a imagem em 10%, e como o container tem `overflow-hidden`, as bordas brancas ficam fora da área visível.
 
----
+### 2. Tela de Introdução (`src/components/oab/OABTrilhasTopicoIntro.tsx`)
 
-### 2. Redeploy da Edge Function de Capa
+**Linhas 95-108 - Capa hero:**
+```tsx
+// De:
+<UniversalImage
+  ...
+  className="object-cover"
+/>
 
-A edge function `gerar-capa-subtema-resumo` precisa ser redeployada para usar a versão corrigida que:
-- Usa fetch direto (não SDK)
-- Usa modelo `gemini-2.5-flash-image`
-- Usa rotação de 3 chaves Gemini
-- Comprime para WebP 1280x720 via TinyPNG
+// Para:
+<UniversalImage
+  ...
+  className="object-cover scale-110"
+/>
+```
 
----
+### 3. Componente UniversalImage (opcional)
+
+O componente `UniversalImage` já aplica `object-cover` internamente (linha 213). A classe adicional `scale-110` passada via `className` será concatenada corretamente.
+
+## Detalhes Técnicos
+
+| Aspecto | Valor Atual | Ação |
+|---------|-------------|------|
+| Resolução de geração | 1280x720 (16:9) | Manter |
+| Técnica CSS | `object-cover` | Adicionar `scale-110` |
+| Overflow | `overflow-hidden` | Já existe nos containers |
+
+## Arquivos a Modificar
+
+1. `src/pages/oab/OABTrilhasTopicos.tsx` - Adicionar scale nas thumbnails da lista
+2. `src/components/oab/OABTrilhasTopicoIntro.tsx` - Adicionar scale na imagem hero
 
 ## Resultado Esperado
 
-Após as correções:
-1. **Progresso**: Cada subtema (resumo) terá seu progresso individual, iniciando em 0%
-2. **Capa**: Será gerada com o modelo correto `gemini-2.5-flash-image` igual aos Conceitos
+As imagens vão aparecer levemente ampliadas (10%), cortando automaticamente qualquer borda branca que o modelo de IA tenha gerado nas extremidades, sem perder qualidade visual significativa.
 
----
-
-## Seção Técnica
-
-### Estrutura de IDs na Rota
-
-A rota `/oab/trilhas-aprovacao/materia/{materiaId}/topicos/{topicoId}/estudo/{resumoId}` tem:
-- `materiaId` (3) - ID da matéria OAB
-- `topicoId` (468) - ID do tópico (agrupador)
-- `resumoId` (6946) - ID do subtema específico (usado para progresso)
-
-### Logs Confirmando o Problema da Capa
-
-```text
-[Capa Subtema] Tentando chave 1 com gemini-2.5-flash-preview-05-20...
-models/gemini-2.5-flash-preview-05-20 is not found for API version v1beta
-```
-
-A função deployada ainda usa o modelo antigo inexistente.
-
-### Comparação de Modelos
-
-| Função | Modelo Atual (Deploy) | Modelo Correto |
-|--------|----------------------|----------------|
-| `gerar-capa-subtema-resumo` | `gemini-2.5-flash-preview-05-20` | `gemini-2.5-flash-image` |
-| `gerar-capa-topico-conceitos` | `gemini-2.5-flash-image` | `gemini-2.5-flash-image` |
