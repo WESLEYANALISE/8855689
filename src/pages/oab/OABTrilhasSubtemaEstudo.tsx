@@ -103,22 +103,22 @@ const OABTrilhasSubtemaEstudo = () => {
     },
   });
 
-  // Buscar progresso do usuário
+  // Buscar progresso do usuário (usando resumo_id para progresso individual por subtema)
   const { data: progresso } = useQuery({
-    queryKey: ["oab-subtema-progresso", parsedTopicoId, user?.id],
+    queryKey: ["oab-subtema-progresso", parsedResumoId, user?.id],
     queryFn: async () => {
-      if (!user?.id || !parsedTopicoId) return null;
+      if (!user?.id || !parsedResumoId) return null;
       
       const { data } = await supabase
         .from("oab_trilhas_estudo_progresso")
         .select("*")
         .eq("user_id", user.id)
-        .eq("topico_id", parsedTopicoId)
+        .eq("topico_id", parsedResumoId)
         .maybeSingle();
       
       return data;
     },
-    enabled: !!user?.id && !!parsedTopicoId,
+    enabled: !!user?.id && !!parsedResumoId,
   });
 
   // Mutation para gerar capa manualmente
@@ -333,19 +333,19 @@ const OABTrilhasSubtemaEstudo = () => {
   };
 
   const handleSlidesComplete = async () => {
-    // Marcar leitura como completa
-    if (user?.id && parsedTopicoId) {
+    // Marcar leitura como completa (usando resumo_id para progresso individual)
+    if (user?.id && parsedResumoId) {
       await supabase
         .from("oab_trilhas_estudo_progresso")
         .upsert({
           user_id: user.id,
-          topico_id: parsedTopicoId,
+          topico_id: parsedResumoId,
           leitura_completa: true,
           progresso_leitura: 100,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,topico_id' });
       
-      queryClient.invalidateQueries({ queryKey: ["oab-subtema-progresso"] });
+      queryClient.invalidateQueries({ queryKey: ["oab-subtema-progresso", parsedResumoId, user.id] });
     }
     
     toast.success("Leitura concluída!");
@@ -353,12 +353,13 @@ const OABTrilhasSubtemaEstudo = () => {
   };
 
   const handleProgressChange = async (progress: number) => {
-    if (user?.id && parsedTopicoId) {
+    // Salvar progresso usando resumo_id para progresso individual por subtema
+    if (user?.id && parsedResumoId) {
       await supabase
         .from("oab_trilhas_estudo_progresso")
         .upsert({
           user_id: user.id,
-          topico_id: parsedTopicoId,
+          topico_id: parsedResumoId,
           progresso_leitura: progress,
           leitura_completa: progress >= 100,
           updated_at: new Date().toISOString()
