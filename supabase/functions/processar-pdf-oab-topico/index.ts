@@ -58,7 +58,37 @@ serve(async (req) => {
     }
 
     const urlConvertida = converterUrlDrive(pdfUrl);
-    console.log("URL convertida para Mistral OCR:", urlConvertida);
+    console.log("URL convertida para download:", urlConvertida);
+
+    // BAIXAR O PDF PRIMEIRO
+    console.log("Baixando PDF do Google Drive...");
+    const pdfResponse = await fetch(urlConvertida, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!pdfResponse.ok) {
+      throw new Error(`Erro ao baixar PDF: ${pdfResponse.status}`);
+    }
+
+    const contentType = pdfResponse.headers.get('content-type');
+    if (contentType?.includes('text/html')) {
+      throw new Error('O arquivo não é um PDF válido ou requer permissão de acesso.');
+    }
+
+    const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+    const pdfBytes = new Uint8Array(pdfArrayBuffer);
+    console.log(`PDF baixado: ${Math.round(pdfBytes.length / 1024)} KB`);
+
+    // Converter para base64
+    let base64Pdf = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < pdfBytes.length; i += chunkSize) {
+      const chunk = pdfBytes.slice(i, Math.min(i + chunkSize, pdfBytes.length));
+      base64Pdf += String.fromCharCode(...chunk);
+    }
+    base64Pdf = btoa(base64Pdf);
 
     // Obter chave Mistral
     const mistralKey = Deno.env.get('MISTRAL_API_KEY');
@@ -66,8 +96,8 @@ serve(async (req) => {
       throw new Error("MISTRAL_API_KEY não configurada");
     }
 
-    // Usar Mistral OCR para extrair texto
-    console.log("Iniciando extração com Mistral OCR...");
+    // Usar Mistral OCR para extrair texto do base64
+    console.log("Iniciando extração com Mistral OCR (base64)...");
 
     const mistralResponse = await fetch('https://api.mistral.ai/v1/ocr', {
       method: 'POST',
@@ -79,7 +109,7 @@ serve(async (req) => {
         model: 'mistral-ocr-latest',
         document: {
           type: 'document_url',
-          document_url: urlConvertida
+          document_url: `data:application/pdf;base64,${base64Pdf}`
         }
       })
     });
