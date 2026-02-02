@@ -191,7 +191,7 @@ export const ConceitosSlidesViewer = ({
       </div>
 
       {/* Page content */}
-      <div className="flex-1 pb-20 overflow-hidden">
+      <div className="flex-1 pb-20 overflow-y-auto">
         <AnimatePresence mode="popLayout" custom={direction}>
           <ConceitoSlideCard
             key={currentIndex}
