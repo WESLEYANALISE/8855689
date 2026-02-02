@@ -77,6 +77,10 @@ export const AulaArtigoSlidesViewer = ({
   const [slidesProgress, setSlidesProgress] = useState(0);
   const [quizAcertos, setQuizAcertos] = useState(0);
   const [capaUrl, setCapaUrl] = useState<string | null>(null);
+  
+  // Progress state for realistic loading indicator
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState("Iniciando...");
 
   // Rotate loading messages
   useEffect(() => {
@@ -142,8 +146,39 @@ export const AulaArtigoSlidesViewer = ({
   }, [isOpen]);
 
   const fetchOrGenerateSlides = async () => {
+    let progressInterval: number | undefined;
+    let currentProgress = 0;
+    
+    const startProgressAnimation = () => {
+      progressInterval = window.setInterval(() => {
+        if (currentProgress < 85) {
+          // Progresso realista com velocidade variável
+          const increment = currentProgress < 15 ? 2 : currentProgress < 35 ? 1.5 : currentProgress < 55 ? 1.2 : currentProgress < 75 ? 0.8 : 0.5;
+          currentProgress = Math.min(85, currentProgress + increment);
+          setProgress(Math.round(currentProgress));
+          
+          // Mensagens contextuais
+          if (currentProgress < 15) {
+            setProgressMessage("📖 Analisando o artigo...");
+          } else if (currentProgress < 35) {
+            setProgressMessage("🏗️ Criando estrutura da aula...");
+          } else if (currentProgress < 55) {
+            setProgressMessage("✍️ Gerando slides didáticos...");
+          } else if (currentProgress < 75) {
+            setProgressMessage("🎴 Criando flashcards...");
+          } else {
+            setProgressMessage("✨ Montando questões...");
+          }
+        }
+      }, 400);
+    };
+    
     try {
       setEtapaAtual('loading');
+      setProgress(0);
+      setProgressMessage("Iniciando...");
+      
+      startProgressAnimation();
       
       const response = await supabase.functions.invoke('gerar-slides-artigo', {
         body: {
@@ -155,6 +190,19 @@ export const AulaArtigoSlidesViewer = ({
       });
 
       if (response.error) throw response.error;
+
+      // Limpar intervalo e completar progresso
+      if (progressInterval) clearInterval(progressInterval);
+      
+      // Animação suave até 100%
+      setProgress(90);
+      setProgressMessage("🎉 Quase pronto!");
+      await new Promise(r => setTimeout(r, 200));
+      setProgress(95);
+      await new Promise(r => setTimeout(r, 200));
+      setProgress(100);
+      setProgressMessage("✅ Concluído!");
+      await new Promise(r => setTimeout(r, 300));
 
       const data = response.data as SlidesData;
       setSlidesData(data);
@@ -169,6 +217,7 @@ export const AulaArtigoSlidesViewer = ({
       setEtapaAtual('intro');
     } catch (error: any) {
       console.error('Erro ao gerar slides:', error);
+      if (progressInterval) clearInterval(progressInterval);
       toast.error("Erro ao gerar aula. Tente novamente.");
       onClose();
     }
@@ -256,45 +305,60 @@ export const AulaArtigoSlidesViewer = ({
             className="h-full flex items-center justify-center"
           >
             <div className="text-center px-6 max-w-md">
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="mb-8"
-              >
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-500/30">
-                  <GraduationCap className="w-12 h-12 text-white" />
-                </div>
-              </motion.div>
-
               <h2 className="text-2xl font-bold text-white mb-2">
                 Art. {numeroArtigo}
               </h2>
               <p className="text-gray-400 mb-8">{codigoNome}</p>
 
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <Loader2 className="w-5 h-5 animate-spin text-red-400" />
-                <motion.span
-                  key={loadingIndex}
-                  initial={{ opacity: 0, y: 10 }}
+              {/* Círculo de progresso com porcentagem */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="mb-6"
+              >
+                <div className="relative w-28 h-28 mx-auto">
+                  <svg className="w-28 h-28 -rotate-90">
+                    <circle 
+                      cx="56" 
+                      cy="56" 
+                      r="50" 
+                      stroke="currentColor" 
+                      strokeWidth="5" 
+                      fill="none" 
+                      className="text-gray-700" 
+                    />
+                    <circle 
+                      cx="56" 
+                      cy="56" 
+                      r="50" 
+                      stroke="currentColor" 
+                      strokeWidth="5" 
+                      fill="none" 
+                      strokeDasharray={314.16} 
+                      strokeDashoffset={314.16 * (1 - progress / 100)} 
+                      className="text-red-500 transition-all duration-300" 
+                      strokeLinecap="round" 
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-3xl font-bold text-red-400">{progress}%</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <div className="text-center space-y-1 mb-6">
+                <motion.p
+                  key={progressMessage}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-gray-400"
+                  className="text-base font-semibold text-white"
                 >
-                  {loadingMessage}
-                </motion.span>
+                  {progressMessage}
+                </motion.p>
+                <p className="text-xs text-gray-500">Isso pode levar alguns instantes</p>
               </div>
 
-              <div className="flex justify-center gap-2">
-                {loadingMessages.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                      i <= loadingIndex ? 'bg-red-400' : 'bg-gray-700'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <Button variant="ghost" onClick={handleSair} className="mt-8 text-gray-400">
+              <Button variant="ghost" onClick={handleSair} className="text-gray-400">
                 <X className="w-4 h-4 mr-2" />
                 Cancelar
               </Button>
