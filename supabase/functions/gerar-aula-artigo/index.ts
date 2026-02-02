@@ -2,13 +2,82 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const REVISION = "v4.0.0-curso-completo-gemini-2.5";
+const REVISION = "v5.0.0-aprendizado-geral-fallback";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Pool de chaves API (1, 2, 3) com fallback
+const GEMINI_KEYS = [
+  Deno.env.get('GEMINI_KEY_1'),
+  Deno.env.get('GEMINI_KEY_2'),
+  Deno.env.get('GEMINI_KEY_3'),
+  Deno.env.get('DIREITO_PREMIUM_API_KEY'),
+].filter(Boolean) as string[];
+
+async function callGeminiWithFallback(prompt: string, config: { temperature: number; maxOutputTokens: number }): Promise<string> {
+  console.log(`[gerar-aula-artigo] Iniciando com ${GEMINI_KEYS.length} chaves disponíveis`);
+  
+  for (let i = 0; i < GEMINI_KEYS.length; i++) {
+    const apiKey = GEMINI_KEYS[i];
+    console.log(`[gerar-aula-artigo] Tentando chave ${i + 1}...`);
+    
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              ...config,
+              responseMimeType: "application/json",
+            },
+          }),
+        }
+      );
+
+      if (response.status === 429 || response.status === 503) {
+        console.log(`[gerar-aula-artigo] Chave ${i + 1} rate limited, tentando próxima...`);
+        continue;
+      }
+
+      if (response.status === 400) {
+        const errorText = await response.text();
+        if (errorText.includes('API key expired') || errorText.includes('INVALID_ARGUMENT')) {
+          console.log(`[gerar-aula-artigo] Chave ${i + 1} expirada/inválida, tentando próxima...`);
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[gerar-aula-artigo] Erro na chave ${i + 1}: ${response.status} - ${errorText.substring(0, 200)}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (text) {
+        console.log(`[gerar-aula-artigo] ✅ Sucesso com chave ${i + 1}`);
+        return text;
+      } else {
+        console.log(`[gerar-aula-artigo] Resposta vazia da chave ${i + 1}`);
+        continue;
+      }
+    } catch (error) {
+      console.error(`[gerar-aula-artigo] Exceção na chave ${i + 1}:`, error);
+      continue;
+    }
+  }
+  
+  throw new Error('Todas as chaves API esgotadas ou com erro');
+}
 
 serve(async (req) => {
   console.log(`📍 Function: gerar-aula-artigo@${REVISION}`);
@@ -25,10 +94,11 @@ serve(async (req) => {
       throw new Error('Código da tabela, número do artigo e conteúdo são obrigatórios');
     }
 
-    const DIREITO_PREMIUM_API_KEY = Deno.env.get('DIREITO_PREMIUM_API_KEY');
-    if (!DIREITO_PREMIUM_API_KEY) {
-      throw new Error('DIREITO_PREMIUM_API_KEY não configurada');
+    if (GEMINI_KEYS.length === 0) {
+      throw new Error('Nenhuma chave GEMINI_KEY configurada');
     }
+
+    console.log(`✅ ${GEMINI_KEYS.length} chaves Gemini disponíveis`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -63,7 +133,9 @@ serve(async (req) => {
 
     console.log('📝 Gerando CURSO COMPLETO V4 para o artigo...');
 
-    const prompt = `Você é um PROFESSOR JURÍDICO PREMIADO, reconhecido nacionalmente pela sua didática excepcional. Sua missão é criar um CURSO COMPLETO e ENVOLVENTE sobre este artigo de lei.
+    const prompt = `Você é um PROFESSOR DE DIREITO PREMIADO, reconhecido nacionalmente pela sua didática excepcional. Sua missão é criar uma AULA COMPLETA e ENVOLVENTE para quem quer APRENDER e ENTENDER este artigo de lei.
+
+IMPORTANTE: Esta aula é para QUALQUER pessoa que quer aprender sobre este artigo - estudantes de direito, cidadãos, profissionais, etc. NÃO é focada em OAB ou concursos. O objetivo é ENSINAR o artigo de forma clara, didática e prática.
 
 CÓDIGO: ${codigoTabela}
 ARTIGO: ${numeroArtigo}
@@ -74,7 +146,13 @@ ${conteudoArtigo}
                     DIRETRIZES FUNDAMENTAIS
 ═══════════════════════════════════════════════════════════════════
 
-🎯 STORYTELLING OBRIGATÓRIO:
+🎯 FOCO: APRENDIZADO E COMPREENSÃO
+- O objetivo é que o aluno ENTENDA profundamente o artigo
+- Explique como se o aluno nunca tivesse estudado direito antes
+- Use linguagem acessível, evitando jargões desnecessários
+- Quando usar termos técnicos, SEMPRE explique o significado
+
+🎭 STORYTELLING OBRIGATÓRIO:
 - Crie personagens recorrentes: Maria (advogada), João (empresário), Pedro (cidadão comum), Ana (juíza), Carlos (estudante de direito)
 - Cada seção DEVE começar com uma história envolvente que ilustre o problema que o artigo resolve
 - As histórias devem ser realistas, do cotidiano brasileiro
@@ -84,7 +162,7 @@ ${conteudoArtigo}
 - Explique CADA conceito como se o aluno nunca tivesse visto antes
 - Use analogias do dia-a-dia para conceitos complexos
 - Conecte com outros artigos e princípios do Direito
-- Mostre as consequências práticas de cada dispositivo
+- Mostre as consequências práticas de cada dispositivo para a VIDA REAL das pessoas
 
 📊 ELEMENTOS VISUAIS OBRIGATÓRIOS:
 - Tabelas comparativas quando houver diferenças (tipos, modalidades, prazos)
@@ -95,7 +173,7 @@ ${conteudoArtigo}
 💡 DICAS DE ESTUDO:
 - Mnemônicos para memorização
 - Associações visuais
-- Pegadinhas de concursos sobre o tema
+- Exemplos práticos do cotidiano
 
 ═══════════════════════════════════════════════════════════════════
                     ESTRUTURA OBRIGATÓRIA POR SEÇÃO
@@ -365,41 +443,14 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
 5. Tabelas só quando houver REALMENTE comparação a fazer (tipos, modalidades, prazos)
 6. Linha do tempo só quando houver REALMENTE etapas/procedimento
 7. Mapa mental SEMPRE com conexões reais com outros artigos/princípios
-8. Textos devem ser didáticos, detalhados e focados em concursos
+8. Textos devem ser didáticos, detalhados e voltados para a COMPREENSÃO (não para concursos)
 9. Slides tipo "quickcheck" devem ter exatamente 4 opções
 10. O campo "resposta" é o índice (0-3) da opção correta
 11. Retorne APENAS o JSON, sem markdown ou código`;
 
-    console.log('🚀 Enviando prompt para Gemini 2.5 Flash...');
+    console.log('🚀 Enviando prompt para Gemini com fallback...');
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${DIREITO_PREMIUM_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 65000,
-            responseMimeType: "application/json",
-          }
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro na API Gemini:', response.status, errorText);
-      throw new Error('Erro ao gerar estrutura da aula');
-    }
-
-    const data = await response.json();
-    let estruturaText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!estruturaText) {
-      throw new Error('Resposta vazia da IA');
-    }
+    let estruturaText = await callGeminiWithFallback(prompt, { temperature: 0.8, maxOutputTokens: 65000 });
     
     console.log('📝 Resposta recebida, processando JSON...');
     

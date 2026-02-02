@@ -6,7 +6,9 @@ import {
   Sparkles,
   X,
   Crown,
-  Lock
+  Lock,
+  BookOpen,
+  HelpCircle
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -84,6 +86,14 @@ export const ArtigoActionsMenu = ({
 
   const recursos = [
     {
+      icon: BookOpen,
+      label: "Leitura",
+      description: "Leia e estude o artigo com explicações detalhadas",
+      action: onOpenExplicacao ? () => onOpenExplicacao("explicacao") : undefined,
+      show: !!onOpenExplicacao,
+      highlight: false
+    },
+    {
       icon: GraduationCap,
       label: "Aula Interativa",
       description: "Aprenda tudo sobre este artigo com aula completa",
@@ -92,19 +102,19 @@ export const ArtigoActionsMenu = ({
       highlight: true
     },
     {
-      icon: FileQuestion,
-      label: "Questões",
-      description: "Pratique com questões sobre o artigo",
-      action: onOpenQuestoes,
-      show: !!onOpenQuestoes
-    },
-    {
       icon: Bookmark,
       label: "Flashcards",
       description: loadingFlashcards ? "Gerando flashcards..." : "Crie flashcards para memorização",
       action: onGenerateFlashcards,
       show: !!onGenerateFlashcards,
       disabled: loadingFlashcards
+    },
+    {
+      icon: HelpCircle,
+      label: "Questões",
+      description: "Pratique com questões sobre o artigo",
+      action: onOpenQuestoes,
+      show: !!onOpenQuestoes
     },
     {
       icon: MessageSquare,
