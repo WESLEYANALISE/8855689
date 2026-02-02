@@ -6,6 +6,124 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// =============================================
+// FUNÇÕES DE NORMALIZAÇÃO E AGRUPAMENTO DE SUBTEMAS
+// =============================================
+
+/**
+ * Normaliza o título do subtema removendo sufixos "Parte I", "Parte II", etc.
+ * Aceita variações como:
+ * - " - PARTE I", " – Parte II", " — parte 2"
+ * - " PARTE I" (sem hífen)
+ * - "- PARTE 1", "– PARTE 2"
+ * - Algarismos romanos (I, II, III, IV, V, VI, VII, VIII, IX, X, etc.)
+ * - Algarismos arábicos (1, 2, 3, etc.)
+ */
+function normalizarTituloSubtema(titulo: string): string {
+  if (!titulo) return '';
+  
+  let result = titulo.trim();
+  
+  // Padrão 1: " - PARTE I", " – PARTE II", " — PARTE 1", etc. (com separador)
+  // Aceita -, –, — como separadores
+  result = result.replace(
+    /\s*[-–—]\s*PARTE\s+(I{1,4}|IV|V?I{0,3}|IX|X{1,3}|XI{1,3}|XIV|XV|XVI{1,3}|\d+)\s*:?\s*$/gi,
+    ''
+  );
+  
+  // Padrão 2: " PARTE I" (sem hífen, mas com espaço antes)
+  result = result.replace(
+    /\s+PARTE\s+(I{1,4}|IV|V?I{0,3}|IX|X{1,3}|XI{1,3}|XIV|XV|XVI{1,3}|\d+)\s*:?\s*$/gi,
+    ''
+  );
+  
+  // Padrão 3: "(PARTE I)" ou "( PARTE II )" - entre parênteses
+  result = result.replace(
+    /\s*\(\s*PARTE\s+(I{1,4}|IV|V?I{0,3}|IX|X{1,3}|XI{1,3}|XIV|XV|XVI{1,3}|\d+)\s*\)\s*$/gi,
+    ''
+  );
+  
+  // Limpar espaços múltiplos e trim
+  result = result.replace(/\s+/g, ' ').trim();
+  
+  return result;
+}
+
+/**
+ * Agrupa subtemas que compartilham o mesmo título normalizado (Parte I + Parte II → único)
+ * Preserva a ordem do primeiro aparecimento de cada grupo.
+ * Expande o range de páginas para cobrir todas as partes.
+ */
+function agruparSubtemasPorParte(
+  subtemas: Array<{ ordem: number; titulo: string; pagina_inicial: number; pagina_final: number }>
+): Array<{ ordem: number; titulo: string; pagina_inicial: number; pagina_final: number }> {
+  if (!subtemas || subtemas.length === 0) return [];
+  
+  // Mapa para agrupar por título normalizado
+  const grupos = new Map<string, Array<{ ordem: number; titulo: string; pagina_inicial: number; pagina_final: number }>>();
+  const ordemGrupos: string[] = []; // Para preservar a ordem do primeiro aparecimento
+  
+  // Log: títulos antes do merge
+  console.log(`\n🔄 [MERGE] Subtemas ANTES do agrupamento (${subtemas.length} total):`);
+  
+  for (const subtema of subtemas) {
+    const tituloOriginal = subtema.titulo;
+    const tituloNormalizado = normalizarTituloSubtema(tituloOriginal).toUpperCase();
+    
+    // Log se detectar "PARTE" no título original
+    if (/PARTE\s+(I{1,4}|IV|V?I{0,3}|IX|X{1,3}|\d+)/i.test(tituloOriginal)) {
+      console.log(`   🔍 Detectado "Parte": "${tituloOriginal}" → normalizado: "${tituloNormalizado}"`);
+    }
+    
+    if (!grupos.has(tituloNormalizado)) {
+      grupos.set(tituloNormalizado, []);
+      ordemGrupos.push(tituloNormalizado);
+    }
+    grupos.get(tituloNormalizado)!.push(subtema);
+  }
+  
+  // Construir subtemas agrupados
+  const subtemasAgrupados: Array<{ ordem: number; titulo: string; pagina_inicial: number; pagina_final: number }> = [];
+  let novaOrdem = 1;
+  
+  for (const chave of ordemGrupos) {
+    const grupo = grupos.get(chave)!;
+    
+    // Ordenar partes por pagina_inicial
+    grupo.sort((a, b) => a.pagina_inicial - b.pagina_inicial);
+    
+    // Título limpo (sem "Parte I/II")
+    const tituloLimpo = normalizarTituloSubtema(grupo[0].titulo);
+    
+    // Página inicial = menor pagina_inicial do grupo
+    const paginaInicial = Math.min(...grupo.map(g => g.pagina_inicial));
+    
+    // Página final = maior pagina_final do grupo
+    const paginaFinal = Math.max(...grupo.map(g => g.pagina_final));
+    
+    // Log de merge se grupo tem mais de 1 item
+    if (grupo.length > 1) {
+      const partesOriginais = grupo.map(g => `"${g.titulo}" (${g.pagina_inicial}-${g.pagina_final})`).join(' + ');
+      console.log(`   ✅ MERGE: ${partesOriginais} → "${tituloLimpo}" (${paginaInicial}-${paginaFinal})`);
+    }
+    
+    subtemasAgrupados.push({
+      ordem: novaOrdem++,
+      titulo: tituloLimpo,
+      pagina_inicial: paginaInicial,
+      pagina_final: paginaFinal,
+    });
+  }
+  
+  // Log: resultado do merge
+  console.log(`🔄 [MERGE] Subtemas DEPOIS do agrupamento: ${subtemas.length} → ${subtemasAgrupados.length}`);
+  if (subtemas.length !== subtemasAgrupados.length) {
+    console.log(`   📊 Redução: ${subtemas.length - subtemasAgrupados.length} subtemas mesclados`);
+  }
+  
+  return subtemasAgrupados;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -38,7 +156,7 @@ serve(async (req) => {
     const totalPaginas = paginas.length;
     console.log(`📚 Analisando ${totalPaginas} páginas do tópico`);
 
-    // Extrair títulos do índice (nível 1) de forma determinística para evitar “subtemas extras”
+    // Extrair títulos do índice (nível 1) de forma determinística para evitar "subtemas extras"
     // Observação: OCR às vezes remove o ponto após o número ("16 " ao invés de "16."),
     // e às vezes troca os pontilhados por caracteres similares. Por isso o regex é permissivo.
     const extrairTitulosIndiceNivel1 = (paginasIndice: Array<{ pagina: number; conteudo: string | null }>) => {
@@ -200,7 +318,7 @@ serve(async (req) => {
       const itens = [...titulosIndiceNivel1].sort((a, b) => a.ordem - b.ordem);
 
       // Construir ranges a partir das páginas do índice
-      const subtemasValidados = itens.map((it, idx) => {
+      let subtemasValidados = itens.map((it, idx) => {
         const prox = itens[idx + 1];
 
         const startRaw = Number(it.pagina_indice ?? 1);
@@ -218,7 +336,17 @@ serve(async (req) => {
         };
       });
 
-      console.log(`✅ Subtemas (via índice): ${subtemasValidados.length}`);
+      console.log(`✅ Subtemas (via índice) ANTES do merge: ${subtemasValidados.length}`);
+      subtemasValidados.forEach((s: any) => {
+        console.log(`  ${s.ordem}. ${s.titulo} (págs ${s.pagina_inicial}-${s.pagina_final})`);
+      });
+
+      // =============================================
+      // APLICAR AGRUPAMENTO POR "PARTE I/II"
+      // =============================================
+      subtemasValidados = agruparSubtemasPorParte(subtemasValidados);
+
+      console.log(`✅ Subtemas (via índice) APÓS merge: ${subtemasValidados.length}`);
       subtemasValidados.forEach((s: any) => {
         console.log(`  ${s.ordem}. ${s.titulo} (págs ${s.pagina_inicial}-${s.pagina_final})`);
       });
@@ -461,7 +589,7 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
       pagina_final: Math.min(totalPaginas, Number(s.pagina_final || totalPaginas))
     }));
 
-    // Se temos itens nível 1 do índice, forçar correspondência e remover “extras”
+    // Se temos itens nível 1 do índice, forçar correspondência e remover "extras"
     if (titulosIndiceNivel1.length) {
       const norm = (t: string) =>
         t
@@ -474,7 +602,7 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
 
       const indiceNorm = titulosIndiceNivel1.map(i => ({ ...i, n: norm(i.titulo) }));
 
-      // Mapear por “match aproximado” (contains) e cair para ordem do índice
+      // Mapear por "match aproximado" (contains) e cair para ordem do índice
       const escolhidos: Array<{ ordem: number; titulo: string; pagina_inicial: number; pagina_final: number }> = [];
       for (const item of indiceNorm) {
         const match = subtemasValidados.find(s => {
@@ -510,7 +638,14 @@ RESPONDA APENAS COM JSON válido, sem texto adicional:`;
       }));
     }
 
-    console.log(`✅ ${subtemasValidados.length} subtemas identificados`);
+    console.log(`✅ Subtemas (via Gemini) ANTES do merge: ${subtemasValidados.length}`);
+
+    // =============================================
+    // APLICAR AGRUPAMENTO POR "PARTE I/II"
+    // =============================================
+    subtemasValidados = agruparSubtemasPorParte(subtemasValidados);
+
+    console.log(`✅ Subtemas (via Gemini) APÓS merge: ${subtemasValidados.length}`);
 
     // =========================================
     // NOVA LÓGICA: Salvar conteúdo na tabela conteudo_oab_revisao
