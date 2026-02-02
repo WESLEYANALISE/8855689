@@ -93,71 +93,66 @@ Modern minimal style with dramatic lighting and rich textures.
 NO TEXT, NO WORDS, NO LETTERS, NO PEOPLE FACES, NO CHARACTERS.
 Ultra high resolution, vibrant contrast, cinematic lighting.`;
 
-    // Chamar a edge function de geração de imagem
-    const { data: imageData, error: imageError } = await supabase.functions.invoke("gerar-imagem-hf", {
-      body: { prompt: imagePrompt }
-    });
+    // Fallback URLs para cada código (usar imediatamente se a geração falhar)
+    const fallbackUrls: Record<string, string> = {
+      'CP': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1280&h=720&fit=crop&q=80',
+      'CC': 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1280&h=720&fit=crop&q=80',
+      'CF': 'https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=1280&h=720&fit=crop&q=80',
+      'CDC': 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1280&h=720&fit=crop&q=80',
+      'CLT': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1280&h=720&fit=crop&q=80',
+      'CPP': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1280&h=720&fit=crop&q=80',
+      'CPC': 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1280&h=720&fit=crop&q=80',
+      'ECA': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1280&h=720&fit=crop&q=80',
+      'CTN': 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1280&h=720&fit=crop&q=80',
+      'CTB': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1280&h=720&fit=crop&q=80',
+      'LEP': 'https://images.unsplash.com/photo-1589578527966-fdac0f44566c?w=1280&h=720&fit=crop&q=80',
+      'LCP': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1280&h=720&fit=crop&q=80',
+    };
 
-    if (imageError) {
-      console.error("[Capa Código] Erro ao gerar imagem:", imageError);
-      throw imageError;
-    }
+    let capaUrl: string | null = null;
 
-    if (!imageData?.image) {
-      console.log("[Capa Código] Imagem não retornada, usando fallback");
-      
-      // Fallback para imagem estática do Unsplash
-      const fallbackUrls: Record<string, string> = {
-        'CP': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1280&h=720&fit=crop&q=80',
-        'CC': 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1280&h=720&fit=crop&q=80',
-        'CF': 'https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=1280&h=720&fit=crop&q=80',
-        'CDC': 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1280&h=720&fit=crop&q=80',
-        'CLT': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1280&h=720&fit=crop&q=80',
-      };
-      
-      const fallbackUrl = fallbackUrls[codigoNorm] || fallbackUrls['CP'];
-      
-      // Salvar fallback
-      await supabase
-        .from('codigos_capas')
-        .upsert({
-          codigo_tabela: codigoNorm,
-          codigo_nome: codigoNome,
-          capa_url: fallbackUrl,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'codigo_tabela' });
-      
-      return new Response(
-        JSON.stringify({ success: true, capa_url: fallbackUrl, fallback: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Converter base64 para upload no storage
-    const base64Data = imageData.image.replace(/^data:image\/\w+;base64,/, "");
-    const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-
-    // Upload para o storage
-    const fileName = `codigos-capas/${codigoNorm}-${Date.now()}.webp`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from("imagens")
-      .upload(fileName, imageBuffer, {
-        contentType: "image/webp",
-        upsert: true
+    // Tentar chamar a edge function de geração de imagem
+    try {
+      const { data: imageData, error: imageError } = await supabase.functions.invoke("gerar-imagem-hf", {
+        body: { prompt: imagePrompt }
       });
 
-    if (uploadError) {
-      console.error("[Capa Código] Erro no upload:", uploadError);
-      throw uploadError;
+      if (imageError) {
+        console.error("[Capa Código] Erro ao gerar imagem, usando fallback:", imageError.message);
+      } else if (imageData?.image) {
+        // Converter base64 para upload no storage
+        const base64Data = imageData.image.replace(/^data:image\/\w+;base64,/, "");
+        const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+        // Upload para o storage
+        const fileName = `codigos-capas/${codigoNorm}-${Date.now()}.webp`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("imagens")
+          .upload(fileName, imageBuffer, {
+            contentType: "image/webp",
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error("[Capa Código] Erro no upload, usando fallback:", uploadError);
+        } else {
+          // Obter URL pública
+          const { data: urlData } = supabase.storage
+            .from("imagens")
+            .getPublicUrl(fileName);
+          capaUrl = urlData?.publicUrl;
+        }
+      }
+    } catch (genError: any) {
+      console.error("[Capa Código] Exceção ao gerar imagem, usando fallback:", genError.message);
     }
 
-    // Obter URL pública
-    const { data: urlData } = supabase.storage
-      .from("imagens")
-      .getPublicUrl(fileName);
-
-    const capaUrl = urlData?.publicUrl;
+    // Se não conseguiu gerar, usar fallback
+    if (!capaUrl) {
+      console.log("[Capa Código] Usando imagem fallback do Unsplash");
+      capaUrl = fallbackUrls[codigoNorm] || fallbackUrls['CP'];
+    }
 
     // Salvar na tabela codigos_capas
     const { error: upsertError } = await supabase
