@@ -159,8 +159,14 @@ export const AulaArtigoSlidesViewer = ({
   };
 
   const handleStartSlides = useCallback(() => {
-    setEtapaAtual('slides');
-  }, []);
+    console.log('[AulaArtigoSlides] Starting slides, secoes:', slidesData?.secoes?.length);
+    if (slidesData?.secoes && slidesData.secoes.length > 0) {
+      setEtapaAtual('slides');
+    } else {
+      toast.error("Erro: Nenhum slide disponível");
+      console.error('[AulaArtigoSlides] No secoes found in slidesData:', slidesData);
+    }
+  }, [slidesData]);
 
   const handleStartFlashcards = useCallback(() => {
     setEtapaAtual('flashcards');
