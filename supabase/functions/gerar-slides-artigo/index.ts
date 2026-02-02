@@ -193,16 +193,22 @@ ${conteudoArtigo}
 - Escreva como CONVERSA: "Olha só...", "Percebeu?", "Veja bem...", "Sabe quando..."
 - Perguntas retóricas para engajar: "E por que isso importa tanto?"
 - Analogias com situações do dia a dia
-- Explicar TODO termo técnico ou em latim: "O termo 'pacta sunt servanda' (que significa 'os pactos devem ser cumpridos')..."
+- Explicar TODO termo técnico ou em latim colocando entre ASPAS: "O termo 'pacta sunt servanda' significa..."
+- IMPORTANTE: Colocar termos-chave e conceitos importantes ENTRE ASPAS para destacar: 'em todo ou em parte', 'resultado', 'ação ou omissão'
 - Exemplos práticos IMEDIATOS com nomes: João, Maria, Pedro, Ana
 - Blockquotes para citações legais: > "Art. X..."
 - Cards visuais: ⚠️ ATENÇÃO, 💡 DICA, 📚 EXEMPLO PRÁTICO
+- Use **negrito** para conceitos muito importantes
+- Use hierarquia de títulos no conteúdo: ## Subtítulo para cada tópico
+- Divida textos longos em parágrafos curtos (2-3 frases por parágrafo)
+- Cada conceito do artigo merece sua própria seção com subtítulo
 
 ❌ NUNCA:
 - Começar com "E aí galera!", "Fala, galera", "Beleza?", "Mano,", "Bora lá", "Partiu"
 - Texto muito formal ou acadêmico
 - Slides curtos (mínimo 150-300 palavras por slide tipo "texto")
 - Explicações superficiais
+- Parágrafos muito longos (máximo 4 frases por parágrafo)
 
 ═══════════════════════════════════════════════════════════════════
                     📋 ESTRUTURA OBRIGATÓRIA (6-7 SEÇÕES)
