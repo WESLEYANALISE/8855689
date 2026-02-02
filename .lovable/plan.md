@@ -1,245 +1,110 @@
 
-# Plano: Ajustes no Progresso, Chat e Menu de Recursos
+## Objetivo (o que vai mudar)
+Garantir que, quando o PDF vier com subtemas “PARTE I / PARTE II” (ex.: “INJÚRIA - PARTE I” e “INJÚRIA - PARTE II”), o sistema **não liste separado** na etapa “Confirme os subtemas identificados”. Em vez disso, ele deve **juntar automaticamente** em **um único subtema** (“INJÚRIA”) com o intervalo de páginas cobrindo as duas partes e com o conteúdo das páginas unido.
 
-## Resumo dos Problemas Identificados
+## Diagnóstico (por que ainda está vindo separado)
+Pelo seu print, o problema está na **extração de SUBTEMAS** (modal “Confirme os subtemas identificados”), que é gerada pela edge function:
 
-### Problema 1: Porcentagem em Tempo Real na Aula Interativa
-**Arquivo**: `src/components/AulaArtigoSlidesViewer.tsx`
+- `supabase/functions/identificar-subtemas-oab/index.ts`
 
-O loading state atual (linhas 250-302) mostra apenas:
-- Ícone com bolinha girando
-- Mensagens de texto rotativas
-- Dots indicadores
+O merge que você pediu anteriormente foi aplicado para “TEMAS” (matéria) e para a confirmação de temas:
+- `identificar-temas-oab`
+- `confirmar-temas-oab`
 
-**Falta**: Círculo de progresso com porcentagem (0-100%) como no `FlashcardsArtigoModal`
+Mas a sua tela do print é de **SUBTEMAS** (tópico), que é outro fluxo: `identificar-subtemas-oab`. Nesse arquivo, hoje **não existe uma etapa de merge por “Parte I/II”**, então ele retorna exatamente o índice/Gemini com as duas entradas separadas.
 
-### Problema 2: Layout das Perguntas Sugeridas no Chat
-**Arquivo**: `src/components/PerguntaModal.tsx`
+## Solução (ajuste definitivo)
+Implementar no `identificar-subtemas-oab` uma rotina de “normalização + agrupamento” de títulos, aplicada **sempre** antes de salvar no banco e antes de retornar para a UI.
 
-As perguntas sugeridas estão em:
-```tsx
-<div className="grid grid-cols-2 gap-2">
-```
+### 1) Normalização de título (“Parte I/II”)
+Adicionar uma função dedicada (ex.: `normalizarTituloSubtema`) que:
+- remove sufixos no final do título como:
+  - `- PARTE I`, `– Parte II`, `— parte 2`
+  - `PARTE I` (sem hífen)
+  - variações de espaçamento e caixa (maiúsculas/minúsculas)
+- mantém o restante do título intacto
+- faz `trim()` e colapsa espaços múltiplos
 
-Deveria ser uma embaixo da outra:
-```tsx
-<div className="flex flex-col gap-2">
-```
+Regras de regex (robustas):
+- aceitar `-`, `–`, `—` como separadores
+- aceitar algarismos romanos amplos (`I, II, III, IV, V, VI, VII, VIII, IX, X, ...`) e arábicos (`1,2,3...`)
+- garantir que só remova quando aparecer **“PARTE” no final do título**, para não estragar títulos que terminem em números por outros motivos.
 
-### Problema 3: Flickering do Menu "Recursos do Artigo"
-**Arquivo**: `src/components/ArtigoFullscreenDrawer.tsx`
+### 2) Agrupamento estável (preserva a ordem visual do índice)
+Adicionar função (ex.: `agruparSubtemasPorParte`) que:
+- agrupa por `normalizarTituloSubtema(titulo)` (chave normalizada)
+- preserva a ordem do primeiro aparecimento do grupo (para a UI ficar natural)
+- para cada grupo:
+  - `titulo`: o título limpo (sem “Parte …”)
+  - `pagina_inicial`: menor `pagina_inicial` do grupo
+  - `pagina_final`: maior `pagina_final` do grupo
+- reindexa `ordem` como 1..N após o merge
 
-O menu aparece/desaparece abruptamente sem animação, o que pode causar a sensação de "piscando". Falta usar `AnimatePresence` + `motion.div` para entrada/saída suave.
+### 3) Aplicar o merge nos dois caminhos do `identificar-subtemas-oab`
+O arquivo tem dois caminhos principais:
 
----
+**(A) Caminho “índice confiável” (retorno antecipado)**
+- Hoje ele monta `subtemasValidados` diretamente do índice e retorna.
+- Vamos aplicar o agrupamento **antes** de:
+  - salvar em `conteudo_oab_revisao`
+  - atualizar `oab_trilhas_topicos.subtemas_identificados`
+  - retornar a resposta JSON
 
-## Parte 1: Adicionar Porcentagem na Aula Interativa
+**(B) Caminho “Gemini/heurístico” (sem retorno antecipado)**
+- Hoje ele valida `subtemasValidados`, faz correções quando existe índice, e então salva/retorna.
+- Vamos aplicar o agrupamento logo após a construção final de `subtemasValidados` (depois dos ajustes de páginas e reindex), e antes do salvamento/retorno.
 
-### Mudança
-Adicionar um estado de progresso simulado (similar ao FlashcardsArtigoModal) com:
-- Círculo SVG animado mostrando 0-100%
-- Progresso que avança realisticamente durante a geração
-- Mensagens contextuais que mudam conforme o progresso
+### 4) Efeito colateral desejado: conteúdo unido automaticamente
+Como o `identificar-subtemas-oab` salva o conteúdo por subtema em `conteudo_oab_revisao` iterando pelas páginas (`pagina_inicial..pagina_final`), ao juntarmos “Parte I/II” em um único item com `pagina_inicial` e `pagina_final` expandido, o conteúdo também ficará automaticamente unido.
 
-### Código Atual (Problema)
-```tsx
-{etapaAtual === 'loading' && (
-  <div className="...">
-    <Loader2 className="animate-spin" />
-    <span>{loadingMessage}</span>
-    {/* Apenas dots */}
-    {loadingMessages.map((_, i) => (
-      <div className={`w-2 h-2 rounded-full ${i <= loadingIndex ? 'bg-red-400' : 'bg-gray-700'}`} />
-    ))}
-  </div>
-)}
-```
+### 5) Logs de auditoria (para provar que resolveu)
+Adicionar logs claros na edge function:
+- Antes do merge: lista de títulos recebidos + páginas
+- Depois do merge: lista de títulos finais + páginas e contagem “N → M”
+- Logs específicos quando detectar “parte” no título para facilitar debug
 
-### Código Novo
-```tsx
-{etapaAtual === 'loading' && (
-  <div className="...">
-    {/* Círculo de progresso com porcentagem */}
-    <div className="relative w-28 h-28">
-      <svg className="w-28 h-28 -rotate-90">
-        <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="5" fill="none" className="text-gray-700" />
-        <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="5" fill="none" 
-          strokeDasharray={314.16} 
-          strokeDashoffset={314.16 * (1 - progress / 100)} 
-          className="text-red-500 transition-all duration-300" 
-          strokeLinecap="round" 
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-bold text-red-400">{progress}%</span>
-      </div>
-    </div>
-    <span>{progressMessage}</span>
-  </div>
-)}
-```
+### 6) Compatibilidade com dados existentes
+- O merge “definitivo” vale para novas extrações/identificações.
+- Para tópicos que já ficaram salvos com “PARTE I/II” separados, será necessário **rodar a identificação/extrair de novo** (porque a UI está mostrando o resultado atual que já veio separado do processamento anterior).
 
-### Lógica de Progresso Realista
-- **0-15%**: "Analisando o artigo..." (rápido)
-- **15-35%**: "Criando estrutura da aula..." (médio)
-- **35-55%**: "Gerando slides didáticos..." (lento - fase principal)
-- **55-75%**: "Criando flashcards..." (médio)
-- **75-90%**: "Montando questões..." (médio)
-- **90-100%**: Quando API retorna (finalização)
+## Escopo de arquivos
+1. `supabase/functions/identificar-subtemas-oab/index.ts`
+   - adicionar normalização + agrupamento
+   - aplicar nos dois fluxos (índice confiável e Gemini)
+   - melhorar logs
 
----
+(Em princípio, `confirmar-subtemas-oab` não precisa mudar se o merge acontecer antes, porque a UI já vai selecionar e confirmar apenas o subtema final consolidado.)
 
-## Parte 2: Layout Vertical das Perguntas Sugeridas
+## Critérios de aceite (como vamos validar)
+1. No modal “Confirme os subtemas identificados”, em vez de:
+   - “INJÚRIA - PARTE I”
+   - “INJÚRIA - PARTE II”
+   deve aparecer apenas:
+   - “INJÚRIA”
+2. O subtema “INJÚRIA” deve ter:
+   - `pagina_inicial` = início da Parte I
+   - `pagina_final` = fim da Parte II
+3. Ao confirmar, o `RESUMO` deve receber **apenas 1 registro** para “INJÚRIA” (não dois).
+4. Os logs da edge function devem registrar algo como:
+   - `Subtemas antes: 41`
+   - `Subtemas depois: 40`
+   - e listar o merge detectado.
 
-### Mudança
-Trocar `grid grid-cols-2` por `flex flex-col` para as perguntas aparecerem empilhadas verticalmente.
+## Riscos e como mitigamos
+- Alguns materiais podem usar formatos diferentes (ex.: “Parte 1”, “PARTE-2”, “PARTE II:” com dois pontos).
+  - Mitigação: regex tolerante a separadores e pontuação final.
+- Títulos onde “Parte” não indica divisão (raro).
+  - Mitigação: só remover/mesclar quando “PARTE …” estiver no final do título.
 
-### Arquivo
-`src/components/PerguntaModal.tsx` - linha 484
-
-### Código Atual (Problema)
-```tsx
-<div className="grid grid-cols-2 gap-2">
-  {perguntasProntas.map((pergunta, idx) => (
-    <button ...>
-      {pergunta}
-    </button>
-  ))}
-</div>
-```
-
-### Código Novo
-```tsx
-<div className="flex flex-col gap-2">
-  {perguntasProntas.map((pergunta, idx) => (
-    <button
-      key={idx}
-      onClick={() => enviarPergunta(pergunta)}
-      disabled={loading}
-      className="text-left px-3 py-2.5 rounded-lg bg-primary/5 hover:bg-primary/10 
-        border border-primary/20 hover:border-primary/40 transition-all text-sm text-foreground"
-    >
-      {pergunta}
-    </button>
-  ))}
-</div>
-```
-
----
-
-## Parte 3: Animação Suave no Menu de Recursos
-
-### Mudança
-Envolver o menu de recursos com `AnimatePresence` e usar `motion.div` com animações de slide-up e fade para eliminar o flickering.
-
-### Arquivo
-`src/components/ArtigoFullscreenDrawer.tsx` - linhas 1050-1119
-
-### Código Atual (Problema)
-```tsx
-{showRecursos && (
-  <div className="fixed inset-0 z-[55] ...">
-    <div className="absolute inset-0 bg-black/60 ..." />
-    <div className="relative w-full max-w-lg bg-card ...">
-      {/* conteúdo */}
-    </div>
-  </div>
-)}
-```
-
-### Código Novo
-```tsx
-<AnimatePresence>
-  {showRecursos && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[55] flex items-end justify-center"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => setShowRecursos(false)}
-      />
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-lg bg-card rounded-t-2xl p-4 pb-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* conteúdo */}
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
-```
-
----
-
-## Arquivos a Modificar
-
-1. **`src/components/AulaArtigoSlidesViewer.tsx`**
-   - Adicionar estados: `progress`, `progressMessage`
-   - Adicionar função `startProgressAnimation` no `fetchOrGenerateSlides`
-   - Substituir loading state por círculo de progresso com porcentagem
-
-2. **`src/components/PerguntaModal.tsx`**
-   - Linha 484: Trocar `grid grid-cols-2` por `flex flex-col`
-   - Ajustar estilo dos botões de sugestão
-
-3. **`src/components/ArtigoFullscreenDrawer.tsx`**
-   - Adicionar `motion` aos imports do framer-motion (já tem `AnimatePresence` via outros usos)
-   - Envolver menu de recursos com `AnimatePresence` e `motion.div`
-   - Adicionar animações de slide-up para o menu
-
----
-
-## Detalhes Técnicos
-
-### Progresso Simulado (similar ao FlashcardsArtigoModal)
-```typescript
-const [progress, setProgress] = useState(0);
-const [progressMessage, setProgressMessage] = useState("Iniciando...");
-
-// No fetchOrGenerateSlides
-let currentProgress = 0;
-const progressInterval = setInterval(() => {
-  if (currentProgress < 85) {
-    const increment = currentProgress < 20 ? 2 : currentProgress < 50 ? 1.5 : 1;
-    currentProgress = Math.min(85, currentProgress + increment);
-    setProgress(Math.round(currentProgress));
-    
-    // Mensagens contextuais
-    if (currentProgress < 15) setProgressMessage("📖 Analisando o artigo...");
-    else if (currentProgress < 35) setProgressMessage("🏗️ Criando estrutura...");
-    else if (currentProgress < 55) setProgressMessage("✍️ Gerando slides...");
-    else if (currentProgress < 75) setProgressMessage("🎴 Criando flashcards...");
-    else setProgressMessage("✨ Finalizando...");
-  }
-}, 400);
-
-// Quando API retorna
-clearInterval(progressInterval);
-setProgress(100);
-setProgressMessage("✅ Concluído!");
-```
-
-### Animação do Menu (usando spring para suavidade)
-```typescript
-transition={{ 
-  type: "spring", 
-  damping: 25, 
-  stiffness: 300 
-}}
-```
-
-Este tipo de animação elimina o "piscando" porque:
-1. O backdrop faz fade in/out suave
-2. O menu desliza de baixo para cima com spring
-3. O `AnimatePresence` garante que a animação de saída complete antes de remover o elemento
+## Plano de execução (passo a passo)
+1. Editar `identificar-subtemas-oab`:
+   - criar `normalizarTituloSubtema`
+   - criar `agruparSubtemasPorParte`
+2. Chamar `agruparSubtemasPorParte`:
+   - no caminho “índice confiável” antes do salvamento/return
+   - no caminho padrão antes do salvamento/return
+3. Ajustar logs (antes/depois).
+4. Testar end-to-end no mesmo tópico do print:
+   - Processar PDF
+   - Conferir que o modal já mostra “INJÚRIA” único
+   - Confirmar subtemas e verificar resultado na tela de trilha.
