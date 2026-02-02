@@ -244,7 +244,7 @@ export const AulaArtigoSlidesViewer = ({
   const questoesCompletas = quizAcertos > 0;
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0f] z-[60] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-[#0a0a0f] z-[60] flex flex-col overflow-y-auto">
       <AnimatePresence mode="wait">
         {/* Loading State */}
         {etapaAtual === 'loading' && (
