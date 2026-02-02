@@ -6,6 +6,60 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Normaliza título removendo "Parte I", "Parte II", " - Parte 1", etc.
+function normalizarTitulo(titulo: string): string {
+  return titulo
+    .replace(/\s*-\s*Parte\s+(I{1,4}|V?I{0,3}|IX|X{1,3}|\d+)\s*$/gi, '')
+    .replace(/\s+Parte\s+(I{1,4}|V?I{0,3}|IX|X{1,3}|\d+)\s*$/gi, '')
+    .replace(/\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X)(\s+E\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X))*\s*$/gi, '')
+    .replace(/\s+\d+(\s+E\s+\d+)*\s*$/gi, '')
+    .trim();
+}
+
+// Agrupa temas com títulos similares (ex: "Injúria - Parte I" + "Injúria - Parte II" = "Injúria")
+function agruparTemasSimilares(temas: any[]): any[] {
+  const grupos: Map<string, any[]> = new Map();
+  const ordemGrupos: string[] = [];
+  
+  for (const tema of temas) {
+    const chave = normalizarTitulo(tema.titulo).toUpperCase();
+    if (!grupos.has(chave)) {
+      grupos.set(chave, []);
+      ordemGrupos.push(chave);
+    }
+    grupos.get(chave)!.push(tema);
+  }
+  
+  const temasAgrupados: any[] = [];
+  let ordem = 1;
+  
+  for (const chave of ordemGrupos) {
+    const temasDoGrupo = grupos.get(chave)!;
+    temasDoGrupo.sort((a, b) => (a.pagina_inicial || 0) - (b.pagina_inicial || 0));
+    
+    // Unificar subtópicos de todos os temas do grupo
+    const subtopicosUnificados: any[] = [];
+    for (const tema of temasDoGrupo) {
+      if (tema.subtopicos?.length) {
+        subtopicosUnificados.push(...tema.subtopicos);
+      }
+    }
+    
+    const tituloLimpo = normalizarTitulo(temasDoGrupo[0].titulo);
+    
+    temasAgrupados.push({
+      ordem: ordem++,
+      titulo: tituloLimpo,
+      pagina_inicial: temasDoGrupo[0].pagina_inicial,
+      pagina_final: temasDoGrupo[temasDoGrupo.length - 1].pagina_final,
+      subtopicos: subtopicosUnificados
+    });
+  }
+  
+  console.log(`[Agrupamento] ${temas.length} temas → ${temasAgrupados.length} após merge`);
+  return temasAgrupados;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,7 +72,12 @@ serve(async (req) => {
       throw new Error("materiaId e temas são obrigatórios");
     }
 
-    console.log(`[OAB] Confirmando ${temas.length} TEMAS para matéria ${materiaId}`);
+    console.log(`[OAB] Recebidos ${temas.length} TEMAS para matéria ${materiaId}`);
+
+    // Agrupar temas similares (Parte I + Parte II = único tema)
+    const temasAgrupados = agruparTemasSimilares(temas);
+
+    console.log(`[OAB] Confirmando ${temasAgrupados.length} TEMAS após agrupamento`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -32,11 +91,11 @@ serve(async (req) => {
 
     console.log("Tópicos antigos deletados");
 
-    // Criar os tópicos a partir dos temas confirmados
+    // Criar os tópicos a partir dos temas agrupados
     const topicosParaInserir: any[] = [];
 
-    for (let i = 0; i < temas.length; i++) {
-      const tema = temas[i];
+    for (let i = 0; i < temasAgrupados.length; i++) {
+      const tema = temasAgrupados[i];
       
       topicosParaInserir.push({
         materia_id: materiaId,

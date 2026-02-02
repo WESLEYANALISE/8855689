@@ -6,12 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Normaliza título removendo números romanos, arábicos e "PARTE" do final
+// Normaliza título removendo números romanos, arábicos, "PARTE I/II", "- Parte I", etc.
 function normalizarTitulo(titulo: string): string {
   return titulo
+    // Remove " - Parte I", " - Parte II", " - Parte 1", etc. (com hífen)
+    .replace(/\s*-\s*Parte\s+(I{1,4}|V?I{0,3}|IX|X{1,3}|\d+)\s*$/gi, '')
+    // Remove " Parte I", " Parte II", etc. (sem hífen)
+    .replace(/\s+Parte\s+(I{1,4}|V?I{0,3}|IX|X{1,3}|\d+)\s*$/gi, '')
+    // Remove números romanos no final: "Tema I", "Tema II", etc.
     .replace(/\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X)(\s+E\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X))*\s*$/gi, '')
+    // Remove números arábicos no final: "Tema 1", "Tema 2", etc.
     .replace(/\s+\d+(\s+E\s+\d+)*\s*$/gi, '')
-    .replace(/\s+PARTE\s+(I{1,3}|IV|V|VI{1,3}|VII{1,3}|IX|X|\d+)\s*$/gi, '')
     .trim();
 }
 
