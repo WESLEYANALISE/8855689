@@ -36,6 +36,7 @@ interface ConceitoSlideCardProps {
   canGoBack: boolean;
   fontSize?: number;
   direction?: 'next' | 'prev';
+  onQuestionAnswered?: (answered: boolean) => void;
 }
 
 const iconMap: Record<string, ElementType> = {
@@ -101,7 +102,8 @@ export const ConceitoSlideCard = ({
   onPrevious,
   canGoBack,
   fontSize = 16,
-  direction = 'next'
+  direction = 'next',
+  onQuestionAnswered
 }: ConceitoSlideCardProps) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -115,11 +117,21 @@ export const ConceitoSlideCard = ({
     containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [paginaIndex]);
 
+  // Reset state quando slide muda
+  useEffect(() => {
+    setSelectedOption(null);
+    setShowFeedback(false);
+    // Notificar se é slide de questão
+    const isQuiz = slide.tipo === 'quickcheck';
+    onQuestionAnswered?.(!isQuiz); // Se não é quiz, considera "respondido"
+  }, [paginaIndex, slide.tipo, onQuestionAnswered]);
+
   const handleOptionSelect = (index: number) => {
     if (showFeedback) return;
     
     setSelectedOption(index);
     setShowFeedback(true);
+    onQuestionAnswered?.(true); // Questão foi respondida
     
     if (index === slide.resposta) {
       confetti({

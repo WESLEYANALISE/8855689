@@ -11,6 +11,7 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import type { ConceitoSecao } from "./types";
 
 interface ConceitosSlidesFooterProps {
@@ -85,6 +86,20 @@ export const ConceitosSlidesFooter = ({
       }
     };
   }, [brownNoiseEnabled]);
+
+  // Toggle ruído marrom com feedback visual
+  const handleToggleBrownNoise = () => {
+    const newState = !brownNoiseEnabled;
+    setBrownNoiseEnabled(newState);
+    
+    toast({
+      title: newState ? "🎧 Ruído marrom ativado" : "🔇 Ruído marrom desativado",
+      description: newState 
+        ? "Som ambiente para concentração" 
+        : "Som ambiente pausado",
+      duration: 2000,
+    });
+  };
 
   const handlePageSelect = (index: number) => {
     onNavigate(index);
@@ -193,12 +208,13 @@ export const ConceitosSlidesFooter = ({
 
             {/* Botão Ruído Marrom */}
             <button
-              onClick={() => setBrownNoiseEnabled(!brownNoiseEnabled)}
+              onClick={handleToggleBrownNoise}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border ${
                 brownNoiseEnabled 
                   ? 'bg-red-500/20 text-red-400 border-red-500/30' 
                   : 'bg-white/5 text-gray-500 border-white/10 hover:bg-white/10'
               }`}
+              title={brownNoiseEnabled ? "Desativar ruído marrom" : "Ativar ruído marrom"}
             >
               {brownNoiseEnabled ? (
                 <Volume2 className="w-5 h-5" />
