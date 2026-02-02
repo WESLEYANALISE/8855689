@@ -477,17 +477,17 @@ Pergunta do estudante: ${pergunta}`;
                           onAskSuggestion={(suggestion) => enviarPergunta(suggestion)}
                         />
                         
-                        {/* Sugestões de perguntas pré-prontas */}
+                        {/* Sugestões de perguntas pré-prontas - Layout vertical */}
                         {msg.showActions && msg.content && (
                           <div className="mt-4 pt-4 border-t border-border/30 space-y-2">
                             <p className="text-xs text-muted-foreground font-medium mb-2">💡 Sugestões:</p>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-2">
                               {perguntasProntas.map((pergunta, idx) => (
                                 <button
                                   key={idx}
                                   onClick={() => enviarPergunta(pergunta)}
                                   disabled={loading}
-                                  className="text-left px-3 py-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 border border-border/30 hover:border-yellow-500/30 transition-all text-xs text-foreground"
+                                  className="text-left px-3 py-2.5 rounded-lg bg-primary/5 hover:bg-primary/10 border border-primary/20 hover:border-primary/40 transition-all text-sm text-foreground"
                                 >
                                   {pergunta}
                                 </button>

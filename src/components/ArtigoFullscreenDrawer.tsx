@@ -1,4 +1,5 @@
 import { X, Share2, Plus, Minus, Volume2, Pause, Sparkles, ChevronLeft, ChevronRight, Clock, FileText, Lightbulb, BookOpen, BookMarked, AlertCircle, Scale, Loader2, Eye, EyeOff, Star, Highlighter, MoreVertical, Type, StickyNote, Crown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import brasaoRepublica from "@/assets/brasao-republica.png";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -1047,77 +1048,92 @@ export const ArtigoFullscreenDrawer = ({
         </div>
 
         {/* Dialog de Recursos (ArtigoActionsMenu) */}
-        {showRecursos && (
-          <div className="fixed inset-0 z-[55] flex items-end justify-center" onClick={(e) => e.stopPropagation()}>
-            <div 
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowRecursos(false)}
-            />
-            <div 
-              className="relative w-full max-w-lg bg-card rounded-t-2xl p-4 pb-8"
+        <AnimatePresence>
+          {showRecursos && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[55] flex items-end justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Recursos do Artigo</h3>
-                <Button
-                  onClick={() => setShowRecursos(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <ArtigoActionsMenu
-                article={article}
-                codigoNome={codeName}
-                onPlayComment={(audioUrl, title) => {
-                  setShowRecursos(false);
-                  onPlayComment?.(audioUrl, title);
-                }}
-                onOpenAula={() => {
-                  setShowRecursos(false);
-                  onOpenAula?.(article);
-                }}
-                onOpenExplicacao={(tipo) => {
-                  setShowRecursos(false);
-                  onOpenExplicacao?.(conteudo, numeroArtigo, tipo);
-                }}
-                onGenerateFlashcards={() => {
-                  setShowRecursos(false);
-                  onGenerateFlashcards?.(conteudo, numeroArtigo);
-                }}
-                onOpenTermos={() => {
-                  setShowRecursos(false);
-                  onOpenTermos?.(conteudo, numeroArtigo);
-                }}
-                onOpenQuestoes={() => {
-                  setShowRecursos(false);
-                  onOpenQuestoes?.(conteudo, numeroArtigo);
-                }}
-                onPerguntar={() => {
-                  setShowRecursos(false);
-                  onPerguntar?.(conteudo, numeroArtigo);
-                }}
-                onOpenAulaArtigo={() => {
-                  setShowRecursos(false);
-                  onOpenAulaArtigo?.(conteudo, numeroArtigo);
-                }}
-                loadingFlashcards={loadingFlashcards || false}
-                isCommentPlaying={
-                  stickyPlayerOpen && 
-                  currentAudio?.isComment && 
-                  currentAudio.title.includes(numeroArtigo)
-                }
-                isEmbedded={true}
-                onShowPremiumCard={() => {
-                  setShowRecursos(false);
-                  setShowPremiumCard(true);
-                }}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowRecursos(false)}
               />
-            </div>
-          </div>
-        )}
+              <motion.div 
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative w-full max-w-lg bg-card rounded-t-2xl p-4 pb-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Recursos do Artigo</h3>
+                  <Button
+                    onClick={() => setShowRecursos(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <ArtigoActionsMenu
+                  article={article}
+                  codigoNome={codeName}
+                  onPlayComment={(audioUrl, title) => {
+                    setShowRecursos(false);
+                    onPlayComment?.(audioUrl, title);
+                  }}
+                  onOpenAula={() => {
+                    setShowRecursos(false);
+                    onOpenAula?.(article);
+                  }}
+                  onOpenExplicacao={(tipo) => {
+                    setShowRecursos(false);
+                    onOpenExplicacao?.(conteudo, numeroArtigo, tipo);
+                  }}
+                  onGenerateFlashcards={() => {
+                    setShowRecursos(false);
+                    onGenerateFlashcards?.(conteudo, numeroArtigo);
+                  }}
+                  onOpenTermos={() => {
+                    setShowRecursos(false);
+                    onOpenTermos?.(conteudo, numeroArtigo);
+                  }}
+                  onOpenQuestoes={() => {
+                    setShowRecursos(false);
+                    onOpenQuestoes?.(conteudo, numeroArtigo);
+                  }}
+                  onPerguntar={() => {
+                    setShowRecursos(false);
+                    onPerguntar?.(conteudo, numeroArtigo);
+                  }}
+                  onOpenAulaArtigo={() => {
+                    setShowRecursos(false);
+                    onOpenAulaArtigo?.(conteudo, numeroArtigo);
+                  }}
+                  loadingFlashcards={loadingFlashcards || false}
+                  isCommentPlaying={
+                    stickyPlayerOpen && 
+                    currentAudio?.isComment && 
+                    currentAudio.title.includes(numeroArtigo)
+                  }
+                  isEmbedded={true}
+                  onShowPremiumCard={() => {
+                    setShowRecursos(false);
+                    setShowPremiumCard(true);
+                  }}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         </div> {/* Fecha wrapper max-w-4xl */}
       </DrawerContent>
 
