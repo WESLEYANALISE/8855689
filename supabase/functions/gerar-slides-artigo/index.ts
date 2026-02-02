@@ -372,29 +372,124 @@ Gere 45-60 slides distribuídos em 6 seções no MÍNIMO!
 
 Retorne APENAS o JSON válido, sem markdown ou texto adicional.`;
 
-    console.log('🚀 Enviando prompt OAB Trilhas Style para Gemini...');
+console.log('🚀 Enviando prompt OAB Trilhas Style para Gemini...');
 
     const { text: slidesText, keyIndex } = await callGeminiWithFallback(prompt, geminiKeys);
     
-    console.log(`📝 Resposta recebida da chave ${keyIndex}, processando JSON...`);
+    console.log(`📝 Resposta recebida da chave ${keyIndex}, processando JSON (${slidesText?.length || 0} chars)...`);
     
-    let cleanedText = slidesText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // ═══════════════════════════════════════════════════════════════════
+    //        EXTRAÇÃO ROBUSTA DE JSON (Anti-truncamento)
+    // ═══════════════════════════════════════════════════════════════════
     
-    let slidesJson;
-    try {
-      slidesJson = JSON.parse(cleanedText);
-    } catch (parseError: any) {
-      console.error('⚠️ Erro ao parsear JSON, tentando limpeza:', parseError.message);
+    function extractJsonFromResponse(response: string): any {
+      // Step 1: Remove markdown code blocks
+      let cleaned = response
+        .replace(/```json\s*/gi, "")
+        .replace(/```\s*/g, "")
+        .trim();
+
+      // Step 2: Find JSON boundaries
+      const jsonStart = cleaned.indexOf("{");
+      const jsonEnd = cleaned.lastIndexOf("}");
+
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error("Nenhum objeto JSON encontrado na resposta");
+      }
+
+      cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
       
-      const startIndex = cleanedText.indexOf('{');
-      const endIndex = cleanedText.lastIndexOf('}');
-      if (startIndex !== -1 && endIndex !== -1) {
-        cleanedText = cleanedText.substring(startIndex, endIndex + 1);
-        slidesJson = JSON.parse(cleanedText);
-      } else {
-        throw parseError;
+      // Step 3: Check for truncation before parsing
+      const openBraces = (cleaned.match(/{/g) || []).length;
+      const closeBraces = (cleaned.match(/}/g) || []).length;
+      const openBrackets = (cleaned.match(/\[/g) || []).length;
+      const closeBrackets = (cleaned.match(/]/g) || []).length;
+      
+      const isTruncated = openBraces !== closeBraces || openBrackets !== closeBrackets;
+      
+      if (isTruncated) {
+        console.warn(`⚠️ JSON parece truncado: { ${openBraces}/${closeBraces} } [ ${openBrackets}/${closeBrackets} ]`);
+        
+        // Tentar fechar arrays e objetos abertos
+        const missingBrackets = openBrackets - closeBrackets;
+        const missingBraces = openBraces - closeBraces;
+        
+        // Remover trailing incompleto (strings não fechadas, vírgulas soltas)
+        cleaned = cleaned.replace(/,\s*$/, ''); // Remove trailing comma
+        cleaned = cleaned.replace(/:\s*"[^"]*$/, ': ""'); // Fechar strings abertas
+        cleaned = cleaned.replace(/,\s*"[^"]*$/, ''); // Remover propriedade incompleta
+        
+        // Adicionar fechamentos faltantes
+        for (let i = 0; i < missingBrackets; i++) {
+          cleaned += ']';
+        }
+        for (let i = 0; i < missingBraces; i++) {
+          cleaned += '}';
+        }
+        
+        console.log(`🔧 JSON corrigido: adicionado ${missingBrackets} ] e ${missingBraces} }`);
+      }
+
+      // Step 4: Attempt parse with error handling
+      try {
+        return JSON.parse(cleaned);
+      } catch (e: any) {
+        console.error('⚠️ Parse falhou, tentando limpeza avançada:', e.message);
+        
+        // Step 5: Try to fix common issues
+        cleaned = cleaned
+          .replace(/,\s*}/g, "}") // Remove trailing commas before }
+          .replace(/,\s*]/g, "]") // Remove trailing commas before ]
+          .replace(/[\x00-\x1F\x7F]/g, "") // Remove control characters
+          .replace(/\n/g, "\\n") // Escape newlines in strings (careful approach)
+          .replace(/\t/g, "\\t"); // Escape tabs
+        
+        // Re-escape newlines only inside strings (more careful)
+        // This is a simplified approach - just clean control chars
+        cleaned = cleaned
+          .replace(/\\n/g, " ") // Convert escaped newlines to spaces
+          .replace(/\\t/g, " "); // Convert escaped tabs to spaces
+        
+        try {
+          return JSON.parse(cleaned);
+        } catch (e2: any) {
+          console.error('❌ Limpeza avançada falhou:', e2.message);
+          
+          // Last resort: try to extract just the valid beginning
+          // Find the last valid point in the JSON
+          let lastValid = cleaned.length;
+          for (let i = cleaned.length; i > 0; i--) {
+            const partial = cleaned.substring(0, i);
+            const openB = (partial.match(/{/g) || []).length;
+            const closeB = (partial.match(/}/g) || []).length;
+            const openA = (partial.match(/\[/g) || []).length;
+            const closeA = (partial.match(/]/g) || []).length;
+            
+            // Add missing closures and try
+            let testStr = partial.replace(/,\s*$/, '');
+            for (let j = 0; j < openA - closeA; j++) testStr += ']';
+            for (let j = 0; j < openB - closeB; j++) testStr += '}';
+            
+            try {
+              const result = JSON.parse(testStr);
+              if (result.secoes && result.secoes.length > 0) {
+                console.log(`✅ JSON recuperado parcialmente até posição ${i}`);
+                return result;
+              }
+            } catch {
+              // Continue trying shorter strings
+            }
+            
+            // Only try every 100 chars for performance
+            if (i % 100 !== 0) continue;
+          }
+          
+          throw new Error(`JSON inválido após todas as tentativas de recuperação: ${e2.message}`);
+        }
       }
     }
+    
+    const slidesJson = extractJsonFromResponse(slidesText);
 
     // Limpar formatação markdown indesejada
     if (slidesJson.secoes) {
