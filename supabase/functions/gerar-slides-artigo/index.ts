@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const REVISION = "v1.1.0-slides-artigo-full";
+const REVISION = "v2.0.0-oab-trilhas-style";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
@@ -110,13 +110,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Normalizar codigo_tabela (usar apenas sigla)
-    const codigoTabelaNorm = codigoTabela.toUpperCase().split(' ')[0].split('-')[0].trim(); // "CP - Código Penal" -> "CP"
+    const codigoTabelaNorm = codigoTabela.toUpperCase().split(' ')[0].split('-')[0].trim();
     console.log('🔍 Verificando se já existe slides_json para:', codigoTabelaNorm, numeroArtigo);
 
-    // Check if slides already exist (buscar primeiro com sigla normalizada, depois com valor original)
+    // Check if slides already exist
     let existingAula: any = null;
     
-    // Tentar buscar com sigla normalizada
     const { data: aulaByNorm } = await supabase
       .from('aulas_artigos')
       .select('id, slides_json, estrutura_completa, visualizacoes')
@@ -127,7 +126,6 @@ serve(async (req) => {
     if (aulaByNorm) {
       existingAula = aulaByNorm;
     } else {
-      // Fallback: buscar com o valor original (para dados antigos)
       const { data: aulaByOriginal } = await supabase
         .from('aulas_artigos')
         .select('id, slides_json, estrutura_completa, visualizacoes')
@@ -138,7 +136,6 @@ serve(async (req) => {
       if (aulaByOriginal) {
         existingAula = aulaByOriginal;
         console.log('📦 Encontrado com valor original, normalizando...');
-        // Atualizar para usar o código normalizado
         await supabase
           .from('aulas_artigos')
           .update({ codigo_tabela: codigoTabelaNorm })
@@ -149,15 +146,15 @@ serve(async (req) => {
     // Se já existe slides_json COM SEÇÕES SUFICIENTES, retorna do cache
     const slidesSecoes = existingAula?.slides_json?.secoes;
     const hasSufficientSlides = slidesSecoes && 
-      slidesSecoes.length >= 4 &&
-      slidesSecoes.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) >= 30;
+      slidesSecoes.length >= 5 &&
+      slidesSecoes.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) >= 40;
     
     if (existingAula?.slides_json && hasSufficientSlides) {
       console.log('✅ slides_json completo encontrado no cache, retornando...');
       
       await supabase
         .from('aulas_artigos')
-        .update({ visualizacoes: (existingAula as any).visualizacoes || 0 + 1 })
+        .update({ visualizacoes: (existingAula.visualizacoes || 0) + 1 })
         .eq('id', existingAula.id);
 
       return new Response(JSON.stringify({
@@ -169,166 +166,213 @@ serve(async (req) => {
       });
     }
 
-    console.log('📝 Gerando slides completos no formato ConceitosSlidesViewer...');
+    console.log('📝 Gerando slides completos no estilo OAB Trilhas (Tom Didático)...');
 
-    const prompt = `Você é um PROFESSOR JURÍDICO PREMIADO. Sua missão é criar uma AULA COMPLETA E EXTENSA sobre este artigo de lei no formato específico para o componente de slides interativos.
+    // ═══════════════════════════════════════════════════════════════════
+    //                 NOVO PROMPT ESTILO OAB TRILHAS / PROFESSORA
+    // ═══════════════════════════════════════════════════════════════════
+    const prompt = `Você é uma PROFESSORA DE DIREITO didática e acolhedora, como uma mentora que quer ver o aluno passar na OAB.
+Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos como se estivesse tomando um café.
+
+═══════════════════════════════════════════════════════════════════
+                    📚 ARTIGO A SER EXPLICADO
+═══════════════════════════════════════════════════════════════════
 
 CÓDIGO: ${codigoTabela}
 NOME DO CÓDIGO: ${codigoNome || codigoTabela}
 ARTIGO: ${numeroArtigo}
-TEXTO COMPLETO DO ARTIGO:
+
+TEXTO LITERAL DO ARTIGO:
 ${conteudoArtigo}
 
 ═══════════════════════════════════════════════════════════════════
-                    ⚠️ REQUISITO CRÍTICO: GERE MUITO CONTEÚDO! ⚠️
+                    🎯 ESTILO DE ESCRITA (OBRIGATÓRIO!)
 ═══════════════════════════════════════════════════════════════════
 
-Você DEVE gerar:
-- MÍNIMO 5-7 SEÇÕES diferentes
-- MÍNIMO 6-10 SLIDES por seção
-- TOTAL: 40-60 SLIDES no total
+✅ FAÇA:
+- Escreva como CONVERSA: "Olha só...", "Percebeu?", "Veja bem...", "Sabe quando..."
+- Perguntas retóricas para engajar: "E por que isso importa tanto?"
+- Analogias com situações do dia a dia
+- Explicar TODO termo técnico ou em latim: "O termo 'pacta sunt servanda' (que significa 'os pactos devem ser cumpridos')..."
+- Exemplos práticos IMEDIATOS com nomes: João, Maria, Pedro, Ana
+- Blockquotes para citações legais: > "Art. X..."
+- Cards visuais: ⚠️ ATENÇÃO, 💡 DICA, 📚 EXEMPLO PRÁTICO
 
-Isso é essencial para uma aula completa como preparatório OAB!
-
-═══════════════════════════════════════════════════════════════════
-                    SEÇÕES OBRIGATÓRIAS (5-7 seções)
-═══════════════════════════════════════════════════════════════════
-
-SEÇÃO 1 - INTRODUÇÃO (6-8 slides):
-- Slide introducao: Apresentação do artigo
-- Slide texto: Texto LITERAL da lei
-- Slide termos: 4-6 termos jurídicos importantes
-- Slide explicacao: O que o artigo significa na prática
-- Slide dica: Por que esse artigo é importante
-- Slides adicionais explicando o contexto
-
-SEÇÃO 2 - ANÁLISE APROFUNDADA (8-12 slides):
-- Múltiplos slides de explicacao detalhando cada elemento
-- Slide tabela: Comparativo se houver conceitos distintos
-- Slides de texto aprofundando cada parte do artigo
-- Slide atencao: Palavras-chave que caem em prova
-
-SEÇÃO 3 - APLICAÇÃO PRÁTICA (8-10 slides):
-- Múltiplos slides de caso: 3-4 exemplos práticos diferentes
-- Slide linha_tempo: Se houver procedimento/prazos
-- Slides de explicacao sobre jurisprudência
-- Slide dica: Como identificar em casos reais
-
-SEÇÃO 4 - EXCEÇÕES E PEGADINHAS (6-8 slides):
-- Slide atencao: Exceções importantes
-- Slide tabela: Regra vs Exceção
-- Slides de explicacao sobre nuances
-- Slide dica: Como as bancas tentam confundir
-
-SEÇÃO 5 - CONEXÕES E RELAÇÕES (6-8 slides):
-- Slides de texto: Relação com outros artigos
-- Slide explicacao: Onde este artigo se encaixa no sistema
-- Slide termos: Termos relacionados a outros temas
-
-SEÇÃO 6 - REVISÃO FINAL (8-10 slides):
-- Slide resumo: 6-8 pontos principais
-- Múltiplos slides quickcheck: 4-5 perguntas de verificação
-- Slide dica: Técnica final de memorização
-- Slide resumo: Checklist do que lembrar na prova
+❌ NUNCA:
+- Começar com "E aí galera!", "Fala, galera", "Beleza?", "Mano,", "Bora lá", "Partiu"
+- Texto muito formal ou acadêmico
+- Slides curtos (mínimo 150-300 palavras por slide tipo "texto")
+- Explicações superficiais
 
 ═══════════════════════════════════════════════════════════════════
-                    TIPOS DE SLIDES DISPONÍVEIS
+                    📋 ESTRUTURA OBRIGATÓRIA (6-7 SEÇÕES)
 ═══════════════════════════════════════════════════════════════════
 
-- introducao: Página de abertura com título e objetivos
-- texto: Texto explicativo (use markdown com **negrito** para destaques)
-- termos: Lista de termos jurídicos com campo "termos": [{"termo": "", "definicao": ""}]
-- explicacao: Explicação detalhada em parágrafos
-- linha_tempo: Timeline com campo "etapas": [{"titulo": "", "descricao": ""}]
-- tabela: Quadro comparativo com "tabela": {"cabecalhos": [], "linhas": [[]]}
-- atencao: Ponto de atenção importante (⚠️)
-- dica: Dica de memorização (💡)
-- caso: Caso prático com narrativa envolvente
-- resumo: Lista de pontos com "pontos": []
-- quickcheck: Mini-quiz com "pergunta", "opcoes"[], "resposta"(0-3), "feedback"
+SEÇÃO 1 - BEM-VINDO À AULA (5-7 slides):
+- Slide tipo "introducao": Boas-vindas calorosas ("Olá! Vamos dominar este artigo juntos? Prepare o café ☕")
+- Slide tipo "texto": O que você vai aprender nesta aula
+- Slide tipo "texto": Por que este artigo é TÃO importante para OAB e concursos
+- Slide tipo "termos": 4-6 termos jurídicos que aparecerão
+- Slide tipo "dica": Como aproveitar ao máximo esta aula
+
+SEÇÃO 2 - LEITURA DO ARTIGO PALAVRA POR PALAVRA (6-10 slides):
+- Slide tipo "texto": Texto LITERAL do artigo em blockquote
+- Múltiplos slides tipo "texto": Explicar CADA PARTE do artigo
+  - "Olha só, quando a lei diz 'ninguém pode ser punido', ela quer dizer..."
+  - "Percebeu essa expressão 'lei posterior'? Vamos destrinchar..."
+  - Cada conceito-chave merece um slide próprio!
+- Slide tipo "atencao": Palavras-chave que as bancas adoram cobrar
+
+SEÇÃO 3 - APROFUNDAMENTO DOUTRINÁRIO (8-12 slides):
+- Slides tipo "texto": Detalhamento de cada elemento do artigo
+- Slide tipo "tabela": Comparativo se houver conceitos distintos
+- Slides tipo "texto": Doutrina majoritária vs minoritária
+- Slide tipo "linha_tempo": Se houver procedimento ou prazos
+- Slide tipo "dica": Como os tribunais interpretam
+
+SEÇÃO 4 - CASOS PRÁTICOS (8-10 slides):
+- 4-5 slides tipo "caso": Exemplos práticos DIFERENTES
+  - "Imagine que João trabalha em uma empresa..."
+  - "Maria contratou um advogado para..."
+  - Use nomes reais e situações do dia a dia!
+- Slide tipo "texto": Como identificar o artigo em casos reais
+- Slide tipo "dica": Técnica para responder questões sobre este tema
+
+SEÇÃO 5 - PEGADINHAS DE PROVA OAB (6-8 slides):
+- Slide tipo "atencao": "Atenção! As bancas ADORAM cobrar isso..."
+- Slide tipo "tabela": Regra vs Exceção (formato tabela)
+- Slides tipo "texto": Nuances que derrubam candidatos
+- Slide tipo "dica": Como identificar a alternativa correta
+- Slide tipo "texto": Jurisprudência recente que pode cair
+
+SEÇÃO 6 - REVISÃO FINAL E MEMORIZAÇÃO (10-12 slides):
+- Slide tipo "resumo": 6-8 pontos principais em lista
+- 5-6 slides tipo "quickcheck": Perguntas rápidas de verificação
+  - "Lembra o que aprendemos sobre...?"
+  - 4 opções cada, sendo 1 correta
+- Slide tipo "dica": Técnica final de memorização (mnemônico, associação)
+- Slide tipo "resumo": Checklist do que lembrar na prova
 
 ═══════════════════════════════════════════════════════════════════
-                    ESTRUTURA JSON OBRIGATÓRIA
+                    📝 TIPOS DE SLIDES DISPONÍVEIS
+═══════════════════════════════════════════════════════════════════
+
+1. "introducao": Página de abertura acolhedora
+   {"tipo": "introducao", "titulo": "...", "conteudo": "Boas-vindas motivadoras..."}
+
+2. "texto": Explicação detalhada (MÍNIMO 150-300 palavras!)
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação extensa com exemplos..."}
+
+3. "termos": Lista de termos jurídicos
+   {"tipo": "termos", "titulo": "...", "conteudo": "Intro breve", "termos": [{"termo": "...", "definicao": "..."}]}
+
+4. "linha_tempo": Timeline de procedimento
+   {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Contexto", "etapas": [{"titulo": "...", "descricao": "..."}]}
+
+5. "tabela": Quadro comparativo
+   {"tipo": "tabela", "titulo": "...", "conteudo": "Descrição", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}}
+
+6. "atencao": Ponto de atenção (⚠️)
+   {"tipo": "atencao", "titulo": "...", "conteudo": "Ponto importante que CAI NA OAB..."}
+
+7. "dica": Dica de memorização (💡)
+   {"tipo": "dica", "titulo": "...", "conteudo": "Macete ou técnica para lembrar..."}
+
+8. "caso": Caso prático narrativo
+   {"tipo": "caso", "titulo": "...", "conteudo": "Imagine que João..."}
+
+9. "resumo": Lista de pontos
+   {"tipo": "resumo", "titulo": "...", "pontos": ["Ponto 1", "Ponto 2", ...]}
+
+10. "quickcheck": Mini-quiz com 4 opções
+    {"tipo": "quickcheck", "titulo": "...", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "Explicação..."}
+
+═══════════════════════════════════════════════════════════════════
+                    🎯 REQUISITOS MÍNIMOS OBRIGATÓRIOS
+═══════════════════════════════════════════════════════════════════
+
+✅ MÍNIMO 6 SEÇÕES
+✅ MÍNIMO 45-60 SLIDES no total
+✅ MÍNIMO 10 FLASHCARDS para revisão
+✅ MÍNIMO 8 QUESTÕES estilo OAB (4 opções cada)
+✅ Slides de texto com MÍNIMO 150 palavras cada
+✅ Tom conversacional e acolhedor em TODO conteúdo
+
+═══════════════════════════════════════════════════════════════════
+                    📦 ESTRUTURA JSON OBRIGATÓRIA
 ═══════════════════════════════════════════════════════════════════
 
 {
-  "versao": 1,
-  "titulo": "Art. ${numeroArtigo} - [Título descritivo curto]",
-  "tempoEstimado": "25 min",
+  "versao": 2,
+  "titulo": "Art. ${numeroArtigo}",
+  "tempoEstimado": "30 min",
   "area": "${codigoNome || codigoTabela}",
   "objetivos": [
-    "Compreender o texto do artigo",
-    "Identificar conceitos-chave",
-    "Aplicar na prática jurídica",
-    "Reconhecer exceções e pegadinhas",
-    "Dominar para provas OAB e concursos"
+    "Entender o texto literal do artigo",
+    "Dominar cada conceito-chave",
+    "Aplicar em casos práticos",
+    "Identificar pegadinhas de prova",
+    "Memorizar para a OAB"
   ],
   "secoes": [
     {
       "id": 1,
-      "titulo": "Introdução",
+      "titulo": "Bem-vindo à Aula",
       "slides": [
-        {"tipo": "introducao", "titulo": "Art. ${numeroArtigo}", "conteudo": "..."},
-        {"tipo": "texto", "titulo": "O Que Diz a Lei", "conteudo": "Texto literal do artigo..."},
-        ...mais 4-6 slides
+        {"tipo": "introducao", "titulo": "Olá! Vamos Dominar o Art. ${numeroArtigo}?", "conteudo": "..."},
+        {"tipo": "texto", "titulo": "O Que Você Vai Aprender Hoje", "conteudo": "..."},
+        ...mais slides
       ]
     },
     {
       "id": 2,
-      "titulo": "Análise Aprofundada", 
-      "slides": [...8-12 slides]
+      "titulo": "Leitura do Artigo - Palavra por Palavra",
+      "slides": [...6-10 slides]
     },
     {
       "id": 3,
-      "titulo": "Aplicação Prática",
-      "slides": [...8-10 slides]
+      "titulo": "Aprofundamento Doutrinário",
+      "slides": [...8-12 slides]
     },
     {
       "id": 4,
-      "titulo": "Exceções e Pegadinhas",
-      "slides": [...6-8 slides]
+      "titulo": "Casos Práticos",
+      "slides": [...8-10 slides]
     },
     {
       "id": 5,
-      "titulo": "Conexões",
+      "titulo": "Pegadinhas de Prova OAB",
       "slides": [...6-8 slides]
     },
     {
       "id": 6,
       "titulo": "Revisão Final",
-      "slides": [...8-10 slides com múltiplos quickcheck]
+      "slides": [...10-12 slides com quickchecks]
     }
   ],
   "flashcards": [
-    {"frente": "O que estabelece o Art. ${numeroArtigo}?", "verso": "...", "exemplo": "..."},
-    ...mais 9 flashcards (total 10)
+    {"frente": "O que estabelece o Art. ${numeroArtigo}?", "verso": "Explicação clara...", "exemplo": "Exemplo prático..."},
+    ...mais 9 flashcards (total 10 mínimo)
   ],
   "questoes": [
-    {"question": "[Questão estilo OAB]", "options": ["a)...", "b)...", "c)...", "d)..."], "correctAnswer": 0, "explicacao": "..."},
-    ...mais 7 questões (total 8)
+    {
+      "question": "Enunciado estilo OAB sobre o Art. ${numeroArtigo}...",
+      "options": ["a) Opção incorreta", "b) Opção correta", "c) Opção incorreta", "d) Opção incorreta"],
+      "correctAnswer": 1,
+      "explicacao": "A alternativa B está correta porque..."
+    },
+    ...mais 7 questões (total 8 mínimo)
   ]
 }
 
 ═══════════════════════════════════════════════════════════════════
-                    REGRAS DE FORMATAÇÃO
+LEMBRE-SE: Tom acolhedor, explicação palavra por palavra, exemplos práticos!
+Gere 45-60 slides distribuídos em 6 seções no MÍNIMO!
 ═══════════════════════════════════════════════════════════════════
 
-1. NÃO use ** para negrito no meio do texto - escreva normalmente
-2. Parágrafos claros e bem separados
-3. Linguagem didática e acessível
-4. Exemplos com nomes reais (João, Maria, etc)
-5. Conteúdo denso mas fácil de ler
-6. Cada slide deve ter conteúdo suficiente (não muito curto!)
-7. QuickCheck deve ter EXATAMENTE 4 opções
-8. Campo "resposta" é índice 0-3 da opção correta
+Retorne APENAS o JSON válido, sem markdown ou texto adicional.`;
 
-═══════════════════════════════════════════════════════════════════
-LEMBRE-SE: Gere 40-60 slides distribuídos em 5-7 seções!
-═══════════════════════════════════════════════════════════════════
-
-Retorne APENAS o JSON válido, sem markdown ou código.`;
-
-    console.log('🚀 Enviando prompt para Gemini com fallback...');
+    console.log('🚀 Enviando prompt OAB Trilhas Style para Gemini...');
 
     const { text: slidesText, keyIndex } = await callGeminiWithFallback(prompt, geminiKeys);
     
@@ -352,12 +396,11 @@ Retorne APENAS o JSON válido, sem markdown ou código.`;
       }
     }
 
-    // Limpar formatação markdown indesejada de todos os slides
+    // Limpar formatação markdown indesejada
     if (slidesJson.secoes) {
       for (const secao of slidesJson.secoes) {
         if (secao.slides) {
           for (const slide of secao.slides) {
-            // Limpar ** do conteúdo
             if (slide.conteudo) {
               slide.conteudo = slide.conteudo.replace(/\*\*/g, '');
             }
@@ -405,13 +448,16 @@ Retorne APENAS o JSON válido, sem markdown ou código.`;
       }));
     }
 
-    console.log('✅ JSON parseado e limpo com sucesso!');
+    // Validar estrutura mínima
     const totalSlides = slidesJson.secoes?.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) || 0;
-    console.log(`📊 Seções: ${slidesJson.secoes?.length || 0}, Total slides: ${totalSlides}`);
+    const totalFlashcards = slidesJson.flashcards?.length || 0;
+    const totalQuestoes = slidesJson.questoes?.length || 0;
+    
+    console.log(`✅ JSON parseado! Seções: ${slidesJson.secoes?.length || 0}, Slides: ${totalSlides}, Flashcards: ${totalFlashcards}, Questões: ${totalQuestoes}`);
 
     // Salvar ou atualizar no banco
     if (existingAula) {
-      console.log('📦 Atualizando registro existente com slides_json completo...');
+      console.log('📦 Atualizando registro existente...');
       await supabase
         .from('aulas_artigos')
         .update({ 
@@ -428,7 +474,7 @@ Retorne APENAS o JSON válido, sem markdown ou código.`;
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      console.log('📦 Criando novo registro com slides_json completo...');
+      console.log('📦 Criando novo registro...');
       const { data: newAula, error: insertError } = await supabase
         .from('aulas_artigos')
         .insert({
@@ -450,14 +496,14 @@ Retorne APENAS o JSON válido, sem markdown ou código.`;
       return new Response(JSON.stringify({
         ...slidesJson,
         cached: false,
-        aulaId: newAula?.id
+        aulaId: newAula.id
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
   } catch (error: any) {
-    console.error('❌ Erro na função:', error);
+    console.error('❌ Erro geral:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

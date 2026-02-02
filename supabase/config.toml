@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.gerar-slides-artigo]
 verify_jwt = false
+
+[functions.gerar-capa-codigo]
+verify_jwt = false
