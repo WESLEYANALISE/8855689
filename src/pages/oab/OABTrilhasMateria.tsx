@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, ArrowLeft, Loader2, Scale, ImageIcon, Footprints, FileText, RefreshCw, Sparkles, CheckCircle } from "lucide-react";
@@ -15,12 +15,32 @@ import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 
+const SCROLL_KEY_PREFIX = "oab-trilhas-scroll-materia";
+
 const OABTrilhasMateria = () => {
   const { materiaId } = useParams<{ materiaId: string }>();
   const [showPdfModal, setShowPdfModal] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
+
+  // Restaurar posição do scroll ao voltar
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem(`${SCROLL_KEY_PREFIX}-${parsedMateriaId}`);
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScroll));
+        sessionStorage.removeItem(`${SCROLL_KEY_PREFIX}-${parsedMateriaId}`);
+      }, 100);
+    }
+  }, [parsedMateriaId]);
+
+  // Função para navegar salvando scroll
+  const navigateWithScroll = (path: string) => {
+    sessionStorage.setItem(`${SCROLL_KEY_PREFIX}-${parsedMateriaId}`, window.scrollY.toString());
+    navigate(path);
+  };
 
   // Buscar área (antiga "matéria") pelo ID
   // CACHE FIRST: Mostra dados em cache imediatamente
@@ -309,7 +329,7 @@ const OABTrilhasMateria = () => {
                         <motion.div 
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${materia.id}`)}
+                          onClick={() => navigateWithScroll(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${materia.id}`)}
                           className="cursor-pointer rounded-2xl backdrop-blur-sm border transition-all overflow-hidden min-h-[180px] flex flex-col bg-[#12121a]/90 border-white/10 hover:border-red-500/50"
                         >
                           {/* Capa da matéria - usa capa do tópico OU da área (matéria) como fallback */}

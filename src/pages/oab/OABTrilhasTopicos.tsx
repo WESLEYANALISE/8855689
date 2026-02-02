@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, BookOpen, ChevronRight, ImageIcon, FileText, RefreshCw, CheckCircle, Scale } from "lucide-react";
 import { motion } from "framer-motion";
@@ -10,6 +10,9 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOABAutoGeneration } from "@/hooks/useOABAutoGeneration";
 
+const SCROLL_KEY_MATERIA = "oab-trilhas-scroll-materia";
+const SCROLL_KEY_TOPICOS = "oab-trilhas-scroll-topicos";
+
 const OABTrilhasTopicos = () => {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const navigate = useNavigate();
@@ -18,6 +21,29 @@ const OABTrilhasTopicos = () => {
   const parsedTopicoId = topicoId ? parseInt(topicoId) : null;
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Restaurar posição do scroll ao voltar
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem(`${SCROLL_KEY_TOPICOS}-${parsedMateriaId}-${parsedTopicoId}`);
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScroll));
+        sessionStorage.removeItem(`${SCROLL_KEY_TOPICOS}-${parsedMateriaId}-${parsedTopicoId}`);
+      }, 100);
+    }
+  }, [parsedMateriaId, parsedTopicoId]);
+
+  // Função para navegar salvando scroll
+  const navigateWithScroll = (path: string) => {
+    sessionStorage.setItem(`${SCROLL_KEY_TOPICOS}-${parsedMateriaId}-${parsedTopicoId}`, window.scrollY.toString());
+    navigate(path);
+  };
+
+  // Função para voltar à matéria (preservando scroll da matéria)
+  const handleBackToMateria = () => {
+    // Não salva scroll aqui, apenas volta (a matéria vai restaurar seu próprio scroll)
+    navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}`);
+  };
 
   // Buscar área (matéria principal - ex: Direito Constitucional) - CACHE FIRST
   const { data: area, isLoading: loadingArea } = useQuery({
@@ -170,7 +196,7 @@ const OABTrilhasTopicos = () => {
       <div className="sticky top-0 z-20 bg-[#0d0d14]/90 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-lg mx-auto px-4 py-3">
           <button 
-            onClick={() => navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}`)}
+            onClick={handleBackToMateria}
             className={`flex items-center gap-2 ${isEtica ? "text-amber-400 hover:text-amber-300" : "text-red-400 hover:text-red-300"} transition-colors`}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -301,7 +327,7 @@ const OABTrilhasTopicos = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03 }}
-                  onClick={() => navigate(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}/estudo/${subtema.id}`)}
+                  onClick={() => navigateWithScroll(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${parsedTopicoId}/estudo/${subtema.id}`)}
                   className={`w-full text-left bg-neutral-800 rounded-xl border overflow-hidden transition-all group ${
                     isGerando 
                       ? `${isEtica ? "border-amber-500/50 bg-amber-900/20" : "border-red-500/50 bg-red-900/20"}`
