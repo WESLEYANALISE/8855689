@@ -92,29 +92,45 @@ export const AulaArtigoSlidesViewer = ({
     }
   }, [etapaAtual]);
 
-  // Buscar capa do código
+  // Estado para modais de bloqueio
+  const [showFlashcardsBlockedModal, setShowFlashcardsBlockedModal] = useState(false);
+  const [showPraticarBlockedModal, setShowPraticarBlockedModal] = useState(false);
+  const [flashcardsProgresso, setFlashcardsProgresso] = useState(0);
+
+  // Buscar ou gerar capa do código
   useEffect(() => {
-    const fetchCapaCodigo = async () => {
+    const fetchOrGenerateCapaCodigo = async () => {
+      const codigoNorm = codigoTabela.toUpperCase().split(' ')[0].split('-')[0].trim();
+      
       // Primeiro tentar do banco
       const { data: capaData } = await supabase
         .from('codigos_capas')
         .select('capa_url')
-        .eq('codigo_tabela', codigoTabela)
+        .eq('codigo_tabela', codigoNorm)
         .single();
       
       if (capaData?.capa_url) {
         setCapaUrl(capaData.capa_url);
       } else {
         // Fallback para mapeamento estático
-        const capaDefault = CAPAS_CODIGOS[codigoTabela.toUpperCase()];
+        const capaDefault = CAPAS_CODIGOS[codigoNorm];
         if (capaDefault) {
           setCapaUrl(capaDefault);
         }
+        
+        // Tentar gerar capa em background (não bloqueia UI)
+        supabase.functions.invoke('gerar-capa-codigo', {
+          body: { codigo_tabela: codigoTabela }
+        }).then(response => {
+          if (response.data?.capa_url) {
+            setCapaUrl(response.data.capa_url);
+          }
+        }).catch(console.error);
       }
     };
     
     if (codigoTabela) {
-      fetchCapaCodigo();
+      fetchOrGenerateCapaCodigo();
     }
   }, [codigoTabela]);
 
@@ -221,11 +237,10 @@ export const AulaArtigoSlidesViewer = ({
     );
   }
 
-  // Calcular estatísticas
   const totalSlides = slidesData?.secoes?.reduce((acc, s) => acc + (s.slides?.length || 0), 0) || 0;
   const totalSecoes = slidesData?.secoes?.length || 0;
   const leituraCompleta = slidesProgress >= 100;
-  const flashcardsCompletos = false; // TODO: track
+  const flashcardsCompletos = flashcardsProgresso >= 100;
   const questoesCompletas = quizAcertos > 0;
 
   return (
@@ -397,121 +412,148 @@ export const AulaArtigoSlidesViewer = ({
                 )}
 
                 {/* Progress cards */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="space-y-3 mb-8"
-                >
-                  {/* Leitura */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={handleStartSlides}
-                    onKeyDown={(e) => e.key === 'Enter' && handleStartSlides()}
-                    className="w-full bg-gradient-to-r from-orange-500/20 to-orange-600/10 border border-orange-500/30 rounded-xl p-4 text-left cursor-pointer hover:border-orange-500/50 transition-colors active:scale-[0.98]"
+                {/* Módulos - Layout estilo OAB Trilhas */}
+                <div className="space-y-2">
+                  {/* Módulo 1: Leitura - Sempre desbloqueado */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-orange-400" />
+                    <button
+                      onClick={handleStartSlides}
+                      className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/10 hover:from-red-500/30 hover:to-orange-500/20 border border-red-500/30 rounded-xl p-3 sm:p-4 transition-all active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-sm">
+                          1
                         </div>
-                        <div>
-                          <span className="text-white font-medium">Leitura</span>
-                          <p className="text-xs text-gray-400">{totalSlides} slides interativos</p>
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center gap-2">
+                            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+                            <span className="text-sm sm:text-base font-semibold text-white">Começar Leitura</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Progress 
+                              value={slidesProgress} 
+                              className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
+                            />
+                            <span className="text-xs text-gray-400 w-10 text-right">{slidesProgress}%</span>
+                          </div>
                         </div>
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                       </div>
-                      {leituraCompleta ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
-                      ) : (
-                        <Play className="w-5 h-5 text-orange-400" />
-                      )}
-                    </div>
-                    <Progress value={slidesProgress} className="h-1 bg-orange-500/20" />
-                  </div>
+                    </button>
+                  </motion.div>
 
-                  {/* Flashcards */}
-                  <button
-                    onClick={leituraCompleta ? handleStartFlashcards : undefined}
-                    className={`w-full border rounded-xl p-4 text-left transition-all ${
-                      leituraCompleta 
-                        ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/10 border-purple-500/30'
-                        : 'bg-white/5 border-white/10 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          leituraCompleta ? 'bg-purple-500/20' : 'bg-white/10'
-                        }`}>
+                  {/* Módulo 2: Flashcards */}
+                  {slidesData.flashcards && slidesData.flashcards.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <button
+                        onClick={() => {
+                          if (leituraCompleta) {
+                            handleStartFlashcards();
+                          } else {
+                            setShowFlashcardsBlockedModal(true);
+                          }
+                        }}
+                        className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
+                          leituraCompleta 
+                            ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/10 hover:from-purple-500/30 hover:to-violet-500/20 border border-purple-500/30' 
+                            : 'bg-purple-500/10 border border-purple-500/20 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                            leituraCompleta ? 'bg-purple-500 text-white' : 'bg-purple-500/30 text-purple-300'
+                          }`}>
+                            2
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+                              <span className={`text-sm sm:text-base font-semibold ${leituraCompleta ? 'text-white' : 'text-purple-300'}`}>
+                                Flashcards
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {slidesData.flashcards.length} cards de revisão
+                            </p>
+                          </div>
                           {leituraCompleta ? (
-                            <Sparkles className="w-5 h-5 text-purple-400" />
+                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                           ) : (
-                            <Lock className="w-4 h-4 text-gray-500" />
+                            <Lock className="w-4 h-4 text-purple-400" />
                           )}
                         </div>
-                        <div>
-                          <span className={leituraCompleta ? 'text-white font-medium' : 'text-gray-400'}>
-                            Flashcards
-                          </span>
-                          <p className="text-xs text-gray-500">
-                            {slidesData.flashcards?.length || 0} cards de revisão
-                          </p>
-                        </div>
-                      </div>
-                      {leituraCompleta && <ChevronRight className="w-5 h-5 text-purple-400" />}
-                    </div>
-                  </button>
+                      </button>
+                    </motion.div>
+                  )}
 
-                  {/* Quiz */}
-                  <button
-                    onClick={leituraCompleta ? handleStartQuiz : undefined}
-                    className={`w-full border rounded-xl p-4 text-left transition-all ${
-                      leituraCompleta 
-                        ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 border-emerald-500/30'
-                        : 'bg-white/5 border-white/10 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          leituraCompleta ? 'bg-emerald-500/20' : 'bg-white/10'
-                        }`}>
-                          {leituraCompleta ? (
-                            <HelpCircle className="w-5 h-5 text-emerald-400" />
+                  {/* Módulo 3: Praticar */}
+                  {slidesData.questoes && slidesData.questoes.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.35 }}
+                    >
+                      <button
+                        onClick={() => {
+                          if (leituraCompleta) {
+                            handleStartQuiz();
+                          } else {
+                            setShowPraticarBlockedModal(true);
+                          }
+                        }}
+                        className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
+                          leituraCompleta 
+                            ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/10 hover:from-emerald-500/30 hover:to-green-500/20 border border-emerald-500/30' 
+                            : 'bg-emerald-500/10 border border-emerald-500/20 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                            leituraCompleta ? 'bg-emerald-500 text-white' : 'bg-emerald-500/30 text-emerald-300'
+                          }`}>
+                            3
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2">
+                              <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                              <span className={`text-sm sm:text-base font-semibold ${leituraCompleta ? 'text-white' : 'text-emerald-300'}`}>
+                                Praticar
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {slidesData.questoes.length} questões estilo OAB
+                            </p>
+                          </div>
+                          {questoesCompletas ? (
+                            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                          ) : leituraCompleta ? (
+                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                           ) : (
-                            <Lock className="w-4 h-4 text-gray-500" />
+                            <Lock className="w-4 h-4 text-emerald-400" />
                           )}
                         </div>
-                        <div>
-                          <span className={leituraCompleta ? 'text-white font-medium' : 'text-gray-400'}>
-                            Praticar
-                          </span>
-                          <p className="text-xs text-gray-500">
-                            {slidesData.questoes?.length || 0} questões estilo OAB
-                          </p>
-                        </div>
-                      </div>
-                      {questoesCompletas && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                      {leituraCompleta && !questoesCompletas && <ChevronRight className="w-5 h-5 text-emerald-400" />}
-                    </div>
-                  </button>
-                </motion.div>
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
 
-                {/* Main CTA */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                {/* Footer tip */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-center text-xs text-gray-600 mt-8"
                 >
-                  <Button
-                    onClick={handleStartSlides}
-                    className="w-full h-14 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-red-500/25"
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    {slidesProgress > 0 ? 'Continuar Leitura' : 'Iniciar Aula'}
-                  </Button>
-                </motion.div>
+                  Os slides são interativos e ideais para memorização
+                </motion.p>
               </div>
             </div>
           </motion.div>
@@ -675,6 +717,108 @@ export const AulaArtigoSlidesViewer = ({
                 </Button>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Flashcards Bloqueados */}
+      <AnimatePresence>
+        {showFlashcardsBlockedModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4"
+            onClick={() => setShowFlashcardsBlockedModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#12121a] rounded-2xl p-6 max-w-sm w-full border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-purple-400" />
+                </div>
+                <h3 className="font-semibold text-white">Flashcards Bloqueados</h3>
+              </div>
+              
+              <p className="text-sm text-gray-400 mb-6">
+                Complete a leitura primeiro para desbloquear os flashcards de revisão.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowFlashcardsBlockedModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowFlashcardsBlockedModal(false);
+                    handleStartSlides();
+                  }}
+                  className="flex-1 bg-red-500 hover:bg-red-600"
+                >
+                  Iniciar Leitura
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Praticar Bloqueado */}
+      <AnimatePresence>
+        {showPraticarBlockedModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4"
+            onClick={() => setShowPraticarBlockedModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#12121a] rounded-2xl p-6 max-w-sm w-full border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-emerald-400" />
+                </div>
+                <h3 className="font-semibold text-white">Praticar Bloqueado</h3>
+              </div>
+              
+              <p className="text-sm text-gray-400 mb-6">
+                Complete a leitura primeiro para desbloquear as questões de fixação.
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowPraticarBlockedModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowPraticarBlockedModal(false);
+                    handleStartSlides();
+                  }}
+                  className="flex-1 bg-red-500 hover:bg-red-600"
+                >
+                  Iniciar Leitura
+                </Button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
