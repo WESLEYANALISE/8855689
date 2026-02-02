@@ -1,110 +1,151 @@
 
-## Objetivo (o que vai mudar)
-Garantir que, quando o PDF vier com subtemas “PARTE I / PARTE II” (ex.: “INJÚRIA - PARTE I” e “INJÚRIA - PARTE II”), o sistema **não liste separado** na etapa “Confirme os subtemas identificados”. Em vez disso, ele deve **juntar automaticamente** em **um único subtema** (“INJÚRIA”) com o intervalo de páginas cobrindo as duas partes e com o conteúdo das páginas unido.
+# Plano: Otimizar Geração de Imagens das Trilhas OAB para Custo Zero
 
-## Diagnóstico (por que ainda está vindo separado)
-Pelo seu print, o problema está na **extração de SUBTEMAS** (modal “Confirme os subtemas identificados”), que é gerada pela edge function:
+## Resumo Executivo
+Migrar a geração de imagens dos tópicos OAB para usar configurações otimizadas de custo, aproveitando o **Free Tier do Google Gemini** com prompt simplificado e resolução reduzida.
 
-- `supabase/functions/identificar-subtemas-oab/index.ts`
+## Situacao Atual
 
-O merge que você pediu anteriormente foi aplicado para “TEMAS” (matéria) e para a confirmação de temas:
-- `identificar-temas-oab`
-- `confirmar-temas-oab`
+### Modelo Utilizado
+- **Modelo**: `gemini-2.0-flash-exp-image-generation`
+- **Custo**: Free Tier (gratuito)
+- **Problema**: O prompt atual e excessivamente detalhado, consumindo mais tokens de entrada
 
-Mas a sua tela do print é de **SUBTEMAS** (tópico), que é outro fluxo: `identificar-subtemas-oab`. Nesse arquivo, hoje **não existe uma etapa de merge por “Parte I/II”**, então ele retorna exatamente o índice/Gemini com as duas entradas separadas.
+### Prompt Atual (172 palavras - muito longo)
+```
+Generate a CINEMATIC 16:9 horizontal illustration with EDGE-TO-EDGE composition...
+Dark rich background covering the entire frame in deep navy and burgundy tones...
+Brazilian legal education scene with subtle scales of justice...
+Ultra high resolution, photorealistic quality.
+```
 
-## Solução (ajuste definitivo)
-Implementar no `identificar-subtemas-oab` uma rotina de “normalização + agrupamento” de títulos, aplicada **sempre** antes de salvar no banco e antes de retornar para a UI.
+### Comparativo de Modelos Google
+| Modelo | Free Tier | Pago |
+|--------|-----------|------|
+| `gemini-2.0-flash-exp` | Gratuito | - |
+| `gemini-2.5-flash-image` | Gratuito | $0.30/1M tokens |
+| `gemini-2.5-flash-lite` | Gratuito (mais rapido) | $0.10/1M tokens |
 
-### 1) Normalização de título (“Parte I/II”)
-Adicionar uma função dedicada (ex.: `normalizarTituloSubtema`) que:
-- remove sufixos no final do título como:
-  - `- PARTE I`, `– Parte II`, `— parte 2`
-  - `PARTE I` (sem hífen)
-  - variações de espaçamento e caixa (maiúsculas/minúsculas)
-- mantém o restante do título intacto
-- faz `trim()` e colapsa espaços múltiplos
+---
 
-Regras de regex (robustas):
-- aceitar `-`, `–`, `—` como separadores
-- aceitar algarismos romanos amplos (`I, II, III, IV, V, VI, VII, VIII, IX, X, ...`) e arábicos (`1,2,3...`)
-- garantir que só remova quando aparecer **“PARTE” no final do título**, para não estragar títulos que terminem em números por outros motivos.
+## Plano de Otimizacao
 
-### 2) Agrupamento estável (preserva a ordem visual do índice)
-Adicionar função (ex.: `agruparSubtemasPorParte`) que:
-- agrupa por `normalizarTituloSubtema(titulo)` (chave normalizada)
-- preserva a ordem do primeiro aparecimento do grupo (para a UI ficar natural)
-- para cada grupo:
-  - `titulo`: o título limpo (sem “Parte …”)
-  - `pagina_inicial`: menor `pagina_inicial` do grupo
-  - `pagina_final`: maior `pagina_final` do grupo
-- reindexa `ordem` como 1..N após o merge
+### 1. Simplificar o Prompt (reducao de 70%)
 
-### 3) Aplicar o merge nos dois caminhos do `identificar-subtemas-oab`
-O arquivo tem dois caminhos principais:
+**De 172 palavras para aproximadamente 50 palavras:**
 
-**(A) Caminho “índice confiável” (retorno antecipado)**
-- Hoje ele monta `subtemasValidados` diretamente do índice e retorna.
-- Vamos aplicar o agrupamento **antes** de:
-  - salvar em `conteudo_oab_revisao`
-  - atualizar `oab_trilhas_topicos.subtemas_identificados`
-  - retornar a resposta JSON
+```text
+16:9 dark cinematic illustration, Brazilian law theme about "{area}".
+Abstract geometric patterns with scales of justice.
+Deep navy and burgundy tones, dramatic lighting.
+No text, no faces, minimal style.
+```
 
-**(B) Caminho “Gemini/heurístico” (sem retorno antecipado)**
-- Hoje ele valida `subtemasValidados`, faz correções quando existe índice, e então salva/retorna.
-- Vamos aplicar o agrupamento logo após a construção final de `subtemasValidados` (depois dos ajustes de páginas e reindex), e antes do salvamento/retorno.
+**Beneficios:**
+- Menos tokens de entrada = processamento mais rapido
+- Rate limit menos provavel de ser atingido
+- Resultado visual consistente
 
-### 4) Efeito colateral desejado: conteúdo unido automaticamente
-Como o `identificar-subtemas-oab` salva o conteúdo por subtema em `conteudo_oab_revisao` iterando pelas páginas (`pagina_inicial..pagina_final`), ao juntarmos “Parte I/II” em um único item com `pagina_inicial` e `pagina_final` expandido, o conteúdo também ficará automaticamente unido.
+### 2. Reduzir Resolucao de Saida (opcional via TinyPNG)
 
-### 5) Logs de auditoria (para provar que resolveu)
-Adicionar logs claros na edge function:
-- Antes do merge: lista de títulos recebidos + páginas
-- Depois do merge: lista de títulos finais + páginas e contagem “N → M”
-- Logs específicos quando detectar “parte” no título para facilitar debug
+Atualmente: 1280x720 (HD)
+Proposta: Manter 1280x720 pois ja e economico
 
-### 6) Compatibilidade com dados existentes
-- O merge “definitivo” vale para novas extrações/identificações.
-- Para tópicos que já ficaram salvos com “PARTE I/II” separados, será necessário **rodar a identificação/extrair de novo** (porque a UI está mostrando o resultado atual que já veio separado do processamento anterior).
+**Alternativa ultra-economica**: 854x480 (SD) - 56% menos pixels
+- Suficiente para thumbnails de 80x80px na UI
+- Reducao significativa no tamanho do arquivo
 
-## Escopo de arquivos
-1. `supabase/functions/identificar-subtemas-oab/index.ts`
-   - adicionar normalização + agrupamento
-   - aplicar nos dois fluxos (índice confiável e Gemini)
-   - melhorar logs
+### 3. Adicionar Multi-Modelo com Fallback Inteligente
 
-(Em princípio, `confirmar-subtemas-oab` não precisa mudar se o merge acontecer antes, porque a UI já vai selecionar e confirmar apenas o subtema final consolidado.)
+Ordem de tentativa (do mais rapido/barato ao mais robusto):
+1. `gemini-2.5-flash-lite` (mais leve)
+2. `gemini-2.0-flash-exp-image-generation` (atual)
+3. `gemini-2.5-flash-image` (alternativo)
 
-## Critérios de aceite (como vamos validar)
-1. No modal “Confirme os subtemas identificados”, em vez de:
-   - “INJÚRIA - PARTE I”
-   - “INJÚRIA - PARTE II”
-   deve aparecer apenas:
-   - “INJÚRIA”
-2. O subtema “INJÚRIA” deve ter:
-   - `pagina_inicial` = início da Parte I
-   - `pagina_final` = fim da Parte II
-3. Ao confirmar, o `RESUMO` deve receber **apenas 1 registro** para “INJÚRIA” (não dois).
-4. Os logs da edge function devem registrar algo como:
-   - `Subtemas antes: 41`
-   - `Subtemas depois: 40`
-   - e listar o merge detectado.
+### 4. Sistema de Cache Mais Agressivo
 
-## Riscos e como mitigamos
-- Alguns materiais podem usar formatos diferentes (ex.: “Parte 1”, “PARTE-2”, “PARTE II:” com dois pontos).
-  - Mitigação: regex tolerante a separadores e pontuação final.
-- Títulos onde “Parte” não indica divisão (raro).
-  - Mitigação: só remover/mesclar quando “PARTE …” estiver no final do título.
+- Verificar se outro topico da mesma **materia** ja tem capa
+- Reutilizar a capa da materia para todos os topicos relacionados
+- Reduz geracao de imagens em ate 90%
 
-## Plano de execução (passo a passo)
-1. Editar `identificar-subtemas-oab`:
-   - criar `normalizarTituloSubtema`
-   - criar `agruparSubtemasPorParte`
-2. Chamar `agruparSubtemasPorParte`:
-   - no caminho “índice confiável” antes do salvamento/return
-   - no caminho padrão antes do salvamento/return
-3. Ajustar logs (antes/depois).
-4. Testar end-to-end no mesmo tópico do print:
-   - Processar PDF
-   - Conferir que o modal já mostra “INJÚRIA” único
-   - Confirmar subtemas e verificar resultado na tela de trilha.
+---
+
+## Alteracoes Tecnicas
+
+### Arquivo: `supabase/functions/gerar-capa-topico-oab/index.ts`
+
+**Mudancas principais:**
+
+1. **Novo prompt simplificado:**
+```typescript
+const imagePrompt = `16:9 dark cinematic illustration, Brazilian law theme about "${area}".
+Abstract geometric patterns with scales of justice.
+Deep navy and burgundy, dramatic lighting.
+No text, no faces, minimal style.`;
+```
+
+2. **Multi-modelo com fallback:**
+```typescript
+const MODELOS_IMAGEM = [
+  'gemini-2.5-flash-lite',          // Mais barato/rapido
+  'gemini-2.0-flash-exp-image-generation', // Atual
+  'gemini-2.5-flash-image'          // Alternativo
+];
+```
+
+3. **Reutilizacao de capa entre topicos da mesma materia:**
+```typescript
+// Verificar se outro topico da mesma materia ja tem capa
+const { data: siblingWithCover } = await supabase
+  .from("oab_trilhas_topicos")
+  .select("capa_url, materia_id")
+  .eq("materia_id", materiaId)
+  .not("capa_url", "is", null)
+  .limit(1)
+  .single();
+
+if (siblingWithCover?.capa_url) {
+  // Reutilizar capa existente
+  await supabase.from("oab_trilhas_topicos")
+    .update({ capa_url: siblingWithCover.capa_url })
+    .eq("id", topico_id);
+  return { success: true, cached: true };
+}
+```
+
+4. **Compressao WebP via TinyPNG (ja implementado):**
+- Reducao media de 60-80% no tamanho
+- Formato WebP mais eficiente
+
+---
+
+## Estimativa de Economia
+
+| Item | Antes | Depois |
+|------|-------|--------|
+| Tokens por prompt | ~250 | ~70 |
+| Modelo | Flash exp | Flash Lite (mais leve) |
+| Imagens geradas | 1 por topico | 1 por materia (reutilizada) |
+| Custo total | R$ 0 (Free Tier) | R$ 0 (Free Tier + menos uso) |
+
+**Beneficio real**: Menos rate limiting, geracao mais rapida, menos falhas
+
+---
+
+## Arquivos a Modificar
+
+1. `supabase/functions/gerar-capa-topico-oab/index.ts`
+   - Prompt simplificado
+   - Multi-modelo com fallback
+   - Sistema de cache por materia
+   - Logs otimizados
+
+---
+
+## Resultado Esperado
+
+- Geracao de imagens 2-3x mais rapida
+- Menos erros de rate limiting (429)
+- Mesmo custo: R$ 0 (Free Tier)
+- Imagens consistentes com estilo minimalista
+- Reducao de 90% nas chamadas de API (reutilizacao)
