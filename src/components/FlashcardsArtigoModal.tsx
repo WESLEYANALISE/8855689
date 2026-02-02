@@ -40,22 +40,25 @@ const FlashcardsArtigoModal = ({ isOpen, onClose, artigo, numeroArtigo, codigoTa
     
     const startProgressAnimation = () => {
       progressInterval = window.setInterval(() => {
-        if (currentProgress < 90) {
-          const increment = currentProgress < 30 ? 3 : currentProgress < 60 ? 5 : 4;
-          currentProgress = Math.min(90, currentProgress + increment);
+        if (currentProgress < 85) {
+          // Progresso mais lento e realista
+          const increment = currentProgress < 20 ? 2 : currentProgress < 50 ? 1.5 : currentProgress < 70 ? 1 : 0.5;
+          currentProgress = Math.min(85, currentProgress + increment);
           setProgress(Math.round(currentProgress));
           
-          if (currentProgress < 25) {
-            setProgressMessage("Analisando artigo...");
-          } else if (currentProgress < 50) {
-            setProgressMessage("Criando flashcards...");
+          if (currentProgress < 15) {
+            setProgressMessage("📖 Analisando o artigo...");
+          } else if (currentProgress < 35) {
+            setProgressMessage("🧠 Identificando conceitos-chave...");
+          } else if (currentProgress < 55) {
+            setProgressMessage("✍️ Criando perguntas...");
           } else if (currentProgress < 75) {
-            setProgressMessage("Elaborando perguntas e respostas...");
+            setProgressMessage("💡 Elaborando respostas...");
           } else {
-            setProgressMessage("🎉 Quase pronto!");
+            setProgressMessage("✨ Finalizando flashcards...");
           }
         }
-      }, 300);
+      }, 400);
     };
     
     try {
@@ -72,11 +75,19 @@ const FlashcardsArtigoModal = ({ isOpen, onClose, artigo, numeroArtigo, codigoTa
       if (error) throw error;
 
       if (progressInterval) clearInterval(progressInterval);
+      
+      // Animação suave até 100%
+      setProgress(90);
+      setProgressMessage("🎉 Quase pronto!");
+      await new Promise(r => setTimeout(r, 200));
       setProgress(95);
+      await new Promise(r => setTimeout(r, 200));
       
       if (data.flashcards && Array.isArray(data.flashcards)) {
-        setFlashcards(data.flashcards);
         setProgress(100);
+        setProgressMessage("✅ Concluído!");
+        await new Promise(r => setTimeout(r, 300));
+        setFlashcards(data.flashcards);
         
         // Salvar flashcards na tabela
         try {
@@ -145,19 +156,19 @@ const FlashcardsArtigoModal = ({ isOpen, onClose, artigo, numeroArtigo, codigoTa
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-full gap-6 px-6 py-4">
-              <div className="relative w-24 h-24">
-                <svg className="w-24 h-24 -rotate-90">
-                  <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="4" fill="none" className="text-secondary" />
-                  <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray={276.46} strokeDashoffset={276.46 * (1 - progress / 100)} className="text-accent transition-all duration-300" strokeLinecap="round" />
+            <div className="flex flex-col items-center justify-center h-full gap-4 px-6 py-8">
+              <div className="relative w-28 h-28">
+                <svg className="w-28 h-28 -rotate-90">
+                  <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="5" fill="none" className="text-secondary" />
+                  <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="5" fill="none" strokeDasharray={314.16} strokeDashoffset={314.16 * (1 - progress / 100)} className="text-accent transition-all duration-300" strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-accent">{progress}%</span>
+                  <span className="text-3xl font-bold text-accent">{progress}%</span>
                 </div>
               </div>
-              <div className="text-center">
-                <p className="text-base font-semibold mb-1">Gerando flashcards...</p>
-                <p className="text-xs text-muted-foreground">{progressMessage}</p>
+              <div className="text-center space-y-1">
+                <p className="text-base font-semibold">{progressMessage}</p>
+                <p className="text-xs text-muted-foreground">Isso pode levar alguns instantes</p>
               </div>
             </div>
           ) : flashcards.length > 0 ? (
