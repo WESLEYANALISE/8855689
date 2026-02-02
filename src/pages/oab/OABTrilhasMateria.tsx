@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SCROLL_KEY_PREFIX = "oab-trilhas-scroll-materia";
 
@@ -23,6 +24,7 @@ const OABTrilhasMateria = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
 
   // Restaurar posição do scroll ao voltar
@@ -146,6 +148,61 @@ const OABTrilhasMateria = () => {
       return counts;
     },
     enabled: !!materias && materias.length > 0 && !!area,
+  });
+
+  // Buscar progresso de estudo por matéria (para cada tópico dessa área)
+  const { data: progressoMateria } = useQuery({
+    queryKey: ["oab-trilha-progresso-materia", parsedMateriaId, user?.id, materias?.map(m => m.id)],
+    queryFn: async () => {
+      if (!user || !materias || !area) return {};
+      
+      const progressos: Record<number, number> = {};
+      
+      for (const materia of materias) {
+        // Buscar os subtemas (RESUMO) desta matéria
+        const { data: subtemas } = await supabase
+          .from("RESUMO")
+          .select("id")
+          .eq("area", area.nome)
+          .eq("tema", materia.titulo);
+        
+        if (!subtemas || subtemas.length === 0) {
+          progressos[materia.id] = 0;
+          continue;
+        }
+        
+        // Buscar progresso de cada subtema
+        const subtemaIds = subtemas.map(s => s.id);
+        const { data: progressoData } = await supabase
+          .from("oab_trilhas_estudo_progresso")
+          .select("topico_id, leitura_completa, progresso_flashcards, progresso_questoes")
+          .eq("user_id", user.id)
+          .in("topico_id", subtemaIds);
+        
+        if (!progressoData || progressoData.length === 0) {
+          progressos[materia.id] = 0;
+          continue;
+        }
+        
+        // Calcular média de progresso (leitura=33%, flashcards=33%, questões=33%)
+        let totalProgresso = 0;
+        for (const subtemaId of subtemaIds) {
+          const p = progressoData.find(pd => pd.topico_id === subtemaId);
+          if (p) {
+            const leituraPct = p.leitura_completa ? 33 : 0;
+            const flashcardsPct = (p.progresso_flashcards || 0) * 0.33;
+            const questoesPct = (p.progresso_questoes || 0) * 0.34;
+            totalProgresso += leituraPct + flashcardsPct + questoesPct;
+          }
+        }
+        
+        progressos[materia.id] = Math.round(totalProgresso / subtemaIds.length);
+      }
+      
+      return progressos;
+    },
+    enabled: !!user && !!materias && materias.length > 0 && !!area,
+    staleTime: 1000 * 60 * 2,
   });
 
   // Mutation para gerar capa única da matéria
@@ -378,9 +435,20 @@ const OABTrilhasMateria = () => {
                             </h3>
                             
                             {/* Quantidade de tópicos */}
-                            <div className="flex items-center gap-1.5 mt-auto pt-2">
+                            <div className="flex items-center gap-1.5 mt-1">
                               <BookOpen className="w-3 h-3 text-red-400/70" />
                               <span className="text-xs text-gray-400">{subtemasCount?.[materia.titulo] || 0} tópicos</span>
+                            </div>
+                            
+                            {/* Barra de progresso */}
+                            <div className="mt-auto pt-2">
+                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500 ease-out rounded-full"
+                                  style={{ width: `${progressoMateria?.[materia.id] || 0}%` }}
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-1 text-right">{progressoMateria?.[materia.id] || 0}% concluído</p>
                             </div>
                           </div>
                         </motion.div>
