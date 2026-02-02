@@ -25,25 +25,29 @@ function normalizarTermo(termo: string): string {
     .trim();
 }
 
-// Gera definição usando Gemini
-async function gerarDefinicaoComGemini(termo: string): Promise<string> {
+// Gera definição e exemplo prático usando Gemini
+async function gerarDefinicaoComGemini(termo: string): Promise<{ definicao: string; exemploPratico: string }> {
   const keys = getGeminiKeys();
   if (keys.length === 0) {
     throw new Error("Nenhuma chave Gemini configurada");
   }
 
-  const prompt = `Você é um professor de Direito brasileiro. Gere uma definição CONCISA (máximo 3 frases) para o termo jurídico "${termo}".
+  const prompt = `Você é um professor de Direito brasileiro. Para o termo jurídico "${termo}", forneça:
+
+1. DEFINIÇÃO: Uma explicação concisa (máximo 3 frases) do significado jurídico do termo.
+2. EXEMPLO PRÁTICO: Um exemplo curto (1-2 frases) de aplicação prática do termo no dia a dia jurídico.
 
 REGRAS:
 - Seja didático e claro
 - Use linguagem acessível para estudantes de Direito
 - Foque no significado jurídico do termo
 - Não use formatação markdown
-- Não inclua exemplos longos
-- Responda APENAS com a definição, sem introduções
+- Responda EXATAMENTE no formato JSON abaixo, sem texto adicional
 
-Termo: ${termo}
-Definição:`;
+Formato de resposta:
+{"definicao": "...", "exemploPratico": "..."}
+
+Termo: ${termo}`;
 
   let lastError: Error | null = null;
 
@@ -58,7 +62,7 @@ Definição:`;
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 200,
+              maxOutputTokens: 300,
             }
           })
         }
@@ -71,10 +75,29 @@ Definição:`;
       }
 
       const data = await response.json();
-      const definicao = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const resposta = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
-      if (definicao && definicao.trim().length > 10) {
-        return definicao.trim();
+      if (resposta && resposta.trim().length > 10) {
+        // Tentar parsear como JSON
+        try {
+          // Limpar resposta de possíveis caracteres extras
+          const jsonMatch = resposta.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.definicao) {
+              return {
+                definicao: parsed.definicao.trim(),
+                exemploPratico: parsed.exemploPratico?.trim() || ""
+              };
+            }
+          }
+        } catch (parseError) {
+          // Se não for JSON, usar como definição simples
+          console.log("Resposta não é JSON, usando como texto simples");
+        }
+        
+        // Fallback: usar resposta como definição simples
+        return { definicao: resposta.trim(), exemploPratico: "" };
       }
     } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -125,15 +148,15 @@ serve(async (req) => {
 
     // 2. Gerar com IA
     console.log(`Gerando definição com IA para: "${termo}"`);
-    const definicao = await gerarDefinicaoComGemini(termo);
+    const resultado = await gerarDefinicaoComGemini(termo);
 
-    // 3. Salvar no cache
+    // 3. Salvar no cache (apenas definição, exemplo pode variar)
     const { error: insertError } = await supabase
       .from('cache_definicoes_termos')
       .upsert({
         termo: termo,
         termo_normalizado: termoNormalizado,
-        definicao: definicao,
+        definicao: resultado.definicao,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'termo_normalizado'
@@ -146,7 +169,12 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, definicao, fromCache: false }),
+      JSON.stringify({ 
+        success: true, 
+        definicao: resultado.definicao, 
+        exemploPratico: resultado.exemploPratico,
+        fromCache: false 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

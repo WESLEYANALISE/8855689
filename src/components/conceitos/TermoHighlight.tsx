@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lightbulb, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TermoHighlightProps {
@@ -9,20 +9,25 @@ interface TermoHighlightProps {
   disabled?: boolean;
 }
 
+interface DefinicaoData {
+  definicao: string;
+  exemploPratico?: string;
+}
+
 const TermoHighlight = ({ termo, children, disabled = false }: TermoHighlightProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [definicao, setDefinicao] = useState<string | null>(null);
+  const [data, setData] = useState<DefinicaoData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDefinicao = async () => {
-    if (definicao) return; // Já tem definição carregada
+    if (data) return; // Já tem definição carregada
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('gerar-definicao-termo', {
+      const { data: resposta, error: fnError } = await supabase.functions.invoke('gerar-definicao-termo', {
         body: { termo }
       });
       
@@ -30,10 +35,13 @@ const TermoHighlight = ({ termo, children, disabled = false }: TermoHighlightPro
         throw new Error(fnError.message);
       }
       
-      if (data?.success && data?.definicao) {
-        setDefinicao(data.definicao);
+      if (resposta?.success && resposta?.definicao) {
+        setData({
+          definicao: resposta.definicao,
+          exemploPratico: resposta.exemploPratico
+        });
       } else {
-        throw new Error(data?.error || 'Erro ao gerar definição');
+        throw new Error(resposta?.error || 'Erro ao gerar definição');
       }
     } catch (err) {
       console.error('Erro ao buscar definição:', err);
@@ -67,13 +75,19 @@ const TermoHighlight = ({ termo, children, disabled = false }: TermoHighlightPro
         </span>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-80 bg-[#1a1a2e] border-amber-500/30 p-4 shadow-xl shadow-black/50"
+        className="w-80 bg-[#1a1a2e] border-amber-500/30 p-4 shadow-xl shadow-black/50 z-[100]"
         sideOffset={8}
       >
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-amber-400 uppercase tracking-wider">
-            {termo}
-          </h4>
+        <div className="space-y-3">
+          {/* Header com ícone */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-amber-400" />
+            </div>
+            <h4 className="text-sm font-semibold text-amber-400 uppercase tracking-wider">
+              {termo}
+            </h4>
+          </div>
           
           {isLoading && (
             <div className="flex items-center justify-center py-4">
@@ -86,10 +100,28 @@ const TermoHighlight = ({ termo, children, disabled = false }: TermoHighlightPro
             <p className="text-sm text-red-400">{error}</p>
           )}
           
-          {definicao && !isLoading && (
-            <p className="text-sm text-gray-300 leading-relaxed" style={{ fontFamily: "'Merriweather', 'Georgia', serif" }}>
-              {definicao}
-            </p>
+          {data && !isLoading && (
+            <>
+              {/* Definição */}
+              <p className="text-sm text-gray-300 leading-relaxed" style={{ fontFamily: "'Merriweather', 'Georgia', serif" }}>
+                {data.definicao}
+              </p>
+              
+              {/* Exemplo Prático */}
+              {data.exemploPratico && (
+                <div className="mt-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
+                      Exemplo Prático
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed" style={{ fontFamily: "'Merriweather', 'Georgia', serif" }}>
+                    {data.exemploPratico}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </PopoverContent>

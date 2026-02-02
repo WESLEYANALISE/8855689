@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { ConceitoSlideCard } from "./ConceitoSlideCard";
 import { ConceitosSlidesFooter } from "./ConceitosSlidesFooter";
 import { markImageLoaded, isImageCached } from "@/hooks/useImagePreload";
+import { toast } from "@/hooks/use-toast";
 import type { ConceitoSecao, ConceitoSlide } from "./types";
 interface ConceitosSlidesViewerProps {
   secoes: ConceitoSecao[];
@@ -35,6 +36,7 @@ export const ConceitosSlidesViewer = ({
 }: ConceitosSlidesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  const [questionAnswered, setQuestionAnswered] = useState(true);
   
   // Som de virar página (mesmo da OAB Trilhas)
   const pageTurnAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -123,6 +125,17 @@ export const ConceitosSlidesViewer = ({
   const currentSectionTitle = secoes[currentFlatPagina?.secaoIndex]?.titulo || titulo;
 
   const handleNext = useCallback(() => {
+    // Verificar se é um slide de questão e não foi respondida
+    const currentSlide = flatPaginas[currentIndex]?.slide;
+    if (currentSlide?.tipo === 'quickcheck' && !questionAnswered) {
+      toast({
+        title: "⚠️ Responda à questão",
+        description: "Você precisa responder à questão antes de continuar.",
+        duration: 3000,
+      });
+      return;
+    }
+    
     if (currentIndex < totalPaginas - 1) {
       setDirection('next');
       playPageFlip();
@@ -131,7 +144,7 @@ export const ConceitosSlidesViewer = ({
       // Completed all pages
       onComplete?.();
     }
-  }, [currentIndex, totalPaginas, onComplete, playPageFlip]);
+  }, [currentIndex, totalPaginas, onComplete, playPageFlip, questionAnswered, flatPaginas]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -203,6 +216,7 @@ export const ConceitosSlidesViewer = ({
             canGoBack={currentIndex > 0}
             fontSize={fontSize}
             direction={direction}
+            onQuestionAnswered={setQuestionAnswered}
           />
         </AnimatePresence>
       </div>
