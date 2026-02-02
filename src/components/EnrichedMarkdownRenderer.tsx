@@ -75,11 +75,11 @@ export const processInlineMarkdown = (text: string, enableQuoteCitation: boolean
 const isConceptualTerm = (text: string): boolean => {
   const trimmed = text.trim();
   // Considera termo conceitual se:
-  // 1. Tem no máximo 5 palavras
+  // 1. Tem no máximo 6 palavras (aumentado para incluir termos mais longos como "em todo ou em parte")
   // 2. Não é citação legal (não começa com Art., §, etc.)
-  // 3. Não é uma frase muito longa
+  // 3. Não é uma frase muito longa (até 80 caracteres)
   const wordCount = trimmed.split(/\s+/).length;
-  return wordCount <= 5 && !isLegalCitation(trimmed) && trimmed.length <= 60;
+  return wordCount <= 6 && !isLegalCitation(trimmed) && trimmed.length <= 80;
 };
 
 // Função para processar texto e extrair termos destacados [[termo]], "termo" entre aspas, e artigos de lei
@@ -94,9 +94,11 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
   
   // Regex para:
   // 1. [[termo]] - termos explicitamente marcados
-  // 2. "termo" ou "termo" (aspas curvas) - termos entre aspas (conceituais curtos)
-  // 3. Art. X, artigo X - referências a artigos de lei
-  const combinedRegex = /\[\[([^\]]+)\]\]|"([^"]+)"|"([^"]+)"|((?:artigo|art\.?)\s*\d+[º°]?(?:\s*,?\s*(?:inciso|inc\.?)\s*[IVXLCDM]+|\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?|\s*,?\s*(?:alínea)\s*['"]?[a-z]['"]?)*(?:\s*,?\s*d[ao]\s+(?:Constituição|CF|CC|CP|CPC|CPP|CDC|CLT|CTN|Lei|Código)[^,;.]*)?)/gi;
+  // 2. "termo" (aspas retas) - termos entre aspas retas
+  // 3. 'termo' (aspas simples) - termos entre aspas simples
+  // 4. "termo" ou "termo" (aspas curvas) - termos entre aspas curvas (abertura e fechamento)
+  // 5. Art. X, artigo X - referências a artigos de lei
+  const combinedRegex = /\[\[([^\]]+)\]\]|"([^"]+)"|'([^']{2,50})'|"([^"]+)"|"([^"]+)"|((?:artigo|art\.?)\s*\d+[º°]?(?:\s*,?\s*(?:inciso|inc\.?)\s*[IVXLCDM]+|\s*,?\s*(?:§|parágrafo)\s*\d+[º°]?|\s*,?\s*(?:alínea)\s*['"]?[a-z]['"]?)*(?:\s*,?\s*d[ao]\s+(?:Constituição|CF|CC|CP|CPC|CPP|CDC|CLT|CTN|Lei|Código)[^,;.]*)?)/gi;
   let lastIndex = 0;
   let match;
   
@@ -117,23 +119,24 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
       } else {
         parts.push(match[1]);
       }
-    } else if (match[2] || match[3]) {
-      // "termo" ou "termo" - termo entre aspas
-      const termoText = match[2] || match[3];
+    } else if (match[2] || match[3] || match[4] || match[5]) {
+      // Termo entre aspas (retas ", simples ', ou curvas "...")
+      const termoText = match[2] || match[3] || match[4] || match[5];
+      const quoteChar = match[3] ? "'" : '"'; // Aspas simples ou duplas
       if (!disableTermos && isConceptualTerm(termoText)) {
-        // Termo conceitual curto - torna clicável
+        // Termo conceitual curto - torna clicável com destaque laranja
         parts.push(
           <TermoHighlight key={`termo-quote-${keyIndex++}`} termo={termoText}>
-            "{termoText}"
+            {quoteChar}{termoText}{quoteChar}
           </TermoHighlight>
         );
       } else {
         // Termo longo ou citação - mantém aspas mas não clicável
-        parts.push(`"${termoText}"`);
+        parts.push(`${quoteChar}${termoText}${quoteChar}`);
       }
-    } else if (match[4]) {
+    } else if (match[6]) {
       // Art. Xº - artigo de lei clicável
-      const artigoText = match[4];
+      const artigoText = match[6];
       parts.push(
         <ArtigoPopover key={`artigo-${keyIndex++}`} artigo={artigoText}>
           {artigoText}
@@ -165,7 +168,8 @@ const TextWithTermos = ({ children, disableTermos = false, enableQuotes = true }
       const withQuotesAndMarkdown = processInlineMarkdown(node, enableQuotes);
       if (typeof withQuotesAndMarkdown === 'string') {
         const processed = processTextWithTermos(withQuotesAndMarkdown, disableTermos);
-        return processed.length === 1 ? processed[0] : <React.Fragment>{processed}</React.Fragment>;
+        // Usar span com display:contents ao invés de Fragment para evitar warning de props inválidas
+        return processed.length === 1 ? processed[0] : <span style={{ display: 'contents' }}>{processed}</span>;
       }
       return withQuotesAndMarkdown;
     }
@@ -179,7 +183,8 @@ const TextWithTermos = ({ children, disableTermos = false, enableQuotes = true }
     }
     
     if (Array.isArray(node)) {
-      return <React.Fragment>{node.map((n, i) => <React.Fragment key={i}>{processChildren(n)}</React.Fragment>)}</React.Fragment>;
+      // Usar span com display:contents ao invés de Fragment
+      return <span style={{ display: 'contents' }}>{node.map((n, i) => <span key={i} style={{ display: 'contents' }}>{processChildren(n)}</span>)}</span>;
     }
     
     return node;
