@@ -1,162 +1,202 @@
 
-# Plano: Aula Interativa com Slides + Perguntar à Professora
+# Plano: Melhorar Aula Interativa de Artigos (Estilo OAB Trilhas)
 
-## Resumo Executivo
+## Problemas Identificados
 
-O usuário quer que ao clicar em **"Aula Interativa"** no menu de recursos do artigo, gere uma aula com a **mesma mecânica de slides do OAB Trilhas** (navegação por slides, flashcards, praticar, etc). E ao clicar em **"Perguntar"**, abra o **chat da professora** diretamente com o artigo carregado e **perguntas pré-prontas**.
+1. **Prompt insuficiente**: O prompt atual do `gerar-slides-artigo` não tem o tom didático e acolhedor do chat da professora ou do OAB Trilhas
+2. **Falta de introdução**: Não há slide de boas-vindas explicando o que o aluno vai aprender
+3. **Formatação ruim**: Slides vindo mal formatados, sem a estrutura de explicação parte por parte
+4. **Sem exercícios funcionais**: Flashcards e questões não estão aparecendo/funcionando corretamente
+5. **Sem capa gerada**: Não está gerando capa por código (CP, CC, CF) como no OAB Trilhas
 
 ---
 
-## Parte 1: Aula Interativa com Slides (Estilo OAB Trilhas)
+## Parte 1: Reescrever Prompt de Geração de Slides
 
-### Situação Atual
-- O componente `AulaArtigoBreakdown` já gera uma aula completa usando a edge function `gerar-aula-artigo`
-- A estrutura gerada (`estrutura_completa`) tem seções com slides, flashcards, matching, questões
-- Porém, a interface atual usa um viewer diferente do OAB Trilhas (slides individuais com InteractiveSlide)
-- O OAB Trilhas usa `ConceitosSlidesViewer` com o formato `slides_json` (seções com slides tipados)
+### Problema
+O prompt atual é genérico e não tem o estilo conversacional e didático do OAB Trilhas.
 
-### Objetivo
-Converter a aula de artigo para usar o **mesmo viewer de slides do Conceitos/OAB Trilhas** (`ConceitosSlidesViewer`), incluindo:
-- Navegação fluida entre slides com animação de virada de página
-- Barra de progresso multi-segmentada
-- Flashcards interativos
-- Questões de prática
-- Salvar no Supabase para que outros usuários encontrem a aula pronta
+### Solução
+Reescrever o prompt do `gerar-slides-artigo` baseado no prompt do `gerar-conteudo-oab-trilhas`:
 
-### Mudanças Técnicas
+```text
+ESTILO DE ESCRITA (OBRIGATÓRIO):
+- Escreva como CONVERSA, use expressões como "Olha só...", "Percebeu?", "Veja bem..."
+- Perguntas retóricas para engajar: "E por que isso importa tanto?"
+- Analogias com situações do dia a dia
+- Explicar TODO termo técnico ou em latim
+- Exemplos práticos imediatos
+- NUNCA comece com gírias informais como "E aí galera"
 
-#### 1. Nova Tabela ou Coluna `slides_json`
-- Adicionar coluna `slides_json` na tabela `aulas_artigos` (JSONB)
-- Esta coluna armazenará o conteúdo no formato compatível com `ConceitosSlidesViewer`
-
-#### 2. Nova Edge Function: `gerar-slides-artigo`
-- Criar função que gera slides no formato `ConceitoSlidesData`:
-  - Seções com slides tipados: `introducao`, `texto`, `explicacao`, `termos`, `caso`, `dica`, `resumo`, `quickcheck`
-  - Flashcards para revisão
-  - Questões para praticar
-- Salvar no Supabase para cache (outros usuários já encontram pronta)
-
-#### 3. Novo Componente: `AulaArtigoSlidesViewer`
-- Wrapper que usa `ConceitosSlidesViewer` para artigos
-- Busca ou gera `slides_json` da aula
-- Mostra loading enquanto gera
-- Após slides, mostra flashcards e questões
-
-#### 4. Modificar `ArtigoActionsMenu` e páginas
-- Alterar callback `onOpenAulaArtigo` para abrir o novo viewer de slides
-- Manter compatibilidade com aulas já geradas
-
-### Fluxo do Usuário
-```
-Usuário clica "Aula Interativa"
-         ↓
-    Existe slides_json?
-       /        \
-     SIM        NÃO
-      ↓          ↓
-   Carregar   Mostrar loading
-   do cache   + gerar slides
-      ↓          ↓
-   ← ← ← ← ← ← ← ↓
-         ↓
-   ConceitosSlidesViewer
-   (navegação por slides)
-         ↓
-   Flashcards de Revisão
-         ↓
-   Questões de Prática
-         ↓
-   Resultado Final
+ESTRUTURA OBRIGATÓRIA:
+- Slide 1: Introdução acolhedora ("Olá! Vamos dominar este artigo juntos...")
+- Slides de texto: Explicar PARTE POR PARTE do artigo, palavra por palavra
+- Usar blockquotes para citações: > "Art. X..."
+- Cards visuais: > ⚠️ ATENÇÃO, > 💡 DICA
+- Mínimo 200-400 palavras por slide de texto
 ```
 
----
+### Seções Obrigatórias
 
-## Parte 2: Perguntar à Professora (Chat Direto)
+1. **Introdução** (5-7 slides)
+   - Boas-vindas calorosas
+   - O que você vai aprender
+   - Por que este artigo é importante
+   - Termos-chave que aparecerão
 
-### Situação Atual
-- O `PerguntaModal` já abre um chat com o artigo carregado
-- Já tem perguntas pré-prontas no array `perguntasProntas`
-- A professora já envia uma mensagem inicial explicando o artigo
+2. **Leitura do Artigo** (6-10 slides)
+   - Texto literal da lei (blockquote)
+   - Explicação PALAVRA POR PALAVRA
+   - "Olha só, quando a lei diz X, ela quer dizer..."
+   - Cada conceito em slide separado
 
-### Objetivo
-Manter a funcionalidade atual, mas:
-1. Garantir que ao clicar em "Perguntar", o chat abra **imediatamente** com o artigo
-2. Melhorar as **perguntas pré-prontas** para serem mais específicas ao artigo
-3. A professora já está funcionando bem - apenas refinamentos visuais
+3. **Aprofundamento** (8-12 slides)
+   - Detalhamento de cada elemento
+   - Doutrina e jurisprudência
+   - Exceções e regras especiais
 
-### Mudanças Técnicas
+4. **Aplicação Prática** (8-10 slides)
+   - 3-4 casos práticos com nomes (João, Maria)
+   - "Imagine que você é advogado e..."
+   - Situação -> Problema -> Solução
 
-#### 1. Perguntas Pré-prontas Dinâmicas
-- Gerar perguntas específicas baseadas no conteúdo do artigo
-- Manter as genéricas como fallback
-- Adicionar mais opções contextuais:
-  - "Quais são as pegadinhas comuns em provas sobre este artigo?"
-  - "Como este artigo se relaciona com outros?"
-  - "Pode dar um exemplo prático?"
+5. **Pegadinhas de Prova** (5-7 slides)
+   - "Atenção! As bancas adoram..."
+   - Regra vs Exceção em tabela
+   - Como identificar a resposta certa
 
-#### 2. Melhorias Visuais no Modal
-- Destacar mais as perguntas pré-prontas
-- Adicionar ícones nas sugestões
-- Melhorar o feedback visual durante streaming
-
----
-
-## Arquivos a Serem Modificados/Criados
-
-### Novos Arquivos
-1. `supabase/functions/gerar-slides-artigo/index.ts` - Edge function para gerar slides
-2. `src/components/AulaArtigoSlidesViewer.tsx` - Viewer de slides para artigos
-
-### Arquivos Modificados
-1. `supabase/config.toml` - Adicionar nova função
-2. `supabase/migrations/xxx.sql` - Adicionar coluna `slides_json` na tabela `aulas_artigos`
-3. `src/components/aula-v2/AulaArtigoBreakdown.tsx` - Usar novo viewer de slides
-4. `src/components/PerguntaModal.tsx` - Melhorar perguntas pré-prontas
+6. **Revisão Final** (8-10 slides)
+   - Resumo em pontos
+   - 4-5 QuickChecks interativos
+   - "Lembra o que aprendemos?"
+   - Técnica de memorização final
 
 ---
 
-## Detalhes da Implementação
+## Parte 2: Gerar Capa por Código
 
-### Formato do `slides_json` para Artigos
-```json
-{
-  "versao": 1,
-  "titulo": "Art. 5º - Garantias Fundamentais",
-  "tempoEstimado": "15 min",
-  "area": "Direito Constitucional",
-  "objetivos": ["Compreender...", "Aplicar..."],
-  "secoes": [
-    {
-      "id": 1,
-      "titulo": "Introdução",
-      "slides": [
-        { "tipo": "introducao", "titulo": "...", "conteudo": "..." },
-        { "tipo": "texto", "titulo": "O que diz a lei", "conteudo": "..." },
-        { "tipo": "explicacao", "titulo": "...", "conteudo": "...", "topicos": [...] },
-        { "tipo": "caso", "titulo": "Exemplo Prático", "conteudo": "..." },
-        { "tipo": "dica", "titulo": "Memorização", "conteudo": "..." },
-        { "tipo": "resumo", "titulo": "Pontos Principais", "pontos": [...] },
-        { "tipo": "quickcheck", "pergunta": "...", "opcoes": [...], "resposta": 0 }
-      ]
-    }
-  ],
-  "flashcards": [...],
-  "questoes": [...]
-}
+### Problema
+Cada código (CP, CC, CF) deve ter UMA capa única que será usada para TODOS os artigos daquele código.
+
+### Solução
+Criar edge function `gerar-capa-codigo` que:
+1. Verifica se já existe capa para o código na tabela `codigos_capas`
+2. Se não existir, gera uma capa representativa do código
+3. Usa a mesma API de geração de imagem do OAB Trilhas
+
+### Prompt de Geração de Capa
+```text
+CINEMATIC 16:9 horizontal illustration, EDGE-TO-EDGE composition with NO white borders.
+Dark rich background in deep navy and burgundy tones.
+Brazilian legal theme representing "${codigoNome}" (${codigoTabela}).
+Elements: scales of justice, law books, abstract geometric patterns.
+Professional, sophisticated mood for legal education.
+Modern minimal style with dramatic lighting.
+NO TEXT, NO PEOPLE FACES, NO WORDS.
 ```
 
-### Reutilização de Componentes
-- `ConceitosSlidesViewer` - Viewer de navegação
-- `ConceitoSlideCard` - Renderização de cada slide
-- `FlashcardViewer` - Flashcards interativos
-- `QuizViewerEnhanced` - Questões de prática
+### Fluxo
+```
+Usuário abre Aula Interativa do Art. 1 do CP
+           ↓
+   Existe capa em codigos_capas para "CP"?
+         /          \
+       SIM          NÃO
+        ↓            ↓
+   Usar capa    Gerar capa via
+   existente    gerar-capa-codigo
+        ↓            ↓
+   ← ← ← ← ← ← ← ← ↓
+           ↓
+   Salvar em codigos_capas
+   (para reutilizar em outros artigos)
+```
 
 ---
 
-## Benefícios
+## Parte 3: Garantir Flashcards e Questões
 
-1. **Consistência**: Mesma experiência de estudo do OAB Trilhas
-2. **Performance**: Aulas salvas no Supabase para cache
-3. **Reutilização**: Usa componentes já testados
-4. **Engajamento**: Slides interativos com animações
-5. **Memorização**: Flashcards e questões integrados
+### Problema
+Os flashcards e questões estão sendo gerados mas não funcionam corretamente.
+
+### Solução
+1. Validar que o JSON retornado tem `flashcards` e `questoes` com dados
+2. Garantir formato correto das questões:
+   - `question` (string)
+   - `options` (array de 4 strings)
+   - `correctAnswer` (número 0-3)
+   - `explicacao` (string)
+3. Exigir no mínimo 10 flashcards e 8 questões
+
+---
+
+## Parte 4: Melhorar Tela de Introdução
+
+### Problema
+A tela de introdução não está seguindo o padrão do OAB Trilhas com os 3 módulos numerados.
+
+### Solução
+Ajustar o componente para usar o layout exato do `OABTrilhasTopicoIntro`:
+- Módulo 1: Começar Leitura (vermelho/laranja)
+- Módulo 2: Flashcards (roxo) - bloqueado até completar leitura
+- Módulo 3: Praticar (verde) - bloqueado até completar flashcards
+
+---
+
+## Arquivos a Modificar
+
+### Edge Functions
+1. `supabase/functions/gerar-slides-artigo/index.ts` - Reescrever prompt completo
+2. `supabase/functions/gerar-capa-codigo/index.ts` - Nova função para gerar capas
+
+### Componentes
+3. `src/components/AulaArtigoSlidesViewer.tsx` - Usar layout do OABTrilhasTopicoIntro
+
+### Configuração
+4. `supabase/config.toml` - Adicionar nova edge function
+
+---
+
+## Exemplo de Slide com Tom Correto
+
+### ANTES (atual - ruim)
+```
+Título: "Conceito de Lei Penal no Tempo"
+Conteúdo: "A lei penal no tempo é um princípio que..."
+```
+
+### DEPOIS (esperado - bom)
+```
+Título: "Vamos Entender o Art. 2 - Parte por Parte"
+Conteúdo: "Olha só, vamos ler juntos o que diz o artigo:
+
+> 'Ninguém pode ser punido por fato que lei posterior deixa de considerar crime...'
+
+Percebeu? A lei está dizendo algo MUITO importante aqui. Vamos destrinchar:
+
+1. **'Ninguém pode ser punido'** - Isso é uma proibição absoluta! O Estado não pode punir...
+
+2. **'por fato que lei posterior'** - Aqui a lei fala de uma situação curiosa: e se você cometeu algo que ERA crime, mas depois uma nova lei disse que não é mais?
+
+💡 **EXEMPLO PRÁTICO:** 
+Imagine que João foi preso por um crime X em 2020. Em 2021, uma nova lei diz que X não é mais crime. O que acontece com João?
+
+Pela **abolitio criminis**, João deve ser solto! A lei nova mais benéfica retroage para beneficiá-lo.
+
+⚠️ **ATENÇÃO:** Isso é diferente da lei mais grave, que NUNCA retroage!"
+```
+
+---
+
+## Detalhes Técnicos
+
+### Estrutura do Prompt Atualizado
+
+O novo prompt terá:
+1. Tom conversacional igual ao OAB Trilhas
+2. Exigência de explicar palavra por palavra
+3. Uso obrigatório de exemplos com nomes (João, Maria)
+4. Blockquotes para citações legais
+5. Cards de atenção e dica
+6. QuickChecks ao longo do conteúdo
+7. Mínimo de 45 slides, 10 flashcards, 8 questões
