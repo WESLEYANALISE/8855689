@@ -22,62 +22,71 @@ function getGeminiKeys(): string[] {
   return keys;
 }
 
+// Modelos em ordem de prioridade (mais leve/barato primeiro)
+const MODELOS_IMAGEM = [
+  'gemini-2.0-flash-exp-image-generation', // Modelo principal com geração de imagem
+];
+
 async function generateImageWithGemini(prompt: string, keys: string[]): Promise<string | null> {
-  console.log(`[Capa OAB] Gerando imagem com Gemini Flash, ${keys.length} chaves disponíveis`);
+  console.log(`[Capa OAB] Gerando imagem, ${keys.length} chaves disponíveis`);
   
-  for (let i = 0; i < keys.length; i++) {
-    const apiKey = keys[i];
-    console.log(`[Capa OAB] Tentando chave ${i + 1}/${keys.length}...`);
+  for (const modelo of MODELOS_IMAGEM) {
+    console.log(`[Capa OAB] Tentando modelo: ${modelo}`);
     
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              responseModalities: ["TEXT", "IMAGE"]
-            }
-          })
-        }
-      );
+    for (let i = 0; i < keys.length; i++) {
+      const apiKey = keys[i];
+      console.log(`[Capa OAB] Modelo ${modelo}, chave ${i + 1}/${keys.length}...`);
+      
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: prompt }]
+              }],
+              generationConfig: {
+                responseModalities: ["TEXT", "IMAGE"]
+              }
+            })
+          }
+        );
 
-      if (response.status === 429 || response.status === 503) {
-        console.log(`[Capa OAB] Chave ${i + 1} rate limited (${response.status}), tentando próxima...`);
+        if (response.status === 429 || response.status === 503) {
+          console.log(`[Capa OAB] Chave ${i + 1} rate limited (${response.status}), próxima...`);
+          continue;
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[Capa OAB] Erro chave ${i + 1}: ${response.status} - ${errorText.substring(0, 100)}`);
+          continue;
+        }
+
+        const data = await response.json();
+        
+        // Extrair imagem da resposta do Gemini
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData?.mimeType?.startsWith('image/')) {
+            console.log(`[Capa OAB] ✓ Imagem gerada: modelo=${modelo}, chave=${i + 1}`);
+            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          }
+        }
+        
+        console.log(`[Capa OAB] Chave ${i + 1} sem imagem, próxima...`);
+        continue;
+        
+      } catch (error) {
+        console.error(`[Capa OAB] Exceção chave ${i + 1}:`, error);
         continue;
       }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[Capa OAB] Erro na chave ${i + 1}: ${response.status} - ${errorText.substring(0, 200)}`);
-        continue;
-      }
-
-      const data = await response.json();
-      
-      // Extrair imagem da resposta do Gemini
-      const parts = data.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.mimeType?.startsWith('image/')) {
-          console.log(`[Capa OAB] ✓ Imagem gerada com sucesso usando chave ${i + 1}`);
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
-      }
-      
-      console.log(`[Capa OAB] Chave ${i + 1} não retornou imagem, tentando próxima...`);
-      continue;
-      
-    } catch (error) {
-      console.error(`[Capa OAB] Exceção na chave ${i + 1}:`, error);
-      continue;
     }
   }
   
-  console.error('[Capa OAB] Todas as chaves Gemini falharam');
+  console.error('[Capa OAB] Todas as tentativas falharam');
   return null;
 }
 
@@ -87,7 +96,7 @@ serve(async (req) => {
   }
 
   try {
-    const { topico_id, titulo, area } = await req.json();
+    const { topico_id, titulo, area, materia_id } = await req.json();
 
     if (!topico_id) {
       return new Response(
@@ -100,7 +109,37 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`[Capa OAB] Gerando capa para tópico ${topico_id}: ${titulo}`);
+    console.log(`[Capa OAB] Tópico ${topico_id}: "${titulo}" (${area})`);
+
+    // CACHE: Verificar se outro tópico da mesma matéria já tem capa
+    if (materia_id) {
+      const { data: siblingWithCover } = await supabase
+        .from("oab_trilhas_topicos")
+        .select("capa_url")
+        .eq("materia_id", materia_id)
+        .not("capa_url", "is", null)
+        .neq("id", topico_id)
+        .limit(1)
+        .single();
+
+      if (siblingWithCover?.capa_url) {
+        console.log(`[Capa OAB] ✓ Cache: reutilizando capa da matéria ${materia_id}`);
+        
+        const { error: updateError } = await supabase
+          .from("oab_trilhas_topicos")
+          .update({ capa_url: siblingWithCover.capa_url })
+          .eq("id", topico_id);
+
+        if (updateError) {
+          console.error("[Capa OAB] Erro ao atualizar com cache:", updateError);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, cached: true, capa_url: siblingWithCover.capa_url }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // Verificar chaves disponíveis
     const geminiKeys = getGeminiKeys();
@@ -108,22 +147,21 @@ serve(async (req) => {
       throw new Error("Nenhuma chave Gemini configurada");
     }
 
-    // Gerar prompt para a imagem
-    const imagePrompt = `Generate a CINEMATIC 16:9 horizontal illustration with EDGE-TO-EDGE composition and NO white borders or margins. 
-Dark rich background covering the entire frame in deep navy and burgundy tones. 
-Brazilian legal education scene with subtle scales of justice, law books, and abstract geometric patterns. 
-Professional, sophisticated mood representing "${area}" for the OAB bar exam. 
-Theme: "${titulo}". 
-Modern minimal style with dramatic lighting, no text, no people faces.
-Ultra high resolution, photorealistic quality.`;
+    // PROMPT SIMPLIFICADO (70% menor)
+    const imagePrompt = `16:9 dark cinematic illustration, Brazilian law theme about "${area}".
+Abstract geometric patterns with scales of justice.
+Deep navy and burgundy tones, dramatic lighting.
+No text, no faces, minimal style.`;
 
-    // Gerar imagem usando Gemini Flash
+    console.log(`[Capa OAB] Prompt: ${imagePrompt.length} chars`);
+
+    // Gerar imagem usando Gemini
     const imageDataUrl = await generateImageWithGemini(imagePrompt, geminiKeys);
 
     if (!imageDataUrl) {
-      console.log("[Capa OAB] Imagem não gerada, usando fallback da matéria");
+      console.log("[Capa OAB] Imagem não gerada, retornando fallback");
       return new Response(
-        JSON.stringify({ success: false, message: "Imagem não gerada - todas as chaves falharam" }),
+        JSON.stringify({ success: false, message: "Imagem não gerada" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -148,7 +186,7 @@ Ultra high resolution, photorealistic quality.`;
       });
 
     if (uploadError) {
-      console.error("[Capa OAB] Erro no upload:", uploadError);
+      console.error("[Capa OAB] Erro upload:", uploadError);
       throw uploadError;
     }
 
@@ -170,7 +208,7 @@ Ultra high resolution, photorealistic quality.`;
       throw updateError;
     }
 
-    console.log(`[Capa OAB] ✓ Capa gerada e salva: ${capaUrl}`);
+    console.log(`[Capa OAB] ✓ Nova capa salva: ${capaUrl}`);
 
     return new Response(
       JSON.stringify({ success: true, capa_url: capaUrl }),
