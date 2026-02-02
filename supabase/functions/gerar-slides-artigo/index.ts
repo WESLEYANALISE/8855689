@@ -109,15 +109,42 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('🔍 Verificando se já existe slides_json para:', codigoTabela, numeroArtigo);
+    // Normalizar codigo_tabela (usar apenas sigla)
+    const codigoTabelaNorm = codigoTabela.toUpperCase().split(' ')[0].split('-')[0].trim(); // "CP - Código Penal" -> "CP"
+    console.log('🔍 Verificando se já existe slides_json para:', codigoTabelaNorm, numeroArtigo);
 
-    // Check if slides already exist
-    const { data: existingAula, error: fetchError } = await supabase
+    // Check if slides already exist (buscar primeiro com sigla normalizada, depois com valor original)
+    let existingAula: any = null;
+    
+    // Tentar buscar com sigla normalizada
+    const { data: aulaByNorm } = await supabase
       .from('aulas_artigos')
-      .select('id, slides_json, estrutura_completa')
-      .eq('codigo_tabela', codigoTabela)
+      .select('id, slides_json, estrutura_completa, visualizacoes')
+      .eq('codigo_tabela', codigoTabelaNorm)
       .eq('numero_artigo', numeroArtigo)
       .single();
+    
+    if (aulaByNorm) {
+      existingAula = aulaByNorm;
+    } else {
+      // Fallback: buscar com o valor original (para dados antigos)
+      const { data: aulaByOriginal } = await supabase
+        .from('aulas_artigos')
+        .select('id, slides_json, estrutura_completa, visualizacoes')
+        .eq('codigo_tabela', codigoTabela)
+        .eq('numero_artigo', numeroArtigo)
+        .single();
+      
+      if (aulaByOriginal) {
+        existingAula = aulaByOriginal;
+        console.log('📦 Encontrado com valor original, normalizando...');
+        // Atualizar para usar o código normalizado
+        await supabase
+          .from('aulas_artigos')
+          .update({ codigo_tabela: codigoTabelaNorm })
+          .eq('id', aulaByOriginal.id);
+      }
+    }
 
     // Se já existe slides_json COM SEÇÕES SUFICIENTES, retorna do cache
     const slidesSecoes = existingAula?.slides_json?.secoes;
@@ -125,7 +152,7 @@ serve(async (req) => {
       slidesSecoes.length >= 4 &&
       slidesSecoes.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) >= 30;
     
-    if (existingAula?.slides_json && hasSufficientSlides && !fetchError) {
+    if (existingAula?.slides_json && hasSufficientSlides) {
       console.log('✅ slides_json completo encontrado no cache, retornando...');
       
       await supabase
@@ -405,7 +432,7 @@ Retorne APENAS o JSON válido, sem markdown ou código.`;
       const { data: newAula, error: insertError } = await supabase
         .from('aulas_artigos')
         .insert({
-          codigo_tabela: codigoTabela,
+          codigo_tabela: codigoTabelaNorm,
           numero_artigo: numeroArtigo,
           conteudo_artigo: conteudoArtigo,
           slides_json: slidesJson,
