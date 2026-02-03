@@ -1,151 +1,213 @@
 
-# Plano: Otimizar Geração de Imagens das Trilhas OAB para Custo Zero
+# Plano: Corrigir Problemas de Conteúdo OAB Trilhas
 
-## Resumo Executivo
-Migrar a geração de imagens dos tópicos OAB para usar configurações otimizadas de custo, aproveitando o **Free Tier do Google Gemini** com prompt simplificado e resolução reduzida.
+## Problemas Identificados
 
-## Situacao Atual
+Analisando o código e as imagens enviadas, identifiquei **4 problemas distintos**:
 
-### Modelo Utilizado
-- **Modelo**: `gemini-2.0-flash-exp-image-generation`
-- **Custo**: Free Tier (gratuito)
-- **Problema**: O prompt atual e excessivamente detalhado, consumindo mais tokens de entrada
+### Problema 1: Saudações repetidas em slides subsequentes
+- **Causa**: O conteúdo gerado mostra "E aí, galera!" no slide 6/36 (não é introdução)
+- **Arquivo afetado**: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
+- **Status do prompt atual**: O prompt JÁ instrui para NÃO usar saudações fora da introdução, mas a IA ignora
+- **Solução**: Reforçar drasticamente as instruções no prompt com exemplos negativos explícitos e validação posterior
 
-### Prompt Atual (172 palavras - muito longo)
-```
-Generate a CINEMATIC 16:9 horizontal illustration with EDGE-TO-EDGE composition...
-Dark rich background covering the entire frame in deep navy and burgundy tones...
-Brazilian legal education scene with subtle scales of justice...
-Ultra high resolution, photorealistic quality.
-```
+### Problema 2: Termos não estão sendo grifados
+- **Causa**: O `EnrichedMarkdownRenderer` possui a lógica de grifo (termos latinos, juristas, termos jurídicos), mas pode não estar processando o conteúdo corretamente quando recebido via slides
+- **Arquivo afetado**: `src/components/conceitos/slides/ConceitoSlideCard.tsx`
+- **Status atual**: O componente usa `EnrichedMarkdownRenderer`, que já tem os arrays de termos automáticos
+- **Solução**: Verificar se `disableTermos` está sendo passado corretamente e garantir que o renderer está ativo
 
-### Comparativo de Modelos Google
-| Modelo | Free Tier | Pago |
-|--------|-----------|------|
-| `gemini-2.0-flash-exp` | Gratuito | - |
-| `gemini-2.5-flash-image` | Gratuito | $0.30/1M tokens |
-| `gemini-2.5-flash-lite` | Gratuito (mais rapido) | $0.10/1M tokens |
+### Problema 3: Artigos clicáveis não abrem o popover
+- **Causa**: O `ArtigoPopover` existe e tem a lógica de busca no Vade Mecum, mas algo pode estar impedindo a abertura
+- **Arquivo afetado**: `src/components/conceitos/ArtigoPopover.tsx`
+- **Verificação**: A imagem mostra que "Art. 2° do CPP" está destacado em laranja/amarelo, indicando que o componente está sendo renderizado
+- **Possível problema**: A query no Supabase pode estar falhando ou a tabela "CPP - Código de Processo Penal" pode não existir/ter nome diferente
+- **Solução**: Melhorar o mapeamento de tabelas e adicionar logs de debug
 
----
-
-## Plano de Otimizacao
-
-### 1. Simplificar o Prompt (reducao de 70%)
-
-**De 172 palavras para aproximadamente 50 palavras:**
-
-```text
-16:9 dark cinematic illustration, Brazilian law theme about "{area}".
-Abstract geometric patterns with scales of justice.
-Deep navy and burgundy tones, dramatic lighting.
-No text, no faces, minimal style.
-```
-
-**Beneficios:**
-- Menos tokens de entrada = processamento mais rapido
-- Rate limit menos provavel de ser atingido
-- Resultado visual consistente
-
-### 2. Reduzir Resolucao de Saida (opcional via TinyPNG)
-
-Atualmente: 1280x720 (HD)
-Proposta: Manter 1280x720 pois ja e economico
-
-**Alternativa ultra-economica**: 854x480 (SD) - 56% menos pixels
-- Suficiente para thumbnails de 80x80px na UI
-- Reducao significativa no tamanho do arquivo
-
-### 3. Adicionar Multi-Modelo com Fallback Inteligente
-
-Ordem de tentativa (do mais rapido/barato ao mais robusto):
-1. `gemini-2.5-flash-lite` (mais leve)
-2. `gemini-2.0-flash-exp-image-generation` (atual)
-3. `gemini-2.5-flash-image` (alternativo)
-
-### 4. Sistema de Cache Mais Agressivo
-
-- Verificar se outro topico da mesma **materia** ja tem capa
-- Reutilizar a capa da materia para todos os topicos relacionados
-- Reduz geracao de imagens em ate 90%
+### Problema 4: Último slide não é Síntese Final
+- **Causa**: O código em `gerar-conteudo-oab-trilhas` JÁ gera a síntese final (linhas 639-695)
+- **Status**: A síntese é adicionada como última seção com `tipo: "resumo"`
+- **Possível problema**: O conteúdo atual no banco foi gerado ANTES dessa implementação ser adicionada
+- **Solução**: Verificar se o conteúdo precisa ser regenerado; adicionar validação para garantir que a síntese aparece
 
 ---
 
-## Alteracoes Tecnicas
+## Alteracoes Tecnicas Detalhadas
 
-### Arquivo: `supabase/functions/gerar-capa-topico-oab/index.ts`
+### Arquivo 1: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
 
-**Mudancas principais:**
+**Mudancas no promptBase (linha 325-359):**
 
-1. **Novo prompt simplificado:**
 ```typescript
-const imagePrompt = `16:9 dark cinematic illustration, Brazilian law theme about "${area}".
-Abstract geometric patterns with scales of justice.
-Deep navy and burgundy, dramatic lighting.
-No text, no faces, minimal style.`;
+// Adicionar regras MUITO mais enfáticas sobre saudações
+const promptBase = `Você é um professor de Direito didático e acolhedor, preparando FUTUROS ADVOGADOS...
+
+## ⛔⛔⛔ PROIBIDO - REGRAS DE SAUDAÇÃO ⛔⛔⛔
+VOCÊ SERÁ PENALIZADO SE USAR QUALQUER SAUDAÇÃO FORA DO SLIDE "introducao" DA SEÇÃO 1.
+
+❌ EXEMPLOS DE TEXTO PROIBIDO (NÃO USE!):
+- "E aí, galera!"
+- "Vamos lá!"  
+- "Olha só!"
+- "Bora entender..."
+- "E aí, futuro colega!"
+- "Vamos mergulhar..."
+- "Tá preparado?"
+
+✅ COMO COMEÇAR SLIDES QUE NÃO SÃO INTRODUÇÃO:
+- "O conceito de tipicidade..."
+- "A doutrina majoritária entende que..."
+- "Quando analisamos o artigo..."
+- "É fundamental compreender..."
+
+APENAS o slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
+`;
 ```
 
-2. **Multi-modelo com fallback:**
+**Adicionar validação pós-geração para remover saudações (após linha 512):**
+
 ```typescript
-const MODELOS_IMAGEM = [
-  'gemini-2.5-flash-lite',          // Mais barato/rapido
-  'gemini-2.0-flash-exp-image-generation', // Atual
-  'gemini-2.5-flash-image'          // Alternativo
+// Após gerar cada seção, limpar saudações indevidas
+const saudacoesProibidas = [
+  /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]/gi,
+  /^Olha só[!,.\s]/gi,
+  /^Vamos lá[!,.\s]/gi,
+  /^Bora\s/gi,
+  /^Tá preparado/gi,
+  /^Vamos mergulhar/gi,
 ];
-```
 
-3. **Reutilizacao de capa entre topicos da mesma materia:**
-```typescript
-// Verificar se outro topico da mesma materia ja tem capa
-const { data: siblingWithCover } = await supabase
-  .from("oab_trilhas_topicos")
-  .select("capa_url, materia_id")
-  .eq("materia_id", materiaId)
-  .not("capa_url", "is", null)
-  .limit(1)
-  .single();
-
-if (siblingWithCover?.capa_url) {
-  // Reutilizar capa existente
-  await supabase.from("oab_trilhas_topicos")
-    .update({ capa_url: siblingWithCover.capa_url })
-    .eq("id", topico_id);
-  return { success: true, cached: true };
+// Limpar saudações de slides que não são introdução
+for (const slide of secaoCompleta.slides) {
+  if (slide.tipo !== 'introducao' && slide.conteudo) {
+    for (const regex of saudacoesProibidas) {
+      slide.conteudo = slide.conteudo.replace(regex, '');
+    }
+    // Remover espaços iniciais após limpeza
+    slide.conteudo = slide.conteudo.trim();
+  }
 }
 ```
 
-4. **Compressao WebP via TinyPNG (ja implementado):**
-- Reducao media de 60-80% no tamanho
-- Formato WebP mais eficiente
+---
+
+### Arquivo 2: `src/components/conceitos/ArtigoPopover.tsx`
+
+**Melhorar mapeamento de tabelas (linha 45-57):**
+
+```typescript
+const mapearTabelaParaBanco = (codigo: string): string => {
+  const mapeamento: Record<string, string> = {
+    "codigo-civil": "CC - Código Civil",
+    "codigo-penal": "CP - Código Penal",
+    "constituicao-federal": "CF - Constituição Federal",
+    "clt": "CLT - Consolidação das Leis do Trabalho",
+    "cpc": "CPC - Código de Processo Civil",
+    "cpp": "CPP - Código de Processo Penal",  // <- ESSE É O QUE PRECISA FUNCIONAR
+    "cdc": "CDC - Código de Defesa do Consumidor",
+    "eca": "ECA - Estatuto da Criança e do Adolescente",
+    "ctn": "CTN - Código Tributário Nacional",
+    "lep": "LEP - Lei de Execução Penal",
+    "lei-maria-penha": "Lei Maria da Penha",
+  };
+  return mapeamento[codigo] || "CC - Código Civil";
+};
+```
+
+**Melhorar detecção de tabela pelo contexto (linha 31-42):**
+
+```typescript
+const detectarTabela = (artigo: string, contexto?: string): string => {
+  const textoLower = `${artigo} ${contexto || ''}`.toLowerCase();
+  
+  // Detecção mais específica
+  if (textoLower.includes('cpp') || textoLower.includes('processo penal') || textoLower.includes('código de processo penal')) {
+    return "cpp";
+  }
+  if (textoLower.includes('cp') && !textoLower.includes('cpp') && !textoLower.includes('cpc')) {
+    return "codigo-penal";
+  }
+  // ... resto da lógica
+};
+```
+
+**Melhorar a query de busca (linhas 89-111) para CPP:**
+
+```typescript
+// Busca mais robusta com múltiplas variações
+const { data: artigoVadeMecum, error: vmError } = await supabase
+  .from(tabelaMapeada as any)
+  .select('Artigo, "Número do Artigo"')
+  .or(`"Número do Artigo".eq.Art. ${numeroArtigo},` +
+      `"Número do Artigo".eq.Art. ${numeroArtigo}º,` +
+      `"Número do Artigo".eq.Art. ${numeroArtigo}°,` +
+      `"Número do Artigo".ilike.Art.%${numeroArtigo}%`)
+  .limit(1)
+  .maybeSingle();  // Usar maybeSingle para evitar erro quando não encontra
+```
 
 ---
 
-## Estimativa de Economia
+### Arquivo 3: `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
 
-| Item | Antes | Depois |
-|------|-------|--------|
-| Tokens por prompt | ~250 | ~70 |
-| Modelo | Flash exp | Flash Lite (mais leve) |
-| Imagens geradas | 1 por topico | 1 por materia (reutilizada) |
-| Custo total | R$ 0 (Free Tier) | R$ 0 (Free Tier + menos uso) |
+**Mesmo tratamento de saudações (adicionar após linha 342):**
 
-**Beneficio real**: Menos rate limiting, geracao mais rapida, menos falhas
+```typescript
+// Limpar saudações indevidas dos slides gerados
+const limparSaudacoes = (texto: string, tipoSlide: string): string => {
+  if (tipoSlide === 'introducao') return texto; // Introdução pode ter saudação
+  
+  const saudacoes = [
+    /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]/gi,
+    /^Olha só[!,.\s]/gi,
+    /^Vamos lá[!,.\s]/gi,
+    /^Bora\s/gi,
+  ];
+  
+  let resultado = texto;
+  for (const regex of saudacoes) {
+    resultado = resultado.replace(regex, '');
+  }
+  return resultado.trim();
+};
+```
 
 ---
 
-## Arquivos a Modificar
+### Arquivo 4: `supabase/functions/gerar-slides-artigo/index.ts`
 
-1. `supabase/functions/gerar-capa-topico-oab/index.ts`
-   - Prompt simplificado
-   - Multi-modelo com fallback
-   - Sistema de cache por materia
-   - Logs otimizados
+**Mesmo tratamento (verificar e adicionar se necessário)**
 
 ---
 
-## Resultado Esperado
+## Resumo das Mudancas
 
-- Geracao de imagens 2-3x mais rapida
-- Menos erros de rate limiting (429)
-- Mesmo custo: R$ 0 (Free Tier)
-- Imagens consistentes com estilo minimalista
-- Reducao de 90% nas chamadas de API (reutilizacao)
+| Arquivo | Mudanca | Impacto |
+|---------|---------|---------|
+| `gerar-conteudo-oab-trilhas/index.ts` | Prompt mais enfático + validação pós-geração | Elimina saudações |
+| `gerar-conteudo-resumo-oab/index.ts` | Mesmo tratamento de saudações | Consistência |
+| `ArtigoPopover.tsx` | Melhorar mapeamento CPP + usar maybeSingle | Artigos clicáveis funcionam |
+| `ConceitoSlideCard.tsx` | Verificar prop disableTermos | Termos grifados |
+
+---
+
+## Observacoes Importantes
+
+1. **Conteúdo existente**: O conteúdo que você está visualizando foi gerado ANTES das correções. Para ver as mudanças, será necessário **regenerar o conteúdo** do tópico.
+
+2. **Síntese Final**: O código JÁ adiciona a síntese final. Se não está aparecendo, é porque o conteúdo foi gerado antes dessa feature ser implementada.
+
+3. **Build Error**: O erro de build mencionado está truncado no log. Vou investigar os arquivos mais prováveis para corrigir erros de TypeScript.
+
+4. **Artigos do CPP**: A busca no Vade Mecum para o CPP pode estar falhando se a tabela "CPP - Código de Processo Penal" não existir ou tiver nome diferente no banco.
+
+---
+
+## Sequencia de Implementacao
+
+1. Corrigir o prompt e adicionar sanitização pós-geração
+2. Melhorar o ArtigoPopover para busca mais robusta
+3. Verificar e corrigir o erro de build
+4. Deploy das edge functions
+5. Regenerar um tópico para testar
+
