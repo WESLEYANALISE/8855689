@@ -434,9 +434,12 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
     );
   }
 
-  const isGerando = !resumo?.conteudo_gerado || gerarConteudoMutation.isPending || isGeneratingContent;
+  // Só considerar "gerando" APÓS o resumo ter sido carregado da query
+  // Isso evita o flash de UI antes do dado chegar
+  const hasLoadedResumo = !!resumo;
+  const isGerando = hasLoadedResumo && (!resumo.conteudo_gerado || gerarConteudoMutation.isPending || isGeneratingContent);
 
-  // Estado de geração
+  // Estado de geração (só mostra se já carregou o resumo e está realmente gerando)
   if (isGerando) {
     return (
       <div className="min-h-screen bg-[#0d0d14]">
