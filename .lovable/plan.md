@@ -1,213 +1,276 @@
 
-# Plano: Corrigir Problemas de Conteúdo OAB Trilhas
 
-## Problemas Identificados
-
-Analisando o código e as imagens enviadas, identifiquei **4 problemas distintos**:
-
-### Problema 1: Saudações repetidas em slides subsequentes
-- **Causa**: O conteúdo gerado mostra "E aí, galera!" no slide 6/36 (não é introdução)
-- **Arquivo afetado**: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
-- **Status do prompt atual**: O prompt JÁ instrui para NÃO usar saudações fora da introdução, mas a IA ignora
-- **Solução**: Reforçar drasticamente as instruções no prompt com exemplos negativos explícitos e validação posterior
-
-### Problema 2: Termos não estão sendo grifados
-- **Causa**: O `EnrichedMarkdownRenderer` possui a lógica de grifo (termos latinos, juristas, termos jurídicos), mas pode não estar processando o conteúdo corretamente quando recebido via slides
-- **Arquivo afetado**: `src/components/conceitos/slides/ConceitoSlideCard.tsx`
-- **Status atual**: O componente usa `EnrichedMarkdownRenderer`, que já tem os arrays de termos automáticos
-- **Solução**: Verificar se `disableTermos` está sendo passado corretamente e garantir que o renderer está ativo
-
-### Problema 3: Artigos clicáveis não abrem o popover
-- **Causa**: O `ArtigoPopover` existe e tem a lógica de busca no Vade Mecum, mas algo pode estar impedindo a abertura
-- **Arquivo afetado**: `src/components/conceitos/ArtigoPopover.tsx`
-- **Verificação**: A imagem mostra que "Art. 2° do CPP" está destacado em laranja/amarelo, indicando que o componente está sendo renderizado
-- **Possível problema**: A query no Supabase pode estar falhando ou a tabela "CPP - Código de Processo Penal" pode não existir/ter nome diferente
-- **Solução**: Melhorar o mapeamento de tabelas e adicionar logs de debug
-
-### Problema 4: Último slide não é Síntese Final
-- **Causa**: O código em `gerar-conteudo-oab-trilhas` JÁ gera a síntese final (linhas 639-695)
-- **Status**: A síntese é adicionada como última seção com `tipo: "resumo"`
-- **Possível problema**: O conteúdo atual no banco foi gerado ANTES dessa implementação ser adicionada
-- **Solução**: Verificar se o conteúdo precisa ser regenerado; adicionar validação para garantir que a síntese aparece
-
----
-
-## Alteracoes Tecnicas Detalhadas
-
-### Arquivo 1: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
-
-**Mudancas no promptBase (linha 325-359):**
-
-```typescript
-// Adicionar regras MUITO mais enfáticas sobre saudações
-const promptBase = `Você é um professor de Direito didático e acolhedor, preparando FUTUROS ADVOGADOS...
-
-## ⛔⛔⛔ PROIBIDO - REGRAS DE SAUDAÇÃO ⛔⛔⛔
-VOCÊ SERÁ PENALIZADO SE USAR QUALQUER SAUDAÇÃO FORA DO SLIDE "introducao" DA SEÇÃO 1.
-
-❌ EXEMPLOS DE TEXTO PROIBIDO (NÃO USE!):
-- "E aí, galera!"
-- "Vamos lá!"  
-- "Olha só!"
-- "Bora entender..."
-- "E aí, futuro colega!"
-- "Vamos mergulhar..."
-- "Tá preparado?"
-
-✅ COMO COMEÇAR SLIDES QUE NÃO SÃO INTRODUÇÃO:
-- "O conceito de tipicidade..."
-- "A doutrina majoritária entende que..."
-- "Quando analisamos o artigo..."
-- "É fundamental compreender..."
-
-APENAS o slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
-`;
-```
-
-**Adicionar validação pós-geração para remover saudações (após linha 512):**
-
-```typescript
-// Após gerar cada seção, limpar saudações indevidas
-const saudacoesProibidas = [
-  /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]/gi,
-  /^Olha só[!,.\s]/gi,
-  /^Vamos lá[!,.\s]/gi,
-  /^Bora\s/gi,
-  /^Tá preparado/gi,
-  /^Vamos mergulhar/gi,
-];
-
-// Limpar saudações de slides que não são introdução
-for (const slide of secaoCompleta.slides) {
-  if (slide.tipo !== 'introducao' && slide.conteudo) {
-    for (const regex of saudacoesProibidas) {
-      slide.conteudo = slide.conteudo.replace(regex, '');
-    }
-    // Remover espaços iniciais após limpeza
-    slide.conteudo = slide.conteudo.trim();
-  }
-}
-```
-
----
-
-### Arquivo 2: `src/components/conceitos/ArtigoPopover.tsx`
-
-**Melhorar mapeamento de tabelas (linha 45-57):**
-
-```typescript
-const mapearTabelaParaBanco = (codigo: string): string => {
-  const mapeamento: Record<string, string> = {
-    "codigo-civil": "CC - Código Civil",
-    "codigo-penal": "CP - Código Penal",
-    "constituicao-federal": "CF - Constituição Federal",
-    "clt": "CLT - Consolidação das Leis do Trabalho",
-    "cpc": "CPC - Código de Processo Civil",
-    "cpp": "CPP - Código de Processo Penal",  // <- ESSE É O QUE PRECISA FUNCIONAR
-    "cdc": "CDC - Código de Defesa do Consumidor",
-    "eca": "ECA - Estatuto da Criança e do Adolescente",
-    "ctn": "CTN - Código Tributário Nacional",
-    "lep": "LEP - Lei de Execução Penal",
-    "lei-maria-penha": "Lei Maria da Penha",
-  };
-  return mapeamento[codigo] || "CC - Código Civil";
-};
-```
-
-**Melhorar detecção de tabela pelo contexto (linha 31-42):**
-
-```typescript
-const detectarTabela = (artigo: string, contexto?: string): string => {
-  const textoLower = `${artigo} ${contexto || ''}`.toLowerCase();
-  
-  // Detecção mais específica
-  if (textoLower.includes('cpp') || textoLower.includes('processo penal') || textoLower.includes('código de processo penal')) {
-    return "cpp";
-  }
-  if (textoLower.includes('cp') && !textoLower.includes('cpp') && !textoLower.includes('cpc')) {
-    return "codigo-penal";
-  }
-  // ... resto da lógica
-};
-```
-
-**Melhorar a query de busca (linhas 89-111) para CPP:**
-
-```typescript
-// Busca mais robusta com múltiplas variações
-const { data: artigoVadeMecum, error: vmError } = await supabase
-  .from(tabelaMapeada as any)
-  .select('Artigo, "Número do Artigo"')
-  .or(`"Número do Artigo".eq.Art. ${numeroArtigo},` +
-      `"Número do Artigo".eq.Art. ${numeroArtigo}º,` +
-      `"Número do Artigo".eq.Art. ${numeroArtigo}°,` +
-      `"Número do Artigo".ilike.Art.%${numeroArtigo}%`)
-  .limit(1)
-  .maybeSingle();  // Usar maybeSingle para evitar erro quando não encontra
-```
-
----
-
-### Arquivo 3: `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
-
-**Mesmo tratamento de saudações (adicionar após linha 342):**
-
-```typescript
-// Limpar saudações indevidas dos slides gerados
-const limparSaudacoes = (texto: string, tipoSlide: string): string => {
-  if (tipoSlide === 'introducao') return texto; // Introdução pode ter saudação
-  
-  const saudacoes = [
-    /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]/gi,
-    /^Olha só[!,.\s]/gi,
-    /^Vamos lá[!,.\s]/gi,
-    /^Bora\s/gi,
-  ];
-  
-  let resultado = texto;
-  for (const regex of saudacoes) {
-    resultado = resultado.replace(regex, '');
-  }
-  return resultado.trim();
-};
-```
-
----
-
-### Arquivo 4: `supabase/functions/gerar-slides-artigo/index.ts`
-
-**Mesmo tratamento (verificar e adicionar se necessário)**
-
----
+# Plano: Ajustar Flashcards para Usar Áreas da Biblioteca de Estudos
 
 ## Resumo das Mudancas
 
-| Arquivo | Mudanca | Impacto |
-|---------|---------|---------|
-| `gerar-conteudo-oab-trilhas/index.ts` | Prompt mais enfático + validação pós-geração | Elimina saudações |
-| `gerar-conteudo-resumo-oab/index.ts` | Mesmo tratamento de saudações | Consistência |
-| `ArtigoPopover.tsx` | Melhorar mapeamento CPP + usar maybeSingle | Artigos clicáveis funcionam |
-| `ConceitoSlideCard.tsx` | Verificar prop disableTermos | Termos grifados |
+Você quer:
+1. Mostrar quantidade de áreas disponíveis ao lado do total de flashcards
+2. Usar as mesmas áreas da Biblioteca de Estudos (excluindo Português, Revisão OAB, Pesquisa Científica, Formação Complementar)
+3. Usar as mesmas capas da Biblioteca de Estudos
+4. Obter o prompt para gerar capas manualmente (formato thumbnail)
+5. Deixar títulos mais responsivos e sem negrito
 
 ---
 
-## Observacoes Importantes
+## Áreas que Serão Usadas
 
-1. **Conteúdo existente**: O conteúdo que você está visualizando foi gerado ANTES das correções. Para ver as mudanças, será necessário **regenerar o conteúdo** do tópico.
+Com base na Biblioteca de Estudos, excluindo as 4 áreas solicitadas:
 
-2. **Síntese Final**: O código JÁ adiciona a síntese final. Se não está aparecendo, é porque o conteúdo foi gerado antes dessa feature ser implementada.
+| Area | Livros |
+|------|--------|
+| Direito Administrativo | 26 |
+| Direito Ambiental | 7 |
+| Direito Civil | 56 |
+| Direito Concorrencial | 7 |
+| Direito Constitucional | 45 |
+| Direito Desportivo | 2 |
+| Direito Do Trabalho | 29 |
+| Direito Empresarial | 12 |
+| Direito Financeiro | 16 |
+| Direito Internacional Privado | 2 |
+| Direito Internacional Público | 10 |
+| Direito Penal | 44 |
+| Direito Previdenciário | 15 |
+| Direito Processual Civil | 51 |
+| Direito Processual Do Trabalho | 11 |
+| Direito Processual Penal | 22 |
+| Direitos Humanos | 7 |
+| Direito Tributário | 39 |
+| Direito Urbanístico | 6 |
+| Lei Penal Especial | 14 |
+| Políticas Públicas | 14 |
+| Prática Profissional | 8 |
+| Teoria E Filosofia Do Direito | 17 |
 
-3. **Build Error**: O erro de build mencionado está truncado no log. Vou investigar os arquivos mais prováveis para corrigir erros de TypeScript.
+**Total: 23 áreas**
 
-4. **Artigos do CPP**: A busca no Vade Mecum para o CPP pode estar falhando se a tabela "CPP - Código de Processo Penal" não existir ou tiver nome diferente no banco.
+---
+
+## Prompt para Gerar Capas Manualmente (Thumbnail)
+
+Encontrei o prompt completo usado na Edge Function `gerar-capa-biblioteca`. Aqui está o formato para você usar:
+
+```text
+CRITICAL INSTRUCTION - ABSOLUTE TEXT PROHIBITION:
+This image MUST contain ZERO text elements. Any image with letters, words, numbers, titles, labels, signs, typography, watermarks, or any written content will be REJECTED. Generate a PURELY VISUAL illustration with NO TEXT WHATSOEVER.
+
+Create a CINEMATIC EDITORIAL ILLUSTRATION in 16:9 horizontal format (thumbnail).
+
+VISUAL CONCEPT: "[NOME DA ÁREA - ex: Direito Penal]"
+THEMATIC AREA: Direito
+
+SCENE TO ILLUSTRATE:
+[DESCRIÇÃO DA CENA - ex: Brazilian courtroom with judge delivering verdict, dramatic lighting]
+
+SCENE ELEMENTS:
+[ELEMENTOS - ex: judge with gavel, defendant standing, serious atmosphere, dark wood]
+
+ATMOSPHERE:
+[ATMOSFERA - ex: gravity of justice, professional legal environment]
+
+VISUAL STYLE REQUIREMENTS:
+- Semi-realistic cinematic illustration style
+- High detail with visible textures
+- Realistic human proportions and expressions
+- Dramatic cinematic lighting with strong directional source
+- Rich environmental details (objects, clothing, architecture)
+- Movie poster aesthetic quality
+- Magazine editorial illustration feel
+
+COLOR PALETTE (MANDATORY):
+[DESCRIÇÃO DE CORES - ex: deep crimson red, black shadows, golden accents]
+• Primary: [COR PRINCIPAL - ex: #8B0000]
+• Secondary: [COR SECUNDÁRIA - ex: #1a1a1a]
+• Accent: [COR DESTAQUE - ex: #D4AF37]
+Apply this color grading throughout the entire composition.
+
+COMPOSITION:
+- 16:9 horizontal thumbnail format
+- Dynamic, engaging arrangement
+- Clear focal point with depth through layering
+- Professional premium quality
+
+SCENE DETAILS:
+- Realistic fabric textures
+- Authentic Brazilian legal settings
+- Period-appropriate elements
+- Professional attire and equipment
+- Environmental storytelling
+
+FINAL CHECK - TEXT PROHIBITION:
+- NO text, NO letters, NO words, NO numbers, NO signs, NO labels
+- NO typography of any kind
+- All signs, documents, or papers in scene must be blank or blurred
+- PURELY VISUAL content only
+```
+
+**Paleta de Cores por Área:**
+
+| Área | Primária | Secundária | Destaque | Descrição |
+|------|----------|------------|----------|-----------|
+| Direito Penal | #8B0000 | #1a1a1a | #D4AF37 | deep crimson red, black shadows, golden accents |
+| Direito Civil | #1E3A5F | #F5F5F5 | #C0C0C0 | navy blue, clean white, silver tones |
+| Direito Constitucional | #006400 | #FFD700 | #00308F | deep green, golden yellow, patriotic blue |
+| Direito Tributário | #228B22 | #D4AF37 | #CD7F32 | forest green, gold, bronze money tones |
+| Direito do Trabalho | #CC5500 | #1E3A5F | #8B4513 | burnt orange, industrial blue, earthy brown |
+| Direito Administrativo | #663399 | #808080 | #FFFFFF | royal purple, institutional gray, white |
+| Direito Empresarial | #0047AB | #D4AF37 | #36454F | corporate blue, gold, charcoal |
+| Direito Processual Civil | #4682B4 | #FFFFFF | #C0C0C0 | steel blue, white, silver |
+| Direito Processual Penal | #800020 | #696969 | #1a1a1a | burgundy red, dark gray, black |
+| Direito Ambiental | #228B22 | #8B4513 | #87CEEB | forest green, earth brown, sky blue |
+| Direito Internacional | #0047AB | #FFFFFF | #D4AF37 | royal blue, white, gold diplomatic |
+| Direito Previdenciário | #FF8C00 | #FFFDD0 | #8B4513 | warm orange, cream, brown |
+| Filosofia do Direito | #4B0082 | #D4AF37 | #FFFDD0 | deep indigo, gold, cream |
+| Default | #1E3A5F | #D4AF37 | #FFFFFF | navy blue, gold, white |
+
+---
+
+## Alteracoes no Código
+
+### Arquivo 1: `src/hooks/useFlashcardsAreasCache.ts`
+
+**Mudanca**: Buscar áreas da BIBLIOTECA-ESTUDOS em vez do RPC atual, excluindo as 4 áreas proibidas.
+
+```typescript
+// Áreas a excluir
+const AREAS_EXCLUIDAS = [
+  'Portugues',
+  'Revisão Oab', 
+  'Pesquisa Científica',
+  'Formação Complementar'
+];
+
+// Buscar áreas únicas da BIBLIOTECA-ESTUDOS
+const { data: bibliotecaData } = await supabase
+  .from('BIBLIOTECA-ESTUDOS')
+  .select('Área, url_capa_gerada, "Capa-livro"')
+  .not('Área', 'is', null);
+
+// Agrupar por área e pegar primeira capa
+const areasMap = new Map<string, { capa: string | null; count: number }>();
+bibliotecaData?.forEach(item => {
+  if (item.Área && !AREAS_EXCLUIDAS.includes(item.Área)) {
+    const existing = areasMap.get(item.Área);
+    if (!existing) {
+      areasMap.set(item.Área, { 
+        capa: item.url_capa_gerada || item["Capa-livro"], 
+        count: 1 
+      });
+    } else {
+      existing.count++;
+      if (!existing.capa) {
+        existing.capa = item.url_capa_gerada || item["Capa-livro"];
+      }
+    }
+  }
+});
+
+// Buscar contagem de flashcards por área
+const { data: flashcardsCount } = await supabase
+  .rpc('get_flashcard_areas_from_gerados');
+
+// Combinar dados
+const result = Array.from(areasMap.entries()).map(([area, data]) => {
+  const fcData = flashcardsCount?.find(f => f.area === area);
+  return {
+    area,
+    totalFlashcards: fcData?.total_flashcards || 0,
+    totalTemas: data.count,
+    urlCapa: data.capa
+  };
+}).sort((a, b) => a.area.localeCompare(b.area, 'pt-BR'));
+```
+
+**Retornar também a contagem de áreas:**
+```typescript
+return {
+  areas,
+  isLoading,
+  totalFlashcards,
+  totalAreas: areas?.length || 0  // NOVO
+};
+```
+
+---
+
+### Arquivo 2: `src/pages/FlashcardsAreas.tsx`
+
+**Mudancas:**
+
+1. **Mostrar quantidade de áreas ao lado do total de flashcards**
+
+```typescript
+// Linha 86-87 - Atualizar para mostrar áreas também
+<p className="text-muted-foreground text-sm ml-11">
+  <span className="text-violet-400 font-semibold">{totalFlashcards.toLocaleString('pt-BR')}</span> flashcards
+  <span className="text-gray-500 mx-2">•</span>
+  <span className="text-violet-400 font-semibold">{areas?.length || 0}</span> áreas
+</p>
+```
+
+2. **Remover negrito dos títulos e melhorar responsividade**
+
+```typescript
+// Linha 208-210 - Remover font-medium, adicionar text-wrap
+<h3 className="text-[13px] leading-snug text-white break-words">
+  {area.area}
+</h3>
+```
+
+3. **Mesma mudança para cards bloqueados (linha 301-303)**
+
+```typescript
+<h3 className="text-[13px] leading-snug text-white/60 break-words">
+  {area.area}
+</h3>
+```
+
+---
+
+### Arquivo 3: `src/pages/FlashcardsTemas.tsx`
+
+**Mudancas para títulos sem negrito:**
+
+1. **Linha 346 - Remover font-medium do título do tema**
+
+```typescript
+<h3 className="text-sm leading-snug text-white line-clamp-2">
+  {item.tema}
+</h3>
+```
+
+2. **Linha 340 - Remover font-semibold do label "Tema X"**
+
+```typescript
+<p className={`text-xs mb-0.5 ${
+  item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-violet-400"
+}`}>
+  Tema {item.ordem + 1}
+</p>
+```
+
+---
+
+## Resumo Visual das Mudancas
+
+| Componente | Antes | Depois |
+|------------|-------|--------|
+| Header FlashcardsAreas | "27.890 flashcards disponíveis" | "27.890 flashcards • 23 áreas" |
+| Título da área | **font-medium** (negrito) | texto normal, break-words |
+| Label "Tema X" | **font-semibold** | texto normal |
+| Título do tema | **font-medium** | texto normal |
+| Fonte de dados | `flashcards_areas` table | `BIBLIOTECA-ESTUDOS` table |
+| Capas | `flashcards_areas.url_capa` | `BIBLIOTECA-ESTUDOS.url_capa_gerada` |
 
 ---
 
 ## Sequencia de Implementacao
 
-1. Corrigir o prompt e adicionar sanitização pós-geração
-2. Melhorar o ArtigoPopover para busca mais robusta
-3. Verificar e corrigir o erro de build
-4. Deploy das edge functions
-5. Regenerar um tópico para testar
+1. Atualizar `useFlashcardsAreasCache.ts` para buscar da BIBLIOTECA-ESTUDOS
+2. Adicionar retorno de `totalAreas` no hook
+3. Atualizar `FlashcardsAreas.tsx` para mostrar contagem de áreas
+4. Remover negrito dos títulos em `FlashcardsAreas.tsx`
+5. Remover negrito dos títulos em `FlashcardsTemas.tsx`
+6. Testar a responsividade com títulos longos
 
