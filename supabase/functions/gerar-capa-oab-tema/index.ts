@@ -826,57 +826,58 @@ function gerarFallbackInteligente(titulo: string): ContextoVisual {
 }
 
 function gerarPromptCompleto(titulo: string, area: string, contexto: ContextoVisual, variacao: string, paleta: any): string {
-  return `CRITICAL INSTRUCTION - ABSOLUTE TEXT PROHIBITION:
-This image MUST contain ZERO text elements. Any image with letters, words, numbers, titles, labels, signs, typography, watermarks, or any written content will be REJECTED. Generate a PURELY VISUAL illustration with NO TEXT WHATSOEVER.
+  return `⛔ MANDATORY: ABSOLUTELY NO TEXT IN IMAGE ⛔
 
-Create a CINEMATIC EDITORIAL ILLUSTRATION in 16:9 horizontal format.
+Generate a purely visual scene. DO NOT include:
+- Any letters, words, or typography
+- Book titles, labels, signs, or banners
+- Numbers, dates, or codes
+- Any readable content whatsoever
 
-VISUAL CONCEPT: "${titulo}"
-THEMATIC AREA: ${area || 'Direito'}
+If any document, book, sign or paper appears in scene, it MUST be:
+- Completely blank (white/cream colored)
+- Blurred beyond recognition
+- Shown from angle where text is not visible
 
-SCENE TO ILLUSTRATE:
+---
+
+Create a CINEMATIC PHOTOREALISTIC SCENE in 16:9 horizontal format.
+
+SUBJECT: Visual representation of "${titulo}"
+LEGAL AREA: ${area || 'Direito'}
+
+SCENE DESCRIPTION:
 ${variacao}
 
-SCENE ELEMENTS:
+KEY VISUAL ELEMENTS (no text on any of them):
 ${contexto.elementos}
 
-ATMOSPHERE:
+MOOD/ATMOSPHERE:
 ${contexto.atmosfera}
 
-VISUAL STYLE REQUIREMENTS:
-- Semi-realistic cinematic illustration style
-- High detail with visible textures
-- Realistic human proportions and expressions
-- Dramatic cinematic lighting with strong directional source
-- Rich environmental details (objects, clothing, architecture)
-- Movie poster aesthetic quality
-- Magazine editorial illustration feel
+VISUAL STYLE:
+- Photorealistic cinematic quality (like movie still)
+- Dramatic lighting with strong directional source
+- Rich details in textures, clothing, architecture
+- Magazine editorial quality
+- Movie poster aesthetic
 
-COLOR PALETTE (MANDATORY):
+COLOR GRADING (apply throughout):
 ${paleta.descricao}
-• Primary: ${paleta.corPrincipal}
-• Secondary: ${paleta.corSecundaria}
-• Accent: ${paleta.corDestaque}
-Apply this color grading throughout the entire composition.
+Main tones: ${paleta.corPrincipal}, ${paleta.corSecundaria}, ${paleta.corDestaque}
 
-COMPOSITION:
-- 16:9 horizontal landscape format (wider than tall)
-- Dynamic, engaging arrangement
-- Clear focal point with depth through layering
-- Professional premium quality
+TECHNICAL SPECS:
+- 16:9 widescreen landscape format
+- Sharp focus on main subject
+- Cinematic depth of field
+- Professional photography quality
 
-SCENE DETAILS:
-- Realistic fabric textures
-- Authentic Brazilian legal settings
-- Period-appropriate elements
-- Professional attire and equipment
-- Environmental storytelling
-
-FINAL CHECK - TEXT PROHIBITION:
-- NO text, NO letters, NO words, NO numbers, NO signs, NO labels
-- NO typography of any kind
-- All signs, documents, or papers in scene must be blank or blurred
-- PURELY VISUAL content only`;
+CRITICAL REMINDERS:
+✓ Books shown = blank covers only
+✓ Documents shown = blank pages only  
+✓ Signs shown = blank or illegible
+✓ No watermarks, no labels, no typography
+✓ PURE VISUAL STORYTELLING - let the image speak without words`;
 }
 
 async function comprimirParaWebP(imageBytes: Uint8Array, apiKey: string): Promise<Uint8Array<ArrayBuffer>> {
