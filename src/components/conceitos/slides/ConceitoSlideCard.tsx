@@ -115,10 +115,21 @@ export const ConceitoSlideCard = ({
   
   const Icon = iconMap[slide.tipo] || FileText;
 
-  // Scroll to top when page changes
+  // Scroll to top when page changes - INSTANT para garantir posição
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll imediato (não suave) para garantir que comece do topo
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    
+    // Também scrollar o container interno se existir
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+    
+    // E o container pai de overflow
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
   }, [paginaIndex]);
 
   // Reset state quando slide muda
