@@ -379,9 +379,9 @@ export const InteractiveSlide = ({
                           <h4 className="font-bold text-foreground uppercase text-sm tracking-wide">
                             {item.termo}
                           </h4>
-                          <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
-                            {item.definicao}
-                          </p>
+                          <div className="text-muted-foreground text-sm mt-1 leading-relaxed">
+                            {renderHtmlContent(item.definicao)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -390,11 +390,7 @@ export const InteractiveSlide = ({
               ) : isExplicacao && slide.topicos && slide.topicos.length > 0 ? (
                 /* Explicacao slide with topics */
                 <div className="space-y-5">
-                  {slide.conteudo && (
-                    <p className="text-foreground leading-relaxed">
-                      {slide.conteudo}
-                    </p>
-                  )}
+                  {slide.conteudo && renderHtmlContent(slide.conteudo)}
                   <div className="space-y-4 mt-4">
                     {slide.topicos.map((topico, idx) => (
                       <div 
@@ -409,9 +405,7 @@ export const InteractiveSlide = ({
                             <h4 className="font-semibold text-foreground text-sm">
                               {topico.titulo}
                             </h4>
-                            <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
-                              {topico.detalhe}
-                            </p>
+                            {renderHtmlContent(topico.detalhe)}
                           </div>
                         </div>
                       </div>
