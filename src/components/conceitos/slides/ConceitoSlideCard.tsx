@@ -477,10 +477,7 @@ export const ConceitoSlideCard = ({
               {getPaginaLabel(slide.tipo)}
             </p>
             {slide.titulo && (
-              <h2 
-                className="text-xl md:text-2xl font-bold text-white leading-tight"
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              >
+              <h2 className="text-xl md:text-2xl font-bold text-white leading-tight tracking-tight">
                 {slide.titulo}
               </h2>
             )}
