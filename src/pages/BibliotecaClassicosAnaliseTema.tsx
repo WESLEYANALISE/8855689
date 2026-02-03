@@ -122,7 +122,7 @@ const BibliotecaClassicosAnaliseTema = () => {
   const [activeTab, setActiveTab] = useState<TabType>("analise");
   const [flashcardIndex, setFlashcardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(15);
   const [showQuestoesCard, setShowQuestoesCard] = useState(false);
 
   const aumentarFonte = () => setFontSize(prev => Math.min(prev + 2, 24));

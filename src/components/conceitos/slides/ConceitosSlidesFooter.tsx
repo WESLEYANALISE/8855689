@@ -43,7 +43,7 @@ export const ConceitosSlidesFooter = ({
   onPrevious,
   canGoBack,
   canGoForward,
-  fontSize = 16,
+  fontSize = 15,
   onFontSizeChange
 }: ConceitosSlidesFooterProps) => {
   const [showIndex, setShowIndex] = useState(false);
