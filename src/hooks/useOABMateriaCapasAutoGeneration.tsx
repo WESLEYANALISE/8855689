@@ -5,6 +5,7 @@ interface MateriaParaCapa {
   id: number;
   titulo: string;
   capa_url: string | null;
+  capa_versao?: number | null;
 }
 
 export function useOABMateriaCapasAutoGeneration(
@@ -17,25 +18,26 @@ export function useOABMateriaCapasAutoGeneration(
 
   const gerarCapaParaMateria = useCallback(async (materia: MateriaParaCapa, areaNome: string) => {
     try {
-      console.log(`[CapaMateria] Gerando capa para: ${materia.titulo}`);
+      console.log(`[CapaMateria v2] Gerando capa temática para: ${materia.titulo}`);
       
-      const { data, error } = await supabase.functions.invoke("gerar-capa-materia-oab", {
+      // Usar nova função com mapeamento detalhado por tema
+      const { data, error } = await supabase.functions.invoke("gerar-capa-oab-tema", {
         body: { 
-          topico_id: materia.id,
-          titulo: materia.titulo,
+          materia_id: materia.id,
+          materia_titulo: materia.titulo,
           area_nome: areaNome
         },
       });
 
       if (error) {
-        console.error(`[CapaMateria] Erro:`, error);
+        console.error(`[CapaMateria v2] Erro:`, error);
         return false;
       }
 
-      console.log(`[CapaMateria] ✅ Capa gerada:`, data?.url || data?.cached);
+      console.log(`[CapaMateria v2] ✅ Capa gerada:`, data?.capa_url || data?.cached);
       return true;
     } catch (err) {
-      console.error(`[CapaMateria] Erro:`, err);
+      console.error(`[CapaMateria v2] Erro:`, err);
       return false;
     }
   }, []);
@@ -43,14 +45,15 @@ export function useOABMateriaCapasAutoGeneration(
   useEffect(() => {
     if (!materias || materias.length === 0 || !areaNome) return;
 
-    const materiasSemCapa = materias.filter((m) => !m.capa_url);
+    // Filtrar matérias que precisam de nova capa (sem capa ou versão antiga)
+    const materiasSemCapaV2 = materias.filter((m) => !m.capa_url || m.capa_versao !== 2);
     
-    if (materiasSemCapa.length === 0) {
+    if (materiasSemCapaV2.length === 0) {
       setIsGenerating(false);
       return;
     }
 
-    setTotalSemCapa(materiasSemCapa.length);
+    setTotalSemCapa(materiasSemCapaV2.length);
     
     // Evita múltiplas execuções simultâneas
     if (isGenerating) return;
@@ -59,14 +62,14 @@ export function useOABMateriaCapasAutoGeneration(
       setIsGenerating(true);
       setProcessados(0);
 
-      for (let i = 0; i < materiasSemCapa.length; i++) {
-        const materia = materiasSemCapa[i];
+      for (let i = 0; i < materiasSemCapaV2.length; i++) {
+        const materia = materiasSemCapaV2[i];
         
         await gerarCapaParaMateria(materia, areaNome);
         setProcessados(i + 1);
         
         // Delay entre gerações para evitar rate limiting
-        if (i < materiasSemCapa.length - 1) {
+        if (i < materiasSemCapaV2.length - 1) {
           await new Promise((r) => setTimeout(r, 3000));
         }
       }
