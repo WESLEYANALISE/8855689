@@ -1,0 +1,20 @@
+-- Inserir tópicos de Direito Tributário (materia_id = 6)
+INSERT INTO oab_trilhas_topicos (materia_id, ordem, titulo, status) VALUES
+(6, 1, 'Princípios Tributários', 'pendente'),
+(6, 2, 'Fontes do Direito Tributário', 'pendente'),
+(6, 3, 'Interpretação e Integração da Lei Tributária', 'pendente'),
+(6, 4, 'Competência Tributária', 'pendente'),
+(6, 5, 'Repartição de Receitas Tributárias', 'pendente'),
+(6, 6, 'Espécies Tributárias', 'pendente'),
+(6, 7, 'Tributos em Espécie', 'pendente'),
+(6, 8, 'Imunidades Tributárias', 'pendente'),
+(6, 9, 'Imunidades Tributárias e novidades pós EC nº 132/2023', 'pendente'),
+(6, 10, 'Obrigação Tributária', 'pendente'),
+(6, 11, 'Responsabilidade Tributária', 'pendente'),
+(6, 12, 'Crédito Tributário e Lançamento', 'pendente'),
+(6, 13, 'Suspensão da Exigibilidade do Crédito Tributário', 'pendente'),
+(6, 14, 'Hipóteses de Extinção do Crédito Tributário', 'pendente'),
+(6, 15, 'Administração Tributária', 'pendente'),
+(6, 16, 'Simples Nacional', 'pendente'),
+(6, 17, 'Execução Fiscal', 'pendente'),
+(6, 18, 'Processo de Execução Fiscal', 'pendente');
