@@ -631,6 +631,69 @@ Retorne APENAS o JSON, sem texto adicional.`;
       );
     }
 
+    // ============================================
+    // ETAPA 4: GERAR SÍNTESE FINAL (SLIDE DE ENCERRAMENTO)
+    // ============================================
+    console.log(`[OAB Trilhas] ETAPA 4: Gerando síntese final...`);
+    
+    const promptSintese = `${promptBase}
+
+═══ SUA TAREFA ═══
+Com base em TODO o conteúdo gerado sobre "${topicoTitulo}", crie uma SÍNTESE FINAL completa.
+
+Esta síntese deve:
+1. Resumir os PONTOS-CHAVE de cada seção estudada
+2. Destacar os conceitos mais importantes para a OAB
+3. Incluir termos-chave que DEVEM ser memorizados
+4. Listar dicas de prova e pegadinhas comuns
+
+Retorne um JSON com a estrutura:
+{
+  "pontos": [
+    "Ponto-chave 1: Descrição clara e objetiva",
+    "Ponto-chave 2: Conceito fundamental para a OAB",
+    "Ponto-chave 3: Termo importante a memorizar",
+    "Ponto-chave 4: Dica de prova",
+    "Ponto-chave 5: Outro conceito essencial"
+  ]
+}
+
+Gere entre 8-12 pontos-chave que resumam TODO o conteúdo estudado.
+Cada ponto deve ter entre 15-50 palavras.
+
+Retorne APENAS o JSON, sem texto adicional.`;
+
+    let sinteseFinalPontos: string[] = [];
+    try {
+      const sintese = await gerarJSON(promptSintese);
+      if (sintese?.pontos && Array.isArray(sintese.pontos)) {
+        sinteseFinalPontos = sintese.pontos.slice(0, 12);
+        console.log(`[OAB Trilhas] ✓ Síntese final: ${sinteseFinalPontos.length} pontos`);
+      }
+    } catch (err) {
+      console.error(`[OAB Trilhas] ⚠️ Erro na síntese final (usando fallback):`, err);
+      // Fallback: gerar pontos a partir dos títulos das seções
+      sinteseFinalPontos = secoesCompletas.flatMap(s => 
+        (s.slides || []).slice(0, 2).map((slide: any) => slide.titulo || "")
+      ).filter(Boolean).slice(0, 8);
+    }
+
+    // Criar slide de Síntese Final e adicionar como última seção
+    const slideSinteseFinal = {
+      tipo: "resumo",
+      titulo: "Síntese Final",
+      conteudo: `Parabéns, futuro colega! Você completou o estudo de **${topicoTitulo}**.\n\nAbaixo estão os pontos mais importantes que você precisa dominar para a OAB:`,
+      pontos: sinteseFinalPontos
+    };
+
+    // Adicionar seção de Síntese Final ao final
+    const secaoSinteseFinal = {
+      id: secoesCompletas.length + 1,
+      titulo: "Síntese Final",
+      slides: [slideSinteseFinal]
+    };
+    secoesCompletas.push(secaoSinteseFinal);
+
     // Montar estrutura final no formato de Conceitos
     const conteudoFinal = {
       versao: 1,

@@ -166,6 +166,7 @@ const OABTrilhasSubtemaFlashcards = () => {
         <FlashcardStack 
           flashcards={flashcardsFormatados}
           titulo={resumo?.subtema || "Flashcards"}
+          onGoToQuestions={() => navigate(`/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}/estudo/${resumoId}/questoes`)}
         />
 
         {/* Botão para marcar como concluído */}

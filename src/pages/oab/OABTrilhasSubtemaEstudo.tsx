@@ -473,6 +473,7 @@ const OABTrilhasSubtemaEstudo = () => {
         onComplete={handleSlidesComplete}
         onProgressChange={handleProgressChange}
         initialProgress={progresso?.progresso_leitura || 0}
+        onGoToFlashcards={handleStartFlashcards}
       />
     );
   }
