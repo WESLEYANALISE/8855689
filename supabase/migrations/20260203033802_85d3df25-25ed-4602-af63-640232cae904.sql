@@ -1,0 +1,26 @@
+-- Inserir tópicos de Direito do Trabalho na ordem correta
+INSERT INTO oab_trilhas_topicos (materia_id, titulo, ordem) VALUES
+(16, 'Introdução ao Direito do Trabalho', 1),
+(16, 'Histórico do Direito do Trabalho', 2),
+(16, 'Fontes e Princípios do Direito do Trabalho', 3),
+(16, 'Trabalho lato sensu', 4),
+(16, 'Sujeitos do Direito do Trabalho', 5),
+(16, 'Duração do Trabalho e Repousos', 6),
+(16, 'Remuneração e Salário', 7),
+(16, 'FGTS', 8),
+(16, 'Efeitos Conexos do Contrato de Trabalho', 9),
+(16, 'Terceirização e Trabalho Temporário', 10),
+(16, 'Responsabilidade Trabalhista', 11),
+(16, 'Acidente de Trabalho', 12),
+(16, 'Estabilidades Trabalhistas', 13),
+(16, 'Verbas Rescisórias e Cálculos Trabalhistas', 14),
+(16, 'Prescrição e Decadência no Direito do Trabalho', 15),
+(16, 'Proteção do Trabalho da Criança e do Adolescente', 16),
+(16, 'Introdução ao Direito Coletivo do Trabalho', 17),
+(16, 'Organização Sindical', 18),
+(16, 'Negociação Coletiva', 19),
+(16, 'Greve', 20),
+(16, 'Reforma Trabalhista', 21),
+(16, 'LGPD nas Relações Trabalhistas', 22),
+(16, 'Prática Trabalhista', 23)
+ON CONFLICT DO NOTHING;
