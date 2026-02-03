@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
 // VERSÃO para debugging de deploy
-const VERSION = "v2.6.0-resumo-unified";
+const VERSION = "v2.7.0-enhanced-pedagogy";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -557,38 +557,51 @@ Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
 - Slides tipo "caso" JÁ SÃO exemplo prático - não adicione outro dentro
 - NUNCA seja formal demais ou use "juridiquês" sem explicação imediata
 
-═══ GRIFO DE TERMOS-CHAVE (OBRIGATÓRIO) ═══
-Marque AUTOMATICAMENTE com aspas simples os seguintes tipos de informação importante:
+═══ GRIFO E ÊNFASE (OBRIGATÓRIO) ═══
+Para destacar termos-chave, use NEGRITO + ASPAS SIMPLES:
 
-• IDADES: '16 anos', '18 anos', '35 anos de idade'
-• LEIS E ARTIGOS: 'Lei 9.504/97', 'Art. 5º da CF', 'LC 64/90', 'artigo 14 da Constituição'
-• PRAZOS: '30 dias', '90 dias úteis', 'prazo de 15 dias'
-• VALORES: 'R$ 5.000', '10 salários mínimos'
-• PORCENTAGENS: '50%', '10,5%'
-• DATAS: '15 de agosto', '1º de janeiro'
-• MULTAS: 'multa de R$ 1.000 a R$ 5.000'
+• TERMOS TÉCNICOS CRÍTICOS: **'competência absoluta'**, **'litispendência'**
+• IDADES: **'16 anos'**, **'18 anos'**, **'35 anos de idade'**
+• LEIS E ARTIGOS: **'Art. 5º da CF'**, **'Lei 9.504/97'**
+• PRAZOS: **'30 dias'**, **'prazo de 15 dias'**
+• VALORES: **'R$ 5.000'**, **'10 salários mínimos'**
+• PORCENTAGENS: **'50%'**, **'10,5%'**
+• DATAS: **'15 de agosto'**, **'1º de janeiro'**
 
-EXEMPLO DE APLICAÇÃO:
-❌ ERRADO: "O voto é facultativo para maiores de 16 anos e obrigatório para maiores de 18 anos."
-✅ CERTO: "O voto é facultativo para maiores de '16 anos' e obrigatório para maiores de '18 anos'."
-
-❌ ERRADO: "Conforme o Art. 14 da Constituição Federal..."
-✅ CERTO: "Conforme o 'Art. 14 da Constituição Federal'..."
-
+EXEMPLO:
 ❌ ERRADO: "O prazo é de 30 dias para interpor recurso."
-✅ CERTO: "O prazo é de '30 dias' para interpor recurso."
+✅ CERTO: "O prazo é de **'30 dias'** para interpor recurso."
+
+REGRA: Informações numéricas e termos técnicos DEVEM estar em negrito + aspas.
+
+═══ CITAÇÕES DE ARTIGOS (OBRIGATÓRIO) ═══
+Sempre que citar um artigo de lei, use BLOCKQUOTE do Markdown para destacar:
+
+FORMATO:
+> "Art. 5º - Todos são iguais perante a lei..." (CF/88)
+
+EXEMPLOS:
+✅ CERTO:
+> "Art. 14, § 1º - O alistamento eleitoral e o voto são obrigatórios para os maiores de dezoito anos." (CF/88)
+
+✅ CERTO:
+> "Art. 121 - Matar alguém: Pena - reclusão, de seis a vinte anos." (Código Penal)
+
+❌ ERRADO: Citar o artigo apenas no texto corrido sem destaque.
+
+REGRA: Toda citação literal de artigo DEVE estar em blockquote (>).
 
 ═══ PROFUNDIDADE E DETALHAMENTO ═══
 - Mínimo 250-400 palavras em slides tipo "texto"
 - SEMPRE que usar um termo jurídico, explique-o INLINE imediatamente:
-  ✅ "A 'competência absoluta' (ou seja, regras que não podem ser mudadas pelas partes) determina..."
-  ✅ "Isso configura a 'litispendência' (quando já existe outra ação idêntica em andamento)"
-- Cite artigos de lei de forma acessível: "O 'artigo 5º da Constituição' garante que..."
+  ✅ "A **'competência absoluta'** (ou seja, regras que não podem ser mudadas pelas partes) determina..."
+  ✅ "Isso configura a **'litispendência'** (quando já existe outra ação idêntica em andamento)"
+- Cite artigos de lei de forma acessível: "O **'artigo 5º da Constituição'** garante que..."
 - Estruture o texto com hierarquias claras:
   - Use parágrafos curtos (2-3 frases)
   - Separe conceitos principais de detalhes
   - Crie conexões: "Agora que você entendeu X, vamos ver como isso se aplica em Y..."
-- Termos-chave entre aspas simples: 'tipicidade', 'culpabilidade', 'antijuridicidade'
+- Termos-chave em negrito + aspas: **'tipicidade'**, **'culpabilidade'**, **'antijuridicidade'**
 - Cite juristas de forma acessível: "Como ensina Humberto Theodoro Júnior (um dos grandes estudiosos do tema)..."
 
 **Matéria:** ${areaNome} - OAB 1ª Fase
@@ -670,14 +683,27 @@ Retorne um JSON com esta estrutura EXATA:
   ]
 }
 
-REGRAS:
+REGRAS OBRIGATÓRIAS:
 1. Gere entre 6-8 seções (para alcançar 40-55 páginas totais)
 2. Cada seção deve ter 6-9 páginas
 3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck, correspondencias
-4. Distribua bem os tipos (não só "texto")
-5. Cada seção deve ter pelo menos 1 quickcheck
-6. INCLUA pelo menos 2-3 slides tipo "tabela" no total (comparativos, diferenças, requisitos)
-7. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 25-30) - é a gamificação de ligar termos
+
+DISTRIBUIÇÃO MÍNIMA OBRIGATÓRIA:
+- "introducao": 1 slide (APENAS na primeira seção)
+- "texto": 15-20 slides (conteúdo principal detalhado)
+- "atencao": 4-5 slides com "⚠️ ISSO CAI MUITO NA PROVA!" ou "CUIDADO: Pegadinha clássica!"
+- "dica": 3-4 slides com técnicas de memorização e macetes
+- "caso": 4-5 slides com exemplos práticos do cotidiano
+- "tabela": 2-3 slides comparativos
+- "quickcheck": 5-6 slides (pelo menos 1 por seção)
+- "correspondencias": 1 slide no meio (entre páginas 25-30)
+- "termos": 2-3 slides com vocabulário jurídico
+- "resumo": 1 slide ao final de cada seção
+
+4. NUNCA repita o slide "introducao" após a primeira seção - vá direto ao conteúdo
+5. INCLUA frases de destaque nos slides "atencao": "⚠️ ISSO CAI MUITO NA PROVA!", "ATENÇÃO: A banca adora cobrar isso!"
+6. Cada seção deve ter MIX de tipos - não apenas "texto"
+7. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 25-30) - gamificação de ligar termos
 8. Use títulos descritivos para cada página
 9. MANTENHA o título original: "${topicoTitulo}" (não altere)
 10. Cubra TODO o conteúdo do material
@@ -729,12 +755,13 @@ ${JSON.stringify(secaoEstrutura.paginas, null, 2)}
 
 Para CADA página, retorne o objeto completo com TOM CONVERSACIONAL (como café com professor):
 
-1. Para tipo "introducao" (ENGAJAMENTO OBRIGATÓRIO):
-   {"tipo": "introducao", "titulo": "${topicoTitulo}", "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante para a OAB!\n\nNesta aula, vamos estudar [tema] de forma clara e prática. Ao final, você vai entender:\n\n• Tópico 1 que será abordado\n• Tópico 2 importante\n• Tópico 3 essencial\n• Tópico 4 que cai na prova\n\nBora começar?"}
+1. Para tipo "introducao" (APENAS NA PRIMEIRA SEÇÃO - ENGAJAMENTO OBRIGATÓRIO):
+   {"tipo": "introducao", "titulo": "${topicoTitulo}", "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante para a OAB!\n\nNesta aula sobre **${topicoTitulo}**, vamos estudar de forma clara e prática. Ao final, você vai dominar:\n\n• **Conceito principal**: O que é e para que serve\n• **Requisitos legais**: O que a lei exige\n• **Casos práticos**: Como aplicar na prova\n• **Pegadinhas**: O que a banca adora cobrar\n• **Dicas de memorização**: Macetes para não esquecer\n\nVamos juntos? Bora começar! 🎯"}
+   ⚠️ ATENÇÃO: O slide "introducao" SÓ aparece na PRIMEIRA seção. Nas demais seções, vá direto ao conteúdo.
    IMPORTANTE: MANTENHA o título original "${topicoTitulo}" - NÃO altere!
 
 2. Para tipo "texto" (MÍNIMO 250 PALAVRAS - BEM DETALHADO):
-   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA e HIERÁRQUICA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas pelas partes) determina...'. Use parágrafos curtos. Crie conexões: 'Agora que você entendeu X, vamos ver como isso se aplica em Y...'"}
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA e HIERÁRQUICA. Sempre use **'negrito + aspas'** para termos-chave: A **'competência absoluta'** (ou seja, regras que não podem ser mudadas pelas partes) determina...\n\nQuando citar artigos, use blockquote:\n\n> \"Art. XX - Texto do artigo...\" (Lei X)\n\nUse parágrafos curtos. Crie conexões: 'Agora que você entendeu X, vamos ver como isso se aplica em Y...'"}
 
 3. Para tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO DA AULA entre slides 25-30):
    {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte cada termo à sua definição correta:", "correspondencias": [
@@ -744,26 +771,29 @@ Para CADA página, retorne o objeto completo com TOM CONVERSACIONAL (como café 
      {"termo": "Termo técnico 4", "definicao": "Definição simples 4"}
    ]}
 
-3. Para tipo "termos":
+4. Para tipo "termos":
    {"tipo": "termos", "titulo": "...", "conteudo": "Vamos conhecer os termos que você vai encontrar na prova:", "termos": [{"termo": "Termo Técnico", "definicao": "Explicação em linguagem simples, como se explicasse para um amigo que nunca estudou Direito"}]}
 
-4. Para tipo "linha_tempo":
+5. Para tipo "linha_tempo":
    {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Passo a passo para entender o processo:", "etapas": [{"titulo": "1ª Etapa", "descricao": "Descrição clara e didática"}]}
 
-5. Para tipo "tabela":
+6. Para tipo "tabela":
    {"tipo": "tabela", "titulo": "...", "conteudo": "Veja a comparação lado a lado:", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}}
 
-6. Para tipo "atencao":
-   {"tipo": "atencao", "titulo": "Cuidado com essa pegadinha!", "conteudo": "Muita gente erra aqui... Veja bem: [explicar o ponto de atenção com clareza]"}
+7. Para tipo "atencao" (ALERTA IMPORTANTE - COM INDICADOR DE PROVA):
+   {"tipo": "atencao", "titulo": "⚠️ ISSO CAI MUITO NA PROVA!", "conteudo": "**Atenção redobrada aqui!**\n\nA banca ADORA cobrar esse ponto. Veja:\n\n> \"Art. XX - [texto do artigo relevante]\" (Lei X)\n\nMuita gente confunde [conceito A] com [conceito B], mas a diferença é crucial:\n\n• **'Conceito A'**: significa X\n• **'Conceito B'**: significa Y\n\n💡 **Dica para não errar**: Lembre-se que [macete de memorização]."}
+   ⚠️ Obrigatório: 4-5 slides "atencao" por aula para destacar pegadinhas da banca!
 
-7. Para tipo "dica":
-   {"tipo": "dica", "titulo": "...", "conteudo": "Uma dica que me ajudou muito: [técnica de memorização ou macete prático]"}
+8. Para tipo "dica" (TÉCNICA DE MEMORIZAÇÃO):
+   {"tipo": "dica", "titulo": "💡 Macete para Memorizar", "conteudo": "**Técnica de Memorização: [Nome da técnica]**\n\nPara lembrar de **'[termo técnico]'**, use esta associação:\n\n📌 **Mnemônico**: [frase ou acrônimo]\n\n**Por que funciona?**\nQuando você [explicação simples da associação]...\n\n✅ **Teste agora**: Feche os olhos e repita o mnemônico 3 vezes!"}
+   ⚠️ Obrigatório: 3-4 slides "dica" por aula com técnicas reais de memorização!
 
-8. Para tipo "caso":
-   {"tipo": "caso", "titulo": "...", "conteudo": "Imagine a seguinte situação: João está [situação cotidiana]. [Análise jurídica explicada de forma simples]"}
+9. Para tipo "caso" (EXEMPLO PRÁTICO DO COTIDIANO):
+   {"tipo": "caso", "titulo": "📋 Na Prática: Caso de [Contexto]", "conteudo": "**Situação Real:**\n\nImagine que João, um [profissão/situação], está enfrentando [problema concreto do dia-a-dia]...\n\n**Análise Jurídica:**\n\nAqui, aplica-se o **'[termo jurídico]'** (ou seja, [explicação simples]). Conforme:\n\n> \"Art. XX - [citação do artigo]\" ([Lei])\n\n**Conclusão Prática:**\n\nJoão [resultado/solução]. Isso mostra que, na prova, sempre que aparecer [situação similar], você deve pensar em [conceito-chave]."}
+   ⚠️ Obrigatório: 4-5 slides "caso" por aula para contextualizar a teoria!
 
-9. Para tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
-   {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de 15 dias conforme o Art. X..."}
+10. Para tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
+   {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de **'15 dias'** conforme o Art. X..."}
    ⚠️ ATENÇÃO: Use "pergunta" (singular), NÃO "perguntas" (plural). Cada slide quickcheck tem UMA pergunta só.
 
 10. Para tipo "resumo":
@@ -787,7 +817,10 @@ REGRAS CRÍTICAS:
 - Use HIERARQUIA clara: conceito principal → detalhes → aplicação prática
 - Crie conexões entre os slides: "Lembra do que vimos antes? Agora..."
 - Se esta seção está no MEIO (seções 3-4), inclua o slide "correspondencias"
-- NUNCA use emojis no texto (a interface já adiciona ícones)
+- NUNCA use emojis no texto corrido (a interface já adiciona ícones)
+- USE BLOCKQUOTE (>) para citações de artigos de lei
+- USE **'negrito + aspas'** para termos-chave, prazos, valores e datas
+- ESTA SEÇÃO ${i === 0 ? 'É a primeira - INCLUA slide introducao' : 'NÃO é a primeira - NÃO inclua slide introducao, vá direto ao conteúdo'}
 
 Retorne APENAS o JSON da seção, sem texto adicional.`;
 
@@ -802,7 +835,15 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
           throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
         }
         
-        // PÓS-PROCESSAMENTO: Remover saudações proibidas e normalizar quickcheck
+        // PÓS-PROCESSAMENTO: Remover saudações proibidas, normalizar quickcheck e remover introducao duplicada
+        
+        // Remover slides "introducao" de seções que não são a primeira
+        if (i > 0) {
+          secaoCompleta.slides = secaoCompleta.slides.filter(
+            (slide: any) => slide.tipo !== 'introducao'
+          );
+        }
+        
         for (const slide of secaoCompleta.slides) {
           const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
           if (!isPrimeiraSecaoIntro && slide.conteudo) {
@@ -1480,24 +1521,36 @@ Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
 3. **ANALOGIAS DO COTIDIANO**
 
 ═══ CUIDADOS ═══
-- NÃO use emojis no texto (a interface já adiciona ícones)
+- NÃO use emojis no texto corrido (a interface já adiciona ícones)
 - NÃO mencione "PDF", "material", "documento"
 - Slides tipo "caso" JÁ SÃO exemplo prático
 
-═══ GRIFO DE TERMOS-CHAVE (OBRIGATÓRIO) ═══
-Marque AUTOMATICAMENTE com aspas simples os seguintes tipos de informação importante:
+═══ GRIFO E ÊNFASE (OBRIGATÓRIO) ═══
+Para destacar termos-chave, use NEGRITO + ASPAS SIMPLES:
 
-• IDADES: '16 anos', '18 anos', '35 anos de idade'
-• LEIS E ARTIGOS: 'Lei 9.504/97', 'Art. 5º da CF', 'LC 64/90', 'artigo 14 da Constituição'
-• PRAZOS: '30 dias', '90 dias úteis', 'prazo de 15 dias'
-• VALORES: 'R$ 5.000', '10 salários mínimos'
-• PORCENTAGENS: '50%', '10,5%'
-• DATAS: '15 de agosto', '1º de janeiro'
-• MULTAS: 'multa de R$ 1.000 a R$ 5.000'
+• TERMOS TÉCNICOS CRÍTICOS: **'competência absoluta'**, **'litispendência'**
+• IDADES: **'16 anos'**, **'18 anos'**, **'35 anos de idade'**
+• LEIS E ARTIGOS: **'Art. 5º da CF'**, **'Lei 9.504/97'**
+• PRAZOS: **'30 dias'**, **'prazo de 15 dias'**
+• VALORES: **'R$ 5.000'**, **'10 salários mínimos'**
+• PORCENTAGENS: **'50%'**, **'10,5%'**
+• DATAS: **'15 de agosto'**, **'1º de janeiro'**
 
 EXEMPLO:
-❌ ERRADO: "O voto é facultativo para maiores de 16 anos."
-✅ CERTO: "O voto é facultativo para maiores de '16 anos'."
+❌ ERRADO: "O prazo é de 30 dias para interpor recurso."
+✅ CERTO: "O prazo é de **'30 dias'** para interpor recurso."
+
+═══ CITAÇÕES DE ARTIGOS (OBRIGATÓRIO) ═══
+Sempre que citar um artigo de lei, use BLOCKQUOTE do Markdown:
+
+FORMATO:
+> "Art. 5º - Todos são iguais perante a lei..." (CF/88)
+
+EXEMPLOS:
+✅ CERTO:
+> "Art. 14, § 1º - O alistamento eleitoral e o voto são obrigatórios..." (CF/88)
+
+❌ ERRADO: Citar o artigo apenas no texto corrido sem destaque.
 
 **Área:** ${areaNome}
 **Subtema:** ${subtema}
@@ -1543,6 +1596,19 @@ REGRAS OBRIGATÓRIAS:
 8. Cubra TODO o conteúdo fonte com explicações BEM DETALHADAS e termos jurídicos explicados INLINE
 9. INCLUA pelo menos 2-3 slides tipo "tabela" no total (comparativos)
 10. Cada seção DEVE ter pelo menos 1 quickcheck para testar o aprendizado
+
+DISTRIBUIÇÃO MÍNIMA OBRIGATÓRIA:
+- "introducao": 1 slide (APENAS na primeira seção)
+- "texto": 15-20 slides (conteúdo principal detalhado)
+- "atencao": 4-5 slides com "⚠️ ISSO CAI MUITO NA PROVA!" ou "CUIDADO: Pegadinha clássica!"
+- "dica": 3-4 slides com técnicas de memorização e macetes
+- "caso": 4-5 slides com exemplos práticos do cotidiano
+- "tabela": 2-3 slides comparativos
+- "quickcheck": 5-6 slides (pelo menos 1 por seção)
+- "correspondencias": 1 slide no meio (entre páginas 25-30)
+
+11. NUNCA repita o slide "introducao" após a primeira seção - vá direto ao conteúdo
+12. INCLUA frases de destaque nos slides "atencao": "⚠️ ISSO CAI MUITO NA PROVA!"
 
 ⚠️ MUITO IMPORTANTE: O mínimo é 40 páginas! Se o conteúdo parecer curto, expanda com mais detalhes, exemplos práticos e explicações adicionais.
 
@@ -1610,15 +1676,16 @@ ${JSON.stringify(secaoEstrutura.paginas, null, 2)}
 
 Para CADA página, retorne:
 
-1. tipo "introducao" (ENGAJAMENTO OBRIGATÓRIO):
-   {"tipo": "introducao", "titulo": "${subtema}", "conteudo": "☕ Prepare seu café, pois vamos estudar juntos...\n\nNesta aula, você vai aprender:\n• Tópico 1\n• Tópico 2\n\nBora começar?"}
+1. tipo "introducao" (APENAS NA PRIMEIRA SEÇÃO - ENGAJAMENTO OBRIGATÓRIO):
+   {"tipo": "introducao", "titulo": "${subtema}", "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante para a OAB!\n\nNesta aula sobre **${subtema}**, vamos estudar de forma clara e prática. Ao final, você vai dominar:\n\n• **Conceito principal**: O que é e para que serve\n• **Requisitos legais**: O que a lei exige\n• **Casos práticos**: Como aplicar na prova\n• **Pegadinhas**: O que a banca adora cobrar\n• **Dicas de memorização**: Macetes para não esquecer\n\nVamos juntos? Bora começar!"}
+   ⚠️ ATENÇÃO: O slide "introducao" SÓ aparece na PRIMEIRA seção. Nas demais, vá direto ao conteúdo.
 
 2. tipo "texto" (MÍNIMO 300-400 PALAVRAS - BEM DETALHADO):
-   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional MUITO DETALHADA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas) determina...'. Use hierarquia clara e conexões entre slides. Desenvolva cada ponto com exemplos práticos."}
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional MUITO DETALHADA. Use **'negrito + aspas'** para termos-chave: A **'competência absoluta'** (ou seja, regras que não podem ser mudadas) determina...\n\nQuando citar artigos, use blockquote:\n\n> \"Art. XX - Texto do artigo...\" (Lei X)\n\nUse hierarquia clara e conexões entre slides."}
 
 3. tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
-   {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de 15 dias porque..."}
-   ⚠️ ATENÇÃO: Use "pergunta" (singular), NÃO "perguntas" (plural). Cada slide quickcheck tem UMA pergunta só.
+   {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de **'15 dias'** porque..."}
+   ⚠️ ATENÇÃO: Use "pergunta" (singular), NÃO "perguntas" (plural).
 
 4. tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO):
    {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte cada termo à sua definição:", "correspondencias": [
@@ -1628,7 +1695,16 @@ Para CADA página, retorne:
      {"termo": "Termo 4", "definicao": "Definição curta 4"}
    ]}
 
-5. outros tipos: termos, atencao, dica, caso, resumo
+5. tipo "atencao" (ALERTA IMPORTANTE - COM INDICADOR DE PROVA):
+   {"tipo": "atencao", "titulo": "⚠️ ISSO CAI MUITO NA PROVA!", "conteudo": "**Atenção redobrada aqui!**\n\nA banca ADORA cobrar esse ponto. Veja:\n\n> \"Art. XX - [texto do artigo]\" (Lei X)\n\nMuita gente confunde [conceito A] com [conceito B], mas a diferença é crucial:\n\n• **'Conceito A'**: significa X\n• **'Conceito B'**: significa Y\n\n💡 **Dica para não errar**: [macete de memorização]."}
+
+6. tipo "dica" (TÉCNICA DE MEMORIZAÇÃO):
+   {"tipo": "dica", "titulo": "💡 Macete para Memorizar", "conteudo": "**Técnica de Memorização:**\n\nPara lembrar de **'[termo técnico]'**, use esta associação:\n\n📌 **Mnemônico**: [frase ou acrônimo]\n\n**Por que funciona?**\nQuando você [explicação simples]...\n\n✅ **Teste agora**: Feche os olhos e repita o mnemônico 3 vezes!"}
+
+7. tipo "caso" (EXEMPLO PRÁTICO DO COTIDIANO):
+   {"tipo": "caso", "titulo": "📋 Na Prática: Caso de [Contexto]", "conteudo": "**Situação Real:**\n\nImagine que João está enfrentando [problema concreto]...\n\n**Análise Jurídica:**\n\nAqui, aplica-se o **'[termo jurídico]'** (ou seja, [explicação simples]). Conforme:\n\n> \"Art. XX - [citação]\" ([Lei])\n\n**Conclusão Prática:**\n\nJoão [resultado/solução]. Na prova, sempre que aparecer [situação similar], pense em [conceito-chave]."}
+
+8. outros tipos: termos, resumo
 
 RETORNE um JSON:
 {
@@ -1641,14 +1717,25 @@ REGRAS CRÍTICAS:
 - Use TOM CONVERSACIONAL: "Olha só...", "Percebeu?", "Faz sentido, né?"
 - EXPLICAÇÃO INLINE: Todo termo jurídico deve ser explicado entre parênteses
 - Use HIERARQUIA clara: conceito → detalhes → aplicação
-- Se esta seção está no MEIO, inclua o slide "correspondencias"`;
+- Se esta seção está no MEIO, inclua o slide "correspondencias"
+- USE BLOCKQUOTE (>) para citações de artigos de lei
+- USE **'negrito + aspas'** para termos-chave, prazos, valores e datas
+- ESTA SEÇÃO ${i === 0 ? 'É a primeira - INCLUA slide introducao' : 'NÃO é a primeira - NÃO inclua slide introducao, vá direto ao conteúdo'}`;
 
       try {
         const secaoGerada = await gerarJSON(promptSecao, 2, 8192);
         
         if (secaoGerada?.slides && Array.isArray(secaoGerada.slides)) {
+          // Remover slides "introducao" de seções que não são a primeira
+          let slidesProcessados = secaoGerada.slides;
+          if (i > 0) {
+            slidesProcessados = slidesProcessados.filter(
+              (slide: any) => slide.tipo !== 'introducao'
+            );
+          }
+          
           // Normalizar slides quickcheck (caso Gemini gere "perguntas" plural)
-          const slidesNormalizados = secaoGerada.slides.map((slide: any) => {
+          const slidesNormalizados = slidesProcessados.map((slide: any) => {
             if (slide.tipo === 'quickcheck' && !slide.pergunta && slide.perguntas && Array.isArray(slide.perguntas) && slide.perguntas.length > 0) {
               const primeiraQuestao = slide.perguntas[0];
               return {
