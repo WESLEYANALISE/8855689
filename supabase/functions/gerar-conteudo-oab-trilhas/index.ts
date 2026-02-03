@@ -37,16 +37,43 @@ serve(async (req) => {
 
     // ============================================
     // SISTEMA DE FILA: Verificar se já há geração ativa
+    // + Watchdog: destravar "gerando" travado
     // ============================================
+    const STALE_GENERATION_MINUTES = 30;
+    const staleCutoff = new Date(Date.now() - STALE_GENERATION_MINUTES * 60 * 1000).toISOString();
+
     const { data: gerandoAtivo, error: checkError } = await supabase
       .from("oab_trilhas_topicos")
-      .select("id, titulo")
+      .select("id, titulo, updated_at, progresso")
       .eq("status", "gerando")
       .neq("id", topico_id)
+      .order("updated_at", { ascending: false })
       .limit(1);
 
+    // Se existir uma geração ativa muito antiga, provavelmente travou. Nesse caso, marcamos como erro e seguimos.
     if (!checkError && gerandoAtivo && gerandoAtivo.length > 0) {
-      console.log(`[OAB Fila] Geração ativa detectada: ${gerandoAtivo[0].titulo} (ID: ${gerandoAtivo[0].id})`);
+      const ativo = gerandoAtivo[0];
+      const updatedAt = ativo.updated_at as string | null;
+      const isStale = !!updatedAt && updatedAt < staleCutoff;
+
+      if (isStale) {
+        console.log(
+          `[OAB Watchdog] Geração travada detectada (>${STALE_GENERATION_MINUTES}min). Marcando como erro: ${ativo.titulo} (ID: ${ativo.id}) updated_at=${updatedAt} progresso=${ativo.progresso}`
+        );
+
+        await supabase
+          .from("oab_trilhas_topicos")
+          .update({
+            status: "erro",
+            progresso: 0,
+            posicao_fila: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", ativo.id);
+
+        // continua a execução normalmente (não enfileira)
+      } else {
+        console.log(`[OAB Fila] Geração ativa detectada: ${ativo.titulo} (ID: ${ativo.id})`);
       
       const { data: maxPosicao } = await supabase
         .from("oab_trilhas_topicos")
@@ -106,6 +133,7 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+      }
     }
 
     // ============================================
@@ -833,9 +861,12 @@ Retorne APENAS o JSON, sem texto adicional.`;
         definicao: String(c.definicao).trim().substring(0, 80)
       }));
 
-    const termosComCorrespondencias = {
+    // Guardar toda a gamificação em um único JSON (campo "termos" já existente na tabela)
+    const termosComGamificacao = {
       glossario: extras.termos || [],
-      correspondencias: correspondenciasValidas
+      correspondencias: correspondenciasValidas,
+      ligar_termos: Array.isArray(extras.ligar_termos) ? extras.ligar_termos : [],
+      explique_com_palavras: Array.isArray(extras.explique_com_palavras) ? extras.explique_com_palavras : [],
     };
 
     // Salvar no banco
@@ -844,7 +875,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
       .update({
         conteudo_gerado: conteudoFinal,
         exemplos: extras.exemplos || [],
-        termos: termosComCorrespondencias,
+        termos: termosComGamificacao,
         flashcards: extras.flashcards || [],
         questoes: extras.questoes || [],
         status: "concluido",
