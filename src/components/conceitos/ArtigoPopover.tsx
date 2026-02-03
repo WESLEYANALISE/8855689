@@ -41,6 +41,21 @@ const detectarTabela = (artigo: string, contexto?: string): string => {
   return "codigo-civil";
 };
 
+// Mapear código para nome da tabela no banco
+const mapearTabelaParaBanco = (codigo: string): string => {
+  const mapeamento: Record<string, string> = {
+    "codigo-civil": "CC - Código Civil",
+    "codigo-penal": "CP - Código Penal",
+    "constituicao-federal": "CF - Constituição Federal",
+    "clt": "CLT - Consolidação das Leis do Trabalho",
+    "cpc": "CPC - Código de Processo Civil",
+    "cpp": "CPP - Código de Processo Penal",
+    "cdc": "CDC - Código de Defesa do Consumidor",
+    "eca": "ECA - Estatuto da Criança e do Adolescente",
+  };
+  return mapeamento[codigo] || "CC - Código Civil";
+};
+
 // Extrai número do artigo do texto
 const extrairNumeroArtigo = (texto: string): string => {
   const match = texto.match(/Art\.?\s*(\d+)[º°]?/i);
@@ -66,8 +81,39 @@ export const ArtigoPopover = ({
     try {
       const numeroArtigo = extrairNumeroArtigo(artigo);
       const tabela = codigoTabela || detectarTabela(artigo);
+      const tabelaMapeada = mapearTabelaParaBanco(tabela);
       
-      // Tentar buscar direto em artigos_favoritos (tabela que sabemos existir)
+      console.log(`[ArtigoPopover] Buscando Art. ${numeroArtigo} na tabela ${tabelaMapeada}`);
+      
+      // 1. Tentar buscar DIRETO na tabela do Vade Mecum usando query dinâmica
+      try {
+        const { data: artigoVadeMecum, error: vmError } = await supabase
+          .from(tabelaMapeada as any)
+          .select('Artigo, "Número do Artigo"')
+          .or(`"Número do Artigo".eq.Art. ${numeroArtigo},` +
+              `"Número do Artigo".eq.Art. ${numeroArtigo}º,` +
+              `"Número do Artigo".ilike.%Art.%${numeroArtigo}%,` +
+              `"Número do Artigo".ilike.%${numeroArtigo}º%,` +
+              `"Número do Artigo".ilike.%${numeroArtigo}°%`)
+          .limit(1)
+          .maybeSingle();
+        
+        const vmData = artigoVadeMecum as { Artigo?: string; "Número do Artigo"?: string } | null;
+        
+        if (vmData && vmData.Artigo) {
+          console.log(`[ArtigoPopover] ✓ Encontrado no Vade Mecum`);
+          setArtigoData({
+            numero: vmData["Número do Artigo"] || `Art. ${numeroArtigo}`,
+            conteudo: vmData.Artigo,
+            tabela_codigo: tabela
+          });
+          return;
+        }
+      } catch (vmErr) {
+        console.log(`[ArtigoPopover] Tabela ${tabelaMapeada} não acessível:`, vmErr);
+      }
+      
+      // 2. Fallback: buscar em artigos_favoritos
       const { data: favData } = await supabase
         .from('artigos_favoritos')
         .select('conteudo_preview, numero_artigo, tabela_codigo')
@@ -84,7 +130,7 @@ export const ArtigoPopover = ({
         return;
       }
       
-      // Tentar gerar definição via edge function como fallback
+      // 3. Fallback final: gerar definição via edge function
       const { data: definicaoData, error: fnError } = await supabase.functions.invoke('gerar-definicao-termo', {
         body: { termo: `${artigo} do ${getNomeLegislacao(tabela)}` }
       });
