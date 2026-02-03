@@ -88,31 +88,15 @@ const PrimeiraFase = () => {
             />
           </div>
           
-          {/* Conteúdo abaixo da capa */}
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-red-900/40 text-red-400 border border-red-700/50">
-                <Footprints className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-foreground">
-                  Trilhas da Aprovação
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Estude por área com conteúdo completo
-                </p>
-              </div>
-              
-              {/* Botão Acessar */}
-              <button 
-                onClick={() => navigate('/oab/trilhas-aprovacao')}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-medium transition-colors"
-              >
-                <Footprints className="w-4 h-4" />
-                Acessar
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Botão Acessar centralizado */}
+          <div className="p-4 flex justify-center">
+            <button 
+              onClick={() => navigate('/oab/trilhas-aprovacao')}
+              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-medium transition-colors"
+            >
+              Acessar
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
         
