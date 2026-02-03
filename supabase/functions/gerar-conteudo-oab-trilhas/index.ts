@@ -557,9 +557,30 @@ Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
 - Slides tipo "caso" JÁ SÃO exemplo prático - não adicione outro dentro
 - NUNCA seja formal demais ou use "juridiquês" sem explicação imediata
 
+═══ GRIFO DE TERMOS-CHAVE (OBRIGATÓRIO) ═══
+Marque AUTOMATICAMENTE com aspas simples os seguintes tipos de informação importante:
+
+• IDADES: '16 anos', '18 anos', '35 anos de idade'
+• LEIS E ARTIGOS: 'Lei 9.504/97', 'Art. 5º da CF', 'LC 64/90', 'artigo 14 da Constituição'
+• PRAZOS: '30 dias', '90 dias úteis', 'prazo de 15 dias'
+• VALORES: 'R$ 5.000', '10 salários mínimos'
+• PORCENTAGENS: '50%', '10,5%'
+• DATAS: '15 de agosto', '1º de janeiro'
+• MULTAS: 'multa de R$ 1.000 a R$ 5.000'
+
+EXEMPLO DE APLICAÇÃO:
+❌ ERRADO: "O voto é facultativo para maiores de 16 anos e obrigatório para maiores de 18 anos."
+✅ CERTO: "O voto é facultativo para maiores de '16 anos' e obrigatório para maiores de '18 anos'."
+
+❌ ERRADO: "Conforme o Art. 14 da Constituição Federal..."
+✅ CERTO: "Conforme o 'Art. 14 da Constituição Federal'..."
+
+❌ ERRADO: "O prazo é de 30 dias para interpor recurso."
+✅ CERTO: "O prazo é de '30 dias' para interpor recurso."
+
 ═══ PROFUNDIDADE ═══
 - Mínimo 200-400 palavras em slides tipo "texto"
-- Cite artigos de lei de forma acessível: "O artigo 5º da Constituição garante que todos são iguais perante a lei - parece óbvio, mas veja como isso funciona na prática..."
+- Cite artigos de lei de forma acessível: "O 'artigo 5º da Constituição' garante que todos são iguais perante a lei - parece óbvio, mas veja como isso funciona na prática..."
 - Termos-chave entre aspas simples: 'tipicidade', 'culpabilidade', 'antijuridicidade'
 - Cite juristas de forma acessível: "Como ensina Humberto Theodoro Júnior (um dos grandes estudiosos do tema)..."
 
@@ -1430,6 +1451,21 @@ Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
 - NÃO use emojis no texto (a interface já adiciona ícones)
 - NÃO mencione "PDF", "material", "documento"
 - Slides tipo "caso" JÁ SÃO exemplo prático
+
+═══ GRIFO DE TERMOS-CHAVE (OBRIGATÓRIO) ═══
+Marque AUTOMATICAMENTE com aspas simples os seguintes tipos de informação importante:
+
+• IDADES: '16 anos', '18 anos', '35 anos de idade'
+• LEIS E ARTIGOS: 'Lei 9.504/97', 'Art. 5º da CF', 'LC 64/90', 'artigo 14 da Constituição'
+• PRAZOS: '30 dias', '90 dias úteis', 'prazo de 15 dias'
+• VALORES: 'R$ 5.000', '10 salários mínimos'
+• PORCENTAGENS: '50%', '10,5%'
+• DATAS: '15 de agosto', '1º de janeiro'
+• MULTAS: 'multa de R$ 1.000 a R$ 5.000'
+
+EXEMPLO:
+❌ ERRADO: "O voto é facultativo para maiores de 16 anos."
+✅ CERTO: "O voto é facultativo para maiores de '16 anos'."
 
 **Área:** ${areaNome}
 **Subtema:** ${subtema}
