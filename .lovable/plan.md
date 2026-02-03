@@ -1,259 +1,160 @@
 
-# Plano: Nova Geração de Capas OAB Trilhas (Uma Capa por Matéria)
+# Plano: Melhorias na Geração de Conteúdo OAB Trilhas
 
-## Resumo do Pedido
+## Problemas Identificados
 
-1. **Uma capa por matéria** (ex: "Litisconsórcio") que será usada em TODAS as aulas dessa matéria
-2. **Capas mais detalhadas** que realmente representem o conceito jurídico
-3. **Usar o mesmo prompt** da Biblioteca de Estudos (Direito Penal) - sistema com mapeamento detalhado por tema
-4. **Capas antigas ficam salvas** no Supabase, mas usar as novas
-5. **Geração automática** ao entrar numa matéria que ainda não tem a nova capa
+### 1. Exemplo Prático em Todos os Slides
+O prompt atual instrui "Sempre incluir exemplo prático em slides de texto", causando repetição excessiva de cards de caso prático em cada slide.
 
----
+### 2. Linguagem Ainda Técnica
+Apesar das instruções existentes, o conteúdo ainda está sendo gerado com termos técnicos sem explicação imediata.
 
-## Arquitetura Atual (Problemas)
+### 3. Scroll não Resetando ao Topo
+Quando passa de slide, o conteúdo pode não começar do topo.
 
-| Componente | Status Atual | Problema |
-|------------|--------------|----------|
-| `gerar-capa-topico-oab` | Prompt genérico simplificado | Capa pouco representativa |
-| `gerar-capa-materia-oab` | Prompt por área (não por tema) | Não representa "Litisconsórcio" especificamente |
-| Hook `useOABMateriaCapasAutoGeneration` | Gera capa por matéria | Precisa usar novo sistema |
+### 4. Dois Exemplos no Mesmo Slide
+O sistema pode gerar um slide tipo "caso" E ainda incluir exemplo prático dentro do texto.
 
 ---
 
-## Arquitetura Proposta
+## Solução Proposta
 
-### Nova Edge Function: `gerar-capa-oab-tema`
+### Etapa 1: Ajustar Prompt de Geração de Conteúdo
 
-Baseada na `gerar-capa-biblioteca`, que tem:
-- Mapeamento detalhado por keywords jurídicos
-- Sistema de contexto visual com cenas realistas
-- Variações de cenas para cada tema
-- Paleta de cores por área
-- Compressão WebP com TinyPNG
+Modificar o arquivo `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`:
 
-### Fluxo de Geração
+**Mudanças no promptBase (linhas 325-413):**
+
+1. **Remover regra de "sempre incluir exemplo prático"** - Substituir por regra de distribuição inteligente
+2. **Reforçar linguagem acessível** com exemplos mais claros
+3. **Adicionar regra explícita** contra múltiplos exemplos no mesmo slide
+4. **Melhorar instruções de tradução imediata de termos**
+
+Nova estrutura do prompt:
 
 ```
-Usuário entra em "Litisconsórcio"
-         ↓
-Verifica se oab_trilhas_topicos tem capa_url (com flag de "nova geração")
-         ↓
-   [SEM CAPA ou CAPA ANTIGA]
-         ↓
-Chama gerar-capa-oab-tema com:
-  - materia_titulo: "Litisconsórcio"
-  - area: "Direito Processual Civil"
-         ↓
-Busca no MAPA DE CONTEXTOS (igual Biblioteca de Estudos)
-  - keywords: ['litisconsórcio', 'pluralidade de partes']
-  - cena: "Multiple plaintiffs or defendants seated together in courtroom..."
-  - variações: 5 cenas diferentes
-         ↓
-Gera imagem 16:9 com Gemini
-         ↓
-Comprime para WebP 1280x720
-         ↓
-Salva em oab_trilhas_topicos (PRIMEIRA aula da matéria)
-         ↓
-APLICA A MESMA CAPA a TODAS as aulas dessa matéria
+## REGRA SOBRE EXEMPLOS PRÁTICOS (CRÍTICO!)
+
+❌ NÃO inclua exemplo prático em TODOS os slides de texto
+✅ Distribua exemplos de forma inteligente:
+   - Máximo 1 exemplo por slide
+   - Apenas 1 em cada 3-4 slides de texto deve ter exemplo
+   - Se o slide é do tipo "caso", o conteúdo JÁ É o exemplo
+   - NUNCA coloque "> 📚 **EXEMPLO PRÁTICO:**" dentro de slide tipo "caso"
+```
+
+### Etapa 2: Ajustar Scroll to Top
+
+Modificar `src/components/conceitos/slides/ConceitoSlideCard.tsx`:
+
+O scroll atual usa `behavior: 'smooth'` que pode não completar antes da animação do slide. Mudar para `behavior: 'instant'` para garantir posicionamento imediato.
+
+Também adicionar scroll no container pai (`overflow-y-auto`).
+
+### Etapa 3: Melhorar Instruções de Linguagem Acessível
+
+Adicionar exemplos mais concretos no prompt:
+
+```
+## LINGUAGEM ACESSÍVEL - EXEMPLOS PRÁTICOS DE ESCRITA
+
+ERRADO: "A culpabilidade exige imputabilidade, potencial consciência..."
+CERTO: "Para alguém ser culpado de um crime, precisa primeiro de 3 coisas:
+       1. Ser 'imputável' (ou seja, ter capacidade de entender o que fez - 
+          por exemplo, um adulto saudável é imputável, mas um bebê não é)
+       2. Ter 'potencial consciência da ilicitude' (saber que aquilo é errado)
+       3. ..."
+
+REGRA DE OURO: Cada termo técnico = explicação IMEDIATA entre parênteses ou na frase seguinte
 ```
 
 ---
 
-## Mapeamento de Contextos (Novos Temas Processuais)
+## Arquivos a Modificar
 
-Vou adicionar mapeamentos específicos para os temas de Direito Processual Civil:
+1. **supabase/functions/gerar-conteudo-oab-trilhas/index.ts**
+   - Linha 325-413: Reestruturar promptBase com novas regras
+   - Linha 393: Remover "Sempre incluir exemplo prático em slides de texto"
+   - Adicionar seção específica sobre distribuição de exemplos
+   - Reforçar linguagem acessível com mais exemplos práticos
+
+2. **src/components/conceitos/slides/ConceitoSlideCard.tsx**
+   - Linha 119-122: Melhorar lógica de scroll to top
+   - Usar `behavior: 'instant'` ao invés de `'smooth'`
+   - Garantir scroll do container correto
+
+---
+
+## Detalhes Técnicos
+
+### Novo Bloco de Regras para Exemplos (substituir linhas 391-394):
 
 ```typescript
-// LITISCONSÓRCIO
-{
-  keywords: ['litisconsórcio', 'pluralidade de partes'],
-  contexto: {
-    cena: 'Multiple plaintiffs or defendants seated together at courtroom table, representing joint litigation',
-    elementos: 'group of 3-4 people on same side of courtroom, shared lawyer, multiple case folders, united front',
-    atmosfera: 'solidarity, joint action, strength in numbers',
-    variacoes: [
-      'multiple plaintiffs signing joint petition together',
-      'group of defendants with shared defense lawyer in court',
-      'judge addressing multiple parties at once',
-      'lawyers conferring with multiple clients at table',
-      'shared verdict affecting multiple parties'
-    ]
-  }
-}
+## 📚 EXEMPLOS PRÁTICOS (REGRAS CRÍTICAS!):
 
-// INTERVENÇÃO DE TERCEIROS
-{
-  keywords: ['intervenção de terceiros', 'assistência', 'chamamento', 'denunciação'],
-  contexto: {
-    cena: 'Third party entering courtroom proceedings mid-trial, joining existing case',
-    elementos: 'person walking into court session, existing parties looking, judge allowing entry, new documents',
-    atmosfera: 'disruption, new perspective, expanded litigation',
-    variacoes: [
-      'new party presenting documents to join case',
-      'judge ruling on third party intervention request',
-      'original parties reacting to intervener joining',
-      'lawyer introducing new client to ongoing case',
-      'three-way dispute resolution session'
-    ]
-  }
-}
-
-// TUTELA PROVISÓRIA
-{
-  keywords: ['tutela provisória', 'liminar', 'urgência', 'antecipação'],
-  contexto: {
-    cena: 'Emergency court session, judge issuing urgent protective order, clock showing urgency',
-    elementos: 'judge signing urgent order, red "urgent" stamp, clock showing pressure, relieved petitioner',
-    atmosfera: 'urgency, protection, immediate action, race against time',
-    variacoes: [
-      'petitioner rushing to court with emergency papers',
-      'judge stamping emergency injunction at night',
-      'protective order stopping harmful action just in time',
-      'lawyer on phone getting emergency hearing approved',
-      'clock and gavel representing time-sensitive justice'
-    ]
-  }
-}
-
-// ... (mais 40+ mapeamentos para todos os temas de Processo Civil)
+1. NUNCA coloque mais de 1 exemplo prático por slide
+2. Slides tipo "caso" JÁ SÃO o exemplo - não adicione outro dentro
+3. Em slides tipo "texto", inclua exemplo em apenas 1 de cada 3-4 slides
+4. O formato é: "> 📚 **EXEMPLO PRÁTICO:** João comprou..."
+5. VARIE os exemplos: use nomes diferentes (Ana, Pedro, Maria, Carlos)
+6. Faça exemplos do COTIDIANO: compra de celular, aluguel de apartamento, 
+   acidente de carro, contrato de trabalho
 ```
 
----
-
-## Mudanças no Banco de Dados
-
-Adicionar flag para diferenciar capas antigas das novas:
-
-```sql
-ALTER TABLE oab_trilhas_topicos 
-ADD COLUMN IF NOT EXISTS capa_versao INTEGER DEFAULT 1;
-```
-
-- `capa_versao = 1`: Capa antiga (genérica)
-- `capa_versao = 2`: Nova capa (detalhada por tema)
-
----
-
-## Arquivos a Criar/Modificar
-
-### 1. Nova Edge Function: `supabase/functions/gerar-capa-oab-tema/index.ts`
-
-Baseada em `gerar-capa-biblioteca`, com:
-- Mapeamento completo de temas processuais
-- Mesmo sistema de paletas por área
-- Mesmo prompt detalhado
-- Compressão WebP
-- Lógica para aplicar capa a TODAS as aulas da mesma matéria
-
-### 2. Modificar: `src/hooks/useOABMateriaCapasAutoGeneration.tsx`
-
-- Chamar nova função `gerar-capa-oab-tema`
-- Verificar `capa_versao` antes de decidir se gera nova
-- Passar `materia_titulo` (não apenas ID)
-
-### 3. Migração SQL: Adicionar coluna `capa_versao`
-
-```sql
-ALTER TABLE oab_trilhas_topicos 
-ADD COLUMN IF NOT EXISTS capa_versao INTEGER DEFAULT 1;
-```
-
----
-
-## Detalhamento da Nova Edge Function
+### Novo Bloco de Linguagem (reforçar nas linhas 328-360):
 
 ```typescript
-// supabase/functions/gerar-capa-oab-tema/index.ts
+## 🎯 REGRA FUNDAMENTAL DE ESCRITA
 
-// 1. MAPEAMENTO COMPLETO (igual Biblioteca de Estudos)
-const mapaTemasProcessuais: { keywords: string[]; contexto: ContextoVisual }[] = [
-  // Litisconsórcio
-  { keywords: ['litisconsórcio'], contexto: { ... } },
-  // Intervenção de Terceiros
-  { keywords: ['intervenção de terceiros'], contexto: { ... } },
-  // Tutela Provisória
-  { keywords: ['tutela', 'liminar'], contexto: { ... } },
-  // Petição Inicial
-  { keywords: ['petição inicial'], contexto: { ... } },
-  // Sentença e Coisa Julgada
-  { keywords: ['sentença', 'coisa julgada'], contexto: { ... } },
-  // ... (todos os 45 temas de Processo Civil)
-];
+Imagine que está explicando para seu IRMÃO MAIS NOVO de 16 anos.
+Ele é inteligente, mas nunca estudou Direito.
 
-// 2. FUNÇÃO encontrarContextoVisual (copiar da Biblioteca)
-// 3. FUNÇÃO gerarPromptCompleto (copiar da Biblioteca)
-// 4. LÓGICA DE GERAÇÃO E APLICAÇÃO
+ESTRUTURA OBRIGATÓRIA para cada conceito:
+1. Primeiro explica COM SUAS PALAVRAS (simples)
+2. Depois diz o TERMO TÉCNICO
+3. Se tiver expressão em LATIM, traduz IMEDIATAMENTE
+
+EXEMPLO DE COMO DEVE ESCREVER:
+
+"Quando alguém comete um crime, a polícia pode prender essa pessoa 
+imediatamente se pegar ela no ato - isso se chama 'prisão em flagrante' 
+(do latim 'flagrante delicto', que significa 'enquanto o crime ainda 
+está acontecendo'). Funciona como pegar alguém 'com a mão na massa'."
+
+O QUE NUNCA FAZER:
+"A prisão em flagrante, prevista no art. 302 do CPP, ocorre quando..."
+(Isso é técnico demais para quem está começando!)
 ```
 
----
-
-## Prompt Final (Modelo)
+### Scroll to Top Melhorado:
 
 ```typescript
-function gerarPromptCompleto(titulo, area, contexto, variacao, paleta) {
-  return `CRITICAL INSTRUCTION - ABSOLUTE TEXT PROHIBITION:
-This image MUST contain ZERO text elements.
-
-Create a CINEMATIC EDITORIAL ILLUSTRATION in 16:9 horizontal format.
-
-VISUAL CONCEPT: "${titulo}"
-THEMATIC AREA: ${area}
-
-SCENE TO ILLUSTRATE:
-${variacao}
-
-SCENE ELEMENTS:
-${contexto.elementos}
-
-ATMOSPHERE:
-${contexto.atmosfera}
-
-VISUAL STYLE REQUIREMENTS:
-- Semi-realistic cinematic illustration style
-- High detail with visible textures
-- Realistic human proportions and expressions
-- Dramatic cinematic lighting with strong directional source
-- Rich environmental details (objects, clothing, architecture)
-- Movie poster aesthetic quality
-
-COLOR PALETTE (MANDATORY):
-${paleta.descricao}
-
-COMPOSITION:
-- 16:9 horizontal landscape format (wider than tall)
-- Dynamic, engaging arrangement
-- Clear focal point with depth through layering
-- Professional premium quality
-
-FINAL CHECK - TEXT PROHIBITION:
-- NO text, NO letters, NO words, NO numbers
-- All signs, documents in scene must be blank or blurred`;
-}
+// Scroll to top when page changes - INSTANT para garantir posição
+useEffect(() => {
+  // Scroll imediato (não suave) para garantir que comece do topo
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  
+  // Também scrollar o container interno se existir
+  if (containerRef.current) {
+    containerRef.current.scrollTop = 0;
+  }
+  
+  // E o container pai de overflow
+  const scrollContainer = document.querySelector('.overflow-y-auto');
+  if (scrollContainer) {
+    scrollContainer.scrollTop = 0;
+  }
+}, [paginaIndex]);
 ```
-
----
-
-## Sequência de Implementação
-
-1. **Migração SQL**: Adicionar coluna `capa_versao`
-2. **Nova Edge Function**: `gerar-capa-oab-tema` com mapeamento completo
-3. **Modificar Hook**: `useOABMateriaCapasAutoGeneration` para usar nova função
-4. **Deploy**: Fazer deploy da nova edge function
-5. **Testar**: Entrar em "Litisconsórcio" e verificar se gera nova capa representativa
 
 ---
 
 ## Resultado Esperado
 
-### Antes (Capa Genérica):
-- Imagem abstrata de "Direito Processual Civil"
-- Mesma capa para qualquer tema
-- Não representa "Litisconsórcio"
+Após as mudanças:
 
-### Depois (Capa por Tema):
-- Cena de "múltiplas partes no mesmo lado do processo"
-- Visual de grupo de pessoas unidas como litisconsortes
-- Capa específica para "Litisconsórcio" usada em TODAS as 5 aulas desse tema
-- Diferente de "Intervenção de Terceiros" (que terá sua própria capa temática)
+1. Slides de texto terão exemplos práticos de forma **esparsa e inteligente**, não em todos
+2. Slides do tipo "caso" não terão exemplo duplicado dentro do conteúdo
+3. A linguagem será mais **acessível e didática**, com explicações imediatas de termos
+4. Ao passar de slide, a página sempre começará do **topo**
+5. O conteúdo seguirá o padrão "simples primeiro, técnico depois"
