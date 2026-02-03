@@ -16,6 +16,7 @@ interface ConceitosSlidesViewerProps {
   onComplete?: () => void;
   onProgressChange?: (progress: number) => void;
   initialProgress?: number;
+  onGoToFlashcards?: () => void; // Navegação para flashcards no último slide
 }
 
 interface FlatPagina {
@@ -32,7 +33,8 @@ export const ConceitosSlidesViewer = ({
   onClose,
   onComplete,
   onProgressChange,
-  initialProgress = 0
+  initialProgress = 0,
+  onGoToFlashcards
 }: ConceitosSlidesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
@@ -217,6 +219,8 @@ export const ConceitosSlidesViewer = ({
             fontSize={fontSize}
             direction={direction}
             onQuestionAnswered={setQuestionAnswered}
+            isLastSlide={currentIndex === totalPaginas - 1}
+            onGoToFlashcards={onGoToFlashcards}
           />
         </AnimatePresence>
       </div>

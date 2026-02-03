@@ -37,6 +37,8 @@ interface ConceitoSlideCardProps {
   fontSize?: number;
   direction?: 'next' | 'prev';
   onQuestionAnswered?: (answered: boolean) => void;
+  isLastSlide?: boolean;
+  onGoToFlashcards?: () => void;
 }
 
 const iconMap: Record<string, ElementType> = {
@@ -103,7 +105,9 @@ export const ConceitoSlideCard = ({
   canGoBack,
   fontSize = 16,
   direction = 'next',
-  onQuestionAnswered
+  onQuestionAnswered,
+  isLastSlide = false,
+  onGoToFlashcards
 }: ConceitoSlideCardProps) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -457,6 +461,33 @@ export const ConceitoSlideCard = ({
 
           {/* Conteúdo */}
           {renderContent()}
+          
+          {/* Botão de navegação para Flashcards no último slide */}
+          {isLastSlide && onGoToFlashcards && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 pt-6 border-t border-white/10"
+            >
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-400">
+                  Parabéns! Você completou a leitura. 🎉
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Continue para os flashcards e fixe o conteúdo
+                </p>
+              </div>
+              <Button
+                onClick={onGoToFlashcards}
+                className="w-full bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-purple-500/20"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Ir para Flashcards
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
 

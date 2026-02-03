@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, RotateCcw, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Sparkles, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Flashcard {
@@ -11,12 +11,15 @@ interface Flashcard {
 interface FlashcardStackProps {
   flashcards: Flashcard[];
   titulo?: string;
+  onGoToQuestions?: () => void; // Navegação para questões no último flashcard
 }
 
-const FlashcardStack = ({ flashcards, titulo }: FlashcardStackProps) => {
+const FlashcardStack = ({ flashcards, titulo, onGoToQuestions }: FlashcardStackProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
+  
+  const isLastCard = currentIndex === flashcards.length - 1;
 
   if (!flashcards || flashcards.length === 0) return null;
 
@@ -184,6 +187,33 @@ const FlashcardStack = ({ flashcards, titulo }: FlashcardStackProps) => {
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
+      
+      {/* Botão de navegação para Questões no último flashcard */}
+      {isLastCard && onGoToQuestions && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-6 pt-4 border-t border-white/10"
+        >
+          <div className="text-center mb-3">
+            <p className="text-sm text-gray-400">
+              Você revisou todos os flashcards! 🎉
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Agora é hora de praticar com questões
+            </p>
+          </div>
+          <Button
+            onClick={onGoToQuestions}
+            className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-emerald-500/20"
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            Ir para Questões
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </motion.div>
+      )}
     </div>
   );
 };
