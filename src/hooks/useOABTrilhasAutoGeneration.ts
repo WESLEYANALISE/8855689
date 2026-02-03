@@ -51,62 +51,71 @@ export const useOABTrilhasAutoGeneration = ({
   const gerando = topicos?.filter(t => t.status === "gerando").length || 0;
   const percentualGeral = totalTopicos > 0 ? Math.round((concluidos / totalTopicos) * 100) : 0;
 
-  // Encontrar próximo tópico pendente (ordenado do menor para o maior)
-  // IMPORTANTE: Não iniciar se já houver algum gerando OU na fila (o sistema de fila cuida disso)
-  const findNextPending = useCallback(() => {
-    if (!topicos) return null;
+  // Número de gerações simultâneas
+  const CONCURRENT_GENERATIONS = 5;
+
+  // Encontrar próximos tópicos pendentes (ordenados do menor para o maior)
+  // Retorna até 5 tópicos para geração simultânea
+  const findNextPendingBatch = useCallback(() => {
+    if (!topicos) return [];
     
-    // Se já houver geração ativa ou items na fila, a edge function cuida do sequenciamento
-    const hasActiveGeneration = topicos.some(t => t.status === "gerando" || t.status === "na_fila");
-    if (hasActiveGeneration) return null;
+    // Contar quantos já estão gerando
+    const currentlyGeneratingCount = topicos.filter(t => t.status === "gerando" || t.status === "na_fila").length;
     
-    // Ordenar por ordem ASCENDENTE (1, 2, 3...) e encontrar o primeiro pendente ou com erro
+    // Se já atingiu o limite, não iniciar mais
+    if (currentlyGeneratingCount >= CONCURRENT_GENERATIONS) return [];
+    
+    // Quantos podemos iniciar
+    const slotsAvailable = CONCURRENT_GENERATIONS - currentlyGeneratingCount;
+    
+    // Ordenar por ordem ASCENDENTE (1, 2, 3...) e encontrar os pendentes ou com erro
     const sorted = [...topicos].sort((a, b) => a.ordem - b.ordem);
-    // Incluir status "erro" para retry automático
-    return sorted.find(t => t.status === "pendente" || t.status === "erro" || !t.status);
+    const pending = sorted.filter(t => t.status === "pendente" || t.status === "erro" || !t.status);
+    
+    // Retornar até o número de slots disponíveis
+    return pending.slice(0, slotsAvailable);
   }, [topicos]);
 
   // Verificar se há um tópico em geração
   const currentlyGenerating = topicos?.find(t => t.status === "gerando");
 
-  // Iniciar geração do próximo tópico
-  const startNextGeneration = useCallback(async () => {
+  // Iniciar geração de múltiplos tópicos em paralelo
+  const startBatchGeneration = useCallback(async () => {
     if (isGeneratingRef.current) return;
     
-    const nextPending = findNextPending();
-    if (!nextPending) {
-      console.log("[AutoGen] Nenhum tópico pendente encontrado");
-      return;
-    }
-
-    // Evitar reprocessar o mesmo tópico
-    if (nextPending.id === lastGeneratedRef.current) {
-      console.log("[AutoGen] Tópico já foi iniciado recentemente, aguardando...");
+    const pendingBatch = findNextPendingBatch();
+    if (pendingBatch.length === 0) {
+      console.log("[AutoGen] Nenhum tópico pendente encontrado ou limite atingido");
       return;
     }
 
     isGeneratingRef.current = true;
-    lastGeneratedRef.current = nextPending.id;
-    setCurrentGeneratingId(nextPending.id);
-    setCurrentProgress(5);
+    
+    console.log(`[AutoGen] Iniciando geração de ${pendingBatch.length} tópicos em paralelo`);
+    
+    // Iniciar todas as gerações em paralelo
+    const promises = pendingBatch.map(async (topico) => {
+      console.log(`[AutoGen] Iniciando: ${topico.titulo} (ID: ${topico.id})`);
+      
+      try {
+        const { error } = await supabase.functions.invoke("gerar-conteudo-oab-trilhas", {
+          body: { topico_id: topico.id },
+        });
 
-    console.log(`[AutoGen] Iniciando geração: ${nextPending.titulo} (ID: ${nextPending.id})`);
-
-    try {
-      const { error } = await supabase.functions.invoke("gerar-conteudo-oab-trilhas", {
-        body: { topico_id: nextPending.id },
-      });
-
-      if (error) {
-        console.error("[AutoGen] Erro na geração:", error);
-        toast.error(`Erro ao gerar: ${nextPending.titulo}`);
+        if (error) {
+          console.error(`[AutoGen] Erro na geração de ${topico.titulo}:`, error);
+          toast.error(`Erro ao gerar: ${topico.titulo}`);
+        }
+      } catch (err) {
+        console.error(`[AutoGen] Exceção em ${topico.titulo}:`, err);
       }
-    } catch (err) {
-      console.error("[AutoGen] Exceção:", err);
-    } finally {
-      isGeneratingRef.current = false;
-    }
-  }, [findNextPending]);
+    });
+
+    // Aguardar todas as chamadas serem disparadas (não a conclusão)
+    await Promise.allSettled(promises);
+    
+    isGeneratingRef.current = false;
+  }, [findNextPendingBatch]);
 
   // Monitorar progresso via polling
   useEffect(() => {
@@ -131,19 +140,22 @@ export const useOABTrilhasAutoGeneration = ({
     return () => clearInterval(interval);
   }, [enabled, materiaId, currentlyGenerating?.id]);
 
-  // Auto-iniciar geração quando não há nenhum em andamento
+  // Auto-iniciar geração em lote quando há slots disponíveis
   useEffect(() => {
     if (!enabled || !materiaId || !topicos) return;
 
-    // Se não há nenhum gerando e há pendentes, iniciar
-    if (!currentlyGenerating && pendentes > 0) {
+    // Contar quantos estão gerando atualmente
+    const currentlyGeneratingCount = topicos.filter(t => t.status === "gerando" || t.status === "na_fila").length;
+    
+    // Se há slots disponíveis e há pendentes, iniciar mais
+    if (currentlyGeneratingCount < CONCURRENT_GENERATIONS && pendentes > 0) {
       const timer = setTimeout(() => {
-        startNextGeneration();
+        startBatchGeneration();
       }, 1000); // Pequeno delay para evitar múltiplas chamadas
 
       return () => clearTimeout(timer);
     }
-  }, [enabled, materiaId, topicos, currentlyGenerating, pendentes, startNextGeneration]);
+  }, [enabled, materiaId, topicos, pendentes, startBatchGeneration]);
 
   // Atualizar estado quando um tópico termina
   useEffect(() => {

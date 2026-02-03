@@ -53,67 +53,80 @@ export const useOABAutoGeneration = ({
   const pendentes = subtemas?.filter(s => !hasContent(s) && !generatingIds.has(s.id)).length || 0;
   const percentualGeral = totalSubtemas > 0 ? Math.round((concluidos / totalSubtemas) * 100) : 0;
 
-  // Encontrar próximo subtema pendente (ordenado)
-  const findNextPending = useCallback(() => {
-    if (!subtemas || !enabled) return null;
+  // Número de gerações simultâneas
+  const CONCURRENT_GENERATIONS = 5;
+
+  // Encontrar próximos subtemas pendentes (até 5)
+  const findNextPendingBatch = useCallback(() => {
+    if (!subtemas || !enabled) return [];
     
-    // Se já houver algum gerando, aguardar
-    if (generatingIds.size > 0) return null;
+    // Quantos slots disponíveis
+    const slotsAvailable = CONCURRENT_GENERATIONS - generatingIds.size;
+    if (slotsAvailable <= 0) return [];
     
-    // Encontrar o primeiro sem conteúdo
-    return subtemas.find(s => !hasContent(s) && !generatingIds.has(s.id));
+    // Encontrar os que não têm conteúdo e não estão gerando
+    const pending = subtemas.filter(s => !hasContent(s) && !generatingIds.has(s.id));
+    
+    return pending.slice(0, slotsAvailable);
   }, [subtemas, enabled, generatingIds]);
 
-  // Iniciar geração do próximo subtema
-  const startNextGeneration = useCallback(async () => {
+  // Iniciar geração de múltiplos subtemas em paralelo
+  const startBatchGeneration = useCallback(async () => {
     if (isGeneratingRef.current || !enabled) return;
     
-    const nextPending = findNextPending();
-    if (!nextPending) {
-      console.log("[OAB AutoGen] Nenhum subtema pendente encontrado");
-      return;
-    }
-
-    // Evitar reprocessar o mesmo
-    if (nextPending.id === lastGeneratedRef.current) {
-      console.log("[OAB AutoGen] Subtema já foi iniciado recentemente, aguardando...");
+    const pendingBatch = findNextPendingBatch();
+    if (pendingBatch.length === 0) {
+      console.log("[OAB AutoGen] Nenhum subtema pendente ou limite atingido");
       return;
     }
 
     isGeneratingRef.current = true;
-    lastGeneratedRef.current = nextPending.id;
-    setCurrentGeneratingId(nextPending.id);
-    setGeneratingIds(prev => new Set(prev).add(nextPending.id));
+    
+    console.log(`[OAB AutoGen] Iniciando geração de ${pendingBatch.length} subtemas em paralelo`);
+    toast.info(`Gerando ${pendingBatch.length} aulas simultaneamente...`, { duration: 3000 });
 
-    console.log(`[OAB AutoGen] Iniciando geração: ${nextPending.subtema} (ID: ${nextPending.id})`);
-    toast.info(`Gerando: ${nextPending.subtema}`, { duration: 3000 });
+    // Marcar todos como gerando
+    setGeneratingIds(prev => {
+      const next = new Set(prev);
+      pendingBatch.forEach(s => next.add(s.id));
+      return next;
+    });
+    
+    if (pendingBatch.length > 0) {
+      setCurrentGeneratingId(pendingBatch[0].id);
+    }
 
-    try {
-      // Unificado: usar a mesma edge function dos tópicos (mantém o tom "café" e os extras)
-      const { error } = await supabase.functions.invoke("gerar-conteudo-oab-trilhas", {
-        body: { resumo_id: nextPending.id },
-      });
+    // Iniciar todas as gerações em paralelo
+    const promises = pendingBatch.map(async (subtema) => {
+      console.log(`[OAB AutoGen] Iniciando: ${subtema.subtema} (ID: ${subtema.id})`);
+      
+      try {
+        const { error } = await supabase.functions.invoke("gerar-conteudo-oab-trilhas", {
+          body: { resumo_id: subtema.id },
+        });
 
-      if (error) {
-        console.error("[OAB AutoGen] Erro na geração:", error);
-        toast.error(`Erro ao gerar: ${nextPending.subtema}`);
+        if (error) {
+          console.error(`[OAB AutoGen] Erro na geração de ${subtema.subtema}:`, error);
+          toast.error(`Erro ao gerar: ${subtema.subtema}`);
+          setGeneratingIds(prev => {
+            const next = new Set(prev);
+            next.delete(subtema.id);
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error(`[OAB AutoGen] Exceção em ${subtema.subtema}:`, err);
         setGeneratingIds(prev => {
           const next = new Set(prev);
-          next.delete(nextPending.id);
+          next.delete(subtema.id);
           return next;
         });
       }
-    } catch (err) {
-      console.error("[OAB AutoGen] Exceção:", err);
-      setGeneratingIds(prev => {
-        const next = new Set(prev);
-        next.delete(nextPending.id);
-        return next;
-      });
-    } finally {
-      isGeneratingRef.current = false;
-    }
-  }, [findNextPending, enabled]);
+    });
+
+    await Promise.allSettled(promises);
+    isGeneratingRef.current = false;
+  }, [findNextPendingBatch, enabled]);
 
   // Polling para verificar se o conteúdo foi gerado
   useEffect(() => {
@@ -152,19 +165,19 @@ export const useOABAutoGeneration = ({
     return () => clearInterval(interval);
   }, [enabled, generatingIds, currentGeneratingId]);
 
-  // Auto-iniciar geração quando não há nenhum em andamento
+  // Auto-iniciar geração em lote quando há slots disponíveis
   useEffect(() => {
     if (!enabled || !subtemas || subtemas.length === 0) return;
 
-    // Se não há nenhum gerando e há pendentes, iniciar
-    if (generatingIds.size === 0 && pendentes > 0) {
+    // Se há slots disponíveis e há pendentes, iniciar mais
+    if (generatingIds.size < CONCURRENT_GENERATIONS && pendentes > 0) {
       const timer = setTimeout(() => {
-        startNextGeneration();
+        startBatchGeneration();
       }, 2000); // Delay para evitar múltiplas chamadas
 
       return () => clearTimeout(timer);
     }
-  }, [enabled, subtemas, generatingIds.size, pendentes, startNextGeneration]);
+  }, [enabled, subtemas, generatingIds.size, pendentes, startBatchGeneration]);
 
   // Função helper para obter status de um subtema específico
   const getSubtemaStatus = useCallback((subtemaId: number) => {
