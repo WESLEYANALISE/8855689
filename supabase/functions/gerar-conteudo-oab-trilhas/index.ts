@@ -422,29 +422,28 @@ ${conteudoResumo ? `\n═══ SUBTEMAS ═══\n${conteudoResumo}` : ""}
 ${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
 ═══════════════════════`;
 
-    // Função ROBUSTA para remover saudações proibidas de slides que não são introdução
+    // Função para remover APENAS saudações formais/repetitivas no início dos slides
+    // PRESERVAR expressões naturais como "Olha só", "Veja bem", "Percebeu?" - fazem parte do tom conversacional
     const limparSaudacoesProibidas = (texto: string): string => {
       if (!texto) return texto;
       const saudacoesProibidas = [
+        // Saudações formais/artificiais que devem ser removidas
         /^Futuro\s+colega,?\s*/gi,
         /^Prezad[oa]\s+(advogad[oa]|coleg[ao]|estudante)[^.]*,?\s*/gi,
         /^Car[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
         /^Coleg[ao],?\s*/gi,
         /^Estimad[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
         /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
-        /^Olha só[!,.\s]*/gi,
         /^Olá[!,.\s]*/gi,
         /^Bem-vind[oa][!,.\s]*/gi,
-        /^Vamos\s+(lá|juntos|estudar|mergulhar|nessa)?[!,.\s]*/gi,
-        /^Bora\s+(lá|entender|ver|estudar)?[!,.\s]*/gi,
         /^Tá preparad[oa][?!.\s]*/gi,
         /^Beleza[?!,.\s]*/gi,
         /^Partiu[!,.\s]*/gi,
-        /^Vamos nessa[!,.\s]*/gi,
         /^(Cara|Mano),?\s*/gi,
         /^Galera,?\s*/gi,
         /^Pessoal,?\s*/gi,
         /^Oi[!,.\s]*/gi,
+        // NÃO remover: "Olha só", "Veja bem", "Percebeu?", "Vamos lá", "Bora" - são expressões naturais do tom conversacional
       ];
       let resultado = texto;
       for (const regex of saudacoesProibidas) {
