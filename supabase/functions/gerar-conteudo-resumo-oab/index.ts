@@ -179,15 +179,27 @@ async function processarGeracaoConteudo(resumo_id: number) {
     // ============================================
     // PROMPT BASE
     // ============================================
-    const promptBase = `Você é um professor de Direito especialista em OAB, descontraído e didático.
-Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos de forma clara.
+    const promptBase = `Você é um professor de Direito especialista em OAB, preparando FUTUROS ADVOGADOS.
+Você trata o aluno como um FUTURO COLEGA que em breve estará exercendo a advocacia.
 
 ## 🎯 ESTILO DE ESCRITA:
-- Escreva como CONVERSA, use expressões como "Olha só...", "Percebeu?", "Veja bem..."
+- Tom profissional e respeitoso: "Futuro colega,", "Veja bem..."
+- Use expressões como "Perceba que...", "Observe...", "Note que..."
 - Perguntas retóricas para engajar
 - Analogias com situações do dia a dia
 - Explicar TODO termo técnico ou em latim
 - Exemplos práticos imediatos
+
+## ⛔⛔⛔ PROIBIDO - REGRAS DE SAUDAÇÃO (PENALIZAÇÃO SEVERA) ⛔⛔⛔
+SAUDAÇÕES SÓ SÃO PERMITIDAS no slide tipo "introducao" da PRIMEIRA seção.
+
+❌ NUNCA USE EM SLIDES QUE NÃO SEJAM INTRODUÇÃO:
+- "E aí, galera!", "E aí, futuro colega!", "Vamos lá!", "Olha só!"
+- "Bora entender...", "Bora lá!", "Tá preparado?", "Beleza?"
+- "Cara,", "Mano,", "Partiu!", "Vamos nessa", "Vamos mergulhar..."
+
+✅ COMO COMEÇAR SLIDES NORMAIS:
+- "O conceito de...", "A doutrina entende que...", "Nesse sentido..."
 
 ## 📖 PROFUNDIDADE:
 - Mínimo 200-400 palavras por página tipo "texto"
@@ -208,6 +220,28 @@ Seu estilo é como uma CONVERSA COM UM AMIGO - você explica os conceitos de for
 ═══ CONTEÚDO FONTE ═══
 ${conteudoOriginal}
 ═══════════════════════`;
+
+    // Função para remover saudações proibidas
+    const limparSaudacoesProibidas = (texto: string): string => {
+      if (!texto) return texto;
+      const saudacoesProibidas = [
+        /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
+        /^Olha só[!,.\s]*/gi,
+        /^Vamos lá[!,.\s]*/gi,
+        /^Bora\s+(lá|entender|ver)?[!,.\s]*/gi,
+        /^Tá preparado[?!.\s]*/gi,
+        /^Vamos mergulhar[!,.\s]*/gi,
+        /^Beleza[?!,.\s]*/gi,
+        /^Partiu[!,.\s]*/gi,
+        /^Vamos nessa[!,.\s]*/gi,
+        /^(Cara|Mano),?\s*/gi,
+      ];
+      let resultado = texto;
+      for (const regex of saudacoesProibidas) {
+        resultado = resultado.replace(regex, '');
+      }
+      return resultado.trim();
+    };
 
     // ============================================
     // ETAPA 1: GERAR ESTRUTURA/ESQUELETO
@@ -349,8 +383,16 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
           throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
         }
         
+        // PÓS-PROCESSAMENTO: Remover saudações proibidas de slides que não são introdução
+        for (const slide of secaoCompleta.slides) {
+          const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
+          if (!isPrimeiraSecaoIntro && slide.conteudo) {
+            slide.conteudo = limparSaudacoesProibidas(slide.conteudo);
+          }
+        }
+        
         secoesCompletas.push(secaoCompleta);
-        console.log(`[OAB Resumo] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas`);
+        console.log(`[OAB Resumo] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas (sanitizado)`);
         
       } catch (err) {
         console.error(`[OAB Resumo] ❌ Erro na seção ${i + 1}:`, err);

@@ -15,22 +15,42 @@ interface ArtigoData {
   tabela_codigo: string;
 }
 
-// Mapeamento de palavras-chave para tabelas
+// Mapeamento de palavras-chave para tabelas (ordem de prioridade importa)
 const TABELA_MAPPING: Record<string, string[]> = {
-  "codigo-civil": ["civil", "cc", "código civil", "art. 1", "art. 2", "capacidade", "personalidade", "pessoa", "contrato", "obrigação", "família", "sucessão", "propriedade"],
-  "codigo-penal": ["penal", "cp", "código penal", "crime", "pena", "homicídio", "furto", "roubo", "lesão", "estelionato"],
-  "constituicao-federal": ["cf", "constituição", "federal", "direito fundamental", "art. 5º", "art. 1º cf"],
-  "clt": ["clt", "trabalho", "trabalhista", "empregado", "empregador", "férias", "rescisão"],
-  "cpc": ["cpc", "processo civil", "processual civil", "ação", "petição", "recurso"],
-  "cpp": ["cpp", "processo penal", "processual penal", "inquérito", "prisão"],
-  "cdc": ["cdc", "consumidor", "código de defesa", "fornecedor", "produto", "serviço"],
-  "eca": ["eca", "criança", "adolescente", "menor"],
+  // CPP deve vir antes de CP para detecção correta
+  "cpp": ["cpp", "processo penal", "processual penal", "inquérito", "prisão", "do cpp", "no cpp", "cppp"],
+  "cpc": ["cpc", "processo civil", "processual civil", "ação", "petição", "recurso", "do cpc", "no cpc"],
+  "codigo-penal": ["cp", "código penal", "crime", "pena", "homicídio", "furto", "roubo", "lesão", "estelionato", "do cp", "no cp"],
+  "codigo-civil": ["cc", "civil", "código civil", "capacidade", "personalidade", "pessoa", "contrato", "obrigação", "família", "sucessão", "propriedade", "do cc", "no cc"],
+  "constituicao-federal": ["cf", "constituição", "federal", "direito fundamental", "art. 5º", "art. 1º cf", "da cf", "na cf"],
+  "clt": ["clt", "trabalho", "trabalhista", "empregado", "empregador", "férias", "rescisão", "da clt", "na clt"],
+  "cdc": ["cdc", "consumidor", "código de defesa", "fornecedor", "produto", "serviço", "do cdc", "no cdc"],
+  "eca": ["eca", "criança", "adolescente", "menor", "do eca", "no eca"],
+  "ctn": ["ctn", "tributário", "código tributário", "do ctn", "no ctn"],
+  "lep": ["lep", "execução penal", "da lep", "na lep"],
 };
 
-// Detecta a tabela baseado no contexto
+// Detecta a tabela baseado no contexto com priorização correta
 const detectarTabela = (artigo: string, contexto?: string): string => {
   const textoLower = `${artigo} ${contexto || ''}`.toLowerCase();
   
+  // Detectar CPP especificamente (evitar confusão com CP)
+  if (textoLower.includes('cpp') || textoLower.includes('processo penal') || textoLower.includes('do cpp')) {
+    return "cpp";
+  }
+  
+  // Detectar CPC especificamente
+  if (textoLower.includes('cpc') || textoLower.includes('processo civil') || textoLower.includes('do cpc')) {
+    return "cpc";
+  }
+  
+  // Detectar CP (depois de excluir CPP e CPC)
+  if ((textoLower.includes(' cp') || textoLower.includes('do cp') || textoLower.includes('código penal')) 
+      && !textoLower.includes('cpp') && !textoLower.includes('cpc')) {
+    return "codigo-penal";
+  }
+  
+  // Detectar demais códigos
   for (const [tabela, keywords] of Object.entries(TABELA_MAPPING)) {
     if (keywords.some(kw => textoLower.includes(kw))) {
       return tabela;
@@ -41,17 +61,19 @@ const detectarTabela = (artigo: string, contexto?: string): string => {
   return "codigo-civil";
 };
 
-// Mapear código para nome da tabela no banco
+// Mapear código para nome da tabela no banco (DEVE CORRESPONDER EXATAMENTE AO NOME NO SUPABASE)
 const mapearTabelaParaBanco = (codigo: string): string => {
   const mapeamento: Record<string, string> = {
     "codigo-civil": "CC - Código Civil",
     "codigo-penal": "CP - Código Penal",
     "constituicao-federal": "CF - Constituição Federal",
     "clt": "CLT - Consolidação das Leis do Trabalho",
-    "cpc": "CPC - Código de Processo Civil",
-    "cpp": "CPP - Código de Processo Penal",
-    "cdc": "CDC - Código de Defesa do Consumidor",
-    "eca": "ECA - Estatuto da Criança e do Adolescente",
+    "cpc": "CPC – Código de Processo Civil",  // Usa travessão –
+    "cpp": "CPP – Código de Processo Penal",  // Usa travessão –
+    "cdc": "CDC – Código de Defesa do Consumidor",  // Usa travessão –
+    "eca": "ESTATUTO - ECA",
+    "ctn": "CTN – Código Tributário Nacional",
+    "lep": "Lei 7.210 de 1984 - Lei de Execução Penal",
   };
   return mapeamento[codigo] || "CC - Código Civil";
 };
