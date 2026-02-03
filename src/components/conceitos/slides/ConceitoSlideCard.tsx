@@ -231,11 +231,10 @@ export const ConceitoSlideCard = ({
         break;
 
       case 'dica':
-        // Dica como texto com destaque
-        const dicaMarkdown = `> 💡 **DICA DE MEMORIZAÇÃO:**\n\n${slide.conteudo}`;
+        // Dica renderizada diretamente sem header adicional (o label do slide já identifica o tipo)
         return (
           <EnrichedMarkdownRenderer 
-            content={dicaMarkdown}
+            content={slide.conteudo}
             fontSize={fontSize}
             theme="classicos"
           />
