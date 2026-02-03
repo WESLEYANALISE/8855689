@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
+// VERSÃO para debugging de deploy
+const VERSION = "v2.5.0-gamificacao-fix";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -256,6 +259,10 @@ async function processarGeracaoBackground(
     const topicoTitulo = topico.titulo;
     const tentativasAtuais = topico.tentativas || 0;
 
+    console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
+    console.log(`[OAB Trilhas] 🚀 Iniciando geração em BACKGROUND: ${topicoTitulo}`);
+    console.log(`[OAB Trilhas] 📦 VERSÃO: ${VERSION}`);
+    console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
     console.log(`[OAB Trilhas] Gerando conteúdo INCREMENTAL: ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
 
     // 1. Buscar conteúdo extraído das páginas do PDF
@@ -356,8 +363,59 @@ async function processarGeracaoBackground(
       return result;
     }
 
-    // Função para gerar e fazer parse de JSON com retry
-    async function gerarJSON(prompt: string, maxRetries = 2): Promise<any> {
+    // Função para reparar JSON truncado/malformado
+    function repairJson(text: string): string {
+      let repaired = text.trim();
+      
+      // Remover markdown
+      repaired = repaired.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      
+      // Encontrar início do JSON
+      const jsonStart = repaired.indexOf("{");
+      if (jsonStart === -1) return "{}";
+      repaired = repaired.substring(jsonStart);
+      
+      // Contar chaves e colchetes
+      let braceCount = 0;
+      let bracketCount = 0;
+      let inString = false;
+      let escapeNext = false;
+      let lastValidIndex = 0;
+      
+      for (let i = 0; i < repaired.length; i++) {
+        const char = repaired[i];
+        
+        if (escapeNext) { escapeNext = false; continue; }
+        if (char === '\\') { escapeNext = true; continue; }
+        if (char === '"') { inString = !inString; continue; }
+        
+        if (!inString) {
+          if (char === '{') braceCount++;
+          else if (char === '}') { braceCount--; if (braceCount === 0) lastValidIndex = i; }
+          else if (char === '[') bracketCount++;
+          else if (char === ']') bracketCount--;
+        }
+      }
+      
+      // Se JSON está completo, retornar
+      if (braceCount === 0 && bracketCount === 0) {
+        return repaired.substring(0, lastValidIndex + 1);
+      }
+      
+      // Truncado: fechar estruturas abertas
+      repaired = repaired.replace(/,\s*$/, ""); // Remover vírgula final
+      repaired = repaired.replace(/:\s*$/, ': null'); // Fechar valor pendente
+      repaired = repaired.replace(/"\s*$/, '"'); // Fechar string
+      
+      // Fechar arrays e objetos pendentes
+      while (bracketCount > 0) { repaired += "]"; bracketCount--; }
+      while (braceCount > 0) { repaired += "}"; braceCount--; }
+      
+      return repaired;
+    }
+
+    // Função para gerar e fazer parse de JSON com retry e reparo robusto
+    async function gerarJSON(prompt: string, maxRetries = 2, maxTokens = 8192): Promise<any> {
       let lastError: any = null;
       
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -369,21 +427,24 @@ async function processarGeracaoBackground(
           
           const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 8192, temperature: 0.5 },
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
           });
           
           let text = result.response.text();
-          text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
           
-          const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-          if (!match) throw new Error("JSON não encontrado na resposta");
-          
-          const sanitized = sanitizeJsonString(match[0]);
+          // Tentar parse direto primeiro
+          const sanitized = sanitizeJsonString(text);
+          const repaired = repairJson(sanitized);
           
           try {
-            return JSON.parse(sanitized);
+            return JSON.parse(repaired);
           } catch {
-            const fixed = sanitized.replace(/,\s*([}\]])/g, "$1");
+            // Segunda tentativa: limpar mais agressivamente
+            const fixed = repaired
+              .replace(/,\s*([}\]])/g, "$1")
+              .replace(/([{,])\s*}/g, "$1}")
+              .replace(/\[\s*,/g, "[")
+              .replace(/,\s*,/g, ",");
             return JSON.parse(fixed);
           }
         } catch (err) {
@@ -669,60 +730,105 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
     await updateProgress(80);
 
     // ============================================
-    // ETAPA 3: GERAR EXTRAS
+    // ETAPA 3: GERAR EXTRAS (dividido em 2 chamadas para evitar truncamento)
     // ============================================
-    console.log(`[OAB Trilhas] ETAPA 3: Gerando extras (flashcards, questões)...`);
+    console.log(`[OAB Trilhas] [${VERSION}] ETAPA 3: Gerando extras em 2 partes...`);
 
-    const promptExtras = `${promptBase}
+    // PARTE A: Gamificação (correspondências, ligar_termos, explique_com_palavras, termos)
+    const promptGamificacao = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Gere elementos de estudo complementares e gamificação para a OAB:
+Gere elementos de GAMIFICAÇÃO para estudo interativo sobre "${topicoTitulo}".
 
-Retorne JSON com:
+Retorne JSON com EXATAMENTE esta estrutura:
 {
   "correspondencias": [
-    {"termo": "Termo técnico", "definicao": "Definição em linguagem simples (máx 60 chars)"}
+    {"termo": "Termo técnico", "definicao": "Definição curta (máx 50 chars)"}
   ],
   "ligar_termos": [
-    {"conceito": "Quando não dá mais para recorrer da decisão", "termo": "Trânsito em julgado"},
-    {"conceito": "Pessoa que processa alguém", "termo": "Autor"},
-    {"conceito": "Quem defende o réu", "termo": "Advogado de defesa"}
+    {"conceito": "Descrição em linguagem simples do que significa", "termo": "Nome técnico"}
   ],
   "explique_com_palavras": [
-    {"conceito": "Presunção de inocência", "dica": "Como você explicaria para um vizinho?"},
-    {"conceito": "Competência", "dica": "Use uma analogia do dia a dia"}
-  ],
-  "exemplos": [
-    {"titulo": "Caso do João e Maria", "situacao": "Situação cotidiana", "analise": "Análise jurídica acessível", "conclusao": "Conclusão prática"}
+    {"conceito": "Conceito a explicar", "dica": "Dica para ajudar"}
   ],
   "termos": [
-    {"termo": "Termo jurídico", "definicao": "Explicação como se fosse para um leigo completo"}
+    {"termo": "Termo jurídico", "definicao": "Explicação para leigo"}
   ],
-  "flashcards": [
-    {"frente": "Pergunta estilo OAB", "verso": "Resposta clara e didática", "exemplo": "Exemplo prático do dia a dia"}
-  ],
-  "questoes": [
-    {"pergunta": "Enunciado estilo OAB com situação prática", "alternativas": ["A) opção", "B) opção", "C) opção", "D) opção"], "correta": 0, "explicacao": "Explicação didática: por que a certa está certa E por que as outras estão erradas"}
+  "exemplos": [
+    {"titulo": "Título do caso", "situacao": "Situação", "analise": "Análise", "conclusao": "Conclusão"}
   ]
 }
 
-QUANTIDADES:
-- correspondencias: 8-10 pares (para jogo de correspondência)
-- ligar_termos: 6-8 pares (jogo "ligue o conceito ao termo")
-- explique_com_palavras: 4-6 desafios (gamificação: explicar com suas palavras)
-- exemplos: 5-8 casos práticos
-- termos: 10-15 termos importantes
-- flashcards: 15-25 cards
-- questoes: 15-20 questões estilo OAB
+QUANTIDADES EXATAS:
+- correspondencias: 8 pares
+- ligar_termos: 6 pares (conceito simples → termo técnico)
+- explique_com_palavras: 4 desafios
+- termos: 10 termos
+- exemplos: 5 casos
 
-Retorne APENAS o JSON, sem texto adicional.`;
+IMPORTANTE: Definições curtas, máximo 50 caracteres cada.
+Retorne APENAS o JSON, nada mais.`;
 
-    let extras: any = { correspondencias: [], exemplos: [], termos: [], flashcards: [], questoes: [] };
+    // PARTE B: Flashcards e Questões
+    const promptFlashQuestoes = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere FLASHCARDS e QUESTÕES estilo OAB sobre "${topicoTitulo}".
+
+Retorne JSON com EXATAMENTE esta estrutura:
+{
+  "flashcards": [
+    {"frente": "Pergunta direta", "verso": "Resposta clara", "exemplo": "Exemplo prático"}
+  ],
+  "questoes": [
+    {"pergunta": "Enunciado", "alternativas": ["A) ...", "B) ...", "C) ...", "D) ..."], "correta": 0, "explicacao": "Por que a alternativa X está certa"}
+  ]
+}
+
+QUANTIDADES EXATAS:
+- flashcards: 15 cards
+- questoes: 12 questões estilo OAB
+
+Retorne APENAS o JSON, nada mais.`;
+
+    let extras: any = { 
+      correspondencias: [], 
+      ligar_termos: [],
+      explique_com_palavras: [],
+      exemplos: [], 
+      termos: [], 
+      flashcards: [], 
+      questoes: [] 
+    };
+
+    // Executar ambas as chamadas em paralelo
     try {
-      extras = await gerarJSON(promptExtras);
-      console.log(`[OAB Trilhas] ✓ Extras: ${extras.correspondencias?.length || 0} corresp, ${extras.flashcards?.length || 0} flashcards, ${extras.questoes?.length || 0} questões`);
+      const [gamificacao, flashQuestoes] = await Promise.all([
+        gerarJSON(promptGamificacao, 2, 4096).catch(e => {
+          console.error(`[OAB Trilhas] ⚠️ Erro gamificação:`, e.message);
+          return {};
+        }),
+        gerarJSON(promptFlashQuestoes, 2, 6144).catch(e => {
+          console.error(`[OAB Trilhas] ⚠️ Erro flash/questões:`, e.message);
+          return {};
+        })
+      ]);
+
+      // Mesclar resultados
+      extras = {
+        correspondencias: gamificacao.correspondencias || [],
+        ligar_termos: gamificacao.ligar_termos || [],
+        explique_com_palavras: gamificacao.explique_com_palavras || [],
+        termos: gamificacao.termos || [],
+        exemplos: gamificacao.exemplos || [],
+        flashcards: flashQuestoes.flashcards || [],
+        questoes: flashQuestoes.questoes || []
+      };
+
+      console.log(`[OAB Trilhas] ✓ Gamificação: ${extras.correspondencias.length} corresp, ${extras.ligar_termos.length} ligar, ${extras.explique_com_palavras.length} explicar`);
+      console.log(`[OAB Trilhas] ✓ Estudo: ${extras.flashcards.length} flashcards, ${extras.questoes.length} questões`);
     } catch (err) {
-      console.error(`[OAB Trilhas] ⚠️ Erro nos extras (usando vazios):`, err);
+      console.error(`[OAB Trilhas] ⚠️ Erro geral nos extras:`, err);
     }
 
     await updateProgress(85);
@@ -892,6 +998,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
 
     console.log(`[OAB Trilhas] ✅ Conteúdo salvo com sucesso: ${topicoTitulo}`);
     console.log(`[OAB Trilhas] Stats: ${totalPaginas} páginas, ${secoesCompletas.length} seções`);
+    console.log(`[OAB Trilhas] Gamificação: corresp=${termosComGamificacao.correspondencias.length}, ligar=${termosComGamificacao.ligar_termos.length}, explicar=${termosComGamificacao.explique_com_palavras.length}`);
 
     await updateProgress(95);
 
