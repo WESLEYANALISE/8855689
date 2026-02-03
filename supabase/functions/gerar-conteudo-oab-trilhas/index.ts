@@ -335,11 +335,33 @@ Você trata o aluno como um FUTURO COLEGA que em breve estará exercendo a advoc
 - Exemplos práticos imediatos
 - NUNCA mencione "PDF", "material", "documento" - escreva como conhecimento SEU
 
-## ⛔ SAUDAÇÕES E EXPRESSÕES - REGRAS CRÍTICAS:
-- SAUDAÇÕES (como "Olá!", "Seja bem-vindo!", "Vamos lá!") SÓ SÃO PERMITIDAS no slide tipo "introducao" da PRIMEIRA seção
-- Em TODOS os outros slides, NÃO USE saudações - comece DIRETO no conteúdo
-- NUNCA comece parágrafos com: "E aí?", "Beleza?", "Cara,", "Mano,", "Bora lá", "Vamos nessa", "Partiu", "Galera"
-- Slides que NÃO são introdução devem começar direto: "O conceito de...", "A doutrina entende que...", "Nesse sentido..."
+## ⛔⛔⛔ PROIBIDO - REGRAS DE SAUDAÇÃO (PENALIZAÇÃO SEVERA) ⛔⛔⛔
+VOCÊ SERÁ PENALIZADO SE USAR QUALQUER SAUDAÇÃO FORA DO SLIDE "introducao" DA SEÇÃO 1.
+
+❌ EXEMPLOS DE TEXTO ABSOLUTAMENTE PROIBIDO (NUNCA USE EM SLIDES QUE NÃO SEJAM INTRODUÇÃO):
+- "E aí, galera!"
+- "E aí, futuro colega!"
+- "Vamos lá!"
+- "Olha só!"
+- "Bora entender..."
+- "Bora lá!"
+- "Vamos mergulhar..."
+- "Tá preparado?"
+- "Beleza?"
+- "Cara," / "Mano,"
+- "Partiu!" / "Vamos nessa"
+- Qualquer expressão casual de saudação
+
+✅ COMO COMEÇAR SLIDES QUE NÃO SÃO INTRODUÇÃO:
+- "O conceito de tipicidade..."
+- "A doutrina majoritária entende que..."
+- "Quando analisamos o artigo..."
+- "É fundamental compreender que..."
+- "Nesse contexto, observamos..."
+- "Passemos agora à análise de..."
+
+REGRA RÍGIDA: APENAS o slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
+Todos os demais slides DEVEM começar direto no conteúdo técnico.
 
 ## 📖 PROFUNDIDADE (CRÍTICO!):
 - Mínimo 200-400 palavras por página tipo "texto"
@@ -357,6 +379,28 @@ ${conteudoPDF || "Conteúdo não disponível"}
 ${conteudoResumo ? `\n═══ SUBTEMAS ═══\n${conteudoResumo}` : ""}
 ${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
 ═══════════════════════`;
+
+    // Função para remover saudações proibidas de slides que não são introdução
+    const limparSaudacoesProibidas = (texto: string): string => {
+      if (!texto) return texto;
+      const saudacoesProibidas = [
+        /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
+        /^Olha só[!,.\s]*/gi,
+        /^Vamos lá[!,.\s]*/gi,
+        /^Bora\s+(lá|entender|ver)?[!,.\s]*/gi,
+        /^Tá preparado[?!.\s]*/gi,
+        /^Vamos mergulhar[!,.\s]*/gi,
+        /^Beleza[?!,.\s]*/gi,
+        /^Partiu[!,.\s]*/gi,
+        /^Vamos nessa[!,.\s]*/gi,
+        /^(Cara|Mano),?\s*/gi,
+      ];
+      let resultado = texto;
+      for (const regex of saudacoesProibidas) {
+        resultado = resultado.replace(regex, '');
+      }
+      return resultado.trim();
+    };
 
     // ============================================
     // ETAPA 1: GERAR ESTRUTURA/ESQUELETO (IGUAL CONCEITOS)
@@ -509,8 +553,17 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
           throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
         }
         
+        // PÓS-PROCESSAMENTO: Remover saudações proibidas de slides que não são introdução
+        for (const slide of secaoCompleta.slides) {
+          // Só limpa se não for introdução da primeira seção
+          const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
+          if (!isPrimeiraSecaoIntro && slide.conteudo) {
+            slide.conteudo = limparSaudacoesProibidas(slide.conteudo);
+          }
+        }
+        
         secoesCompletas.push(secaoCompleta);
-        console.log(`[OAB Trilhas] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas`);
+        console.log(`[OAB Trilhas] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas (sanitizado)`);
         
       } catch (err) {
         console.error(`[OAB Trilhas] ❌ Erro na seção ${i + 1}:`, err);
