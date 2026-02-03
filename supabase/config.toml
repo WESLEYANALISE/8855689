@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.gerar-capa-oab-tema]
 verify_jwt = false
+
+[functions.gerar-capa-topico-aprovacao]
+verify_jwt = false

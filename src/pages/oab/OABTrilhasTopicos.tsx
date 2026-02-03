@@ -21,6 +21,8 @@ const OABTrilhasTopicos = () => {
   const parsedTopicoId = topicoId ? parseInt(topicoId) : null;
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [autoCapaTriggered, setAutoCapaTriggered] = useState(false);
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
   // Restaurar posição do scroll ao voltar
   useEffect(() => {
@@ -178,8 +180,38 @@ const OABTrilhasTopicos = () => {
   // Calcular progresso do usuário
   const subtemasConcluidosUsuario = Object.values(progressoUsuario || {}).filter(p => p.leituraCompleta).length;
 
-  // Capa de fallback: usar capa do tópico, ou da área, ou gradiente
+  // Capa compartilhada: 1 capa por tópico (matéria/tópico)
   const fallbackCapa = topico?.capa_url || area?.capa_url;
+
+  // Gerar capa v2 automaticamente (apenas 1x por tópico)
+  useEffect(() => {
+    if (!topico || !area) return;
+    if (autoCapaTriggered) return;
+    if (isGeneratingCover) return;
+
+    const needsV2 = !topico.capa_url || topico.capa_versao !== 2;
+    if (!needsV2) return;
+
+    setAutoCapaTriggered(true);
+    setIsGeneratingCover(true);
+
+    supabase.functions
+      .invoke("gerar-capa-topico-aprovacao", {
+        body: {
+          topico_id: topico.id,
+          titulo: topico.titulo,
+          area: area.nome,
+        },
+      })
+      .then(({ error }) => {
+        if (error) throw error;
+        return queryClient.invalidateQueries({ queryKey: ["oab-trilha-topico", parsedTopicoId] });
+      })
+      .catch((err) => {
+        console.error("[OABTrilhasTopicos] Erro ao gerar capa v2 do tópico:", err);
+      })
+      .finally(() => setIsGeneratingCover(false));
+  }, [topico?.id, topico?.capa_url, topico?.capa_versao, area?.nome, autoCapaTriggered, isGeneratingCover]);
 
   // Só mostra loading se não tem dados em cache
   if (isLoading && !area && !topico) {
@@ -335,11 +367,11 @@ const OABTrilhasTopicos = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    {/* Capa - usa fallbackCapa do tema/área para todos */}
+                    {/* Capa - SEMPRE usa capa do tópico (1 por tópico) */}
                     <div className="w-20 h-20 flex-shrink-0 relative bg-neutral-900 overflow-hidden rounded-l-xl">
-                      {(subtema.url_imagem_resumo || fallbackCapa) ? (
+                      {fallbackCapa ? (
                         <img 
-                          src={subtema.url_imagem_resumo || fallbackCapa}
+                          src={fallbackCapa}
                           alt={subtema.subtema}
                           className="absolute inset-[-10%] w-[120%] h-[120%] object-cover"
                           loading="eager"

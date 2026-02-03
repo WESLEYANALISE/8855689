@@ -78,10 +78,44 @@ const OABTrilhasSubtemaEstudo = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [autoCapaTriggered, setAutoCapaTriggered] = useState(false);
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
   const parsedResumoId = resumoId ? parseInt(resumoId) : null;
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
   const parsedTopicoId = topicoId ? parseInt(topicoId) : null;
+
+  // Buscar área e tópico para usar capa compartilhada (1 por tópico)
+  const { data: area } = useQuery({
+    queryKey: ["oab-trilha-area", parsedMateriaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("oab_trilhas_materias")
+        .select("*")
+        .eq("id", parsedMateriaId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!parsedMateriaId,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: topico } = useQuery({
+    queryKey: ["oab-trilha-topico", parsedTopicoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("oab_trilhas_topicos")
+        .select("*")
+        .eq("id", parsedTopicoId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!parsedTopicoId,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const capaUrl = topico?.capa_url || area?.capa_url || null;
 
   // Buscar dados do RESUMO com polling
   const { data: resumo, isLoading, refetch } = useQuery({
@@ -122,27 +156,35 @@ const OABTrilhasSubtemaEstudo = () => {
     enabled: !!user?.id && !!parsedResumoId,
   });
 
-  // Mutation para gerar capa manualmente
-  const gerarCapaMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("gerar-capa-subtema-resumo", {
-        body: { 
-          resumo_id: parsedResumoId,
-          titulo: resumo?.subtema,
-          area: resumo?.area
+  // Gerar capa v2 automaticamente se ainda não existir (1 por tópico)
+  useEffect(() => {
+    if (!topico || !area) return;
+    if (autoCapaTriggered) return;
+    if (isGeneratingCover) return;
+
+    const needsV2 = !topico.capa_url || topico.capa_versao !== 2;
+    if (!needsV2) return;
+
+    setAutoCapaTriggered(true);
+    setIsGeneratingCover(true);
+
+    supabase.functions
+      .invoke("gerar-capa-topico-aprovacao", {
+        body: {
+          topico_id: topico.id,
+          titulo: topico.titulo,
+          area: area.nome,
         },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["oab-resumo-estudo", parsedResumoId] });
-      toast.success("Capa gerada com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao gerar capa. Tente novamente.");
-    },
-  });
+      })
+      .then(({ error }) => {
+        if (error) throw error;
+        return queryClient.invalidateQueries({ queryKey: ["oab-trilha-topico", parsedTopicoId] });
+      })
+      .catch((err) => {
+        console.error("[OABTrilhasSubtemaEstudo] Erro ao gerar capa v2 do tópico:", err);
+      })
+      .finally(() => setIsGeneratingCover(false));
+  }, [topico?.id, topico?.capa_url, topico?.capa_versao, area?.nome, autoCapaTriggered, isGeneratingCover]);
 
   const gerarConteudoMutation = useMutation({
     mutationFn: async () => {
@@ -195,15 +237,7 @@ const OABTrilhasSubtemaEstudo = () => {
     }
   }, [resumo?.id, resumo?.conteudo_gerado, isGeneratingContent]);
 
-  // Gerar capa automaticamente se ainda não existir
-  useEffect(() => {
-    if (!resumo || autoCapaTriggered) return;
-    if (resumo.url_imagem_resumo) return;
-    if (gerarCapaMutation.isPending) return;
-
-    setAutoCapaTriggered(true);
-    gerarCapaMutation.mutate();
-  }, [resumo?.id, resumo?.url_imagem_resumo, autoCapaTriggered, gerarCapaMutation.isPending]);
+  // (Removido) geração automática de capa por subtema: agora é 1 capa por tópico.
 
   // Parse conteudo_gerado (memoizado para estabilidade entre renders)
   const conteudoGerado = useMemo(
@@ -465,7 +499,7 @@ const OABTrilhasSubtemaEstudo = () => {
   // Renderizar Slides Viewer (igual ao Conceitos)
   if (viewMode === 'slides' && slidesData.length > 0) {
     return (
-      <ConceitosSlidesViewer
+         <ConceitosSlidesViewer
         secoes={slidesData}
         titulo={resumo?.subtema || ""}
         materiaName={resumo?.area}
@@ -493,10 +527,10 @@ const OABTrilhasSubtemaEstudo = () => {
         </div>
       </div>
 
-      <OABTrilhasTopicoIntro
+         <OABTrilhasTopicoIntro
         titulo={resumo?.subtema || ""}
         materiaName={resumo?.area}
-        capaUrl={resumo?.url_imagem_resumo}
+           capaUrl={capaUrl || undefined}
         tempoEstimado={tempoEstimado}
         totalPaginas={totalPaginas}
         objetivos={objetivos}
