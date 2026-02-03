@@ -160,8 +160,14 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const gerarConteudoMutation = useMutation({
     mutationFn: async (params?: { force?: boolean }) => {
       setIsGeneratingContent(true);
-      const { data, error } = await supabase.functions.invoke("gerar-conteudo-resumo-oab", {
-        body: { resumo_id: parsedResumoId, force_regenerate: !!params?.force },
+      
+      // Usar a mesma edge function dos tópicos (gerar-conteudo-oab-trilhas) 
+      // passando resumo_id para gerar conteúdo do subtema com tom "café"
+      const { data, error } = await supabase.functions.invoke("gerar-conteudo-oab-trilhas", {
+        body: { 
+          resumo_id: parsedResumoId, 
+          force_regenerate: !!params?.force 
+        },
       });
       if (error) throw error;
       
@@ -174,11 +180,12 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
           
           const { data: resumoAtualizado } = await supabase
             .from("RESUMO")
-            .select("conteudo_gerado")
+            .select("conteudo_gerado, slides_json")
             .eq("id", parsedResumoId!)
             .single();
           
-          if (resumoAtualizado?.conteudo_gerado) {
+          // Verificar se tem slides_json OU conteudo_gerado
+          if (resumoAtualizado?.slides_json || resumoAtualizado?.conteudo_gerado) {
             return { success: true, completed: true };
           }
           
