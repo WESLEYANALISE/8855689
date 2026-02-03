@@ -762,8 +762,9 @@ Para CADA página, retorne o objeto completo com TOM CONVERSACIONAL (como café 
 8. Para tipo "caso":
    {"tipo": "caso", "titulo": "...", "conteudo": "Imagine a seguinte situação: João está [situação cotidiana]. [Análise jurídica explicada de forma simples]"}
 
-9. Para tipo "quickcheck":
-   {"tipo": "quickcheck", "titulo": "...", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Pergunta prática em linguagem acessível", "opcoes": ["A) ...", "B) ...", "C) ...", "D) ..."], "resposta": 0, "feedback": "A resposta certa é a alternativa X porque... [explicação didática do porquê, não só da certa mas também do erro das outras]"}
+9. Para tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
+   {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de 15 dias conforme o Art. X..."}
+   ⚠️ ATENÇÃO: Use "pergunta" (singular), NÃO "perguntas" (plural). Cada slide quickcheck tem UMA pergunta só.
 
 10. Para tipo "resumo":
     {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando o que aprendemos:", "pontos": ["Ponto 1 com linguagem clara", "Ponto 2", "..."]}
@@ -801,11 +802,21 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
           throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
         }
         
-        // PÓS-PROCESSAMENTO: Remover saudações proibidas
+        // PÓS-PROCESSAMENTO: Remover saudações proibidas e normalizar quickcheck
         for (const slide of secaoCompleta.slides) {
           const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
           if (!isPrimeiraSecaoIntro && slide.conteudo) {
             slide.conteudo = limparSaudacoesProibidas(slide.conteudo);
+          }
+          
+          // Normalizar quickcheck se Gemini gerou "perguntas" (plural)
+          if (slide.tipo === 'quickcheck' && !slide.pergunta && slide.perguntas && Array.isArray(slide.perguntas) && slide.perguntas.length > 0) {
+            const primeiraQuestao = slide.perguntas[0];
+            slide.pergunta = primeiraQuestao.texto || primeiraQuestao.pergunta || '';
+            slide.opcoes = primeiraQuestao.opcoes || [];
+            slide.resposta = primeiraQuestao.respostaCorreta ?? primeiraQuestao.resposta ?? 0;
+            slide.feedback = primeiraQuestao.feedback || '';
+            delete slide.perguntas;
           }
         }
         
@@ -1573,8 +1584,9 @@ Para CADA página, retorne:
 2. tipo "texto" (MÍNIMO 200 PALAVRAS - BEM DETALHADO):
    {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional DETALHADA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas) determina...'. Use hierarquia clara e conexões entre slides."}
 
-3. tipo "quickcheck":
-   {"tipo": "quickcheck", "titulo": "...", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "..."}
+3. tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
+   {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de 15 dias porque..."}
+   ⚠️ ATENÇÃO: Use "pergunta" (singular), NÃO "perguntas" (plural). Cada slide quickcheck tem UMA pergunta só.
 
 4. tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO):
    {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte cada termo à sua definição:", "correspondencias": [
@@ -1603,12 +1615,28 @@ REGRAS CRÍTICAS:
         const secaoGerada = await gerarJSON(promptSecao, 2, 8192);
         
         if (secaoGerada?.slides && Array.isArray(secaoGerada.slides)) {
+          // Normalizar slides quickcheck (caso Gemini gere "perguntas" plural)
+          const slidesNormalizados = secaoGerada.slides.map((slide: any) => {
+            if (slide.tipo === 'quickcheck' && !slide.pergunta && slide.perguntas && Array.isArray(slide.perguntas) && slide.perguntas.length > 0) {
+              const primeiraQuestao = slide.perguntas[0];
+              return {
+                ...slide,
+                pergunta: primeiraQuestao.texto || primeiraQuestao.pergunta || '',
+                opcoes: primeiraQuestao.opcoes || [],
+                resposta: primeiraQuestao.respostaCorreta ?? primeiraQuestao.resposta ?? 0,
+                feedback: primeiraQuestao.feedback || '',
+                perguntas: undefined // Remove o campo plural
+              };
+            }
+            return slide;
+          });
+          
           secoesCompletas.push({
             id: secaoEstrutura.id,
             titulo: secaoEstrutura.titulo,
-            slides: secaoGerada.slides
+            slides: slidesNormalizados
           });
-          console.log(`[OAB Resumo] ✓ Seção ${i + 1}: ${secaoGerada.slides.length} slides`);
+          console.log(`[OAB Resumo] ✓ Seção ${i + 1}: ${slidesNormalizados.length} slides`);
         }
       } catch (err) {
         console.error(`[OAB Resumo] ⚠️ Erro na seção ${i + 1}:`, err);
