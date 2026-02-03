@@ -1532,29 +1532,61 @@ Retorne um JSON com esta estrutura:
   ]
 }
 
-REGRAS:
-1. Gere entre 4-6 seções (para alcançar 25-40 páginas totais)
-2. Cada seção deve ter 5-8 páginas
-3. TIPOS: introducao, texto, termos, atencao, dica, caso, resumo, quickcheck, correspondencias
-4. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 15-20) - gamificação
-5. A introdução DEVE começar com "☕ Prepare seu café..." e listar tópicos que serão abordados
-6. MANTENHA o título original: "${subtema}" (não altere)
-7. Cubra TODO o conteúdo fonte com explicações DETALHADAS e termos explicados INLINE
+REGRAS OBRIGATÓRIAS:
+1. Gere entre 6-8 seções (OBRIGATÓRIO para alcançar 40-55 páginas totais)
+2. Cada seção DEVE ter 6-9 páginas - NUNCA menos que 6
+3. MÍNIMO TOTAL: 40 páginas - se tiver menos, adicione mais conteúdo detalhado
+4. TIPOS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck, correspondencias
+5. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 25-30) - gamificação
+6. A introdução DEVE começar com "☕ Prepare seu café..." e listar os tópicos que serão abordados
+7. MANTENHA o título original: "${subtema}" (não altere)
+8. Cubra TODO o conteúdo fonte com explicações BEM DETALHADAS e termos jurídicos explicados INLINE
+9. INCLUA pelo menos 2-3 slides tipo "tabela" no total (comparativos)
+10. Cada seção DEVE ter pelo menos 1 quickcheck para testar o aprendizado
+
+⚠️ MUITO IMPORTANTE: O mínimo é 40 páginas! Se o conteúdo parecer curto, expanda com mais detalhes, exemplos práticos e explicações adicionais.
 
 Retorne APENAS o JSON.`;
 
     let estrutura: any = null;
-    try {
-      estrutura = await gerarJSON(promptEstrutura);
-      
-      if (!estrutura?.secoes || !Array.isArray(estrutura.secoes) || estrutura.secoes.length < 2) {
-        throw new Error("Estrutura inválida");
+    let tentativasEstrutura = 0;
+    const MAX_TENTATIVAS_ESTRUTURA = 3;
+    
+    while (tentativasEstrutura < MAX_TENTATIVAS_ESTRUTURA) {
+      tentativasEstrutura++;
+      try {
+        estrutura = await gerarJSON(promptEstrutura);
+        
+        if (!estrutura?.secoes || !Array.isArray(estrutura.secoes) || estrutura.secoes.length < 4) {
+          throw new Error("Estrutura inválida: menos de 4 seções");
+        }
+        
+        // Validar mínimo de páginas
+        const totalPaginasEstrutura = estrutura.secoes.reduce(
+          (acc: number, s: any) => acc + (s.paginas?.length || 0), 0
+        );
+        
+        console.log(`[OAB Resumo] Estrutura tentativa ${tentativasEstrutura}: ${estrutura.secoes.length} seções, ${totalPaginasEstrutura} páginas`);
+        
+        // Se tiver menos de 40 páginas, tentar novamente
+        if (totalPaginasEstrutura < MIN_PAGINAS) {
+          console.log(`[OAB Resumo] ⚠️ Apenas ${totalPaginasEstrutura} páginas (mínimo: ${MIN_PAGINAS}). Tentando novamente...`);
+          if (tentativasEstrutura < MAX_TENTATIVAS_ESTRUTURA) {
+            continue; // Tentar novamente
+          } else {
+            console.log(`[OAB Resumo] ⚠️ Após ${MAX_TENTATIVAS_ESTRUTURA} tentativas, prosseguindo com ${totalPaginasEstrutura} páginas`);
+          }
+        }
+        
+        console.log(`[OAB Resumo] ✓ Estrutura válida: ${estrutura.secoes.length} seções, ${totalPaginasEstrutura} páginas`);
+        break; // Estrutura válida, sair do loop
+        
+      } catch (err) {
+        console.error(`[OAB Resumo] ❌ Erro na estrutura (tentativa ${tentativasEstrutura}):`, err);
+        if (tentativasEstrutura >= MAX_TENTATIVAS_ESTRUTURA) {
+          throw new Error(`Falha ao gerar estrutura após ${MAX_TENTATIVAS_ESTRUTURA} tentativas: ${err}`);
+        }
       }
-      
-      console.log(`[OAB Resumo] ✓ Estrutura: ${estrutura.secoes.length} seções`);
-    } catch (err) {
-      console.error(`[OAB Resumo] ❌ Erro na estrutura:`, err);
-      throw new Error(`Falha ao gerar estrutura: ${err}`);
     }
 
     // ETAPA 2: Gerar conteúdo por seção
@@ -1581,8 +1613,8 @@ Para CADA página, retorne:
 1. tipo "introducao" (ENGAJAMENTO OBRIGATÓRIO):
    {"tipo": "introducao", "titulo": "${subtema}", "conteudo": "☕ Prepare seu café, pois vamos estudar juntos...\n\nNesta aula, você vai aprender:\n• Tópico 1\n• Tópico 2\n\nBora começar?"}
 
-2. tipo "texto" (MÍNIMO 200 PALAVRAS - BEM DETALHADO):
-   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional DETALHADA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas) determina...'. Use hierarquia clara e conexões entre slides."}
+2. tipo "texto" (MÍNIMO 300-400 PALAVRAS - BEM DETALHADO):
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional MUITO DETALHADA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas) determina...'. Use hierarquia clara e conexões entre slides. Desenvolva cada ponto com exemplos práticos."}
 
 3. tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
    {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de 15 dias porque..."}
