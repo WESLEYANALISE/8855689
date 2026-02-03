@@ -113,7 +113,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
     staleTime: 1000 * 60 * 10,
   });
 
-  const capaUrl = topico?.capa_url || area?.capa_url || null;
+  const capaUrl = area?.capa_url || null;
 
   // Buscar dados do RESUMO com polling
   const { data: resumo, isLoading, refetch } = useQuery({
