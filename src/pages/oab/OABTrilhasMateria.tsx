@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Scale, ImageIcon, Footprints, FileText, RefreshCw, Sparkles, CheckCircle, ImagePlus } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Scale, ImageIcon, Footprints, FileText, RefreshCw, Sparkles, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import bgMateriasOab from "@/assets/bg-materias-oab.webp";
 import { OABPdfProcessorModal } from "@/components/oab/OABPdfProcessorModal";
@@ -205,37 +205,6 @@ const OABTrilhasMateria = () => {
     staleTime: 1000 * 60 * 2,
   });
 
-  // State para regeneração de capa
-  const [regenerandoCapa, setRegenerandoCapa] = useState<number | null>(null);
-  
-  // Mutation para gerar capa única da matéria (regenerar)
-  const gerarCapaMutation = useMutation({
-    mutationFn: async (topicoId: number) => {
-      setRegenerandoCapa(topicoId);
-      const { data, error } = await supabase.functions.invoke("gerar-capa-unica-materia", {
-        body: { materia_id: topicoId, forcar_regeneracao: true },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data?.url) {
-        toast.success(`Capa regenerada para ${data?.materia || 'matéria'}! ${data?.topicos_atualizados || 0} aulas atualizadas.`);
-      }
-      queryClient.invalidateQueries({ queryKey: ["oab-trilha-materias-da-area", parsedMateriaId] });
-      setRegenerandoCapa(null);
-    },
-    onError: (error) => {
-      console.error("[Capa] Erro ao regenerar capa:", error);
-      toast.error("Erro ao regenerar capa. Tente novamente.");
-      setRegenerandoCapa(null);
-    },
-  });
-  
-  const handleRegenarCapa = (topicoId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Evita navegação ao clicar
-    gerarCapaMutation.mutate(topicoId);
-  };
 
   const totalMaterias = materias?.length || 0;
   const totalTopicos = Object.values(subtemasCount || {}).reduce((a, b) => a + b, 0);
@@ -359,7 +328,6 @@ const OABTrilhasMateria = () => {
               <div className="space-y-6">
                 {materias.map((materia, index) => {
                   const isLeft = index % 2 === 0;
-                  const temCapa = !!materia.capa_url;
                   
                   return (
                     <motion.div
@@ -401,12 +369,12 @@ const OABTrilhasMateria = () => {
                           onClick={() => navigateWithScroll(`/oab/trilhas-aprovacao/materia/${parsedMateriaId}/topicos/${materia.id}`)}
                           className="cursor-pointer rounded-2xl backdrop-blur-sm border transition-all overflow-hidden min-h-[180px] flex flex-col bg-[#12121a]/90 border-white/10 hover:border-red-500/50"
                         >
-                          {/* Capa da matéria - usa capa do tópico OU da área (matéria) como fallback */}
+                          {/* Capa da matéria - SEMPRE usa capa da ÁREA */}
                           <div className="h-20 w-full overflow-hidden relative flex-shrink-0">
-                            {(temCapa || area?.capa_url) ? (
+                            {area?.capa_url ? (
                               <>
                                 <UniversalImage
-                                  src={materia.capa_url || area?.capa_url || ''}
+                                  src={area.capa_url}
                                   alt={materia.titulo}
                                   priority={index < 4}
                                   blurCategory="oab"
@@ -438,20 +406,6 @@ const OABTrilhasMateria = () => {
                                 Matéria {materia.ordem}
                               </p>
                             </div>
-                            
-                            {/* Botão Regenerar Capa */}
-                            <button
-                              onClick={(e) => handleRegenarCapa(materia.id, e)}
-                              disabled={regenerandoCapa === materia.id}
-                              className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-500/80 transition-colors z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Regenerar capa da matéria"
-                            >
-                              {regenerandoCapa === materia.id ? (
-                                <Loader2 className="w-4 h-4 text-white animate-spin" />
-                              ) : (
-                                <ImagePlus className="w-4 h-4 text-white" />
-                              )}
-                            </button>
                           </div>
                           
                           {/* Conteúdo */}

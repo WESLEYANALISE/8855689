@@ -293,6 +293,20 @@ export default function TrilhasAprovacao() {
                                 />
                                 {/* Gradiente escuro para destaque do texto */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+                                
+                                {/* Botão Regenerar Capa */}
+                                <button
+                                  onClick={(e) => handleGerarCapa(materia.id, e)}
+                                  disabled={isGenerating}
+                                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-500/80 transition-colors z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Regenerar capa da área"
+                                >
+                                  {isGenerating ? (
+                                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                  ) : (
+                                    <ImagePlus className="w-4 h-4 text-white" />
+                                  )}
+                                </button>
                               </>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
