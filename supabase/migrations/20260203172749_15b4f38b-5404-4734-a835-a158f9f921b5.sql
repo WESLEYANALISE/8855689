@@ -1,0 +1,22 @@
+-- Inserir tópicos de Direito Previdenciário na OAB Trilhas
+INSERT INTO oab_trilhas_topicos (materia_id, titulo, ordem, status) VALUES
+(34, 'Origens Históricas da Seguridade Social', 1, 'pendente'),
+(34, 'Introdução à Seguridade Social', 2, 'pendente'),
+(34, 'Princípios da Seguridade Social', 3, 'pendente'),
+(34, 'Saúde', 4, 'pendente'),
+(34, 'Assistência Social', 5, 'pendente'),
+(34, 'Previdência Social Brasileira', 6, 'pendente'),
+(34, 'Beneficiários do RGPS: Segurados e Dependentes', 7, 'pendente'),
+(34, 'FGTS', 8, 'pendente'),
+(34, 'PIS/PASEP', 9, 'pendente'),
+(34, 'Seguro-Desemprego', 10, 'pendente'),
+(34, 'Bolsa Família', 11, 'pendente'),
+(34, 'Salário-Família', 12, 'pendente'),
+(34, 'Salário-Maternidade', 13, 'pendente'),
+(34, 'Auxílio-Acidente', 14, 'pendente'),
+(34, 'Auxílio-Reclusão', 15, 'pendente'),
+(34, 'Pensão por Morte', 16, 'pendente'),
+(34, 'Aposentadoria Programada', 17, 'pendente'),
+(34, 'Aposentadoria por Incapacidade Permanente', 18, 'pendente'),
+(34, 'Aposentadoria Especial', 19, 'pendente'),
+(34, 'Aposentadoria da Pessoa com Deficiência', 20, 'pendente');
