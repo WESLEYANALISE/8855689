@@ -337,13 +337,13 @@ const FlashcardsTemas = () => {
                           
                           {/* Conteúdo */}
                           <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-semibold mb-0.5 ${
+                            <p className={`text-xs mb-0.5 ${
                               item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-violet-400"
                             }`}>
                               Tema {item.ordem + 1}
                             </p>
                             
-                            <h3 className="font-medium text-sm leading-snug text-white line-clamp-2">
+                            <h3 className="text-sm leading-snug text-white line-clamp-2">
                               {item.tema}
                             </h3>
                             
