@@ -82,7 +82,142 @@ const isConceptualTerm = (text: string): boolean => {
   return wordCount <= 6 && !isLegalCitation(trimmed) && trimmed.length <= 80;
 };
 
-// Função para processar texto e extrair termos destacados [[termo]], "termo" entre aspas, e artigos de lei
+// Lista de termos latinos comuns no direito (para destaque automático)
+const TERMOS_LATINOS = [
+  // Princípios e máximas
+  'ab initio', 'ab ovo', 'accessio cedit principali', 'accessorium sequitur principale',
+  'actio in rem', 'actio in personam', 'actori incumbit probatio', 'ad argumentandum tantum',
+  'ad cautelam', 'ad corpus', 'ad hoc', 'ad hominem', 'ad impossibilia nemo tenetur',
+  'ad infinitum', 'ad litem', 'ad mensuram', 'ad nutum', 'ad quem', 'ad referendum',
+  'ad rem', 'aliud est celare', 'aliud est tacere', 'animus', 'animus domini',
+  'animus necandi', 'animus nocendi', 'ante factum', 'a posteriori', 'a priori',
+  'audiatur et altera pars', 'bis de eadem re', 'bis in idem', 'bona fides', 'caput',
+  'casus belli', 'causa debendi', 'causa mortis', 'causa petendi', 'clausula rebus sic stantibus',
+  'coactus voluit', 'commodato', 'condicio sine qua non', 'conditio sine qua non',
+  'contra legem', 'corpus delicti', 'culpa in eligendo', 'culpa in vigilando',
+  'da mihi factum dabo tibi ius', 'data venia', 'de cujus', 'de facto', 'de iure',
+  'de jure', 'de lege ferenda', 'de lege lata', 'dolus', 'erga omnes', 'error in judicando',
+  'error in procedendo', 'ex lege', 'ex nunc', 'ex officio', 'ex tunc', 'ex vi legis',
+  'exceptio non adimpleti contractus', 'fumus boni iuris', 'fumus boni juris',
+  'habeas corpus', 'habeas data', 'honoris causa', 'in abstracto', 'in casu',
+  'in concreto', 'in dubio pro libertate', 'in dubio pro reo', 'in dubio pro societate',
+  'in fine', 'in fraudem legis', 'in integrum', 'in itinere', 'in limine',
+  'in loco', 'in malam partem', 'in persona', 'in personam', 'in re ipsa', 'in rem',
+  'in totum', 'inter partes', 'inter vivos', 'ipso facto', 'ipso iure', 'ipso jure',
+  'iter criminis', 'iura novit curia', 'iuris tantum', 'iuris et de iure', 'jura novit curia',
+  'jus', 'jus cogens', 'jus puniendi', 'jus sanguinis', 'jus soli', 'jus variandi',
+  'lato sensu', 'lex', 'lex mitior', 'lex posterior derogat legi priori',
+  'lex specialis derogat legi generali', 'locus delicti', 'locus regit actum',
+  'mandamus', 'manu militari', 'mens rea', 'modus operandi', 'mortis causa',
+  'mutatis mutandis', 'ne bis in idem', 'ne eat iudex ultra petita', 'nemo auditur',
+  'nemo iudex in causa propria', 'nemo potest venire contra factum proprium',
+  'non bis in idem', 'non liquet', 'nulla poena sine lege', 'nullum crimen sine lege',
+  'nullum crimen nulla poena sine lege', 'obiter dictum', 'onus probandi', 'pacta sunt servanda',
+  'par conditio creditorum', 'pari passu', 'pater familias', 'periculum in mora',
+  'per se', 'persona non grata', 'post factum', 'praeter legem', 'prima facie',
+  'pro labore', 'pro rata', 'pro reo', 'pro soluto', 'pro tempore', 'quorum',
+  'ratio decidendi', 'rebus sic stantibus', 'reformatio in pejus', 'reformatio in peius',
+  'res inter alios acta', 'res iudicata', 'res judicata', 'res nullius', 'res perit domino',
+  'respondeant superiores', 'scienter', 'secundum legem', 'sine die', 'sine qua non',
+  'solve et repete', 'stare decisis', 'stricto sensu', 'sub judice', 'sub judice',
+  'sui generis', 'tantum devolutum quantum appellatum', 'tempus regit actum',
+  'ultra petita', 'ultra vires', 'venire contra factum proprium', 'verbi gratia',
+  'vi absoluta', 'vi compulsiva', 'vir bonus', 'vis absoluta', 'vis compulsiva'
+];
+
+// Lista de filósofos e juristas famosos (para destaque automático)
+const FILOSOFOS_JURISTAS = [
+  // Filósofos clássicos
+  'Sócrates', 'Platão', 'Aristóteles', 'Epicuro', 'Zenão', 'Diógenes',
+  'Cícero', 'Sêneca', 'Marco Aurélio', 'Epicteto',
+  // Filósofos modernos e contemporâneos
+  'Hobbes', 'Thomas Hobbes', 'Locke', 'John Locke', 'Rousseau', 'Jean-Jacques Rousseau',
+  'Montesquieu', 'Kant', 'Immanuel Kant', 'Hegel', 'Friedrich Hegel',
+  'Marx', 'Karl Marx', 'Weber', 'Max Weber', 'Durkheim', 'Émile Durkheim',
+  'Nietzsche', 'Friedrich Nietzsche', 'Foucault', 'Michel Foucault',
+  'Habermas', 'Jürgen Habermas', 'Rawls', 'John Rawls', 'Dworkin', 'Ronald Dworkin',
+  'Bobbio', 'Norberto Bobbio', 'Kelsen', 'Hans Kelsen', 'Hart', 'H.L.A. Hart',
+  'Alexy', 'Robert Alexy', 'Luhmann', 'Niklas Luhmann',
+  // Juristas brasileiros
+  'Rui Barbosa', 'Pontes de Miranda', 'Miguel Reale', 'Tércio Sampaio Ferraz',
+  'Celso Antônio Bandeira de Mello', 'Hely Lopes Meirelles', 'Maria Sylvia Zanella Di Pietro',
+  'Cezar Roberto Bitencourt', 'Rogério Greco', 'Guilherme de Souza Nucci',
+  'Claus Roxin', 'Francesco Carnelutti', 'Cesare Beccaria', 'Luigi Ferrajoli',
+  'Eugenio Raúl Zaffaroni', 'Juarez Cirino dos Santos', 'Aury Lopes Jr',
+  'Fernando Capez', 'Renato Brasileiro', 'Ada Pellegrini Grinover',
+  'Cândido Rangel Dinamarco', 'Fredie Didier', 'Daniel Assumpção',
+  'Caio Mário', 'Flávio Tartuce', 'Pablo Stolze', 'Cristiano Chaves',
+  'Orlando Gomes', 'Clóvis Beviláqua', 'Washington de Barros Monteiro',
+  // Juristas internacionais históricos
+  'Savigny', 'Friedrich Carl von Savigny', 'Ihering', 'Rudolf von Ihering',
+  'Bentham', 'Jeremy Bentham', 'Austin', 'John Austin', 'Radbruch', 'Gustav Radbruch',
+  'Ulpiano', 'Gaio', 'Papiniano', 'Paulo', 'Modestino', 'Justiniano'
+];
+
+// Termos jurídicos chave para destaque automático
+const TERMOS_JURIDICOS = [
+  // Direito Penal
+  'tipicidade', 'antijuridicidade', 'ilicitude', 'culpabilidade', 'punibilidade',
+  'dolo', 'culpa', 'crime', 'delito', 'contravenção', 'pena', 'sanção',
+  'imputabilidade', 'inimputabilidade', 'semi-imputabilidade',
+  'legítima defesa', 'estado de necessidade', 'estrito cumprimento do dever legal',
+  'exercício regular de direito', 'excludente de ilicitude', 'excludente de culpabilidade',
+  'erro de tipo', 'erro de proibição', 'coação irresistível', 'obediência hierárquica',
+  'tentativa', 'consumação', 'desistência voluntária', 'arrependimento eficaz',
+  'arrependimento posterior', 'crime impossível', 'concurso de crimes',
+  'concurso material', 'concurso formal', 'crime continuado',
+  'autoria', 'coautoria', 'participação', 'teoria do domínio do fato',
+  'reincidência', 'prescrição', 'decadência', 'perempção',
+  // Direito Processual Penal
+  'ação penal pública', 'ação penal privada', 'inquérito policial',
+  'prisão em flagrante', 'prisão preventiva', 'prisão temporária',
+  'liberdade provisória', 'fiança', 'relaxamento de prisão',
+  'interceptação telefônica', 'busca e apreensão', 'denúncia', 'queixa-crime',
+  'audiência de custódia', 'interrogatório', 'instrução processual',
+  'sentença condenatória', 'sentença absolutória', 'absolvição imprópria',
+  'recurso em sentido estrito', 'apelação criminal', 'embargos infringentes',
+  'revisão criminal', 'habeas corpus', 'mandado de segurança',
+  // Direito Constitucional
+  'direitos fundamentais', 'garantias fundamentais', 'cláusula pétrea',
+  'poder constituinte', 'poder constituinte originário', 'poder constituinte derivado',
+  'supremacia da constituição', 'controle de constitucionalidade',
+  'controle difuso', 'controle concentrado', 'ADI', 'ADC', 'ADPF', 'ADO',
+  'efeito vinculante', 'eficácia erga omnes', 'modulação de efeitos',
+  'princípio da legalidade', 'princípio da isonomia', 'princípio do devido processo legal',
+  'ampla defesa', 'contraditório', 'presunção de inocência',
+  // Direito Civil
+  'capacidade civil', 'personalidade jurídica', 'pessoa natural', 'pessoa jurídica',
+  'negócio jurídico', 'ato jurídico', 'fato jurídico', 'nulidade', 'anulabilidade',
+  'prescrição', 'decadência', 'obrigação', 'contrato', 'responsabilidade civil',
+  'dano material', 'dano moral', 'dano estético', 'lucros cessantes', 'danos emergentes',
+  'posse', 'propriedade', 'usucapião', 'servidão', 'usufruto',
+  // Processo Civil
+  'competência', 'jurisdição', 'litisconsórcio', 'assistência', 'intervenção de terceiros',
+  'tutela provisória', 'tutela de urgência', 'tutela de evidência',
+  'citação', 'intimação', 'notificação', 'contestação', 'reconvenção',
+  'revelia', 'confissão', 'produção de provas', 'sentença', 'acórdão',
+  'coisa julgada', 'preclusão', 'trânsito em julgado',
+  // Direito Administrativo
+  'ato administrativo', 'poder vinculado', 'poder discricionário',
+  'licitação', 'contrato administrativo', 'serviço público', 'concessão', 'permissão',
+  'autarquia', 'fundação pública', 'empresa pública', 'sociedade de economia mista',
+  'princípio da supremacia do interesse público', 'princípio da indisponibilidade',
+  'improbidade administrativa', 'responsabilidade do Estado'
+];
+
+// Função para construir regex de termos automáticos
+const buildTermosRegex = (): RegExp => {
+  const allTerms = [...TERMOS_LATINOS, ...FILOSOFOS_JURISTAS, ...TERMOS_JURIDICOS];
+  // Escapa caracteres especiais e ordena por tamanho (maior primeiro para evitar matches parciais)
+  const escaped = allTerms
+    .sort((a, b) => b.length - a.length)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
+};
+
+const TERMOS_AUTO_REGEX = buildTermosRegex();
+
+// Função para processar texto e extrair termos destacados [[termo]], "termo" entre aspas, artigos de lei, e termos automáticos
 const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = false): React.ReactNode[] => {
   if (!text || typeof text !== 'string') return [text];
   
@@ -102,46 +237,30 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
   let lastIndex = 0;
   let match;
   
+  // Primeiro, processa termos marcados explicitamente e artigos
+  const intermediateResults: Array<{ type: 'text' | 'termo' | 'artigo'; content: string; termo?: string }> = [];
+  
   while ((match = combinedRegex.exec(processedText)) !== null) {
     // Adiciona texto antes do match
     if (match.index > lastIndex) {
-      parts.push(processedText.slice(lastIndex, match.index));
+      intermediateResults.push({ type: 'text', content: processedText.slice(lastIndex, match.index) });
     }
     
     if (match[1]) {
-      // [[termo]] - destaque de termo explícito
-      if (!disableTermos) {
-        parts.push(
-          <TermoHighlight key={`termo-${keyIndex++}`} termo={match[1]}>
-            {match[1]}
-          </TermoHighlight>
-        );
-      } else {
-        parts.push(match[1]);
-      }
+      // [[termo]]
+      intermediateResults.push({ type: 'termo', content: match[1], termo: match[1] });
     } else if (match[2] || match[3] || match[4] || match[5]) {
-      // Termo entre aspas (retas ", simples ', ou curvas "...")
+      // Termo entre aspas
       const termoText = match[2] || match[3] || match[4] || match[5];
-      const quoteChar = match[3] ? "'" : '"'; // Aspas simples ou duplas
+      const quoteChar = match[3] ? "'" : '"';
       if (!disableTermos && isConceptualTerm(termoText)) {
-        // Termo conceitual curto - torna clicável com destaque laranja
-        parts.push(
-          <TermoHighlight key={`termo-quote-${keyIndex++}`} termo={termoText}>
-            {quoteChar}{termoText}{quoteChar}
-          </TermoHighlight>
-        );
+        intermediateResults.push({ type: 'termo', content: `${quoteChar}${termoText}${quoteChar}`, termo: termoText });
       } else {
-        // Termo longo ou citação - mantém aspas mas não clicável
-        parts.push(`${quoteChar}${termoText}${quoteChar}`);
+        intermediateResults.push({ type: 'text', content: `${quoteChar}${termoText}${quoteChar}` });
       }
     } else if (match[6]) {
-      // Art. Xº - artigo de lei clicável
-      const artigoText = match[6];
-      parts.push(
-        <ArtigoPopover key={`artigo-${keyIndex++}`} artigo={artigoText}>
-          {artigoText}
-        </ArtigoPopover>
-      );
+      // Art. Xº
+      intermediateResults.push({ type: 'artigo', content: match[6] });
     }
     
     lastIndex = combinedRegex.lastIndex;
@@ -149,7 +268,65 @@ const processTextWithTermosAndArtigos = (text: string, disableTermos: boolean = 
   
   // Adiciona texto restante
   if (lastIndex < processedText.length) {
-    parts.push(processedText.slice(lastIndex));
+    intermediateResults.push({ type: 'text', content: processedText.slice(lastIndex) });
+  }
+  
+  // Agora, processa termos automáticos nos trechos de texto
+  const processAutoTerms = (textContent: string): React.ReactNode[] => {
+    if (disableTermos) return [textContent];
+    
+    const autoResults: React.ReactNode[] = [];
+    let autoLastIndex = 0;
+    let autoMatch;
+    
+    // Reset regex state
+    TERMOS_AUTO_REGEX.lastIndex = 0;
+    
+    while ((autoMatch = TERMOS_AUTO_REGEX.exec(textContent)) !== null) {
+      if (autoMatch.index > autoLastIndex) {
+        autoResults.push(textContent.slice(autoLastIndex, autoMatch.index));
+      }
+      
+      const matchedTerm = autoMatch[1];
+      autoResults.push(
+        <TermoHighlight key={`auto-${keyIndex++}`} termo={matchedTerm}>
+          {matchedTerm}
+        </TermoHighlight>
+      );
+      
+      autoLastIndex = TERMOS_AUTO_REGEX.lastIndex;
+    }
+    
+    if (autoLastIndex < textContent.length) {
+      autoResults.push(textContent.slice(autoLastIndex));
+    }
+    
+    return autoResults.length > 0 ? autoResults : [textContent];
+  };
+  
+  // Converte resultados intermediários em React nodes
+  for (const item of intermediateResults) {
+    if (item.type === 'termo') {
+      if (!disableTermos) {
+        parts.push(
+          <TermoHighlight key={`termo-${keyIndex++}`} termo={item.termo!}>
+            {item.content}
+          </TermoHighlight>
+        );
+      } else {
+        parts.push(item.content);
+      }
+    } else if (item.type === 'artigo') {
+      parts.push(
+        <ArtigoPopover key={`artigo-${keyIndex++}`} artigo={item.content}>
+          {item.content}
+        </ArtigoPopover>
+      );
+    } else {
+      // Texto normal - processa termos automáticos
+      const autoProcessed = processAutoTerms(item.content);
+      parts.push(...autoProcessed);
+    }
   }
   
   return parts.length > 0 ? parts : [text];
