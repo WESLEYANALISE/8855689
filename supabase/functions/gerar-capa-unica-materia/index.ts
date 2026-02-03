@@ -318,7 +318,19 @@ serve(async (req) => {
 
     console.log(`[Capa Única] Upload concluído: ${publicUrl}`);
 
-    // Aplicar a MESMA capa a TODOS os tópicos da matéria
+    // 1. Atualizar a PRÓPRIA MATÉRIA na tabela oab_trilhas_materias
+    const { error: materiaUpdateError } = await supabase
+      .from("oab_trilhas_materias")
+      .update({ capa_url: publicUrl })
+      .eq("id", materia_id);
+
+    if (materiaUpdateError) {
+      console.error(`[Capa Única] Erro ao atualizar matéria:`, materiaUpdateError);
+    } else {
+      console.log(`[Capa Única] ✅ Matéria ${materia_id} atualizada com nova capa`);
+    }
+
+    // 2. Aplicar a MESMA capa a TODOS os tópicos/aulas da matéria
     const { data: topicosAtualizados, error: updateError } = await supabase
       .from("oab_trilhas_topicos")
       .update({ capa_url: publicUrl })
@@ -329,7 +341,7 @@ serve(async (req) => {
       throw new Error(`Erro ao atualizar tópicos: ${updateError.message}`);
     }
 
-    console.log(`[Capa Única] ✅ Capa aplicada a ${topicosAtualizados?.length || 0} tópicos`);
+    console.log(`[Capa Única] ✅ Capa aplicada a ${topicosAtualizados?.length || 0} aulas`);
 
     return new Response(
       JSON.stringify({ 
