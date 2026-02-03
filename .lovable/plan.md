@@ -1,297 +1,259 @@
 
+# Plano: Nova Geração de Capas OAB Trilhas (Uma Capa por Matéria)
 
-# Plano: Remover Saudações Repetidas e Tornar Conteúdo Mais Dinâmico
+## Resumo do Pedido
 
-## Problema Identificado
-
-O conteúdo gerado está:
-1. **Repetindo "Futuro colega" em todos os slides** - deve aparecer APENAS na introdução
-2. **Faltando cards visuais** como "⚠️ ATENÇÃO", "💡 DICA DE PROVA" para melhor hierarquia
-3. **Linguagem ainda técnica demais** - faltando mais analogias e explicações progressivas
-4. **Slides muito uniformes** - parecem "aula escrita", não "aula dinâmica"
-
----
-
-## Mudancas Propostas
-
-### 1. Reforcar a Proibicao de Saudacoes (Prompts)
-
-Vou modificar os prompts para deixar absolutamente claro que:
-
-**ANTES (problemático):**
-```text
-## 🎯 ESTILO DE ESCRITA:
-- Tom profissional e respeitoso: "Futuro colega,", "Prezado advogado em formação,"
-```
-
-**DEPOIS (corrigido):**
-```text
-## ⛔ REGRA ABSOLUTA DE SAUDAÇÃO:
-- SAUDAÇÃO (ex: "Futuro colega", "Olá", "Vamos lá") APENAS no slide "introducao" da PRIMEIRA seção
-- Em TODOS os outros slides: COMECE DIRETO NO CONTEÚDO TÉCNICO
-
-✅ COMO INICIAR SLIDES NORMAIS (não introdução):
-- "A jurisdição caracteriza-se por..."
-- "O escopo jurídico consiste em..."
-- "Quando falamos de 'tutela jurisdicional', estamos nos referindo a..."
-- "É fundamental compreender que..."
-
-❌ NUNCA USE FORA DA INTRODUÇÃO:
-- "Futuro colega,..."
-- "Olá!" / "Vamos lá!" / "E aí!"
-- "Bora entender..." / "Partiu!"
-```
+1. **Uma capa por matéria** (ex: "Litisconsórcio") que será usada em TODAS as aulas dessa matéria
+2. **Capas mais detalhadas** que realmente representem o conceito jurídico
+3. **Usar o mesmo prompt** da Biblioteca de Estudos (Direito Penal) - sistema com mapeamento detalhado por tema
+4. **Capas antigas ficam salvas** no Supabase, mas usar as novas
+5. **Geração automática** ao entrar numa matéria que ainda não tem a nova capa
 
 ---
 
-### 2. Adicionar Mais Cards Visuais (Atencao, Dica, Exemplo)
+## Arquitetura Atual (Problemas)
 
-Vou reforcar a instrucao para que o modelo gere mais variedade de tipos de slide:
+| Componente | Status Atual | Problema |
+|------------|--------------|----------|
+| `gerar-capa-topico-oab` | Prompt genérico simplificado | Capa pouco representativa |
+| `gerar-capa-materia-oab` | Prompt por área (não por tema) | Não representa "Litisconsórcio" especificamente |
+| Hook `useOABMateriaCapasAutoGeneration` | Gera capa por matéria | Precisa usar novo sistema |
 
-```text
-## 🎨 HIERARQUIA VISUAL (OBRIGATÓRIO):
-Cada 2-3 slides de "texto" DEVEM ser seguidos por um slide visual diferente:
+---
 
-- Tipo "atencao": Para pegadinhas e pontos críticos
-  > ⚠️ **ATENÇÃO!** Muitos candidatos erram aqui...
+## Arquitetura Proposta
 
-- Tipo "dica": Para macetes de memorização
-  > 💡 **DICA DE PROVA:** Para lembrar os escopos da jurisdição...
+### Nova Edge Function: `gerar-capa-oab-tema`
 
-- Tipo "caso": Para exemplos práticos
-  > 📚 **NA PRÁTICA:** João ajuizou uma ação e...
+Baseada na `gerar-capa-biblioteca`, que tem:
+- Mapeamento detalhado por keywords jurídicos
+- Sistema de contexto visual com cenas realistas
+- Variações de cenas para cada tema
+- Paleta de cores por área
+- Compressão WebP com TinyPNG
 
-- Tipo "termos": Para glossário de termos importantes
-- Tipo "quickcheck": Para verificação de aprendizado
+### Fluxo de Geração
 
-NUNCA gere mais de 3 slides tipo "texto" consecutivos sem intercalar com outro tipo!
+```
+Usuário entra em "Litisconsórcio"
+         ↓
+Verifica se oab_trilhas_topicos tem capa_url (com flag de "nova geração")
+         ↓
+   [SEM CAPA ou CAPA ANTIGA]
+         ↓
+Chama gerar-capa-oab-tema com:
+  - materia_titulo: "Litisconsórcio"
+  - area: "Direito Processual Civil"
+         ↓
+Busca no MAPA DE CONTEXTOS (igual Biblioteca de Estudos)
+  - keywords: ['litisconsórcio', 'pluralidade de partes']
+  - cena: "Multiple plaintiffs or defendants seated together in courtroom..."
+  - variações: 5 cenas diferentes
+         ↓
+Gera imagem 16:9 com Gemini
+         ↓
+Comprime para WebP 1280x720
+         ↓
+Salva em oab_trilhas_topicos (PRIMEIRA aula da matéria)
+         ↓
+APLICA A MESMA CAPA a TODAS as aulas dessa matéria
 ```
 
 ---
 
-### 3. Melhorar a Funcao de Limpeza de Saudacoes
+## Mapeamento de Contextos (Novos Temas Processuais)
 
-A função `limparSaudacoesProibidas` já existe mas precisa capturar mais padrões:
+Vou adicionar mapeamentos específicos para os temas de Direito Processual Civil:
 
-**Adicionar ao regex:**
 ```typescript
-const saudacoesProibidas = [
-  // Padrões existentes...
-  /^Futuro\s+colega,?\s*/gi,           // NOVO
-  /^Prezado\s+(advogado|colega)[^.]*,?\s*/gi,  // NOVO
-  /^Caro\s+(colega|estudante|futuro)[^.]*,?\s*/gi,  // NOVO
-  /^Olá[!,.\s]*/gi,                    // NOVO
-  /^Bem-vind[oa][!,.\s]*/gi,           // NOVO
-  /^Vamos\s+(lá|juntos|estudar|mergulhar)[!,.\s]*/gi,  // NOVO melhorado
+// LITISCONSÓRCIO
+{
+  keywords: ['litisconsórcio', 'pluralidade de partes'],
+  contexto: {
+    cena: 'Multiple plaintiffs or defendants seated together at courtroom table, representing joint litigation',
+    elementos: 'group of 3-4 people on same side of courtroom, shared lawyer, multiple case folders, united front',
+    atmosfera: 'solidarity, joint action, strength in numbers',
+    variacoes: [
+      'multiple plaintiffs signing joint petition together',
+      'group of defendants with shared defense lawyer in court',
+      'judge addressing multiple parties at once',
+      'lawyers conferring with multiple clients at table',
+      'shared verdict affecting multiple parties'
+    ]
+  }
+}
+
+// INTERVENÇÃO DE TERCEIROS
+{
+  keywords: ['intervenção de terceiros', 'assistência', 'chamamento', 'denunciação'],
+  contexto: {
+    cena: 'Third party entering courtroom proceedings mid-trial, joining existing case',
+    elementos: 'person walking into court session, existing parties looking, judge allowing entry, new documents',
+    atmosfera: 'disruption, new perspective, expanded litigation',
+    variacoes: [
+      'new party presenting documents to join case',
+      'judge ruling on third party intervention request',
+      'original parties reacting to intervener joining',
+      'lawyer introducing new client to ongoing case',
+      'three-way dispute resolution session'
+    ]
+  }
+}
+
+// TUTELA PROVISÓRIA
+{
+  keywords: ['tutela provisória', 'liminar', 'urgência', 'antecipação'],
+  contexto: {
+    cena: 'Emergency court session, judge issuing urgent protective order, clock showing urgency',
+    elementos: 'judge signing urgent order, red "urgent" stamp, clock showing pressure, relieved petitioner',
+    atmosfera: 'urgency, protection, immediate action, race against time',
+    variacoes: [
+      'petitioner rushing to court with emergency papers',
+      'judge stamping emergency injunction at night',
+      'protective order stopping harmful action just in time',
+      'lawyer on phone getting emergency hearing approved',
+      'clock and gavel representing time-sensitive justice'
+    ]
+  }
+}
+
+// ... (mais 40+ mapeamentos para todos os temas de Processo Civil)
+```
+
+---
+
+## Mudanças no Banco de Dados
+
+Adicionar flag para diferenciar capas antigas das novas:
+
+```sql
+ALTER TABLE oab_trilhas_topicos 
+ADD COLUMN IF NOT EXISTS capa_versao INTEGER DEFAULT 1;
+```
+
+- `capa_versao = 1`: Capa antiga (genérica)
+- `capa_versao = 2`: Nova capa (detalhada por tema)
+
+---
+
+## Arquivos a Criar/Modificar
+
+### 1. Nova Edge Function: `supabase/functions/gerar-capa-oab-tema/index.ts`
+
+Baseada em `gerar-capa-biblioteca`, com:
+- Mapeamento completo de temas processuais
+- Mesmo sistema de paletas por área
+- Mesmo prompt detalhado
+- Compressão WebP
+- Lógica para aplicar capa a TODAS as aulas da mesma matéria
+
+### 2. Modificar: `src/hooks/useOABMateriaCapasAutoGeneration.tsx`
+
+- Chamar nova função `gerar-capa-oab-tema`
+- Verificar `capa_versao` antes de decidir se gera nova
+- Passar `materia_titulo` (não apenas ID)
+
+### 3. Migração SQL: Adicionar coluna `capa_versao`
+
+```sql
+ALTER TABLE oab_trilhas_topicos 
+ADD COLUMN IF NOT EXISTS capa_versao INTEGER DEFAULT 1;
+```
+
+---
+
+## Detalhamento da Nova Edge Function
+
+```typescript
+// supabase/functions/gerar-capa-oab-tema/index.ts
+
+// 1. MAPEAMENTO COMPLETO (igual Biblioteca de Estudos)
+const mapaTemasProcessuais: { keywords: string[]; contexto: ContextoVisual }[] = [
+  // Litisconsórcio
+  { keywords: ['litisconsórcio'], contexto: { ... } },
+  // Intervenção de Terceiros
+  { keywords: ['intervenção de terceiros'], contexto: { ... } },
+  // Tutela Provisória
+  { keywords: ['tutela', 'liminar'], contexto: { ... } },
+  // Petição Inicial
+  { keywords: ['petição inicial'], contexto: { ... } },
+  // Sentença e Coisa Julgada
+  { keywords: ['sentença', 'coisa julgada'], contexto: { ... } },
+  // ... (todos os 45 temas de Processo Civil)
 ];
+
+// 2. FUNÇÃO encontrarContextoVisual (copiar da Biblioteca)
+// 3. FUNÇÃO gerarPromptCompleto (copiar da Biblioteca)
+// 4. LÓGICA DE GERAÇÃO E APLICAÇÃO
 ```
 
 ---
 
-### 4. Reformular a Secao de Linguagem Acessivel
-
-Vou deixar mais claro que a linguagem acessível é sobre EXPLICAR TERMOS, não sobre ser casual:
-
-**ANTES:**
-```text
-- Tom profissional e respeitoso: "Futuro colega,", "Prezado advogado em formação,"
-```
-
-**DEPOIS:**
-```text
-## 🎓 LINGUAGEM ACESSÍVEL = DESCOMPLICAR, NÃO CASUALIZAR
-
-A linguagem acessível significa:
-1. EXPLICAR todo termo jurídico IMEDIATAMENTE após usá-lo
-2. TRADUZIR expressões em latim com contexto prático
-3. USAR ANALOGIAS do dia a dia para conceitos abstratos
-4. Não significa usar gírias ou saudações informais
-
-EXEMPLO CORRETO:
-"A 'jurisdição' (que é o poder-dever do Estado de resolver conflitos) possui três escopos principais. 
-Pense neles como os três 'objetivos' que o Estado busca alcançar quando você aciona a Justiça..."
-
-EXEMPLO ERRADO:
-"E aí, futuro colega! Vamos falar de jurisdição? Bora lá entender isso!"
-```
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Mudança |
-|---------|---------|
-| `supabase/functions/gerar-conteudo-oab-trilhas/index.ts` | Atualizar promptBase (linhas 325-412), melhorar regex de limpeza (linhas 415-434) |
-| `supabase/functions/gerar-conteudo-resumo-oab/index.ts` | Atualizar promptBase (linhas 182-249), melhorar regex de limpeza (linhas 252-271) |
-| `supabase/functions/gerar-slides-artigo/index.ts` | Atualizar prompt principal (linhas 174-248) |
-
----
-
-## Detalhamento das Mudancas no Codigo
-
-### Arquivo 1: `gerar-conteudo-oab-trilhas/index.ts`
-
-**Linhas 325-412 - Atualizar promptBase:**
+## Prompt Final (Modelo)
 
 ```typescript
-const promptBase = `Você é um professor de Direito criando conteúdo didático para candidatos à OAB.
+function gerarPromptCompleto(titulo, area, contexto, variacao, paleta) {
+  return `CRITICAL INSTRUCTION - ABSOLUTE TEXT PROHIBITION:
+This image MUST contain ZERO text elements.
 
-## ⛔⛔⛔ REGRA ABSOLUTA - SAUDAÇÕES (LEIA COM ATENÇÃO!) ⛔⛔⛔
+Create a CINEMATIC EDITORIAL ILLUSTRATION in 16:9 horizontal format.
 
-🚫 PROIBIDO EM QUALQUER SLIDE QUE NÃO SEJA "introducao" DA PRIMEIRA SEÇÃO:
-- "Futuro colega,", "Prezado advogado,", "Caro estudante,"
-- "Olá!", "Bem-vindo!", "Vamos lá!", "Bora!"
-- "E aí?", "Partiu!", "Tá preparado?"
-- QUALQUER saudação ou vocativo no início
+VISUAL CONCEPT: "${titulo}"
+THEMATIC AREA: ${area}
 
-✅ OBRIGATÓRIO - Como iniciar slides normais:
-- "A jurisdição caracteriza-se por..." (direto no conceito)
-- "O escopo jurídico representa..." (direto na definição)
-- "Quando analisamos o conceito de..." (direto na análise)
-- "É fundamental compreender que..." (direto na explicação)
+SCENE TO ILLUSTRATE:
+${variacao}
 
-⚠️ ÚNICA EXCEÇÃO: Slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
+SCENE ELEMENTS:
+${contexto.elementos}
 
-## 🎓 LINGUAGEM ACESSÍVEL = EXPLICAR, NÃO CASUALIZAR
+ATMOSPHERE:
+${contexto.atmosfera}
 
-Linguagem acessível significa DESCOMPLICAR termos, NÃO usar gírias:
+VISUAL STYLE REQUIREMENTS:
+- Semi-realistic cinematic illustration style
+- High detail with visible textures
+- Realistic human proportions and expressions
+- Dramatic cinematic lighting with strong directional source
+- Rich environmental details (objects, clothing, architecture)
+- Movie poster aesthetic quality
 
-### Termos Jurídicos:
-SEMPRE explique imediatamente após usar. Formato:
-"O conceito de 'jurisdição' (poder do Estado de dizer o Direito) abrange..."
+COLOR PALETTE (MANDATORY):
+${paleta.descricao}
 
-### Expressões em Latim:
-SEMPRE traduza E contextualize. Formato:
-"O princípio 'nemo iudex sine actore' (não há juiz sem autor) significa que o juiz não pode iniciar um processo por conta própria."
+COMPOSITION:
+- 16:9 horizontal landscape format (wider than tall)
+- Dynamic, engaging arrangement
+- Clear focal point with depth through layering
+- Professional premium quality
 
-### Analogias (OBRIGATÓRIO para cada conceito abstrato):
-"Pense na 'jurisdição' como o 'poder de decisão' do Estado - assim como um árbitro tem poder de decidir disputas no futebol, o Estado tem poder de decidir disputas jurídicas."
-"O 'escopo jurídico' funciona como um GPS: guia as partes até a aplicação correta da lei."
-
-### Hierarquia Progressiva:
-1. Primeiro: Explique em palavras simples do cotidiano
-2. Depois: Apresente o termo técnico entre aspas
-3. Por fim: Aprofunde com visão doutrinária
-
-## 🎨 VARIEDADE VISUAL (OBRIGATÓRIO!):
-
-Intercale tipos de slides para manter dinamismo:
-- A cada 2-3 slides "texto", insira um slide diferente:
-  - "atencao": > ⚠️ **ATENÇÃO!** Ponto que CAI em prova...
-  - "dica": > 💡 **DICA DE MEMORIZAÇÃO:** Para lembrar...
-  - "caso": > 📚 **EXEMPLO PRÁTICO:** João ajuizou...
-  - "termos": Glossário com 4-6 termos
-  - "quickcheck": Pergunta de verificação
-
-NUNCA gere 4+ slides "texto" consecutivos!
-
-## 📖 PROFUNDIDADE:
-- Mínimo 200-400 palavras por página tipo "texto"
-- Sempre incluir: "> 📚 **EXEMPLO PRÁTICO:** ..."
-- Sempre incluir cards visuais: "> ⚠️ **ATENÇÃO:**", "> 💡 **DICA:**"
-- Cite juristas: "Conforme leciona 'Dinamarco'..."
-- Blockquotes para citações legais: > "Art. X..."
-
-**Matéria:** ${areaNome} - OAB 1ª Fase
-**Tópico:** ${topicoTitulo}
-
-═══ REFERÊNCIA DE ESTUDO ═══
-${conteudoPDF || "Conteúdo não disponível"}
-${conteudoResumo ? `\n═══ SUBTEMAS ═══\n${conteudoResumo}` : ""}
-${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
-═══════════════════════`;
-```
-
-**Linhas 415-434 - Melhorar regex de limpeza:**
-
-```typescript
-const limparSaudacoesProibidas = (texto: string): string => {
-  if (!texto) return texto;
-  const saudacoesProibidas = [
-    // Vocativos formais
-    /^Futuro\s+colega,?\s*/gi,
-    /^Prezad[oa]\s+(advogad[oa]|coleg[ao]|estudante)[^.]*,?\s*/gi,
-    /^Car[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
-    /^Coleg[ao],?\s*/gi,
-    // Saudações casuais
-    /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
-    /^Olha só[!,.\s]*/gi,
-    /^Olá[!,.\s]*/gi,
-    /^Bem-vind[oa][!,.\s]*/gi,
-    /^Vamos\s+(lá|juntos|estudar|mergulhar|nessa)?[!,.\s]*/gi,
-    /^Bora\s+(lá|entender|ver|estudar)?[!,.\s]*/gi,
-    /^Tá preparad[oa][?!.\s]*/gi,
-    /^Beleza[?!,.\s]*/gi,
-    /^Partiu[!,.\s]*/gi,
-    /^(Cara|Mano),?\s*/gi,
-  ];
-  let resultado = texto;
-  for (const regex of saudacoesProibidas) {
-    resultado = resultado.replace(regex, '');
-  }
-  // Se o resultado começar com letra minúscula após limpeza, capitalize
-  if (resultado.length > 0 && /^[a-z]/.test(resultado)) {
-    resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
-  }
-  return resultado.trim();
-};
+FINAL CHECK - TEXT PROHIBITION:
+- NO text, NO letters, NO words, NO numbers
+- All signs, documents in scene must be blank or blurred`;
+}
 ```
 
 ---
 
-### Arquivo 2: `gerar-conteudo-resumo-oab/index.ts`
+## Sequência de Implementação
 
-Aplicar as mesmas mudanças no `promptBase` (linhas 182-249) e na função `limparSaudacoesProibidas` (linhas 252-271).
-
----
-
-### Arquivo 3: `gerar-slides-artigo/index.ts`
-
-Aplicar as mesmas mudanças no `prompt` principal (linhas 174-248).
+1. **Migração SQL**: Adicionar coluna `capa_versao`
+2. **Nova Edge Function**: `gerar-capa-oab-tema` com mapeamento completo
+3. **Modificar Hook**: `useOABMateriaCapasAutoGeneration` para usar nova função
+4. **Deploy**: Fazer deploy da nova edge function
+5. **Testar**: Entrar em "Litisconsórcio" e verificar se gera nova capa representativa
 
 ---
 
 ## Resultado Esperado
 
-### Antes (problemático):
+### Antes (Capa Genérica):
+- Imagem abstrata de "Direito Processual Civil"
+- Mesma capa para qualquer tema
+- Não representa "Litisconsórcio"
 
-```markdown
-DICA DE MEMORIZAÇÃO:
-A Importância da Jurisdição no Ordenamento Jurídico
-
-💡 DICA DE MEMORIZAÇÃO:
-
-Futuro colega, para fixar os escopos da jurisdição, pense neles como os três pilares que sustentam a justiça em nossa sociedade:
-
-• Pilar Jurídico: A aplicação da lei, como um mapa que nos guia para a solução correta.
-```
-
-### Depois (corrigido):
-
-```markdown
-DICA DE MEMORIZAÇÃO:
-Escopos da Jurisdição - Os Três Pilares
-
-💡 DICA DE MEMORIZAÇÃO:
-
-Para fixar os três escopos da 'jurisdição' (poder do Estado de resolver conflitos), imagine-os como os três objetivos que o Estado busca quando você aciona a Justiça:
-
-• **Escopo Jurídico**: A correta aplicação da lei ao caso concreto. Pense como um GPS que guia até a solução legal correta.
-
-• **Escopo Social**: A pacificação dos conflitos. É o "apaziguador" - resolve a briga para que as partes sigam em paz.
-
-• **Escopo Político**: A afirmação do poder estatal. O Estado mostra que tem autoridade para resolver disputas.
-
-> ⚠️ **ATENÇÃO!** As bancas adoram perguntar qual escopo está relacionado com "pacificação social" (é o SOCIAL, não jurídico!).
-```
-
----
-
-## Sequencia de Implementacao
-
-1. Atualizar `gerar-conteudo-oab-trilhas/index.ts` - promptBase e regex
-2. Atualizar `gerar-conteudo-resumo-oab/index.ts` - promptBase e regex
-3. Atualizar `gerar-slides-artigo/index.ts` - prompt principal
-4. Deploy das 3 edge functions
-5. Testar gerando novo conteúdo para verificar mudanças
-
+### Depois (Capa por Tema):
+- Cena de "múltiplas partes no mesmo lado do processo"
+- Visual de grupo de pessoas unidas como litisconsortes
+- Capa específica para "Litisconsórcio" usada em TODAS as 5 aulas desse tema
+- Diferente de "Intervenção de Terceiros" (que terá sua própria capa temática)
