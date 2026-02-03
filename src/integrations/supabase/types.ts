@@ -19737,6 +19737,10 @@ export type Database = {
         Args: { p_correta: boolean; p_questao_id: number }
         Returns: undefined
       }
+      inserir_topico_oab_trilhas: {
+        Args: { p_materia_id: number; p_ordem: number; p_titulo: string }
+        Returns: number
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       limpar_cache_proposicoes_antigo: { Args: never; Returns: undefined }
       limpar_noticias_antigas: {
