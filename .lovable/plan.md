@@ -1,276 +1,183 @@
 
 
-# Plano: Ajustar Flashcards para Usar Áreas da Biblioteca de Estudos
+# Plano: Linguagem Mais Acessível na Geração de Conteúdo
 
-## Resumo das Mudancas
+## Objetivo
 
-Você quer:
-1. Mostrar quantidade de áreas disponíveis ao lado do total de flashcards
-2. Usar as mesmas áreas da Biblioteca de Estudos (excluindo Português, Revisão OAB, Pesquisa Científica, Formação Complementar)
-3. Usar as mesmas capas da Biblioteca de Estudos
-4. Obter o prompt para gerar capas manualmente (formato thumbnail)
-5. Deixar títulos mais responsivos e sem negrito
+Tornar a linguagem gerada mais acessível e didática, garantindo que:
 
----
-
-## Áreas que Serão Usadas
-
-Com base na Biblioteca de Estudos, excluindo as 4 áreas solicitadas:
-
-| Area | Livros |
-|------|--------|
-| Direito Administrativo | 26 |
-| Direito Ambiental | 7 |
-| Direito Civil | 56 |
-| Direito Concorrencial | 7 |
-| Direito Constitucional | 45 |
-| Direito Desportivo | 2 |
-| Direito Do Trabalho | 29 |
-| Direito Empresarial | 12 |
-| Direito Financeiro | 16 |
-| Direito Internacional Privado | 2 |
-| Direito Internacional Público | 10 |
-| Direito Penal | 44 |
-| Direito Previdenciário | 15 |
-| Direito Processual Civil | 51 |
-| Direito Processual Do Trabalho | 11 |
-| Direito Processual Penal | 22 |
-| Direitos Humanos | 7 |
-| Direito Tributário | 39 |
-| Direito Urbanístico | 6 |
-| Lei Penal Especial | 14 |
-| Políticas Públicas | 14 |
-| Prática Profissional | 8 |
-| Teoria E Filosofia Do Direito | 17 |
-
-**Total: 23 áreas**
+1. **Termos jurídicos** sejam explicados de forma clara e imediata
+2. **Expressões em latim** sejam traduzidas e contextualizadas
+3. **Analogias** sejam usadas para conectar conceitos abstratos ao dia a dia
+4. **Parte técnica** seja respeitada, mas explicada de forma progressiva
 
 ---
 
-## Prompt para Gerar Capas Manualmente (Thumbnail)
+## Estado Atual dos Prompts
 
-Encontrei o prompt completo usado na Edge Function `gerar-capa-biblioteca`. Aqui está o formato para você usar:
+| Arquivo | Status | Problema |
+|---------|--------|----------|
+| `gerar-conteudo-oab-trilhas` | Parcialmente acessível | Tem algumas instruções, mas não enfatiza analogias nem a explicação progressiva |
+| `gerar-conteudo-resumo-oab` | Mais simplificado | Falta detalhamento sobre como explicar termos |
+| `gerar-slides-artigo` | Mais completo | Já tem boas instruções, mas pode ser reforçado |
+
+---
+
+## Mudanças Propostas
+
+### Nova Seção "LINGUAGEM ACESSÍVEL" para Todos os Prompts
+
+Vou adicionar uma seção dedicada em cada prompt com instruções claras:
 
 ```text
-CRITICAL INSTRUCTION - ABSOLUTE TEXT PROHIBITION:
-This image MUST contain ZERO text elements. Any image with letters, words, numbers, titles, labels, signs, typography, watermarks, or any written content will be REJECTED. Generate a PURELY VISUAL illustration with NO TEXT WHATSOEVER.
+## 🎓 LINGUAGEM ACESSÍVEL (TEACHER CHAT):
 
-Create a CINEMATIC EDITORIAL ILLUSTRATION in 16:9 horizontal format (thumbnail).
+### Explicação de Termos Jurídicos:
+- SEMPRE que usar um termo técnico, explique imediatamente após
+- Formato: "O termo 'tipicidade' (que significa a adequação do fato à descrição legal)..."
+- NUNCA assuma que o leitor conhece o termo
 
-VISUAL CONCEPT: "[NOME DA ÁREA - ex: Direito Penal]"
-THEMATIC AREA: Direito
+### Expressões em Latim:
+- SEMPRE traduza E contextualize
+- Formato: "O princípio 'in dubio pro reo' (na dúvida, a favor do réu) significa que..."
+- Adicione: "Na prática, isso quer dizer que..."
 
-SCENE TO ILLUSTRATE:
-[DESCRIÇÃO DA CENA - ex: Brazilian courtroom with judge delivering verdict, dramatic lighting]
+### Analogias Obrigatórias:
+- Use analogias do dia a dia para CADA conceito abstrato
+- Exemplos:
+  - "Pense na tipicidade como uma fechadura e a conduta como uma chave..."
+  - "É como se o Direito criasse um 'molde' e a ação precisa 'encaixar'..."
+  - "Imagine que a lei é um contrato de locação..."
 
-SCENE ELEMENTS:
-[ELEMENTOS - ex: judge with gavel, defendant standing, serious atmosphere, dark wood]
+### Explicação Progressiva (do simples ao complexo):
+1. Primeiro: Apresente o conceito em linguagem cotidiana
+2. Depois: Introduza o termo técnico correto
+3. Por fim: Aprofunde com detalhes doutrinários
 
-ATMOSPHERE:
-[ATMOSFERA - ex: gravity of justice, professional legal environment]
-
-VISUAL STYLE REQUIREMENTS:
-- Semi-realistic cinematic illustration style
-- High detail with visible textures
-- Realistic human proportions and expressions
-- Dramatic cinematic lighting with strong directional source
-- Rich environmental details (objects, clothing, architecture)
-- Movie poster aesthetic quality
-- Magazine editorial illustration feel
-
-COLOR PALETTE (MANDATORY):
-[DESCRIÇÃO DE CORES - ex: deep crimson red, black shadows, golden accents]
-• Primary: [COR PRINCIPAL - ex: #8B0000]
-• Secondary: [COR SECUNDÁRIA - ex: #1a1a1a]
-• Accent: [COR DESTAQUE - ex: #D4AF37]
-Apply this color grading throughout the entire composition.
-
-COMPOSITION:
-- 16:9 horizontal thumbnail format
-- Dynamic, engaging arrangement
-- Clear focal point with depth through layering
-- Professional premium quality
-
-SCENE DETAILS:
-- Realistic fabric textures
-- Authentic Brazilian legal settings
-- Period-appropriate elements
-- Professional attire and equipment
-- Environmental storytelling
-
-FINAL CHECK - TEXT PROHIBITION:
-- NO text, NO letters, NO words, NO numbers, NO signs, NO labels
-- NO typography of any kind
-- All signs, documents, or papers in scene must be blank or blurred
-- PURELY VISUAL content only
-```
-
-**Paleta de Cores por Área:**
-
-| Área | Primária | Secundária | Destaque | Descrição |
-|------|----------|------------|----------|-----------|
-| Direito Penal | #8B0000 | #1a1a1a | #D4AF37 | deep crimson red, black shadows, golden accents |
-| Direito Civil | #1E3A5F | #F5F5F5 | #C0C0C0 | navy blue, clean white, silver tones |
-| Direito Constitucional | #006400 | #FFD700 | #00308F | deep green, golden yellow, patriotic blue |
-| Direito Tributário | #228B22 | #D4AF37 | #CD7F32 | forest green, gold, bronze money tones |
-| Direito do Trabalho | #CC5500 | #1E3A5F | #8B4513 | burnt orange, industrial blue, earthy brown |
-| Direito Administrativo | #663399 | #808080 | #FFFFFF | royal purple, institutional gray, white |
-| Direito Empresarial | #0047AB | #D4AF37 | #36454F | corporate blue, gold, charcoal |
-| Direito Processual Civil | #4682B4 | #FFFFFF | #C0C0C0 | steel blue, white, silver |
-| Direito Processual Penal | #800020 | #696969 | #1a1a1a | burgundy red, dark gray, black |
-| Direito Ambiental | #228B22 | #8B4513 | #87CEEB | forest green, earth brown, sky blue |
-| Direito Internacional | #0047AB | #FFFFFF | #D4AF37 | royal blue, white, gold diplomatic |
-| Direito Previdenciário | #FF8C00 | #FFFDD0 | #8B4513 | warm orange, cream, brown |
-| Filosofia do Direito | #4B0082 | #D4AF37 | #FFFDD0 | deep indigo, gold, cream |
-| Default | #1E3A5F | #D4AF37 | #FFFFFF | navy blue, gold, white |
-
----
-
-## Alteracoes no Código
-
-### Arquivo 1: `src/hooks/useFlashcardsAreasCache.ts`
-
-**Mudanca**: Buscar áreas da BIBLIOTECA-ESTUDOS em vez do RPC atual, excluindo as 4 áreas proibidas.
-
-```typescript
-// Áreas a excluir
-const AREAS_EXCLUIDAS = [
-  'Portugues',
-  'Revisão Oab', 
-  'Pesquisa Científica',
-  'Formação Complementar'
-];
-
-// Buscar áreas únicas da BIBLIOTECA-ESTUDOS
-const { data: bibliotecaData } = await supabase
-  .from('BIBLIOTECA-ESTUDOS')
-  .select('Área, url_capa_gerada, "Capa-livro"')
-  .not('Área', 'is', null);
-
-// Agrupar por área e pegar primeira capa
-const areasMap = new Map<string, { capa: string | null; count: number }>();
-bibliotecaData?.forEach(item => {
-  if (item.Área && !AREAS_EXCLUIDAS.includes(item.Área)) {
-    const existing = areasMap.get(item.Área);
-    if (!existing) {
-      areasMap.set(item.Área, { 
-        capa: item.url_capa_gerada || item["Capa-livro"], 
-        count: 1 
-      });
-    } else {
-      existing.count++;
-      if (!existing.capa) {
-        existing.capa = item.url_capa_gerada || item["Capa-livro"];
-      }
-    }
-  }
-});
-
-// Buscar contagem de flashcards por área
-const { data: flashcardsCount } = await supabase
-  .rpc('get_flashcard_areas_from_gerados');
-
-// Combinar dados
-const result = Array.from(areasMap.entries()).map(([area, data]) => {
-  const fcData = flashcardsCount?.find(f => f.area === area);
-  return {
-    area,
-    totalFlashcards: fcData?.total_flashcards || 0,
-    totalTemas: data.count,
-    urlCapa: data.capa
-  };
-}).sort((a, b) => a.area.localeCompare(b.area, 'pt-BR'));
-```
-
-**Retornar também a contagem de áreas:**
-```typescript
-return {
-  areas,
-  isLoading,
-  totalFlashcards,
-  totalAreas: areas?.length || 0  // NOVO
-};
+### Exemplos Práticos Imediatos:
+- Após CADA conceito, dê um exemplo concreto
+- Use nomes: João, Maria, Pedro, Ana, Carlos
+- Situações reais: contrato de aluguel, briga de vizinhos, compra de carro
 ```
 
 ---
 
-### Arquivo 2: `src/pages/FlashcardsAreas.tsx`
+## Mudanças por Arquivo
 
-**Mudancas:**
+### Arquivo 1: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
 
-1. **Mostrar quantidade de áreas ao lado do total de flashcards**
+**Localização**: Linha 325-381 (promptBase)
 
-```typescript
-// Linha 86-87 - Atualizar para mostrar áreas também
-<p className="text-muted-foreground text-sm ml-11">
-  <span className="text-violet-400 font-semibold">{totalFlashcards.toLocaleString('pt-BR')}</span> flashcards
-  <span className="text-gray-500 mx-2">•</span>
-  <span className="text-violet-400 font-semibold">{areas?.length || 0}</span> áreas
-</p>
-```
-
-2. **Remover negrito dos títulos e melhorar responsividade**
+**Adicionar seção de linguagem acessível:**
 
 ```typescript
-// Linha 208-210 - Remover font-medium, adicionar text-wrap
-<h3 className="text-[13px] leading-snug text-white break-words">
-  {area.area}
-</h3>
-```
+const promptBase = `Você é um professor de Direito didático e acolhedor...
 
-3. **Mesma mudança para cards bloqueados (linha 301-303)**
+## 🎓 LINGUAGEM ACESSÍVEL (TEACHER CHAT) - OBRIGATÓRIO:
 
-```typescript
-<h3 className="text-[13px] leading-snug text-white/60 break-words">
-  {area.area}
-</h3>
-```
+### Como Explicar Termos Jurídicos:
+Sempre que mencionar um termo técnico, EXPLIQUE IMEDIATAMENTE de forma clara.
+Formato obrigatório: "O conceito de 'dolo eventual' (quando a pessoa assume o risco de produzir o resultado) significa que..."
+NUNCA use um termo jurídico sem explicar o que ele significa.
 
----
+### Como Traduzir Latim:
+Expressões em latim DEVEM ser traduzidas E explicadas com contexto prático.
+Exemplo: "O princípio 'nulla poena sine lege' (não há pena sem lei) significa, na prática, que ninguém pode ser punido se não existir uma lei anterior que defina o crime."
 
-### Arquivo 3: `src/pages/FlashcardsTemas.tsx`
+### Analogias e Metáforas (OBRIGATÓRIO):
+Para CADA conceito abstrato, crie uma analogia com situações do dia a dia:
+- "Pense na 'tipicidade' como uma peça de quebra-cabeça: a conduta precisa 'encaixar' perfeitamente no formato descrito pela lei."
+- "A 'culpabilidade' funciona como um filtro: mesmo que alguém tenha feito algo errado, verificamos se era possível exigir outra atitude dele."
+- "Imagine o 'nexo causal' como um fio que conecta a ação ao resultado - se o fio se rompe, não há crime."
 
-**Mudancas para títulos sem negrito:**
+### Explicação Progressiva (do simples ao complexo):
+1. PRIMEIRO: Explique o conceito em palavras do cotidiano
+2. DEPOIS: Apresente o termo técnico correto entre aspas
+3. POR FIM: Aprofunde com a visão doutrinária
 
-1. **Linha 346 - Remover font-medium do título do tema**
+Exemplo de aplicação:
+"Quando alguém age sabendo exatamente o que está fazendo e querendo o resultado, chamamos isso de 'dolo direto'. É como quando você joga uma pedra na janela do vizinho: você sabe que vai quebrar e quer quebrar. Diferente do 'dolo eventual', que seria jogar a pedra para cima sem olhar - você não quer quebrar a janela, mas aceita que pode acontecer. Conforme leciona 'Damásio de Jesus', o dolo eventual se caracteriza quando..."
 
-```typescript
-<h3 className="text-sm leading-snug text-white line-clamp-2">
-  {item.tema}
-</h3>
-```
-
-2. **Linha 340 - Remover font-semibold do label "Tema X"**
-
-```typescript
-<p className={`text-xs mb-0.5 ${
-  item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-violet-400"
-}`}>
-  Tema {item.ordem + 1}
-</p>
+### Exemplos Práticos com Nomes Reais:
+Use SEMPRE nomes brasileiros comuns: João, Maria, Pedro, Ana, Carlos, Fernanda
+Situações do cotidiano: contrato de aluguel, compra de carro, briga entre vizinhos, herança de família
+`;
 ```
 
 ---
 
-## Resumo Visual das Mudancas
+### Arquivo 2: `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
 
-| Componente | Antes | Depois |
-|------------|-------|--------|
-| Header FlashcardsAreas | "27.890 flashcards disponíveis" | "27.890 flashcards • 23 áreas" |
-| Título da área | **font-medium** (negrito) | texto normal, break-words |
-| Label "Tema X" | **font-semibold** | texto normal |
-| Título do tema | **font-medium** | texto normal |
-| Fonte de dados | `flashcards_areas` table | `BIBLIOTECA-ESTUDOS` table |
-| Capas | `flashcards_areas.url_capa` | `BIBLIOTECA-ESTUDOS.url_capa_gerada` |
+**Localização**: Linha 182-222 (promptBase)
+
+**Mesma seção de linguagem acessível**, adaptada para o contexto de resumos/subtemas.
 
 ---
 
-## Sequencia de Implementacao
+### Arquivo 3: `supabase/functions/gerar-slides-artigo/index.ts`
 
-1. Atualizar `useFlashcardsAreasCache.ts` para buscar da BIBLIOTECA-ESTUDOS
-2. Adicionar retorno de `totalAreas` no hook
-3. Atualizar `FlashcardsAreas.tsx` para mostrar contagem de áreas
-4. Remover negrito dos títulos em `FlashcardsAreas.tsx`
-5. Remover negrito dos títulos em `FlashcardsTemas.tsx`
-6. Testar a responsividade com títulos longos
+**Localização**: Linha 174-380 (prompt principal)
+
+**Reforçar as instruções existentes** com a mesma seção padronizada de linguagem acessível.
+
+---
+
+## Exemplo de Conteúdo Gerado (Antes vs Depois)
+
+### Antes (Técnico Demais):
+
+```markdown
+O princípio da legalidade, previsto no Art. 5º, XXXIX da CF e Art. 1º do CP, 
+estabelece que nullum crimen, nulla poena sine praevia lege. A tipicidade 
+formal exige a subsunção do fato ao tipo penal, enquanto a material 
+demanda a ofensividade ao bem jurídico tutelado.
+```
+
+### Depois (Acessível + Técnico):
+
+```markdown
+## O Que é o Princípio da Legalidade?
+
+Imagine que você está jogando um jogo de tabuleiro. Você só pode ser 
+penalizado se quebrar uma regra que já existia ANTES de você jogar, certo? 
+O 'princípio da legalidade' funciona exatamente assim no Direito Penal.
+
+Em latim, dizemos 'nullum crimen, nulla poena sine praevia lege' - que 
+significa, em bom português: **"não há crime, nem pena, sem lei anterior"**.
+
+📚 **EXEMPLO PRÁTICO:**
+João inventou uma nova forma de golpe pela internet em 2024. Se não existir 
+uma lei criada ANTES de 2024 que defina essa conduta como crime, João 
+não pode ser punido - mesmo que todo mundo ache errado o que ele fez.
+
+> "Art. 1º do CP: Não há crime sem lei anterior que o defina. 
+> Não há pena sem prévia cominação legal."
+
+Conforme leciona 'Rogério Greco', esse princípio é uma das maiores 
+garantias do cidadão contra o arbítrio do Estado.
+
+💡 **MACETE PARA OAB:** Se a questão mencionar "lei posterior mais 
+benéfica", lembre que ela PODE retroagir. Mas lei nova que CRIA crime? 
+Essa NUNCA retroage!
+```
+
+---
+
+## Resumo das Mudanças
+
+| Arquivo | Mudança | Linhas |
+|---------|---------|--------|
+| `gerar-conteudo-oab-trilhas/index.ts` | Adicionar seção "LINGUAGEM ACESSÍVEL" no promptBase | ~325-381 |
+| `gerar-conteudo-resumo-oab/index.ts` | Adicionar mesma seção no promptBase | ~182-222 |
+| `gerar-slides-artigo/index.ts` | Reforçar seção existente com padrão unificado | ~174-215 |
+
+---
+
+## Sequência de Implementação
+
+1. Atualizar `gerar-conteudo-oab-trilhas/index.ts` com nova seção
+2. Atualizar `gerar-conteudo-resumo-oab/index.ts` com mesma seção
+3. Atualizar `gerar-slides-artigo/index.ts` para reforçar padrão
+4. Deploy das 3 edge functions
+5. Testar gerando um novo conteúdo
 
