@@ -269,7 +269,7 @@ const OABTrilhasMateria = () => {
                       {area.nome}
                     </h1>
                     <p className="text-sm text-gray-400 mt-1">
-                      {totalMaterias} matérias · {totalTopicos} tópicos
+                      {totalMaterias} matérias · {totalTopicos} aulas
                     </p>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ const OABTrilhasMateria = () => {
             </div>
             <div className="flex items-center gap-2">
               <Footprints className="w-4 h-4 text-yellow-400" />
-              <span>{totalTopicos} tópicos</span>
+              <span>{totalTopicos} aulas</span>
             </div>
           </div>
 
@@ -434,10 +434,10 @@ const OABTrilhasMateria = () => {
                               {materia.titulo}
                             </h3>
                             
-                            {/* Quantidade de tópicos */}
+                            {/* Quantidade de aulas */}
                             <div className="flex items-center gap-1.5 mt-1">
                               <BookOpen className="w-3 h-3 text-red-400/70" />
-                              <span className="text-xs text-gray-400">{subtemasCount?.[materia.titulo] || 0} tópicos</span>
+                              <span className="text-xs text-gray-400">{subtemasCount?.[materia.titulo] || 0} aulas</span>
                             </div>
                             
                             {/* Barra de progresso */}
