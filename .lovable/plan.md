@@ -1,141 +1,165 @@
 
-# Plano: Melhorias nos Flashcards das Trilhas OAB
 
-## Resumo das Mudanças
+# Plano: Tom Conversacional "Café com Professor" + Destaque de Termos-Chave
 
-Este plano implementa três melhorias principais nos flashcards do módulo OAB Trilhas:
+## Situação Atual
 
-1. **Mostrar exemplo prático** quando o usuário virar o flashcard
-2. **Remover botão "Marcar como Concluído"** - conclusão automática ao ver todos os flashcards
-3. **Ajustar quantidades geradas**: 15-25 flashcards e 15-20 questões por subtema
+1. **Prompt de geração** (`gerar-conteudo-oab-trilhas/index.ts`): Já possui estrutura para tom conversacional, mas precisa ser **refinado** com as novas diretrizes pedagógicas
+2. **Highlighting** (`highlightKeyTerms.tsx`): Implementado mas o conteúdo **já gerado** não será afetado automaticamente
+3. **Gamificação**: Já existe estrutura de `correspondencias` nos extras, mas precisa ser mais enfatizado
 
----
+## Alterações Planejadas
 
-## Mudanças Necessárias
+### 1. Atualizar Prompt Base (Edge Function `gerar-conteudo-oab-trilhas`)
 
-### 1. Componente FlashcardStack (Interface Visual)
-
-**Arquivo**: `src/components/conceitos/FlashcardStack.tsx`
-
-**O que fazer**:
-- Adicionar campo `exemplo?` na interface `Flashcard`
-- Mostrar seção "Exemplo Prático" abaixo da resposta quando o card está virado e tem exemplo
-- Usar o mesmo visual do componente `VideoaulaFlashcards` (caixa amarela com ícone de lâmpada)
-- Adicionar callback `onComplete` que será chamado automaticamente quando o usuário chegar no último card
-
-**Resultado visual**: Quando o usuário virar um flashcard, além da resposta verá uma caixa amarela com "Exemplo Prático" contendo uma situação real que ilustra o conceito.
-
----
-
-### 2. Página de Flashcards OAB Trilhas
-
-**Arquivo**: `src/pages/oab/OABTrilhasSubtemaFlashcards.tsx`
-
-**O que fazer**:
-- Remover completamente o botão "Marcar como Concluído" e estados relacionados (`allReviewed`)
-- Passar o campo `exemplo` junto com `pergunta` e `resposta` para o FlashcardStack
-- Adicionar callback `onComplete` no FlashcardStack que marca automaticamente como concluído quando o usuário chega no último flashcard
-- A conclusão automática salva o progresso no banco e exibe a tela de sucesso
-
----
-
-### 3. Geração de Conteúdo - Subtemas (RESUMO)
-
-**Arquivo**: `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
-
-**O que fazer**:
-- Alterar a quantidade de flashcards de `15+` para `15-25`
-- Alterar a quantidade de questões de `8+` para `15-20`
-- Garantir que cada flashcard tenha um exemplo prático
-
-**Trecho atual** (linha ~483):
-```
-QUANTIDADES: correspondencias: 8+, flashcards: 15+, questoes: 8+
-```
-
-**Novo**:
-```
-QUANTIDADES: correspondencias: 8+, flashcards: 15-25, questoes: 15-20
-```
-
----
-
-### 4. Geração de Conteúdo - Tópicos (oab_trilhas_topicos)
-
-**Arquivo**: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
-
-**O que fazer**:
-- Alterar a quantidade de flashcards de `15-20` para `15-25`
-- Alterar a quantidade de questões de `8-12` para `15-20`
-
-**Trecho atual** (linhas ~670-671):
-```
-- flashcards: 15-20 cards
-- questoes: 8-12 questões estilo OAB
-```
-
-**Novo**:
-```
-- flashcards: 15-25 cards
-- questoes: 15-20 questões estilo OAB
-```
-
----
-
-## Sequência de Implementação
-
-1. Atualizar `FlashcardStack.tsx` - adicionar suporte a exemplo e callback de conclusão
-2. Atualizar `OABTrilhasSubtemaFlashcards.tsx` - remover botão manual, passar exemplo, usar callback
-3. Atualizar `gerar-conteudo-resumo-oab/index.ts` - ajustar quantidades
-4. Atualizar `gerar-conteudo-oab-trilhas/index.ts` - ajustar quantidades
-5. Deploy das edge functions
-
----
-
-## Detalhes Técnicos
-
-### Novo fluxo de conclusão
+Vou reformular completamente o `promptBase` seguindo as novas diretrizes pedagógicas do usuário:
 
 ```text
-Usuário abre flashcards
-       ↓
-Navega pelos cards (pode virar e ver exemplos)
-       ↓
-Chega no ÚLTIMO card
-       ↓
-Callback onComplete é chamado automaticamente
-       ↓
-Salva progresso no banco (flashcards_completos: true)
-       ↓
-Mostra tela de sucesso com opção "Ir para Questões"
+Você é um professor experiente explicando Direito para uma pessoa leiga.
+Seu estilo é como uma CONVERSA DE CAFÉ - descontraído, acolhedor e didático.
+
+## PÚBLICO-ALVO
+Pessoas que NUNCA estudaram o tema. Assuma zero conhecimento prévio.
+
+## TOM DE VOZ
+- Descontraído, claro e acolhedor
+- "Olha só...", "Percebeu a diferença?", "Faz sentido, né?"
+- Perguntas guiadas que ajudam o aluno a pensar
+- Seguro e correto tecnicamente
+- Próximo, como conversa entre amigos
+
+## ESTRUTURA DIDÁTICA OBRIGATÓRIA
+1. Comece SEMPRE com explicação geral e intuitiva
+2. Só DEPOIS introduza o termo técnico correto
+3. Explique IMEDIATAMENTE cada termo técnico em linguagem simples
+4. Use comparações e metáforas do cotidiano
+5. Desmembre conceitos difíceis em partes menores
+
+## REGRA DE OURO: "SIMPLES PRIMEIRO → TÉCNICO DEPOIS"
+❌ ERRADO: "A jurisdição voluntária ocorre quando..."
+✅ CERTO: "Quando não há briga entre as partes, mas ainda assim precisam 
+   do juiz para oficializar algo - isso é o que chamamos de 'jurisdição voluntária'."
+
+## TRADUÇÃO IMEDIATA
+- Latim: "O 'pacta sunt servanda' (que significa 'os pactos devem ser cumpridos' 
+  - ou seja, combinado é combinado!)"
+- Técnico: "Isso configura o chamado 'enriquecimento sem causa' 
+  (quando alguém lucra às custas de outro sem motivo justo)"
+
+## ANTECIPE DÚVIDAS
+Responda as perguntas que o aluno leigo teria:
+"E você pode estar pensando: 'Mas isso não seria injusto?' Veja bem..."
 ```
 
-### Interface Flashcard atualizada
+### 2. Reformular Prompts de Cada Seção
 
-```typescript
-interface Flashcard {
-  pergunta: string;
-  resposta: string;
-  exemplo?: string;  // Novo campo
+Adicionar instruções específicas para cada tipo de slide:
+
+| Tipo | Instrução Especial |
+|------|---------------------|
+| `texto` | Mínimo 250 palavras, analogias do cotidiano, perguntas retóricas |
+| `termos` | Cada termo com explicação simples + exemplo prático |
+| `quickcheck` | Pergunta prática, feedback didático explicando o "porquê" |
+| `caso` | Personagens comuns (João, Maria), situação do dia a dia |
+| `atencao` | "Cuidado com essa pegadinha..." + explicação clara |
+
+### 3. Adicionar Seção de Gamificação nos Extras
+
+Atualizar o prompt de extras para gerar mais conteúdo de gamificação:
+
+```json
+{
+  "correspondencias": [
+    {"termo": "Habeas Corpus", "definicao": "Protege a liberdade de ir e vir"}
+  ],
+  "ligar_termos": [
+    {"conceito": "Pessoa não pode mais recorrer", "termo": "Trânsito em julgado"}
+  ],
+  "explique_com_palavras": [
+    {"conceito": "Presunção de inocência", "dica": "Como você explicaria para um vizinho?"}
+  ]
 }
 ```
 
-### Props FlashcardStack atualizadas
+### 4. Unificar Prompt entre OAB Trilhas e Conceitos
 
-```typescript
-interface FlashcardStackProps {
-  flashcards: Flashcard[];
-  titulo?: string;
-  onGoToQuestions?: () => void;
-  onComplete?: () => void;  // Novo - chamado ao ver último card
-}
+Aplicar as mesmas alterações em `gerar-conteudo-conceitos/index.ts` para manter consistência.
+
+### 5. Corrigir Highlight de Termos-Chave
+
+Verificar que o `highlightKeyTerms.tsx` está sendo aplicado corretamente em todos os renders de conteúdo.
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/gerar-conteudo-oab-trilhas/index.ts` | Reformular promptBase, promptSecao, promptExtras |
+| `supabase/functions/gerar-conteudo-conceitos/index.ts` | Aplicar as mesmas mudanças de tom |
+
+## Nota Importante
+
+O conteúdo **já gerado** não será afetado. Para ver o novo tom conversacional, será necessário **regenerar** as aulas (clicar no tópico e iniciar nova geração). O destaque de termos-chave funcionará automaticamente no conteúdo existente.
+
+## Seção Técnica
+
+### Prompt Completo Atualizado
+
+```javascript
+const promptBase = `Você é um professor experiente explicando Direito para uma pessoa LEIGA.
+Seu estilo é como uma CONVERSA DE CAFÉ - descontraído, acolhedor e didático.
+
+═══ 🎯 PÚBLICO-ALVO ═══
+Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
+
+═══ 💬 TOM DE VOZ ═══
+- Descontraído, claro e acolhedor
+- Use expressões naturais: "Olha só...", "Percebeu?", "Faz sentido, né?"
+- Perguntas guiadas: "E por que isso importa?"
+- Seguro e correto tecnicamente
+- Próximo, como conversa entre amigos reais
+- NUNCA infantilizado ou condescendente
+
+═══ 📚 ESTRUTURA DIDÁTICA OBRIGATÓRIA ═══
+
+1. **SIMPLES PRIMEIRO → TÉCNICO DEPOIS**
+   ❌ ERRADO: "A jurisdição voluntária caracteriza-se por..."
+   ✅ CERTO: "Sabe quando duas pessoas concordam com tudo, mas ainda precisam 
+      do juiz para oficializar? Isso é o que o Direito chama de 'jurisdição voluntária'."
+
+2. **TRADUÇÃO IMEDIATA de termos técnicos:**
+   - "O 'pacta sunt servanda' (significa 'os pactos devem ser cumpridos' - 
+     ou seja, combinado é combinado!)"
+   - "Isso é o que chamamos de 'trânsito em julgado' (quando não dá mais 
+     para recorrer de uma decisão)"
+
+3. **DESMEMBRE conceitos difíceis:**
+   Divida em partes menores, explicando passo a passo, como se estivesse 
+   "mastigando" o conteúdo para o aluno.
+
+4. **ANALOGIAS DO COTIDIANO:**
+   - "Pense na competência como o território de cada juiz. Assim como um 
+     policial de SP não pode multar alguém no RJ..."
+   - "É tipo quando você pede um lanche: se vier errado, você pode 
+     reclamar - isso é o seu 'direito de consumidor'."
+
+5. **ANTECIPE DÚVIDAS:**
+   "Você pode estar pensando: 'Mas isso não seria injusto?' Veja bem..."
+
+═══ ⚠️ CUIDADOS IMPORTANTES ═══
+
+- NÃO use emojis no texto (a interface já adiciona os ícones)
+- NÃO mencione "PDF", "material", "documento" - escreva como conhecimento seu
+- NÃO comece slides com saudações (exceto introdução da primeira seção)
+- Slides tipo "caso" JÁ SÃO exemplo prático - não adicione outro dentro
+- NUNCA seja formal demais ou use "juridiquês" sem explicação
+
+═══ 📖 PROFUNDIDADE ═══
+- Mínimo 200-400 palavras em slides tipo "texto"
+- Cite artigos de lei de forma acessível: "O artigo 5º da Constituição 
+  garante que todos são iguais perante a lei - parece óbvio, mas veja como isso funciona na prática..."
+- Termos-chave entre aspas simples: 'tipicidade', 'culpabilidade'
+
+**Matéria:** ${areaNome} - OAB 1ª Fase
+**Tópico:** ${topicoTitulo}`;
 ```
 
----
-
-## Observações Importantes
-
-- Conteúdos já gerados continuarão funcionando normalmente
-- Os novos flashcards terão exemplos automaticamente (já são gerados com o campo `exemplo`)
-- Conteúdos antigos que não têm o campo `exemplo` simplesmente não mostrarão a seção de exemplo
-- Para regenerar conteúdos existentes com as novas quantidades, seria necessário reprocessar manualmente cada subtema
