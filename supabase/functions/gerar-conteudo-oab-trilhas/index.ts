@@ -1864,14 +1864,12 @@ Retorne APENAS o JSON, nada mais.`;
       }))
     };
 
-    // Salvar no banco
+    // Salvar no banco (flashcards e questoes já estão dentro de slides_json e conteudo_gerado)
     const { error: updateError } = await supabase
       .from("RESUMO")
       .update({
         slides_json: slidesJson,
-        conteudo_gerado: conteudoGerado,
-        flashcards: flashcards,
-        questoes: questoes
+        conteudo_gerado: conteudoGerado
       })
       .eq("id", resumo_id);
 
