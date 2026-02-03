@@ -19,7 +19,7 @@ const FlashcardsAreas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showPremiumCard, setShowPremiumCard] = useState(false);
 
-  const { areas, totalFlashcards, isLoading } = useFlashcardsAreasCache();
+  const { areas, totalFlashcards, totalAreas, isLoading } = useFlashcardsAreasCache();
 
   const filteredAreas = areas?.filter((area) =>
     area.area.toLowerCase().includes(searchTerm.toLowerCase())
@@ -83,7 +83,9 @@ const FlashcardsAreas = () => {
             </div>
           </div>
           <p className="text-muted-foreground text-sm ml-11">
-            <span className="text-violet-400 font-semibold">{totalFlashcards.toLocaleString('pt-BR')}</span> flashcards disponíveis
+            <span className="text-violet-400 font-semibold">{totalFlashcards.toLocaleString('pt-BR')}</span> flashcards
+            <span className="text-gray-500 mx-2">•</span>
+            <span className="text-violet-400 font-semibold">{totalAreas}</span> áreas
           </p>
         </div>
 
@@ -205,7 +207,7 @@ const FlashcardsAreas = () => {
                               {/* Conteúdo */}
                               <div className="flex-1 p-3 flex flex-col">
                                 <div className="flex-1">
-                                  <h3 className="font-medium text-[13px] leading-snug text-white">
+                                  <h3 className="text-[13px] leading-snug text-white break-words">
                                     {area.area}
                                   </h3>
                                   
@@ -298,7 +300,7 @@ const FlashcardsAreas = () => {
                               {/* Conteúdo */}
                               <div className="flex-1 p-3 flex flex-col">
                                 <div className="flex-1">
-                                  <h3 className="font-medium text-[13px] leading-snug text-white/60">
+                                  <h3 className="text-[13px] leading-snug text-white/60 break-words">
                                     {area.area}
                                   </h3>
                                   
