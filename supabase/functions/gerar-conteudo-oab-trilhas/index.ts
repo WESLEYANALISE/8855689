@@ -520,19 +520,19 @@ Para CADA página, retorne o objeto completo com:
    {"tipo": "tabela", "titulo": "...", "conteudo": "Descrição", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}}
 
 6. Para tipo "atencao":
-   {"tipo": "atencao", "titulo": "...", "conteudo": "⚠️ Ponto importante que CAI NA OAB..."}
+   {"tipo": "atencao", "titulo": "...", "conteudo": "Ponto importante sobre o tema, explicando a pegadinha comum..."}
 
 7. Para tipo "dica":
-   {"tipo": "dica", "titulo": "...", "conteudo": "💡 Dica de memorização ou macete para a prova OAB..."}
+   {"tipo": "dica", "titulo": "...", "conteudo": "Técnica ou macete para memorizar este conceito..."}
 
 8. Para tipo "caso":
-   {"tipo": "caso", "titulo": "...", "conteudo": "💼 Caso prático que pode aparecer na OAB..."}
+   {"tipo": "caso", "titulo": "...", "conteudo": "Descrição do caso prático com análise jurídica..."}
 
 9. Para tipo "quickcheck":
    {"tipo": "quickcheck", "titulo": "...", "conteudo": "Teste seu conhecimento:", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "Explicação..."}
 
 10. Para tipo "resumo":
-    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando para a OAB:", "pontos": ["...", "...", "..."]}
+    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando os pontos-chave:", "pontos": ["...", "...", "..."]}
 
 Retorne um JSON com a seção COMPLETA:
 {
@@ -546,8 +546,8 @@ Retorne um JSON com a seção COMPLETA:
 REGRAS CRÍTICAS:
 - Páginas "texto" devem ter 200-400 palavras com exemplos práticos
 - Use blockquotes (>) para citações e cards de atenção
-- NUNCA use emojis no texto corrido (só nos cards especiais)
-- Foco em como o tema CAI NA OAB
+- NUNCA use emojis no texto corrido (a interface já adiciona os ícones adequados)
+- Mantenha tom conversacional e didático
 
 Retorne APENAS o JSON da seção, sem texto adicional.`;
 
