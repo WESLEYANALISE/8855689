@@ -38,7 +38,7 @@ const ExplicacaoNoticiaModal = ({
   const [analise, setAnalise] = useState<AnaliseCompleta | null>(null);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [activeTab, setActiveTab] = useState("resumo");
-  const [fontSize, setFontSize] = useState(14);
+  const [fontSize, setFontSize] = useState(15);
 
   // Parse análise pré-gerada em seções
   const parseAnalise = (texto: string): AnaliseCompleta => {
