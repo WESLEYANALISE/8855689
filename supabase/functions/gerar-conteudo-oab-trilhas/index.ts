@@ -12,7 +12,7 @@ const corsHeaders = {
 };
 
 // Constantes de configuração
-const MIN_PAGINAS = 30;
+const MIN_PAGINAS = 40;
 const MAX_TENTATIVAS = 3;
 
 // Declarar EdgeRuntime para processamento em background
@@ -578,9 +578,16 @@ EXEMPLO DE APLICAÇÃO:
 ❌ ERRADO: "O prazo é de 30 dias para interpor recurso."
 ✅ CERTO: "O prazo é de '30 dias' para interpor recurso."
 
-═══ PROFUNDIDADE ═══
-- Mínimo 200-400 palavras em slides tipo "texto"
-- Cite artigos de lei de forma acessível: "O 'artigo 5º da Constituição' garante que todos são iguais perante a lei - parece óbvio, mas veja como isso funciona na prática..."
+═══ PROFUNDIDADE E DETALHAMENTO ═══
+- Mínimo 250-400 palavras em slides tipo "texto"
+- SEMPRE que usar um termo jurídico, explique-o INLINE imediatamente:
+  ✅ "A 'competência absoluta' (ou seja, regras que não podem ser mudadas pelas partes) determina..."
+  ✅ "Isso configura a 'litispendência' (quando já existe outra ação idêntica em andamento)"
+- Cite artigos de lei de forma acessível: "O 'artigo 5º da Constituição' garante que..."
+- Estruture o texto com hierarquias claras:
+  - Use parágrafos curtos (2-3 frases)
+  - Separe conceitos principais de detalhes
+  - Crie conexões: "Agora que você entendeu X, vamos ver como isso se aplica em Y..."
 - Termos-chave entre aspas simples: 'tipicidade', 'culpabilidade', 'antijuridicidade'
 - Cite juristas de forma acessível: "Como ensina Humberto Theodoro Júnior (um dos grandes estudiosos do tema)..."
 
@@ -664,14 +671,16 @@ Retorne um JSON com esta estrutura EXATA:
 }
 
 REGRAS:
-1. Gere entre 5-7 seções (para alcançar 35-55 páginas totais)
-2. Cada seção deve ter 6-10 páginas
-3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
+1. Gere entre 6-8 seções (para alcançar 40-55 páginas totais)
+2. Cada seção deve ter 6-9 páginas
+3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck, correspondencias
 4. Distribua bem os tipos (não só "texto")
 5. Cada seção deve ter pelo menos 1 quickcheck
-6. INCLUA pelo menos 1-2 slides tipo "tabela" no total (comparativos, diferenças, requisitos)
-7. Use títulos descritivos para cada página
-8. Cubra TODO o conteúdo do material
+6. INCLUA pelo menos 2-3 slides tipo "tabela" no total (comparativos, diferenças, requisitos)
+7. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 25-30) - é a gamificação de ligar termos
+8. Use títulos descritivos para cada página
+9. MANTENHA o título original: "${topicoTitulo}" (não altere)
+10. Cubra TODO o conteúdo do material
 
 Retorne APENAS o JSON, sem texto adicional.`;
 
@@ -720,11 +729,20 @@ ${JSON.stringify(secaoEstrutura.paginas, null, 2)}
 
 Para CADA página, retorne o objeto completo com TOM CONVERSACIONAL (como café com professor):
 
-1. Para tipo "introducao":
-   {"tipo": "introducao", "titulo": "...", "conteudo": "Texto motivador e acolhedor: 'Olha só, vamos entender juntos um tema que cai muito na OAB...'"}
+1. Para tipo "introducao" (ENGAJAMENTO OBRIGATÓRIO):
+   {"tipo": "introducao", "titulo": "${topicoTitulo}", "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante para a OAB!\n\nNesta aula, vamos estudar [tema] de forma clara e prática. Ao final, você vai entender:\n\n• Tópico 1 que será abordado\n• Tópico 2 importante\n• Tópico 3 essencial\n• Tópico 4 que cai na prova\n\nBora começar?"}
+   IMPORTANTE: MANTENHA o título original "${topicoTitulo}" - NÃO altere!
 
-2. Para tipo "texto" (MÍNIMO 250 PALAVRAS):
-   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA começando com linguagem simples, depois introduzindo o termo técnico. Use analogias do cotidiano. Antecipe dúvidas: 'Você pode estar pensando...'"}
+2. Para tipo "texto" (MÍNIMO 250 PALAVRAS - BEM DETALHADO):
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA e HIERÁRQUICA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas pelas partes) determina...'. Use parágrafos curtos. Crie conexões: 'Agora que você entendeu X, vamos ver como isso se aplica em Y...'"}
+
+3. Para tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO DA AULA entre slides 25-30):
+   {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte cada termo à sua definição correta:", "correspondencias": [
+     {"termo": "Termo técnico 1", "definicao": "Definição simples 1"},
+     {"termo": "Termo técnico 2", "definicao": "Definição simples 2"},
+     {"termo": "Termo técnico 3", "definicao": "Definição simples 3"},
+     {"termo": "Termo técnico 4", "definicao": "Definição simples 4"}
+   ]}
 
 3. Para tipo "termos":
    {"tipo": "termos", "titulo": "...", "conteudo": "Vamos conhecer os termos que você vai encontrar na prova:", "termos": [{"termo": "Termo Técnico", "definicao": "Explicação em linguagem simples, como se explicasse para um amigo que nunca estudou Direito"}]}
@@ -762,9 +780,12 @@ Retorne um JSON com a seção COMPLETA:
 REGRAS CRÍTICAS:
 - Use TOM CONVERSACIONAL: "Olha só...", "Percebeu?", "Faz sentido, né?"
 - SIMPLES PRIMEIRO → TÉCNICO DEPOIS: Explique o conceito antes de dar o nome técnico
+- EXPLICAÇÃO INLINE: Todo termo jurídico deve ser explicado entre parênteses imediatamente
 - Tradução IMEDIATA de latim e juridiquês
-- Páginas "texto" devem ter 250-400 palavras
-- Use analogias do cotidiano
+- Páginas "texto" devem ter 250-400 palavras - BEM DETALHADAS
+- Use HIERARQUIA clara: conceito principal → detalhes → aplicação prática
+- Crie conexões entre os slides: "Lembra do que vimos antes? Agora..."
+- Se esta seção está no MEIO (seções 3-4), inclua o slide "correspondencias"
 - NUNCA use emojis no texto (a interface já adiciona ícones)
 
 Retorne APENAS o JSON da seção, sem texto adicional.`;
@@ -1501,11 +1522,13 @@ Retorne um JSON com esta estrutura:
 }
 
 REGRAS:
-1. Gere entre 3-5 seções (para alcançar 20-35 páginas totais)
-2. Cada seção deve ter 4-8 páginas
+1. Gere entre 4-6 seções (para alcançar 25-40 páginas totais)
+2. Cada seção deve ter 5-8 páginas
 3. TIPOS: introducao, texto, termos, atencao, dica, caso, resumo, quickcheck, correspondencias
-4. IMPORTANTE: Inclua pelo menos 1 slide "correspondencias" para gamificação
-5. Cubra TODO o conteúdo fonte
+4. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 15-20) - gamificação
+5. A introdução DEVE começar com "☕ Prepare seu café..." e listar tópicos que serão abordados
+6. MANTENHA o título original: "${subtema}" (não altere)
+7. Cubra TODO o conteúdo fonte com explicações DETALHADAS e termos explicados INLINE
 
 Retorne APENAS o JSON.`;
 
@@ -1544,19 +1567,24 @@ ${JSON.stringify(secaoEstrutura.paginas, null, 2)}
 
 Para CADA página, retorne:
 
-1. tipo "texto" (MÍNIMO 200 PALAVRAS):
-   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional completa..."}
+1. tipo "introducao" (ENGAJAMENTO OBRIGATÓRIO):
+   {"tipo": "introducao", "titulo": "${subtema}", "conteudo": "☕ Prepare seu café, pois vamos estudar juntos...\n\nNesta aula, você vai aprender:\n• Tópico 1\n• Tópico 2\n\nBora começar?"}
 
-2. tipo "quickcheck":
+2. tipo "texto" (MÍNIMO 200 PALAVRAS - BEM DETALHADO):
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional DETALHADA. Sempre explique termos jurídicos INLINE: 'A competência absoluta (ou seja, regras que não podem ser mudadas) determina...'. Use hierarquia clara e conexões entre slides."}
+
+3. tipo "quickcheck":
    {"tipo": "quickcheck", "titulo": "...", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "..."}
 
-3. tipo "correspondencias" (GAMIFICAÇÃO - jogo de ligar termos):
-   {"tipo": "correspondencias", "titulo": "Ligue os Termos", "correspondencias": [
+4. tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO):
+   {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte cada termo à sua definição:", "correspondencias": [
      {"termo": "Termo 1", "definicao": "Definição curta 1"},
-     {"termo": "Termo 2", "definicao": "Definição curta 2"}
+     {"termo": "Termo 2", "definicao": "Definição curta 2"},
+     {"termo": "Termo 3", "definicao": "Definição curta 3"},
+     {"termo": "Termo 4", "definicao": "Definição curta 4"}
    ]}
 
-4. outros tipos: introducao, termos, atencao, dica, caso, resumo
+5. outros tipos: termos, atencao, dica, caso, resumo
 
 RETORNE um JSON:
 {
@@ -1565,7 +1593,11 @@ RETORNE um JSON:
   "slides": [...]
 }
 
-IMPORTANTE: Use tom conversacional ("Olha só...", "Percebeu?")`;
+REGRAS CRÍTICAS:
+- Use TOM CONVERSACIONAL: "Olha só...", "Percebeu?", "Faz sentido, né?"
+- EXPLICAÇÃO INLINE: Todo termo jurídico deve ser explicado entre parênteses
+- Use HIERARQUIA clara: conceito → detalhes → aplicação
+- Se esta seção está no MEIO, inclua o slide "correspondencias"`;
 
       try {
         const secaoGerada = await gerarJSON(promptSecao, 2, 8192);
