@@ -1,99 +1,141 @@
 
-# Plano: Alinhar OAB Trilhas 100% com Conceitos
+# Plano: Melhorias nos Flashcards das Trilhas OAB
 
-## Problema Identificado
+## Resumo das Mudanças
 
-Há **duplicação de elementos** nos slides do OAB Trilhas:
-1. O prompt pede para incluir emojis no conteúdo: `"💡 Dica de memorização..."`
-2. O componente `ConceitoSlideCard.tsx` TAMBÉM adiciona header com emoji: `> 💡 **DICA DE MEMORIZAÇÃO:**`
-3. O título do slide já contém "Dica de Memorização"
-4. O label do tipo já mostra "Dica de memorização"
+Este plano implementa três melhorias principais nos flashcards do módulo OAB Trilhas:
 
-Resultado: **4 repetições** do mesmo conceito!
+1. **Mostrar exemplo prático** quando o usuário virar o flashcard
+2. **Remover botão "Marcar como Concluído"** - conclusão automática ao ver todos os flashcards
+3. **Ajustar quantidades geradas**: 15-25 flashcards e 15-20 questões por subtema
 
 ---
 
-## Diferenças Encontradas (OAB vs Conceitos)
+## Mudanças Necessárias
 
-| Aspecto | Conceitos | OAB Trilhas |
-|---------|-----------|-------------|
-| Emojis no prompt de seção | Tem (problema igual) | Tem (problema igual) |
-| imagemPrompt | Sim | Não |
-| Referências à prova | Não | Sim ("CAI NA OAB", "prova OAB") |
-| Componente renderizador | ConceitoSlideCard | ConceitoSlideCard (mesmo!) |
+### 1. Componente FlashcardStack (Interface Visual)
+
+**Arquivo**: `src/components/conceitos/FlashcardStack.tsx`
+
+**O que fazer**:
+- Adicionar campo `exemplo?` na interface `Flashcard`
+- Mostrar seção "Exemplo Prático" abaixo da resposta quando o card está virado e tem exemplo
+- Usar o mesmo visual do componente `VideoaulaFlashcards` (caixa amarela com ícone de lâmpada)
+- Adicionar callback `onComplete` que será chamado automaticamente quando o usuário chegar no último card
+
+**Resultado visual**: Quando o usuário virar um flashcard, além da resposta verá uma caixa amarela com "Exemplo Prático" contendo uma situação real que ilustra o conceito.
 
 ---
 
-## Solução Proposta
+### 2. Página de Flashcards OAB Trilhas
 
-### 1. Corrigir o Prompt de Seção do OAB Trilhas
+**Arquivo**: `src/pages/oab/OABTrilhasSubtemaFlashcards.tsx`
 
-**Arquivo:** `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
+**O que fazer**:
+- Remover completamente o botão "Marcar como Concluído" e estados relacionados (`allReviewed`)
+- Passar o campo `exemplo` junto com `pergunta` e `resposta` para o FlashcardStack
+- Adicionar callback `onComplete` no FlashcardStack que marca automaticamente como concluído quando o usuário chega no último flashcard
+- A conclusão automática salva o progresso no banco e exibe a tela de sucesso
 
-Remover emojis dos exemplos de conteúdo para evitar duplicação (o componente já adiciona):
+---
 
+### 3. Geração de Conteúdo - Subtemas (RESUMO)
+
+**Arquivo**: `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
+
+**O que fazer**:
+- Alterar a quantidade de flashcards de `15+` para `15-25`
+- Alterar a quantidade de questões de `8+` para `15-20`
+- Garantir que cada flashcard tenha um exemplo prático
+
+**Trecho atual** (linha ~483):
 ```
-// ANTES (linha 523-529)
-6. Para tipo "atencao":
-   {"tipo": "atencao", "conteudo": "⚠️ Ponto importante que CAI NA OAB..."}
-7. Para tipo "dica":
-   {"tipo": "dica", "conteudo": "💡 Dica de memorização ou macete para a prova OAB..."}
-8. Para tipo "caso":
-   {"tipo": "caso", "conteudo": "💼 Caso prático que pode aparecer na OAB..."}
-
-// DEPOIS
-6. Para tipo "atencao":
-   {"tipo": "atencao", "conteudo": "Ponto importante sobre o tema, explicando a pegadinha..."}
-7. Para tipo "dica":
-   {"tipo": "dica", "conteudo": "Técnica ou macete para memorizar este conceito..."}
-8. Para tipo "caso":
-   {"tipo": "caso", "conteudo": "Descrição do caso prático com análise jurídica..."}
+QUANTIDADES: correspondencias: 8+, flashcards: 15+, questoes: 8+
 ```
 
-### 2. Remover Referências Desnecessárias à OAB no Prompt de Seção
+**Novo**:
+```
+QUANTIDADES: correspondencias: 8+, flashcards: 15-25, questoes: 15-20
+```
 
-Remover frases como:
-- "que CAI NA OAB" 
-- "para a prova OAB"
-- "que pode aparecer na OAB"
-- "Recapitulando para a OAB"
-- "Foco em como o tema CAI NA OAB"
+---
 
-O contexto OAB já está no `promptBase` - não precisa repetir em cada slide.
+### 4. Geração de Conteúdo - Tópicos (oab_trilhas_topicos)
 
-### 3. Remover Duplicação no Componente `ConceitoSlideCard.tsx`
+**Arquivo**: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
 
-O componente adiciona manualmente header para "dica":
+**O que fazer**:
+- Alterar a quantidade de flashcards de `15-20` para `15-25`
+- Alterar a quantidade de questões de `8-12` para `15-20`
+
+**Trecho atual** (linhas ~670-671):
+```
+- flashcards: 15-20 cards
+- questoes: 8-12 questões estilo OAB
+```
+
+**Novo**:
+```
+- flashcards: 15-25 cards
+- questoes: 15-20 questões estilo OAB
+```
+
+---
+
+## Sequência de Implementação
+
+1. Atualizar `FlashcardStack.tsx` - adicionar suporte a exemplo e callback de conclusão
+2. Atualizar `OABTrilhasSubtemaFlashcards.tsx` - remover botão manual, passar exemplo, usar callback
+3. Atualizar `gerar-conteudo-resumo-oab/index.ts` - ajustar quantidades
+4. Atualizar `gerar-conteudo-oab-trilhas/index.ts` - ajustar quantidades
+5. Deploy das edge functions
+
+---
+
+## Detalhes Técnicos
+
+### Novo fluxo de conclusão
+
+```text
+Usuário abre flashcards
+       ↓
+Navega pelos cards (pode virar e ver exemplos)
+       ↓
+Chega no ÚLTIMO card
+       ↓
+Callback onComplete é chamado automaticamente
+       ↓
+Salva progresso no banco (flashcards_completos: true)
+       ↓
+Mostra tela de sucesso com opção "Ir para Questões"
+```
+
+### Interface Flashcard atualizada
 
 ```typescript
-// Linha 233-242
-case 'dica':
-  const dicaMarkdown = `> 💡 **DICA DE MEMORIZAÇÃO:**\n\n${slide.conteudo}`;
-  return (
-    <EnrichedMarkdownRenderer 
-      content={dicaMarkdown}
-      ...
-    />
-  );
+interface Flashcard {
+  pergunta: string;
+  resposta: string;
+  exemplo?: string;  // Novo campo
+}
 ```
 
-**Solução:** Remover esse tratamento especial - deixar o conteúdo ser renderizado diretamente como qualquer outro tipo de texto, já que o label do slide ("Dica de memorização") e o título já identificam o tipo.
+### Props FlashcardStack atualizadas
+
+```typescript
+interface FlashcardStackProps {
+  flashcards: Flashcard[];
+  titulo?: string;
+  onGoToQuestions?: () => void;
+  onComplete?: () => void;  // Novo - chamado ao ver último card
+}
+```
 
 ---
 
-## Arquivos a Modificar
+## Observações Importantes
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/gerar-conteudo-oab-trilhas/index.ts` | Remover emojis e referências "OAB" do prompt de seção (linhas 522-550) |
-| `src/components/conceitos/slides/ConceitoSlideCard.tsx` | Remover tratamento especial do caso 'dica' que adiciona header duplicado |
-
----
-
-## Resultado Esperado
-
-Slides sem duplicação:
-- **Antes:** Label "DICA DE MEMORIZAÇÃO" + Título "Dica de Memorização" + Header "💡 DICA DE MEMORIZAÇÃO:" + Conteúdo "💡 Dica de memorização: ..."
-- **Depois:** Label "Dica de memorização" + Título descritivo + Conteúdo limpo
-
-O conteúdo gerado será idêntico ao padrão de Conceitos, com tom conversacional e sem repetições.
+- Conteúdos já gerados continuarão funcionando normalmente
+- Os novos flashcards terão exemplos automaticamente (já são gerados com o campo `exemplo`)
+- Conteúdos antigos que não têm o campo `exemplo` simplesmente não mostrarão a seção de exemplo
+- Para regenerar conteúdos existentes com as novas quantidades, seria necessário reprocessar manualmente cada subtema
