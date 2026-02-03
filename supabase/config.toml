@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.gerar-capa-codigo]
 verify_jwt = false
+
+[functions.gerar-capa-oab-tema]
+verify_jwt = false

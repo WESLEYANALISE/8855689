@@ -14104,6 +14104,7 @@ export type Database = {
       oab_trilhas_topicos: {
         Row: {
           capa_url: string | null
+          capa_versao: number | null
           conteudo_gerado: string | null
           created_at: string
           descricao: string | null
@@ -14127,6 +14128,7 @@ export type Database = {
         }
         Insert: {
           capa_url?: string | null
+          capa_versao?: number | null
           conteudo_gerado?: string | null
           created_at?: string
           descricao?: string | null
@@ -14150,6 +14152,7 @@ export type Database = {
         }
         Update: {
           capa_url?: string | null
+          capa_versao?: number | null
           conteudo_gerado?: string | null
           created_at?: string
           descricao?: string | null
