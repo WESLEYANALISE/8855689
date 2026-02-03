@@ -7,7 +7,8 @@ const VERSION = "v2.6.0-resumo-unified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Constantes de configuração
@@ -1190,8 +1191,7 @@ async function processarGeracaoResumoBackground(
             erro: true,
             mensagem: "Conteúdo fonte não disponível",
             detalhe: "O texto extraído do PDF para este subtema está vazio ou muito curto."
-          }),
-          updated_at: new Date().toISOString()
+          })
         })
         .eq("id", resumo_id);
       return;
@@ -1506,8 +1506,7 @@ IMPORTANTE: Use tom conversacional ("Olha só...", "Percebeu?")`;
       .from("RESUMO")
       .update({
         slides_json: slidesJson,
-        conteudo_gerado: conteudoGerado,
-        updated_at: new Date().toISOString()
+        conteudo_gerado: conteudoGerado
       })
       .eq("id", resumo_id);
 
@@ -1529,8 +1528,7 @@ IMPORTANTE: Use tom conversacional ("Olha só...", "Percebeu?")`;
             erro: true,
             mensagem: "Erro ao gerar conteúdo",
             detalhe: error.message || "Erro desconhecido"
-          }),
-          updated_at: new Date().toISOString()
+          })
         })
         .eq("id", resumo_id);
     } catch (catchErr) {

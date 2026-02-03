@@ -89,7 +89,8 @@ export const useOABAutoGeneration = ({
     toast.info(`Gerando: ${nextPending.subtema}`, { duration: 3000 });
 
     try {
-      const { error } = await supabase.functions.invoke("gerar-conteudo-resumo-oab", {
+      // Unificado: usar a mesma edge function dos tópicos (mantém o tom "café" e os extras)
+      const { error } = await supabase.functions.invoke("gerar-conteudo-oab-trilhas", {
         body: { resumo_id: nextPending.id },
       });
 
