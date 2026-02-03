@@ -667,8 +667,8 @@ QUANTIDADES:
 - correspondencias: 8-10 pares (para jogo Ligar Termos)
 - exemplos: 5-8 casos práticos
 - termos: 10-15 termos importantes
-- flashcards: 15-20 cards
-- questoes: 8-12 questões estilo OAB
+- flashcards: 15-25 cards
+- questoes: 15-20 questões estilo OAB
 
 Retorne APENAS o JSON, sem texto adicional.`;
 

@@ -51,14 +51,14 @@ const OABTrilhasSubtemaFlashcards = () => {
 
   const flashcards = parseFlashcards();
 
-  // Converter para formato esperado pelo FlashcardStack
+  // Converter para formato esperado pelo FlashcardStack (incluindo exemplo)
   const flashcardsFormatados = flashcards.map(f => ({
     pergunta: f.frente,
-    resposta: f.verso
+    resposta: f.verso,
+    exemplo: f.exemplo
   }));
 
   const backPath = `/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}/estudo/${resumoId}`;
-  const [allReviewed, setAllReviewed] = useState(false);
 
   // Marcar flashcards como completos
   const marcarCompleto = async () => {
@@ -162,28 +162,13 @@ const OABTrilhasSubtemaFlashcards = () => {
           </p>
         </div>
 
-        {/* Flashcards Stack */}
+        {/* Flashcards Stack com conclusão automática */}
         <FlashcardStack 
           flashcards={flashcardsFormatados}
           titulo={resumo?.subtema || "Flashcards"}
           onGoToQuestions={() => navigate(`/oab/trilhas-aprovacao/materia/${materiaId}/topicos/${topicoId}/estudo/${resumoId}/questoes`)}
+          onComplete={marcarCompleto}
         />
-
-        {/* Botão para marcar como concluído */}
-        {!allReviewed && (
-          <div className="mt-6 text-center">
-            <Button
-              onClick={() => {
-                setAllReviewed(true);
-                marcarCompleto();
-              }}
-              className="bg-purple-500 hover:bg-purple-600"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Marcar como Concluído
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -480,7 +480,7 @@ Retorne JSON com:
   ]
 }
 
-QUANTIDADES: correspondencias: 8+, flashcards: 15+, questoes: 8+
+QUANTIDADES: correspondencias: 8+, flashcards: 15-25, questoes: 15-20
 
 Retorne APENAS o JSON.`;
 

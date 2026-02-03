@@ -1,25 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, RotateCcw, Sparkles, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Sparkles, BookOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Flashcard {
   pergunta: string;
   resposta: string;
+  exemplo?: string;
 }
 
 interface FlashcardStackProps {
   flashcards: Flashcard[];
   titulo?: string;
-  onGoToQuestions?: () => void; // Navegação para questões no último flashcard
+  onGoToQuestions?: () => void;
+  onComplete?: () => void; // Chamado automaticamente ao ver o último card
 }
 
-const FlashcardStack = ({ flashcards, titulo, onGoToQuestions }: FlashcardStackProps) => {
+const FlashcardStack = ({ flashcards, titulo, onGoToQuestions, onComplete }: FlashcardStackProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
+  const hasCalledComplete = useRef(false);
   
   const isLastCard = currentIndex === flashcards.length - 1;
+
+  // Chamar onComplete automaticamente quando chegar no último card
+  useEffect(() => {
+    if (isLastCard && !hasCalledComplete.current && onComplete) {
+      hasCalledComplete.current = true;
+      onComplete();
+    }
+  }, [isLastCard, onComplete]);
 
   if (!flashcards || flashcards.length === 0) return null;
 
@@ -144,6 +155,24 @@ const FlashcardStack = ({ flashcards, titulo, onGoToQuestions }: FlashcardStackP
             </div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Exemplo prático - só aparece quando virado e se tiver exemplo */}
+        {isFlipped && currentCard.exemplo && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+              <p className="text-sm font-semibold text-amber-500">Exemplo Prático</p>
+            </div>
+            <p className="text-sm text-white/90 leading-relaxed">
+              {currentCard.exemplo}
+            </p>
+          </motion.div>
+        )}
       </div>
 
       {/* Navigation */}
