@@ -65,6 +65,7 @@ const mapOabPaginaTipoToSlideTipo = (tipo?: string): ConceitoSlide['tipo'] => {
     case 'desmembrando':
     case 'entendendo_na_pratica':
     case 'correspondencias':
+      return 'correspondencias';
     default:
       return 'texto';
   }
@@ -157,10 +158,10 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
   // Capa é gerada apenas em OABTrilhasTopicos (1 por tópico, compartilhada por todas as aulas)
 
   const gerarConteudoMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params?: { force?: boolean }) => {
       setIsGeneratingContent(true);
       const { data, error } = await supabase.functions.invoke("gerar-conteudo-resumo-oab", {
-        body: { resumo_id: parsedResumoId },
+        body: { resumo_id: parsedResumoId, force_regenerate: !!params?.force },
       });
       if (error) throw error;
       
@@ -203,7 +204,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
   // Gerar conteúdo automaticamente se não existir
   useEffect(() => {
     if (resumo && !resumo.conteudo_gerado && !gerarConteudoMutation.isPending && !isGeneratingContent) {
-      gerarConteudoMutation.mutate();
+      gerarConteudoMutation.mutate({ force: false });
     }
   }, [resumo?.id, resumo?.conteudo_gerado, isGeneratingContent]);
 
@@ -242,6 +243,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
             titulo: slide.titulo,
             conteudo: slide.conteudo || slide.markdown || '',
             termos: slide.termos,
+            correspondencias: slide.correspondencias,
             etapas: slide.etapas,
             tabela: slide.tabela,
             pergunta: slide.pergunta,
@@ -256,7 +258,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
     
     // 2. Fallback: conteudo_gerado.secoes (formato intermediário)
     if (conteudoGerado.secoes && Array.isArray(conteudoGerado.secoes) && conteudoGerado.secoes.length > 0) {
-      return conteudoGerado.secoes.map((secao) => ({
+         return conteudoGerado.secoes.map((secao) => ({
         id: secao.id,
         titulo: secao.titulo,
         slides: (secao.slides || []).map((slide: any): ConceitoSlide => ({
@@ -264,6 +266,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
           titulo: slide.titulo,
           conteudo: slide.conteudo || slide.markdown || '',
           termos: slide.termos,
+           correspondencias: slide.correspondencias,
           etapas: slide.etapas,
           tabela: slide.tabela,
           pergunta: slide.pergunta,
@@ -501,7 +504,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
         </div>
       </div>
 
-         <OABTrilhasTopicoIntro
+          <OABTrilhasTopicoIntro
         titulo={resumo?.subtema || ""}
         materiaName={resumo?.area}
            capaUrl={capaUrl || undefined}
@@ -518,6 +521,24 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
         onStartQuestoes={handleStartQuestoes}
         onBack={handleBack}
       />
+
+       {/* Regenerar para pegar o novo tom “café” e a página de correspondências */}
+       {resumo?.slides_json && (
+         <div className="max-w-2xl mx-auto px-4 pb-10">
+           <Button
+             variant="outline"
+             className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+             disabled={gerarConteudoMutation.isPending || isGeneratingContent}
+             onClick={() => {
+               toast.info("Regenerando com o novo formato...");
+               gerarConteudoMutation.mutate({ force: true });
+             }}
+           >
+             <Sparkles className="w-4 h-4 mr-2" />
+             Regenerar com novo tom (café)
+           </Button>
+         </div>
+       )}
     </div>
   );
 };

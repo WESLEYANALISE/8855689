@@ -5,6 +5,9 @@ declare const EdgeRuntime: {
   waitUntil: (promise: Promise<unknown>) => void;
 };
 
+// VERSÃO para debugging de deploy
+const VERSION = "v2.6.0-resumo-cafe-correspondencias";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -177,74 +180,24 @@ async function processarGeracaoConteudo(resumo_id: number) {
     console.log(`[OAB Resumo] Conteúdo fonte: ${conteudoOriginal.length} chars`);
 
     // ============================================
-    // PROMPT BASE
+    // PROMPT BASE (TOM “CAFÉ” + REGRA DIDÁTICA UNIFICADA)
     // ============================================
-    const promptBase = `Você é um professor de Direito especialista em OAB, criando conteúdo didático.
+    const promptBase = `Você é um professor experiente explicando Direito para uma pessoa LEIGA.
+Seu estilo é como uma CONVERSA DE CAFÉ: descontraído, acolhedor e empolgado, como um amigo explicando.
 
-## ⛔⛔⛔ REGRA ABSOLUTA - SAUDAÇÕES (LEIA COM ATENÇÃO!) ⛔⛔⛔
+REGRAS DE TOM (OBRIGATÓRIAS):
+- Use expressões naturais ao longo do texto: "Olha só...", "Percebeu?", "Faz sentido, né?", "Na prática..."
+- Sem formalidades do tipo "Prezado"/"futuro colega".
+- Não use emojis no texto.
 
-🚫 PROIBIDO EM QUALQUER SLIDE QUE NÃO SEJA "introducao" DA PRIMEIRA SEÇÃO:
-- "Futuro colega,", "Prezado advogado,", "Caro estudante,", "Colega,"
-- "Olá!", "Bem-vindo!", "Vamos lá!", "Bora!", "E aí!"
-- "Tá preparado?", "Beleza?", "Partiu!", "Vamos nessa"
-- "Olha só!", "Vamos mergulhar...", "Galera"
-- QUALQUER saudação ou vocativo no início do slide
+REGRA DIDÁTICA DE OURO: SIMPLES PRIMEIRO → TERMO TÉCNICO DEPOIS.
+Exemplo de formato:
+"Sabe quando ...? Isso é o que o Direito chama de 'X' (definição rápida)."
 
-✅ OBRIGATÓRIO - Como iniciar slides normais (não introdução):
-- "O conceito de tipicidade caracteriza-se por..." (direto no conceito)
-- "A doutrina majoritária entende que..." (direto na definição)
-- "Quando analisamos este instituto..." (direto na análise)
-- "É fundamental compreender que..." (direto na explicação)
-- "Nesse contexto, observamos..." (direto no raciocínio)
+Termos jurídicos: explique imediatamente entre parênteses.
+Latim: traduza e contextualize imediatamente.
 
-⚠️ ÚNICA EXCEÇÃO: Slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
-
-## 🎓 LINGUAGEM ACESSÍVEL = EXPLICAR, NÃO CASUALIZAR
-
-### Termos Jurídicos:
-SEMPRE explique imediatamente após usar. Formato:
-"O conceito de 'dolo eventual' (quando a pessoa assume o risco de produzir o resultado) significa que..."
-
-### Expressões em Latim:
-SEMPRE traduza E contextualize. Formato:
-"O princípio 'nulla poena sine lege' (não há pena sem lei) significa, na prática, que ninguém pode ser punido se não existir uma lei anterior que defina o crime."
-
-### Analogias (OBRIGATÓRIO para cada conceito abstrato):
-"Pense na 'tipicidade' como uma peça de quebra-cabeça: a conduta precisa 'encaixar' perfeitamente no formato descrito pela lei."
-"A 'culpabilidade' funciona como um filtro: verificamos se era possível exigir outra atitude."
-
-### Hierarquia Progressiva:
-1. Primeiro: Explique em palavras simples do cotidiano
-2. Depois: Apresente o termo técnico entre aspas
-3. Por fim: Aprofunde com visão doutrinária
-
-### Exemplos Práticos:
-Use SEMPRE nomes brasileiros comuns: João, Maria, Pedro, Ana, Carlos, Fernanda
-Situações do cotidiano: contrato de aluguel, compra de carro, briga entre vizinhos
-
-## 🎨 VARIEDADE VISUAL (OBRIGATÓRIO!):
-
-Intercale tipos de slides para manter DINAMISMO:
-- A cada 2-3 slides "texto", insira um slide diferente:
-  - "atencao": > ⚠️ **ATENÇÃO!** Ponto que CAI em prova...
-  - "dica": > 💡 **DICA DE MEMORIZAÇÃO:** Para lembrar...
-  - "caso": > 📚 **EXEMPLO PRÁTICO:** João fez um contrato...
-  - "termos": Glossário com 4-6 termos
-  - "quickcheck": Pergunta de verificação
-
-NUNCA gere 4+ slides tipo "texto" consecutivos sem intercalar!
-
-## 📖 PROFUNDIDADE:
-- Mínimo 200-400 palavras por página tipo "texto"
-- Sempre incluir: "> 📚 **EXEMPLO PRÁTICO:** ..."
-- Sempre incluir: "> ⚠️ **ATENÇÃO:**", "> 💡 **DICA:**"
-- Sempre traduzir termos em latim
-- Usar blockquotes para citações legais
-
-## 📚 FIDELIDADE AO MATERIAL:
-- Utilize 100% do conteúdo fornecido como referência
-- NUNCA mencione "PDF", "material", "documento" no texto gerado
-- Escreva como se fosse CONHECIMENTO SEU
+FIDELIDADE: use 100% do conteúdo fonte, mas NÃO mencione "PDF", "material" ou "documento".
 
 **Área:** ${area}
 **Tema:** ${tema}
@@ -253,43 +206,6 @@ NUNCA gere 4+ slides tipo "texto" consecutivos sem intercalar!
 ═══ CONTEÚDO FONTE ═══
 ${conteudoOriginal}
 ═══════════════════════`;
-
-    // Função ROBUSTA para remover saudações proibidas
-    const limparSaudacoesProibidas = (texto: string): string => {
-      if (!texto) return texto;
-      const saudacoesProibidas = [
-        // Vocativos formais
-        /^Futuro\s+colega,?\s*/gi,
-        /^Prezad[oa]\s+(advogad[oa]|coleg[ao]|estudante)[^.]*,?\s*/gi,
-        /^Car[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
-        /^Coleg[ao],?\s*/gi,
-        /^Estimad[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
-        // Saudações casuais
-        /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
-        /^Olha só[!,.\s]*/gi,
-        /^Olá[!,.\s]*/gi,
-        /^Bem-vind[oa][!,.\s]*/gi,
-        /^Vamos\s+(lá|juntos|estudar|mergulhar|nessa)?[!,.\s]*/gi,
-        /^Bora\s+(lá|entender|ver|estudar)?[!,.\s]*/gi,
-        /^Tá preparad[oa][?!.\s]*/gi,
-        /^Beleza[?!,.\s]*/gi,
-        /^Partiu[!,.\s]*/gi,
-        /^Vamos nessa[!,.\s]*/gi,
-        /^(Cara|Mano),?\s*/gi,
-        /^Galera,?\s*/gi,
-        /^Pessoal,?\s*/gi,
-        /^Oi[!,.\s]*/gi,
-      ];
-      let resultado = texto;
-      for (const regex of saudacoesProibidas) {
-        resultado = resultado.replace(regex, '');
-      }
-      // Se o resultado começar com letra minúscula após limpeza, capitalize
-      if (resultado.length > 0 && /^[a-z]/.test(resultado)) {
-        resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
-      }
-      return resultado.trim();
-    };
 
     // ============================================
     // ETAPA 1: GERAR ESTRUTURA/ESQUELETO
@@ -324,7 +240,7 @@ Retorne um JSON com esta estrutura EXATA:
 REGRAS:
 1. Gere entre 5-7 seções
 2. Cada seção deve ter 6-10 páginas (total final: 35-55 páginas)
-3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
+3. TIPOS DISPONÍVEIS: introducao, texto, termos, correspondencias, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
 4. Distribua bem os tipos (não só "texto")
 5. Cada seção deve ter pelo menos 1 quickcheck
 6. Use títulos descritivos para cada página
@@ -362,7 +278,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
       
       console.log(`[OAB Resumo] Gerando seção ${i + 1}/${totalSecoes}: ${secaoEstrutura.titulo}`);
 
-      const promptSecao = `${promptBase}
+       const promptSecao = `${promptBase}
 
 ═══ SUA TAREFA ═══
 Gere o CONTEÚDO COMPLETO para a SEÇÃO ${i + 1}:
@@ -403,6 +319,9 @@ Para CADA página, retorne o objeto completo com:
 10. Para tipo "resumo":
     {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando:", "pontos": ["...", "...", "..."]}
 
+ 11. Para tipo "correspondencias" (gamificação: ligar termo x definição):
+    {"tipo": "correspondencias", "titulo": "Ligar Termos", "conteudo": "Instruções curtas", "correspondencias": [{"termo": "...", "definicao": "..."}]}
+
 Retorne um JSON com a seção COMPLETA:
 {
   "id": ${secaoEstrutura.id},
@@ -433,9 +352,11 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
         
         // PÓS-PROCESSAMENTO: Remover saudações proibidas de slides que não são introdução
         for (const slide of secaoCompleta.slides) {
-          const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
-          if (!isPrimeiraSecaoIntro && slide.conteudo) {
-            slide.conteudo = limparSaudacoesProibidas(slide.conteudo);
+          // Garantia extra: nunca deixar formalidades escaparem
+          if (typeof slide?.conteudo === 'string') {
+            slide.conteudo = slide.conteudo
+              .replace(/^\s*(Prezado|Prezada|Futuro\s+colega|Cara\s+pessoa|Caro\s+estudante)[^\n]*\n?/i, '')
+              .trim();
           }
         }
         
@@ -472,6 +393,12 @@ Retorne JSON com:
   "correspondencias": [
     {"termo": "Termo jurídico", "definicao": "Definição curta (máx 60 chars)"}
   ],
+  "ligar_termos": [
+    {"conceito": "Explicação simples", "termo": "Termo técnico"}
+  ],
+  "explique_com_palavras": [
+    {"conceito": "Pergunta conceitual", "dica": "Dica curta"}
+  ],
   "flashcards": [
     {"frente": "Pergunta", "verso": "Resposta", "exemplo": "Exemplo prático"}
   ],
@@ -480,7 +407,7 @@ Retorne JSON com:
   ]
 }
 
-QUANTIDADES: correspondencias: 8+, flashcards: 15-25, questoes: 15-20
+QUANTIDADES: correspondencias: 8+, ligar_termos: 6+, explique_com_palavras: 4+, flashcards: 15-25, questoes: 15-20
 
 Retorne APENAS o JSON.`;
 
@@ -522,6 +449,9 @@ Retorne APENAS o JSON.`;
     const conteudoGeradoCompativel = {
       secoes: secoesCompletas,
       objetivos: estrutura.objetivos || [],
+      correspondencias: extras.correspondencias || [],
+      ligar_termos: extras.ligar_termos || [],
+      explique_com_palavras: extras.explique_com_palavras || [],
       flashcards: extras.flashcards || [],
       questoes: extras.questoes || []
     };
@@ -604,7 +534,7 @@ serve(async (req) => {
   }
 
   try {
-    const { resumo_id } = await req.json();
+    const { resumo_id, force_regenerate } = await req.json();
 
     if (!resumo_id) {
       return new Response(
@@ -624,7 +554,7 @@ serve(async (req) => {
       .eq("id", resumo_id)
       .single();
 
-    if (resumo?.slides_json) {
+    if (resumo?.slides_json && !force_regenerate) {
       return new Response(
         JSON.stringify({ 
           status: "ja_existe", 
@@ -634,7 +564,11 @@ serve(async (req) => {
       );
     }
 
+    console.log(`[OAB Resumo] ══════════════════════════════════════════`);
     console.log(`[OAB Resumo] Iniciando geração para resumo ${resumo_id}`);
+    console.log(`[OAB Resumo] 📦 VERSÃO: ${VERSION}`);
+    console.log(`[OAB Resumo] Force regenerate: ${!!force_regenerate}`);
+    console.log(`[OAB Resumo] ══════════════════════════════════════════`);
 
     // Usar EdgeRuntime.waitUntil para processamento em background
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {

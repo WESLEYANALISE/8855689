@@ -26,6 +26,7 @@ export interface ConceitoSlide {
     | 'introducao'      // Página de abertura com título e objetivos
     | 'texto'           // Texto explicativo simples
     | 'termos'          // Lista de termos e definições
+    | 'correspondencias'// Jogo: ligar termos às definições
     | 'explicacao'      // Explicação detalhada com tópicos
     | 'linha_tempo'     // Timeline/etapas
     | 'tabela'          // Tabela comparativa
@@ -47,6 +48,9 @@ export interface ConceitoSlide {
   
   // Para tipo 'termos'
   termos?: TermoDefinicao[];
+
+  // Para tipo 'correspondencias'
+  correspondencias?: TermoDefinicao[];
   
   // Para tipo 'tabela'
   tabela?: TabelaData;
