@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
 // VERSÃO para debugging de deploy
-const VERSION = "v2.5.0-gamificacao-fix";
+const VERSION = "v2.6.0-resumo-unified";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,11 +25,15 @@ serve(async (req) => {
   }
 
   try {
-    const { topico_id, force_restart } = await req.json();
+    const body = await req.json();
+    const { topico_id, resumo_id, force_restart, force_regenerate } = body;
     
-    if (!topico_id) {
+    // Aceitar resumo_id OU topico_id
+    const isResumoMode = !!resumo_id && !topico_id;
+    
+    if (!topico_id && !resumo_id) {
       return new Response(
-        JSON.stringify({ error: "topico_id é obrigatório" }),
+        JSON.stringify({ error: "topico_id ou resumo_id é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -39,8 +43,59 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // ============================================
-    // SISTEMA DE FILA: Verificar se já há geração ativa
-    // + Watchdog: destravar "gerando" travado
+    // MODO RESUMO (Subtema): Gerar conteúdo para tabela RESUMO
+    // ============================================
+    if (isResumoMode) {
+      console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
+      console.log(`[OAB Trilhas] 🚀 MODO RESUMO: Gerando subtema ID ${resumo_id}`);
+      console.log(`[OAB Trilhas] 📦 VERSÃO: ${VERSION}`);
+      console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
+
+      // Buscar dados do resumo
+      const { data: resumo, error: resumoError } = await supabase
+        .from("RESUMO")
+        .select("*")
+        .eq("id", resumo_id)
+        .single();
+
+      if (resumoError || !resumo) {
+        return new Response(
+          JSON.stringify({ error: "Resumo não encontrado" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Verificar se já tem conteúdo e não é force
+      if (resumo.slides_json && !force_regenerate) {
+        console.log(`[OAB Trilhas] Resumo ${resumo_id} já tem conteúdo, retornando`);
+        return new Response(
+          JSON.stringify({ success: true, already_generated: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Processar em background
+      EdgeRuntime.waitUntil(processarGeracaoResumoBackground(
+        supabase, 
+        resumo_id, 
+        resumo
+      ));
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          status: "gerando",
+          background: true,
+          message: "Geração do subtema iniciada em background.",
+          resumo_id,
+          titulo: resumo.subtema
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ============================================
+    // MODO TÓPICO: Fluxo original com fila
     // ============================================
     const STALE_GENERATION_MINUTES = 30;
     const staleCutoff = new Date(Date.now() - STALE_GENERATION_MINUTES * 60 * 1000).toISOString();
@@ -1105,5 +1160,381 @@ async function processarProximoDaFila(supabase: any, supabaseUrl: string, supaba
     
   } catch (err) {
     console.error("[OAB Fila] Erro ao buscar próximo da fila:", err);
+  }
+}
+
+// ============================================
+// FUNÇÃO DE PROCESSAMENTO EM BACKGROUND PARA RESUMO (Subtema)
+// ============================================
+async function processarGeracaoResumoBackground(
+  supabase: any, 
+  resumo_id: number,
+  resumo: any
+) {
+  try {
+    const areaNome = resumo.area || "";
+    const subtema = resumo.subtema || "";
+    const conteudoFonte = resumo.conteudo || "";
+
+    console.log(`[OAB Resumo] ══════════════════════════════════════════`);
+    console.log(`[OAB Resumo] 🚀 Gerando conteúdo para subtema: ${subtema}`);
+    console.log(`[OAB Resumo] 📦 VERSÃO: ${VERSION}`);
+    console.log(`[OAB Resumo] ══════════════════════════════════════════`);
+
+    if (!conteudoFonte || conteudoFonte.trim().length < 50) {
+      console.log(`[OAB Resumo] ⚠️ Conteúdo fonte muito curto ou vazio`);
+      await supabase
+        .from("RESUMO")
+        .update({
+          conteudo_gerado: JSON.stringify({
+            erro: true,
+            mensagem: "Conteúdo fonte não disponível",
+            detalhe: "O texto extraído do PDF para este subtema está vazio ou muito curto."
+          }),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", resumo_id);
+      return;
+    }
+
+    // Configurar Gemini
+    const geminiKeys = [
+      Deno.env.get("GEMINI_KEY_1"),
+      Deno.env.get("GEMINI_KEY_2"),
+      Deno.env.get("GEMINI_KEY_3"),
+    ].filter(Boolean);
+
+    const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
+    const genAI = new GoogleGenerativeAI(geminiKey!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+    // Funções auxiliares (reutilizáveis)
+    function sanitizeJsonString(str: string): string {
+      let result = "";
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const code = str.charCodeAt(i);
+        
+        if (escapeNext) { result += char; escapeNext = false; continue; }
+        if (char === '\\') { result += char; escapeNext = true; continue; }
+        if (char === '"') { inString = !inString; result += char; continue; }
+        
+        if (inString) {
+          if (code === 0x0A) result += '\\n';
+          else if (code === 0x0D) result += '\\r';
+          else if (code === 0x09) result += '\\t';
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
+        } else {
+          if (char === '\n' || char === '\r' || char === '\t' || char === ' ') result += char;
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
+        }
+      }
+      return result;
+    }
+
+    function repairJson(text: string): string {
+      let repaired = text.trim();
+      repaired = repaired.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const jsonStart = repaired.indexOf("{");
+      if (jsonStart === -1) return "{}";
+      repaired = repaired.substring(jsonStart);
+      
+      let braceCount = 0;
+      let bracketCount = 0;
+      let inString = false;
+      let escapeNext = false;
+      let lastValidIndex = 0;
+      
+      for (let i = 0; i < repaired.length; i++) {
+        const char = repaired[i];
+        if (escapeNext) { escapeNext = false; continue; }
+        if (char === '\\') { escapeNext = true; continue; }
+        if (char === '"') { inString = !inString; continue; }
+        
+        if (!inString) {
+          if (char === '{') braceCount++;
+          else if (char === '}') { braceCount--; if (braceCount === 0) lastValidIndex = i; }
+          else if (char === '[') bracketCount++;
+          else if (char === ']') bracketCount--;
+        }
+      }
+      
+      if (braceCount === 0 && bracketCount === 0) {
+        return repaired.substring(0, lastValidIndex + 1);
+      }
+      
+      repaired = repaired.replace(/,\s*$/, "");
+      repaired = repaired.replace(/:\s*$/, ': null');
+      repaired = repaired.replace(/"\s*$/, '"');
+      
+      while (bracketCount > 0) { repaired += "]"; bracketCount--; }
+      while (braceCount > 0) { repaired += "}"; braceCount--; }
+      
+      return repaired;
+    }
+
+    async function gerarJSON(prompt: string, maxRetries = 2, maxTokens = 8192): Promise<any> {
+      let lastError: any = null;
+      
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`[OAB Resumo] Retry ${attempt}/${maxRetries}...`);
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+          }
+          
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
+          });
+          
+          let text = result.response.text();
+          const sanitized = sanitizeJsonString(text);
+          const repaired = repairJson(sanitized);
+          
+          try {
+            return JSON.parse(repaired);
+          } catch {
+            const fixed = repaired
+              .replace(/,\s*([}\]])/g, "$1")
+              .replace(/([{,])\s*}/g, "$1}")
+              .replace(/\[\s*,/g, "[")
+              .replace(/,\s*,/g, ",");
+            return JSON.parse(fixed);
+          }
+        } catch (err) {
+          lastError = err;
+          console.error(`[OAB Resumo] Tentativa ${attempt + 1} falhou:`, err);
+        }
+      }
+      
+      throw lastError;
+    }
+
+    // Prompt base para subtema (mesmo estilo café)
+    const promptBase = `Você é um professor experiente explicando Direito para uma pessoa LEIGA.
+Seu estilo é como uma CONVERSA DE CAFÉ - descontraído, acolhedor e didático.
+
+═══ PÚBLICO-ALVO ═══
+Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
+
+═══ TOM DE VOZ ═══
+- Descontraído, claro e acolhedor
+- Use expressões naturais: "Olha só...", "Percebeu?", "Faz sentido, né?", "Na prática..."
+- Perguntas guiadas: "E por que isso importa?", "Percebeu a diferença?"
+- Seguro e correto tecnicamente
+- NUNCA infantilizado ou condescendente
+
+═══ ESTRUTURA DIDÁTICA OBRIGATÓRIA ═══
+
+1. **SIMPLES PRIMEIRO → TÉCNICO DEPOIS (REGRA DE OURO)**
+   ❌ ERRADO: "A jurisdição voluntária caracteriza-se por..."
+   ✅ CERTO: "Sabe quando duas pessoas concordam com tudo, mas ainda precisam do juiz para oficializar? Isso é o que o Direito chama de 'jurisdição voluntária'."
+
+2. **TRADUÇÃO IMEDIATA de termos técnicos e latim:**
+   - "O 'pacta sunt servanda' (significa 'os pactos devem ser cumpridos')"
+   - "Isso é o que chamamos de 'trânsito em julgado' (quando não dá mais para recorrer)"
+
+3. **ANALOGIAS DO COTIDIANO**
+
+═══ CUIDADOS ═══
+- NÃO use emojis no texto (a interface já adiciona ícones)
+- NÃO mencione "PDF", "material", "documento"
+- Slides tipo "caso" JÁ SÃO exemplo prático
+
+**Área:** ${areaNome}
+**Subtema:** ${subtema}
+
+═══ CONTEÚDO FONTE ═══
+${conteudoFonte.substring(0, 15000)}
+═══════════════════════`;
+
+    // ETAPA 1: Gerar estrutura
+    console.log(`[OAB Resumo] ETAPA 1: Gerando estrutura...`);
+    
+    const promptEstrutura = `${promptBase}
+
+═══ SUA TAREFA ═══
+Crie APENAS a ESTRUTURA/ESQUELETO do conteúdo interativo para este subtema.
+
+Retorne um JSON com esta estrutura:
+{
+  "titulo": "${subtema}",
+  "tempoEstimado": "15 min",
+  "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"],
+  "secoes": [
+    {
+      "id": 1,
+      "titulo": "Nome da Seção",
+      "paginas": [
+        {"tipo": "introducao", "titulo": "O que você vai aprender"},
+        {"tipo": "texto", "titulo": "Conceito X"},
+        {"tipo": "quickcheck", "titulo": "Verificação"}
+      ]
+    }
+  ]
+}
+
+REGRAS:
+1. Gere entre 3-5 seções (para alcançar 20-35 páginas totais)
+2. Cada seção deve ter 4-8 páginas
+3. TIPOS: introducao, texto, termos, atencao, dica, caso, resumo, quickcheck, correspondencias
+4. IMPORTANTE: Inclua pelo menos 1 slide "correspondencias" para gamificação
+5. Cubra TODO o conteúdo fonte
+
+Retorne APENAS o JSON.`;
+
+    let estrutura: any = null;
+    try {
+      estrutura = await gerarJSON(promptEstrutura);
+      
+      if (!estrutura?.secoes || !Array.isArray(estrutura.secoes) || estrutura.secoes.length < 2) {
+        throw new Error("Estrutura inválida");
+      }
+      
+      console.log(`[OAB Resumo] ✓ Estrutura: ${estrutura.secoes.length} seções`);
+    } catch (err) {
+      console.error(`[OAB Resumo] ❌ Erro na estrutura:`, err);
+      throw new Error(`Falha ao gerar estrutura: ${err}`);
+    }
+
+    // ETAPA 2: Gerar conteúdo por seção
+    console.log(`[OAB Resumo] ETAPA 2: Gerando conteúdo por seção...`);
+    
+    const secoesCompletas: any[] = [];
+    const totalSecoes = estrutura.secoes.length;
+
+    for (let i = 0; i < totalSecoes; i++) {
+      const secaoEstrutura = estrutura.secoes[i];
+      console.log(`[OAB Resumo] Gerando seção ${i + 1}/${totalSecoes}: ${secaoEstrutura.titulo}`);
+
+      const promptSecao = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere o CONTEÚDO COMPLETO para a SEÇÃO ${i + 1}:
+Título: "${secaoEstrutura.titulo}"
+
+PÁGINAS A GERAR:
+${JSON.stringify(secaoEstrutura.paginas, null, 2)}
+
+Para CADA página, retorne:
+
+1. tipo "texto" (MÍNIMO 200 PALAVRAS):
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação conversacional completa..."}
+
+2. tipo "quickcheck":
+   {"tipo": "quickcheck", "titulo": "...", "pergunta": "...", "opcoes": ["A", "B", "C", "D"], "resposta": 0, "feedback": "..."}
+
+3. tipo "correspondencias" (GAMIFICAÇÃO - jogo de ligar termos):
+   {"tipo": "correspondencias", "titulo": "Ligue os Termos", "correspondencias": [
+     {"termo": "Termo 1", "definicao": "Definição curta 1"},
+     {"termo": "Termo 2", "definicao": "Definição curta 2"}
+   ]}
+
+4. outros tipos: introducao, termos, atencao, dica, caso, resumo
+
+RETORNE um JSON:
+{
+  "id": ${secaoEstrutura.id},
+  "titulo": "${secaoEstrutura.titulo}",
+  "slides": [...]
+}
+
+IMPORTANTE: Use tom conversacional ("Olha só...", "Percebeu?")`;
+
+      try {
+        const secaoGerada = await gerarJSON(promptSecao, 2, 8192);
+        
+        if (secaoGerada?.slides && Array.isArray(secaoGerada.slides)) {
+          secoesCompletas.push({
+            id: secaoEstrutura.id,
+            titulo: secaoEstrutura.titulo,
+            slides: secaoGerada.slides
+          });
+          console.log(`[OAB Resumo] ✓ Seção ${i + 1}: ${secaoGerada.slides.length} slides`);
+        }
+      } catch (err) {
+        console.error(`[OAB Resumo] ⚠️ Erro na seção ${i + 1}:`, err);
+      }
+    }
+
+    // Adicionar slide de Síntese Final
+    const slideSinteseFinal = {
+      tipo: "resumo",
+      titulo: "Síntese Final",
+      conteudo: `Parabéns! Você completou o estudo de **${subtema}**.`,
+      pontos: secoesCompletas.flatMap(s => 
+        (s.slides || []).slice(0, 2).map((slide: any) => slide.titulo || "")
+      ).filter(Boolean).slice(0, 8)
+    };
+
+    secoesCompletas.push({
+      id: secoesCompletas.length + 1,
+      titulo: "Síntese Final",
+      slides: [slideSinteseFinal]
+    });
+
+    // Montar estrutura final
+    const totalPaginas = secoesCompletas.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
+    
+    const slidesJson = {
+      versao: 2,
+      titulo: subtema,
+      tempoEstimado: estrutura.tempoEstimado || "15 min",
+      area: areaNome,
+      objetivos: estrutura.objetivos || [],
+      secoes: secoesCompletas
+    };
+
+    const conteudoGerado = {
+      secoes: secoesCompletas,
+      objetivos: estrutura.objetivos || [],
+      paginas: secoesCompletas.flatMap(s => s.slides || []).map((slide: any) => ({
+        titulo: slide.titulo,
+        tipo: slide.tipo,
+        markdown: slide.conteudo
+      }))
+    };
+
+    // Salvar no banco
+    const { error: updateError } = await supabase
+      .from("RESUMO")
+      .update({
+        slides_json: slidesJson,
+        conteudo_gerado: conteudoGerado,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", resumo_id);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    console.log(`[OAB Resumo] ✅ Conteúdo salvo com sucesso: ${subtema}`);
+    console.log(`[OAB Resumo] Stats: ${totalPaginas} slides, ${secoesCompletas.length} seções`);
+
+  } catch (error: any) {
+    console.error("[OAB Resumo] ❌ Erro no processamento:", error);
+
+    try {
+      await supabase
+        .from("RESUMO")
+        .update({
+          conteudo_gerado: JSON.stringify({
+            erro: true,
+            mensagem: "Erro ao gerar conteúdo",
+            detalhe: error.message || "Erro desconhecido"
+          }),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", resumo_id);
+    } catch (catchErr) {
+      console.error("[OAB Resumo] Erro ao salvar erro:", catchErr);
+    }
   }
 }
