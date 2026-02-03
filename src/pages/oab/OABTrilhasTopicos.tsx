@@ -21,8 +21,6 @@ const OABTrilhasTopicos = () => {
   const parsedTopicoId = topicoId ? parseInt(topicoId) : null;
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [autoCapaTriggered, setAutoCapaTriggered] = useState(false);
-  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
   // Restaurar posição do scroll ao voltar
   useEffect(() => {
@@ -180,38 +178,10 @@ const OABTrilhasTopicos = () => {
   // Calcular progresso do usuário
   const subtemasConcluidosUsuario = Object.values(progressoUsuario || {}).filter(p => p.leituraCompleta).length;
 
-  // Capa compartilhada: 1 capa por tópico (matéria/tópico)
-  const fallbackCapa = topico?.capa_url || area?.capa_url;
+  // Capa compartilhada: usa APENAS a capa da ÁREA (não do tópico)
+  const fallbackCapa = area?.capa_url;
 
-  // Gerar capa v2 automaticamente (apenas 1x por tópico)
-  useEffect(() => {
-    if (!topico || !area) return;
-    if (autoCapaTriggered) return;
-    if (isGeneratingCover) return;
-
-    const needsV2 = !topico.capa_url || topico.capa_versao !== 2;
-    if (!needsV2) return;
-
-    setAutoCapaTriggered(true);
-    setIsGeneratingCover(true);
-
-    supabase.functions
-      .invoke("gerar-capa-topico-aprovacao", {
-        body: {
-          topico_id: topico.id,
-          titulo: topico.titulo,
-          area: area.nome,
-        },
-      })
-      .then(({ error }) => {
-        if (error) throw error;
-        return queryClient.invalidateQueries({ queryKey: ["oab-trilha-topico", parsedTopicoId] });
-      })
-      .catch((err) => {
-        console.error("[OABTrilhasTopicos] Erro ao gerar capa v2 do tópico:", err);
-      })
-      .finally(() => setIsGeneratingCover(false));
-  }, [topico?.id, topico?.capa_url, topico?.capa_versao, area?.nome, autoCapaTriggered, isGeneratingCover]);
+  // Geração de capa por tópico REMOVIDA - agora usa apenas capa da Área
 
   // Só mostra loading se não tem dados em cache
   if (isLoading && !area && !topico) {
