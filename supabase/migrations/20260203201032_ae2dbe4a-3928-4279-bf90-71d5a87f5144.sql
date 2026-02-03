@@ -1,0 +1,15 @@
+INSERT INTO oab_trilhas_topicos (materia_id, titulo, ordem, status) VALUES
+(13, 'Teoria Geral do Direito Empresarial', 1, 'pendente'),
+(13, 'Sociedades do Direito Empresarial', 2, 'pendente'),
+(13, 'Sociedade Limitada', 3, 'pendente'),
+(13, 'Sociedades Anônimas', 4, 'pendente'),
+(13, 'Desconsideração da Personalidade Jurídica', 5, 'pendente'),
+(13, 'Teoria Geral dos Contratos Empresariais', 6, 'pendente'),
+(13, 'Contratos Empresariais em Espécie', 7, 'pendente'),
+(13, 'Contrato de Distribuição', 8, 'pendente'),
+(13, 'Títulos de Crédito', 9, 'pendente'),
+(13, 'Propriedade Intelectual', 10, 'pendente'),
+(13, 'Aspectos Legais dos Fundos de Investimento', 11, 'pendente'),
+(13, 'Recuperação Judicial', 12, 'pendente'),
+(13, 'Falência', 13, 'pendente'),
+(13, 'Infrações à Ordem Econômica', 14, 'pendente');
