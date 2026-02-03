@@ -648,8 +648,9 @@ REGRAS:
 3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck
 4. Distribua bem os tipos (não só "texto")
 5. Cada seção deve ter pelo menos 1 quickcheck
-6. Use títulos descritivos para cada página
-7. Cubra TODO o conteúdo do material
+6. INCLUA pelo menos 1-2 slides tipo "tabela" no total (comparativos, diferenças, requisitos)
+7. Use títulos descritivos para cada página
+8. Cubra TODO o conteúdo do material
 
 Retorne APENAS o JSON, sem texto adicional.`;
 
@@ -936,63 +937,146 @@ Retorne APENAS o JSON, nada mais.`;
     }
 
     // ============================================
-    // ETAPA 4: GERAR SÍNTESE FINAL
+    // ETAPA 4: GERAR SÍNTESE FINAL COMPLETA (Resumo + Termos + Dicas + Tabela)
     // ============================================
-    console.log(`[OAB Trilhas] ETAPA 4: Gerando síntese final...`);
+    console.log(`[OAB Trilhas] ETAPA 4: Gerando síntese final completa...`);
     
     const promptSintese = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Com base em TODO o conteúdo gerado sobre "${topicoTitulo}", crie uma SÍNTESE FINAL completa.
+Com base em TODO o conteúdo gerado sobre "${topicoTitulo}", crie uma SÍNTESE FINAL COMPLETA para ser usada como revisão rápida.
 
-Esta síntese deve:
-1. Resumir os PONTOS-CHAVE de cada seção estudada
-2. Destacar os conceitos mais importantes para a OAB
-3. Incluir termos-chave que DEVEM ser memorizados
-4. Listar dicas de prova e pegadinhas comuns
+Esta síntese deve incluir 4 partes obrigatórias:
 
-Retorne um JSON com a estrutura:
+1. **RESUMO EXPLICATIVO** (texto corrido, 150-200 palavras)
+   - Faça um resumo do que foi aprendido de forma conversacional
+   - Destaque o que é mais cobrado na OAB
+   - Linguagem clara e objetiva
+
+2. **TERMOS-CHAVE** (8-12 termos)
+   - Lista dos termos mais importantes do tema
+   - Cada termo com definição curta (máx 30 palavras)
+
+3. **DICAS DE MEMORIZAÇÃO** (4-6 dicas)
+   - Macetes para memorizar
+   - Associações úteis
+   - Pegadinhas comuns da banca
+
+4. **TABELA COMPARATIVA** (quando aplicável)
+   - Compare conceitos semelhantes ou opostos
+   - Ex: "Prazo X vs Prazo Y", "Requisitos A vs B"
+   - 2-4 linhas com 2-3 colunas
+
+Retorne um JSON com esta estrutura EXATA:
 {
-  "pontos": [
-    "Ponto-chave 1: Descrição clara e objetiva",
-    "Ponto-chave 2: Conceito fundamental para a OAB",
-    "Ponto-chave 3: Termo importante a memorizar",
-    "Ponto-chave 4: Dica de prova",
-    "Ponto-chave 5: Outro conceito essencial"
-  ]
+  "resumo_texto": "Texto explicativo do resumo geral...",
+  "termos_chave": [
+    {"termo": "Termo 1", "definicao": "Definição curta"},
+    {"termo": "Termo 2", "definicao": "Definição curta"}
+  ],
+  "dicas_memorizacao": [
+    "Dica 1: macete ou associação",
+    "Dica 2: pegadinha comum",
+    "Dica 3: como lembrar"
+  ],
+  "tabela_comparativa": {
+    "cabecalhos": ["Aspecto", "Conceito A", "Conceito B"],
+    "linhas": [
+      ["Característica 1", "Valor A1", "Valor B1"],
+      ["Característica 2", "Valor A2", "Valor B2"]
+    ]
+  }
 }
-
-Gere entre 8-12 pontos-chave que resumam TODO o conteúdo estudado.
-Cada ponto deve ter entre 15-50 palavras.
 
 Retorne APENAS o JSON, sem texto adicional.`;
 
-    let sinteseFinalPontos: string[] = [];
+    let sinteseFinal: any = {
+      resumo_texto: "",
+      termos_chave: [],
+      dicas_memorizacao: [],
+      tabela_comparativa: null
+    };
+    
     try {
-      const sintese = await gerarJSON(promptSintese);
-      if (sintese?.pontos && Array.isArray(sintese.pontos)) {
-        sinteseFinalPontos = sintese.pontos.slice(0, 12);
-        console.log(`[OAB Trilhas] ✓ Síntese final: ${sinteseFinalPontos.length} pontos`);
-      }
+      const sintese = await gerarJSON(promptSintese, 3, 8192);
+      sinteseFinal = {
+        resumo_texto: sintese?.resumo_texto || "",
+        termos_chave: Array.isArray(sintese?.termos_chave) ? sintese.termos_chave.slice(0, 12) : [],
+        dicas_memorizacao: Array.isArray(sintese?.dicas_memorizacao) ? sintese.dicas_memorizacao.slice(0, 6) : [],
+        tabela_comparativa: sintese?.tabela_comparativa || null
+      };
+      console.log(`[OAB Trilhas] ✓ Síntese final: ${sinteseFinal.termos_chave.length} termos, ${sinteseFinal.dicas_memorizacao.length} dicas`);
     } catch (err) {
       console.error(`[OAB Trilhas] ⚠️ Erro na síntese final (usando fallback):`, err);
-      sinteseFinalPontos = secoesCompletas.flatMap(s => 
-        (s.slides || []).slice(0, 2).map((slide: any) => slide.titulo || "")
-      ).filter(Boolean).slice(0, 8);
+      sinteseFinal.resumo_texto = `Você completou o estudo de ${topicoTitulo}. Revise os pontos principais antes de prosseguir para os flashcards.`;
     }
 
-    // Criar slide de Síntese Final
-    const slideSinteseFinal = {
+    // Criar slides de Síntese Final (múltiplos slides para organização)
+    const slidesSinteseFinal: any[] = [];
+    
+    // Slide 1: Resumo explicativo
+    slidesSinteseFinal.push({
+      tipo: "texto",
+      titulo: "📚 Resumo Geral",
+      conteudo: sinteseFinal.resumo_texto || `Você completou o estudo de **${topicoTitulo}**!\n\nAgora vamos revisar os pontos principais para fixar o conteúdo.`
+    });
+    
+    // Slide 2: Termos-chave (usando tipo termos)
+    if (sinteseFinal.termos_chave && sinteseFinal.termos_chave.length > 0) {
+      slidesSinteseFinal.push({
+        tipo: "termos",
+        titulo: "🔑 Termos-Chave para Memorizar",
+        conteudo: "Estes são os termos que você DEVE dominar para a OAB:",
+        termos: sinteseFinal.termos_chave.map((t: any) => ({
+          termo: t.termo || t,
+          definicao: t.definicao || ""
+        }))
+      });
+    }
+    
+    // Slide 3: Dicas de memorização
+    if (sinteseFinal.dicas_memorizacao && sinteseFinal.dicas_memorizacao.length > 0) {
+      const dicasFormatadas = sinteseFinal.dicas_memorizacao
+        .map((d: string, i: number) => `**${i + 1}.** ${d}`)
+        .join('\n\n');
+      
+      slidesSinteseFinal.push({
+        tipo: "dica",
+        titulo: "💡 Dicas de Memorização",
+        conteudo: dicasFormatadas
+      });
+    }
+    
+    // Slide 4: Tabela comparativa (se houver)
+    if (sinteseFinal.tabela_comparativa && 
+        sinteseFinal.tabela_comparativa.cabecalhos && 
+        sinteseFinal.tabela_comparativa.linhas) {
+      slidesSinteseFinal.push({
+        tipo: "tabela",
+        titulo: "📊 Comparativo Rápido",
+        conteudo: "Uma visão lado a lado para facilitar sua revisão:",
+        tabela: sinteseFinal.tabela_comparativa
+      });
+    }
+    
+    // Slide 5: Mensagem final de conclusão
+    slidesSinteseFinal.push({
       tipo: "resumo",
-      titulo: "Síntese Final",
-      conteudo: `Parabéns, futuro colega! Você completou o estudo de **${topicoTitulo}**.\n\nAbaixo estão os pontos mais importantes que você precisa dominar para a OAB:`,
-      pontos: sinteseFinalPontos
-    };
+      titulo: "✅ Síntese Final",
+      conteudo: `Parabéns! Você completou o estudo de **${topicoTitulo}**.\n\nAgora é hora de testar seus conhecimentos com os flashcards!`,
+      pontos: [
+        "Revise os termos-chave sempre que precisar",
+        "Use as dicas de memorização para fixar o conteúdo",
+        "Consulte a tabela comparativa para revisar conceitos parecidos",
+        "Pratique com flashcards para memorização ativa",
+        "Faça as questões para simular a prova da OAB"
+      ]
+    });
 
     const secaoSinteseFinal = {
       id: secoesCompletas.length + 1,
       titulo: "Síntese Final",
-      slides: [slideSinteseFinal]
+      slides: slidesSinteseFinal
     };
     secoesCompletas.push(secaoSinteseFinal);
 
