@@ -75,10 +75,8 @@ const OABTrilhasSubtemaEstudo = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [viewMode, setViewMode] = useState<ViewMode>('intro');
+const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
-  const [autoCapaTriggered, setAutoCapaTriggered] = useState(false);
-  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
   const parsedResumoId = resumoId ? parseInt(resumoId) : null;
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
@@ -156,35 +154,7 @@ const OABTrilhasSubtemaEstudo = () => {
     enabled: !!user?.id && !!parsedResumoId,
   });
 
-  // Gerar capa v2 automaticamente se ainda não existir (1 por tópico)
-  useEffect(() => {
-    if (!topico || !area) return;
-    if (autoCapaTriggered) return;
-    if (isGeneratingCover) return;
-
-    const needsV2 = !topico.capa_url || topico.capa_versao !== 2;
-    if (!needsV2) return;
-
-    setAutoCapaTriggered(true);
-    setIsGeneratingCover(true);
-
-    supabase.functions
-      .invoke("gerar-capa-topico-aprovacao", {
-        body: {
-          topico_id: topico.id,
-          titulo: topico.titulo,
-          area: area.nome,
-        },
-      })
-      .then(({ error }) => {
-        if (error) throw error;
-        return queryClient.invalidateQueries({ queryKey: ["oab-trilha-topico", parsedTopicoId] });
-      })
-      .catch((err) => {
-        console.error("[OABTrilhasSubtemaEstudo] Erro ao gerar capa v2 do tópico:", err);
-      })
-      .finally(() => setIsGeneratingCover(false));
-  }, [topico?.id, topico?.capa_url, topico?.capa_versao, area?.nome, autoCapaTriggered, isGeneratingCover]);
+  // Capa é gerada apenas em OABTrilhasTopicos (1 por tópico, compartilhada por todas as aulas)
 
   const gerarConteudoMutation = useMutation({
     mutationFn: async () => {
