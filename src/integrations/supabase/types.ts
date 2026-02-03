@@ -19667,6 +19667,10 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_ordem_tema: {
+        Args: { p_area: string; p_nova_ordem: number; p_tema: string }
+        Returns: number
+      }
       buscar_segmentos_similares: {
         Args: {
           limite?: number
