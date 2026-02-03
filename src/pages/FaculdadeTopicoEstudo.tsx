@@ -159,7 +159,7 @@ const FaculdadeTopicoEstudo = () => {
   const [isPulsing, setIsPulsing] = useState(false);
   const [acertos, setAcertos] = useState(0);
   const [isGerandoQuestoes, setIsGerandoQuestoes] = useState(false);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(15);
   
   const aumentarFonte = () => setFontSize(prev => Math.min(prev + 2, 24));
   const diminuirFonte = () => setFontSize(prev => Math.max(prev - 2, 12));

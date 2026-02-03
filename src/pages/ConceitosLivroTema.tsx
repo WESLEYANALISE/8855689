@@ -66,7 +66,7 @@ const ConceitosLivroTema = () => {
   const [isShaking, setIsShaking] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
   const [acertos, setAcertos] = useState(0);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(15);
 
   const { data: tema, isLoading, refetch } = useQuery({
     queryKey: ["conceitos-livro-tema", id],

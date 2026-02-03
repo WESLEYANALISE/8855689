@@ -106,7 +106,7 @@ export const ConceitoSlideCard = ({
   onNext,
   onPrevious,
   canGoBack,
-  fontSize = 16,
+  fontSize = 15,
   direction = 'next',
   onQuestionAnswered,
   isLastSlide = false,
