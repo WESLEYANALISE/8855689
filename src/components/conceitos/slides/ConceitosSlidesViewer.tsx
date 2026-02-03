@@ -177,18 +177,19 @@ export const ConceitosSlidesViewer = ({
   return (
     <div className="fixed inset-0 min-h-screen bg-[#0a0a0f] flex flex-col z-[60]">
       {/* Capa fixa como background (se disponível) */}
+      {/* Capa fixa como background - NÃO ANIMA com os slides */}
       {capaUrl && (
         <div 
-          className="absolute inset-0 z-0 pointer-events-none"
+          className="fixed inset-0 z-0 pointer-events-none"
           aria-hidden="true"
         >
           <img 
             src={capaUrl} 
             alt=""
-            className="w-full h-full object-cover opacity-20"
+            className="w-full h-full object-cover opacity-30"
           />
-          {/* Gradiente escuro por cima da capa */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/70 via-[#0a0a0f]/90 to-[#0a0a0f]" />
+          {/* Gradiente suave por cima da capa - mais visível no topo */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/50 via-[#0a0a0f]/80 to-[#0a0a0f]/95" />
         </div>
       )}
       {/* Header - aligned with reader design */}
