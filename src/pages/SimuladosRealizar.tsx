@@ -59,7 +59,7 @@ const SimuladosRealizar = () => {
   const [mostrarComentario, setMostrarComentario] = useState<{ [key: number]: boolean }>({});
   const [comentarioExpandido, setComentarioExpandido] = useState<{ [key: number]: boolean }>({});
   const [animarErro, setAnimarErro] = useState(false);
-  const [narracaoAutomatica, setNarracaoAutomatica] = useState(true);
+  const [narracaoAutomatica, setNarracaoAutomatica] = useState(false);
   const [audioAtualTocando, setAudioAtualTocando] = useState<'enunciado' | 'alternativas' | null>(null);
   
   // Estados para questões dinâmicas
@@ -540,7 +540,7 @@ const SimuladosRealizar = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
         <p className="text-muted-foreground mb-4">Nenhuma questão encontrada</p>
-        <Button onClick={() => navigate('/simulados')}>Voltar</Button>
+        <Button onClick={() => navigate(origemTJSP ? '/simulados/tjsp' : '/oab')}>Voltar</Button>
       </div>
     );
   }
@@ -621,7 +621,7 @@ const SimuladosRealizar = () => {
       {/* Header fixo */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur pb-4 -mx-4 px-4 pt-2">
         <div className="flex items-center justify-between mb-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/simulados')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(origemTJSP ? '/simulados/tjsp' : '/oab')}>
             <ChevronLeft className="w-4 h-4 mr-1" />
             Voltar
           </Button>
