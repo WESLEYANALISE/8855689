@@ -1,0 +1,26 @@
+-- Inserir tópicos de Direito Administrativo na ordem correta
+INSERT INTO oab_trilhas_topicos (materia_id, titulo, ordem) VALUES
+(7, 'Origens e Definições do Direito Administrativo', 1),
+(7, 'Conceitos Fundamentais de Direito Administrativo', 2),
+(7, 'Fontes do Direito Administrativo', 3),
+(7, 'Regime Jurídico Administrativo', 4),
+(7, 'Administração Pública', 5),
+(7, 'Agentes Públicos', 6),
+(7, 'Poderes Administrativos', 7),
+(7, 'Atos Administrativos', 8),
+(7, 'Processo Administrativo', 9),
+(7, 'Controle da Administração', 10),
+(7, 'Responsabilidade Civil do Estado', 11),
+(7, 'Serviços Públicos', 12),
+(7, 'Concessões', 13),
+(7, 'Terceiro Setor', 14),
+(7, 'Intervenção do Estado no Domínio Econômico', 15),
+(7, 'Intervenção Estatal na Propriedade', 16),
+(7, 'Desapropriação', 17),
+(7, 'Bens Públicos', 18),
+(7, 'Licitações', 19),
+(7, 'Direito Sancionador na Lei de Licitações', 20),
+(7, 'Contratos Administrativos', 21),
+(7, 'Lei Anticorrupção', 22),
+(7, 'Improbidade Administrativa', 23)
+ON CONFLICT DO NOTHING;
