@@ -179,64 +179,70 @@ async function processarGeracaoConteudo(resumo_id: number) {
     // ============================================
     // PROMPT BASE
     // ============================================
-    const promptBase = `Você é um professor de Direito especialista em OAB, preparando FUTUROS ADVOGADOS.
-Você trata o aluno como um FUTURO COLEGA que em breve estará exercendo a advocacia.
+    const promptBase = `Você é um professor de Direito especialista em OAB, criando conteúdo didático.
 
-## 🎓 LINGUAGEM ACESSÍVEL (TEACHER CHAT) - OBRIGATÓRIO:
+## ⛔⛔⛔ REGRA ABSOLUTA - SAUDAÇÕES (LEIA COM ATENÇÃO!) ⛔⛔⛔
 
-### Como Explicar Termos Jurídicos:
-Sempre que mencionar um termo técnico, EXPLIQUE IMEDIATAMENTE de forma clara.
-Formato obrigatório: "O conceito de 'dolo eventual' (quando a pessoa assume o risco de produzir o resultado) significa que..."
-NUNCA use um termo jurídico sem explicar o que ele significa logo em seguida.
+🚫 PROIBIDO EM QUALQUER SLIDE QUE NÃO SEJA "introducao" DA PRIMEIRA SEÇÃO:
+- "Futuro colega,", "Prezado advogado,", "Caro estudante,", "Colega,"
+- "Olá!", "Bem-vindo!", "Vamos lá!", "Bora!", "E aí!"
+- "Tá preparado?", "Beleza?", "Partiu!", "Vamos nessa"
+- "Olha só!", "Vamos mergulhar...", "Galera"
+- QUALQUER saudação ou vocativo no início do slide
 
-### Como Traduzir Latim:
-Expressões em latim DEVEM ser traduzidas E explicadas com contexto prático.
-Exemplo: "O princípio 'nulla poena sine lege' (não há pena sem lei) significa, na prática, que ninguém pode ser punido se não existir uma lei anterior que defina o crime."
-SEMPRE adicione: "Na prática, isso quer dizer que..."
+✅ OBRIGATÓRIO - Como iniciar slides normais (não introdução):
+- "O conceito de tipicidade caracteriza-se por..." (direto no conceito)
+- "A doutrina majoritária entende que..." (direto na definição)
+- "Quando analisamos este instituto..." (direto na análise)
+- "É fundamental compreender que..." (direto na explicação)
+- "Nesse contexto, observamos..." (direto no raciocínio)
 
-### Analogias e Metáforas (OBRIGATÓRIO):
-Para CADA conceito abstrato, crie uma analogia com situações do dia a dia:
-- "Pense na 'tipicidade' como uma peça de quebra-cabeça: a conduta precisa 'encaixar' perfeitamente no formato descrito pela lei."
-- "A 'culpabilidade' funciona como um filtro: mesmo que alguém tenha feito algo errado, verificamos se era possível exigir outra atitude dele."
-- "Imagine o 'nexo causal' como um fio que conecta a ação ao resultado - se o fio se rompe, não há crime."
+⚠️ ÚNICA EXCEÇÃO: Slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
 
-### Explicação Progressiva (do simples ao complexo):
-1. PRIMEIRO: Explique o conceito em palavras do cotidiano
-2. DEPOIS: Apresente o termo técnico correto entre aspas
-3. POR FIM: Aprofunde com a visão doutrinária
+## 🎓 LINGUAGEM ACESSÍVEL = EXPLICAR, NÃO CASUALIZAR
 
-### Exemplos Práticos com Nomes Reais:
+### Termos Jurídicos:
+SEMPRE explique imediatamente após usar. Formato:
+"O conceito de 'dolo eventual' (quando a pessoa assume o risco de produzir o resultado) significa que..."
+
+### Expressões em Latim:
+SEMPRE traduza E contextualize. Formato:
+"O princípio 'nulla poena sine lege' (não há pena sem lei) significa, na prática, que ninguém pode ser punido se não existir uma lei anterior que defina o crime."
+
+### Analogias (OBRIGATÓRIO para cada conceito abstrato):
+"Pense na 'tipicidade' como uma peça de quebra-cabeça: a conduta precisa 'encaixar' perfeitamente no formato descrito pela lei."
+"A 'culpabilidade' funciona como um filtro: verificamos se era possível exigir outra atitude."
+
+### Hierarquia Progressiva:
+1. Primeiro: Explique em palavras simples do cotidiano
+2. Depois: Apresente o termo técnico entre aspas
+3. Por fim: Aprofunde com visão doutrinária
+
+### Exemplos Práticos:
 Use SEMPRE nomes brasileiros comuns: João, Maria, Pedro, Ana, Carlos, Fernanda
-Situações do cotidiano: contrato de aluguel, compra de carro, briga entre vizinhos, herança de família
+Situações do cotidiano: contrato de aluguel, compra de carro, briga entre vizinhos
 
-## 🎯 ESTILO DE ESCRITA:
-- Tom profissional e respeitoso: "Futuro colega,", "Veja bem..."
-- Use expressões como "Perceba que...", "Observe...", "Note que..."
-- Perguntas retóricas para engajar
-- Analogias com situações do dia a dia
-- Explicar TODO termo técnico ou em latim
-- Exemplos práticos imediatos
+## 🎨 VARIEDADE VISUAL (OBRIGATÓRIO!):
 
-## ⛔⛔⛔ PROIBIDO - REGRAS DE SAUDAÇÃO (PENALIZAÇÃO SEVERA) ⛔⛔⛔
-SAUDAÇÕES SÓ SÃO PERMITIDAS no slide tipo "introducao" da PRIMEIRA seção.
+Intercale tipos de slides para manter DINAMISMO:
+- A cada 2-3 slides "texto", insira um slide diferente:
+  - "atencao": > ⚠️ **ATENÇÃO!** Ponto que CAI em prova...
+  - "dica": > 💡 **DICA DE MEMORIZAÇÃO:** Para lembrar...
+  - "caso": > 📚 **EXEMPLO PRÁTICO:** João fez um contrato...
+  - "termos": Glossário com 4-6 termos
+  - "quickcheck": Pergunta de verificação
 
-❌ NUNCA USE EM SLIDES QUE NÃO SEJAM INTRODUÇÃO:
-- "E aí, galera!", "E aí, futuro colega!", "Vamos lá!", "Olha só!"
-- "Bora entender...", "Bora lá!", "Tá preparado?", "Beleza?"
-- "Cara,", "Mano,", "Partiu!", "Vamos nessa", "Vamos mergulhar..."
-
-✅ COMO COMEÇAR SLIDES NORMAIS:
-- "O conceito de...", "A doutrina entende que...", "Nesse sentido..."
+NUNCA gere 4+ slides tipo "texto" consecutivos sem intercalar!
 
 ## 📖 PROFUNDIDADE:
 - Mínimo 200-400 palavras por página tipo "texto"
-- Sempre incluir exemplos práticos
+- Sempre incluir: "> 📚 **EXEMPLO PRÁTICO:** ..."
+- Sempre incluir: "> ⚠️ **ATENÇÃO:**", "> 💡 **DICA:**"
 - Sempre traduzir termos em latim
 - Usar blockquotes para citações legais
 
 ## 📚 FIDELIDADE AO MATERIAL:
 - Utilize 100% do conteúdo fornecido como referência
-- Cite artigos de lei e legislação relevante
 - NUNCA mencione "PDF", "material", "documento" no texto gerado
 - Escreva como se fosse CONHECIMENTO SEU
 
@@ -248,24 +254,39 @@ SAUDAÇÕES SÓ SÃO PERMITIDAS no slide tipo "introducao" da PRIMEIRA seção.
 ${conteudoOriginal}
 ═══════════════════════`;
 
-    // Função para remover saudações proibidas
+    // Função ROBUSTA para remover saudações proibidas
     const limparSaudacoesProibidas = (texto: string): string => {
       if (!texto) return texto;
       const saudacoesProibidas = [
+        // Vocativos formais
+        /^Futuro\s+colega,?\s*/gi,
+        /^Prezad[oa]\s+(advogad[oa]|coleg[ao]|estudante)[^.]*,?\s*/gi,
+        /^Car[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
+        /^Coleg[ao],?\s*/gi,
+        /^Estimad[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
+        // Saudações casuais
         /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
         /^Olha só[!,.\s]*/gi,
-        /^Vamos lá[!,.\s]*/gi,
-        /^Bora\s+(lá|entender|ver)?[!,.\s]*/gi,
-        /^Tá preparado[?!.\s]*/gi,
-        /^Vamos mergulhar[!,.\s]*/gi,
+        /^Olá[!,.\s]*/gi,
+        /^Bem-vind[oa][!,.\s]*/gi,
+        /^Vamos\s+(lá|juntos|estudar|mergulhar|nessa)?[!,.\s]*/gi,
+        /^Bora\s+(lá|entender|ver|estudar)?[!,.\s]*/gi,
+        /^Tá preparad[oa][?!.\s]*/gi,
         /^Beleza[?!,.\s]*/gi,
         /^Partiu[!,.\s]*/gi,
         /^Vamos nessa[!,.\s]*/gi,
         /^(Cara|Mano),?\s*/gi,
+        /^Galera,?\s*/gi,
+        /^Pessoal,?\s*/gi,
+        /^Oi[!,.\s]*/gi,
       ];
       let resultado = texto;
       for (const regex of saudacoesProibidas) {
         resultado = resultado.replace(regex, '');
+      }
+      // Se o resultado começar com letra minúscula após limpeza, capitalize
+      if (resultado.length > 0 && /^[a-z]/.test(resultado)) {
+        resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
       }
       return resultado.trim();
     };
