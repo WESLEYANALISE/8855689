@@ -1,183 +1,297 @@
 
 
-# Plano: Linguagem Mais Acessível na Geração de Conteúdo
+# Plano: Remover Saudações Repetidas e Tornar Conteúdo Mais Dinâmico
 
-## Objetivo
+## Problema Identificado
 
-Tornar a linguagem gerada mais acessível e didática, garantindo que:
-
-1. **Termos jurídicos** sejam explicados de forma clara e imediata
-2. **Expressões em latim** sejam traduzidas e contextualizadas
-3. **Analogias** sejam usadas para conectar conceitos abstratos ao dia a dia
-4. **Parte técnica** seja respeitada, mas explicada de forma progressiva
-
----
-
-## Estado Atual dos Prompts
-
-| Arquivo | Status | Problema |
-|---------|--------|----------|
-| `gerar-conteudo-oab-trilhas` | Parcialmente acessível | Tem algumas instruções, mas não enfatiza analogias nem a explicação progressiva |
-| `gerar-conteudo-resumo-oab` | Mais simplificado | Falta detalhamento sobre como explicar termos |
-| `gerar-slides-artigo` | Mais completo | Já tem boas instruções, mas pode ser reforçado |
+O conteúdo gerado está:
+1. **Repetindo "Futuro colega" em todos os slides** - deve aparecer APENAS na introdução
+2. **Faltando cards visuais** como "⚠️ ATENÇÃO", "💡 DICA DE PROVA" para melhor hierarquia
+3. **Linguagem ainda técnica demais** - faltando mais analogias e explicações progressivas
+4. **Slides muito uniformes** - parecem "aula escrita", não "aula dinâmica"
 
 ---
 
-## Mudanças Propostas
+## Mudancas Propostas
 
-### Nova Seção "LINGUAGEM ACESSÍVEL" para Todos os Prompts
+### 1. Reforcar a Proibicao de Saudacoes (Prompts)
 
-Vou adicionar uma seção dedicada em cada prompt com instruções claras:
+Vou modificar os prompts para deixar absolutamente claro que:
+
+**ANTES (problemático):**
+```text
+## 🎯 ESTILO DE ESCRITA:
+- Tom profissional e respeitoso: "Futuro colega,", "Prezado advogado em formação,"
+```
+
+**DEPOIS (corrigido):**
+```text
+## ⛔ REGRA ABSOLUTA DE SAUDAÇÃO:
+- SAUDAÇÃO (ex: "Futuro colega", "Olá", "Vamos lá") APENAS no slide "introducao" da PRIMEIRA seção
+- Em TODOS os outros slides: COMECE DIRETO NO CONTEÚDO TÉCNICO
+
+✅ COMO INICIAR SLIDES NORMAIS (não introdução):
+- "A jurisdição caracteriza-se por..."
+- "O escopo jurídico consiste em..."
+- "Quando falamos de 'tutela jurisdicional', estamos nos referindo a..."
+- "É fundamental compreender que..."
+
+❌ NUNCA USE FORA DA INTRODUÇÃO:
+- "Futuro colega,..."
+- "Olá!" / "Vamos lá!" / "E aí!"
+- "Bora entender..." / "Partiu!"
+```
+
+---
+
+### 2. Adicionar Mais Cards Visuais (Atencao, Dica, Exemplo)
+
+Vou reforcar a instrucao para que o modelo gere mais variedade de tipos de slide:
 
 ```text
-## 🎓 LINGUAGEM ACESSÍVEL (TEACHER CHAT):
+## 🎨 HIERARQUIA VISUAL (OBRIGATÓRIO):
+Cada 2-3 slides de "texto" DEVEM ser seguidos por um slide visual diferente:
 
-### Explicação de Termos Jurídicos:
-- SEMPRE que usar um termo técnico, explique imediatamente após
-- Formato: "O termo 'tipicidade' (que significa a adequação do fato à descrição legal)..."
-- NUNCA assuma que o leitor conhece o termo
+- Tipo "atencao": Para pegadinhas e pontos críticos
+  > ⚠️ **ATENÇÃO!** Muitos candidatos erram aqui...
 
-### Expressões em Latim:
-- SEMPRE traduza E contextualize
-- Formato: "O princípio 'in dubio pro reo' (na dúvida, a favor do réu) significa que..."
-- Adicione: "Na prática, isso quer dizer que..."
+- Tipo "dica": Para macetes de memorização
+  > 💡 **DICA DE PROVA:** Para lembrar os escopos da jurisdição...
 
-### Analogias Obrigatórias:
-- Use analogias do dia a dia para CADA conceito abstrato
-- Exemplos:
-  - "Pense na tipicidade como uma fechadura e a conduta como uma chave..."
-  - "É como se o Direito criasse um 'molde' e a ação precisa 'encaixar'..."
-  - "Imagine que a lei é um contrato de locação..."
+- Tipo "caso": Para exemplos práticos
+  > 📚 **NA PRÁTICA:** João ajuizou uma ação e...
 
-### Explicação Progressiva (do simples ao complexo):
-1. Primeiro: Apresente o conceito em linguagem cotidiana
-2. Depois: Introduza o termo técnico correto
-3. Por fim: Aprofunde com detalhes doutrinários
+- Tipo "termos": Para glossário de termos importantes
+- Tipo "quickcheck": Para verificação de aprendizado
 
-### Exemplos Práticos Imediatos:
-- Após CADA conceito, dê um exemplo concreto
-- Use nomes: João, Maria, Pedro, Ana, Carlos
-- Situações reais: contrato de aluguel, briga de vizinhos, compra de carro
+NUNCA gere mais de 3 slides tipo "texto" consecutivos sem intercalar com outro tipo!
 ```
 
 ---
 
-## Mudanças por Arquivo
+### 3. Melhorar a Funcao de Limpeza de Saudacoes
 
-### Arquivo 1: `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
+A função `limparSaudacoesProibidas` já existe mas precisa capturar mais padrões:
 
-**Localização**: Linha 325-381 (promptBase)
+**Adicionar ao regex:**
+```typescript
+const saudacoesProibidas = [
+  // Padrões existentes...
+  /^Futuro\s+colega,?\s*/gi,           // NOVO
+  /^Prezado\s+(advogado|colega)[^.]*,?\s*/gi,  // NOVO
+  /^Caro\s+(colega|estudante|futuro)[^.]*,?\s*/gi,  // NOVO
+  /^Olá[!,.\s]*/gi,                    // NOVO
+  /^Bem-vind[oa][!,.\s]*/gi,           // NOVO
+  /^Vamos\s+(lá|juntos|estudar|mergulhar)[!,.\s]*/gi,  // NOVO melhorado
+];
+```
 
-**Adicionar seção de linguagem acessível:**
+---
+
+### 4. Reformular a Secao de Linguagem Acessivel
+
+Vou deixar mais claro que a linguagem acessível é sobre EXPLICAR TERMOS, não sobre ser casual:
+
+**ANTES:**
+```text
+- Tom profissional e respeitoso: "Futuro colega,", "Prezado advogado em formação,"
+```
+
+**DEPOIS:**
+```text
+## 🎓 LINGUAGEM ACESSÍVEL = DESCOMPLICAR, NÃO CASUALIZAR
+
+A linguagem acessível significa:
+1. EXPLICAR todo termo jurídico IMEDIATAMENTE após usá-lo
+2. TRADUZIR expressões em latim com contexto prático
+3. USAR ANALOGIAS do dia a dia para conceitos abstratos
+4. Não significa usar gírias ou saudações informais
+
+EXEMPLO CORRETO:
+"A 'jurisdição' (que é o poder-dever do Estado de resolver conflitos) possui três escopos principais. 
+Pense neles como os três 'objetivos' que o Estado busca alcançar quando você aciona a Justiça..."
+
+EXEMPLO ERRADO:
+"E aí, futuro colega! Vamos falar de jurisdição? Bora lá entender isso!"
+```
+
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Mudança |
+|---------|---------|
+| `supabase/functions/gerar-conteudo-oab-trilhas/index.ts` | Atualizar promptBase (linhas 325-412), melhorar regex de limpeza (linhas 415-434) |
+| `supabase/functions/gerar-conteudo-resumo-oab/index.ts` | Atualizar promptBase (linhas 182-249), melhorar regex de limpeza (linhas 252-271) |
+| `supabase/functions/gerar-slides-artigo/index.ts` | Atualizar prompt principal (linhas 174-248) |
+
+---
+
+## Detalhamento das Mudancas no Codigo
+
+### Arquivo 1: `gerar-conteudo-oab-trilhas/index.ts`
+
+**Linhas 325-412 - Atualizar promptBase:**
 
 ```typescript
-const promptBase = `Você é um professor de Direito didático e acolhedor...
+const promptBase = `Você é um professor de Direito criando conteúdo didático para candidatos à OAB.
 
-## 🎓 LINGUAGEM ACESSÍVEL (TEACHER CHAT) - OBRIGATÓRIO:
+## ⛔⛔⛔ REGRA ABSOLUTA - SAUDAÇÕES (LEIA COM ATENÇÃO!) ⛔⛔⛔
 
-### Como Explicar Termos Jurídicos:
-Sempre que mencionar um termo técnico, EXPLIQUE IMEDIATAMENTE de forma clara.
-Formato obrigatório: "O conceito de 'dolo eventual' (quando a pessoa assume o risco de produzir o resultado) significa que..."
-NUNCA use um termo jurídico sem explicar o que ele significa.
+🚫 PROIBIDO EM QUALQUER SLIDE QUE NÃO SEJA "introducao" DA PRIMEIRA SEÇÃO:
+- "Futuro colega,", "Prezado advogado,", "Caro estudante,"
+- "Olá!", "Bem-vindo!", "Vamos lá!", "Bora!"
+- "E aí?", "Partiu!", "Tá preparado?"
+- QUALQUER saudação ou vocativo no início
 
-### Como Traduzir Latim:
-Expressões em latim DEVEM ser traduzidas E explicadas com contexto prático.
-Exemplo: "O princípio 'nulla poena sine lege' (não há pena sem lei) significa, na prática, que ninguém pode ser punido se não existir uma lei anterior que defina o crime."
+✅ OBRIGATÓRIO - Como iniciar slides normais:
+- "A jurisdição caracteriza-se por..." (direto no conceito)
+- "O escopo jurídico representa..." (direto na definição)
+- "Quando analisamos o conceito de..." (direto na análise)
+- "É fundamental compreender que..." (direto na explicação)
 
-### Analogias e Metáforas (OBRIGATÓRIO):
-Para CADA conceito abstrato, crie uma analogia com situações do dia a dia:
-- "Pense na 'tipicidade' como uma peça de quebra-cabeça: a conduta precisa 'encaixar' perfeitamente no formato descrito pela lei."
-- "A 'culpabilidade' funciona como um filtro: mesmo que alguém tenha feito algo errado, verificamos se era possível exigir outra atitude dele."
-- "Imagine o 'nexo causal' como um fio que conecta a ação ao resultado - se o fio se rompe, não há crime."
+⚠️ ÚNICA EXCEÇÃO: Slide tipo "introducao" da PRIMEIRA seção pode ter saudação.
 
-### Explicação Progressiva (do simples ao complexo):
-1. PRIMEIRO: Explique o conceito em palavras do cotidiano
-2. DEPOIS: Apresente o termo técnico correto entre aspas
-3. POR FIM: Aprofunde com a visão doutrinária
+## 🎓 LINGUAGEM ACESSÍVEL = EXPLICAR, NÃO CASUALIZAR
 
-Exemplo de aplicação:
-"Quando alguém age sabendo exatamente o que está fazendo e querendo o resultado, chamamos isso de 'dolo direto'. É como quando você joga uma pedra na janela do vizinho: você sabe que vai quebrar e quer quebrar. Diferente do 'dolo eventual', que seria jogar a pedra para cima sem olhar - você não quer quebrar a janela, mas aceita que pode acontecer. Conforme leciona 'Damásio de Jesus', o dolo eventual se caracteriza quando..."
+Linguagem acessível significa DESCOMPLICAR termos, NÃO usar gírias:
 
-### Exemplos Práticos com Nomes Reais:
-Use SEMPRE nomes brasileiros comuns: João, Maria, Pedro, Ana, Carlos, Fernanda
-Situações do cotidiano: contrato de aluguel, compra de carro, briga entre vizinhos, herança de família
-`;
+### Termos Jurídicos:
+SEMPRE explique imediatamente após usar. Formato:
+"O conceito de 'jurisdição' (poder do Estado de dizer o Direito) abrange..."
+
+### Expressões em Latim:
+SEMPRE traduza E contextualize. Formato:
+"O princípio 'nemo iudex sine actore' (não há juiz sem autor) significa que o juiz não pode iniciar um processo por conta própria."
+
+### Analogias (OBRIGATÓRIO para cada conceito abstrato):
+"Pense na 'jurisdição' como o 'poder de decisão' do Estado - assim como um árbitro tem poder de decidir disputas no futebol, o Estado tem poder de decidir disputas jurídicas."
+"O 'escopo jurídico' funciona como um GPS: guia as partes até a aplicação correta da lei."
+
+### Hierarquia Progressiva:
+1. Primeiro: Explique em palavras simples do cotidiano
+2. Depois: Apresente o termo técnico entre aspas
+3. Por fim: Aprofunde com visão doutrinária
+
+## 🎨 VARIEDADE VISUAL (OBRIGATÓRIO!):
+
+Intercale tipos de slides para manter dinamismo:
+- A cada 2-3 slides "texto", insira um slide diferente:
+  - "atencao": > ⚠️ **ATENÇÃO!** Ponto que CAI em prova...
+  - "dica": > 💡 **DICA DE MEMORIZAÇÃO:** Para lembrar...
+  - "caso": > 📚 **EXEMPLO PRÁTICO:** João ajuizou...
+  - "termos": Glossário com 4-6 termos
+  - "quickcheck": Pergunta de verificação
+
+NUNCA gere 4+ slides "texto" consecutivos!
+
+## 📖 PROFUNDIDADE:
+- Mínimo 200-400 palavras por página tipo "texto"
+- Sempre incluir: "> 📚 **EXEMPLO PRÁTICO:** ..."
+- Sempre incluir cards visuais: "> ⚠️ **ATENÇÃO:**", "> 💡 **DICA:**"
+- Cite juristas: "Conforme leciona 'Dinamarco'..."
+- Blockquotes para citações legais: > "Art. X..."
+
+**Matéria:** ${areaNome} - OAB 1ª Fase
+**Tópico:** ${topicoTitulo}
+
+═══ REFERÊNCIA DE ESTUDO ═══
+${conteudoPDF || "Conteúdo não disponível"}
+${conteudoResumo ? `\n═══ SUBTEMAS ═══\n${conteudoResumo}` : ""}
+${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
+═══════════════════════`;
+```
+
+**Linhas 415-434 - Melhorar regex de limpeza:**
+
+```typescript
+const limparSaudacoesProibidas = (texto: string): string => {
+  if (!texto) return texto;
+  const saudacoesProibidas = [
+    // Vocativos formais
+    /^Futuro\s+colega,?\s*/gi,
+    /^Prezad[oa]\s+(advogad[oa]|coleg[ao]|estudante)[^.]*,?\s*/gi,
+    /^Car[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
+    /^Coleg[ao],?\s*/gi,
+    // Saudações casuais
+    /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
+    /^Olha só[!,.\s]*/gi,
+    /^Olá[!,.\s]*/gi,
+    /^Bem-vind[oa][!,.\s]*/gi,
+    /^Vamos\s+(lá|juntos|estudar|mergulhar|nessa)?[!,.\s]*/gi,
+    /^Bora\s+(lá|entender|ver|estudar)?[!,.\s]*/gi,
+    /^Tá preparad[oa][?!.\s]*/gi,
+    /^Beleza[?!,.\s]*/gi,
+    /^Partiu[!,.\s]*/gi,
+    /^(Cara|Mano),?\s*/gi,
+  ];
+  let resultado = texto;
+  for (const regex of saudacoesProibidas) {
+    resultado = resultado.replace(regex, '');
+  }
+  // Se o resultado começar com letra minúscula após limpeza, capitalize
+  if (resultado.length > 0 && /^[a-z]/.test(resultado)) {
+    resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
+  }
+  return resultado.trim();
+};
 ```
 
 ---
 
-### Arquivo 2: `supabase/functions/gerar-conteudo-resumo-oab/index.ts`
+### Arquivo 2: `gerar-conteudo-resumo-oab/index.ts`
 
-**Localização**: Linha 182-222 (promptBase)
-
-**Mesma seção de linguagem acessível**, adaptada para o contexto de resumos/subtemas.
+Aplicar as mesmas mudanças no `promptBase` (linhas 182-249) e na função `limparSaudacoesProibidas` (linhas 252-271).
 
 ---
 
-### Arquivo 3: `supabase/functions/gerar-slides-artigo/index.ts`
+### Arquivo 3: `gerar-slides-artigo/index.ts`
 
-**Localização**: Linha 174-380 (prompt principal)
-
-**Reforçar as instruções existentes** com a mesma seção padronizada de linguagem acessível.
+Aplicar as mesmas mudanças no `prompt` principal (linhas 174-248).
 
 ---
 
-## Exemplo de Conteúdo Gerado (Antes vs Depois)
+## Resultado Esperado
 
-### Antes (Técnico Demais):
+### Antes (problemático):
 
 ```markdown
-O princípio da legalidade, previsto no Art. 5º, XXXIX da CF e Art. 1º do CP, 
-estabelece que nullum crimen, nulla poena sine praevia lege. A tipicidade 
-formal exige a subsunção do fato ao tipo penal, enquanto a material 
-demanda a ofensividade ao bem jurídico tutelado.
+DICA DE MEMORIZAÇÃO:
+A Importância da Jurisdição no Ordenamento Jurídico
+
+💡 DICA DE MEMORIZAÇÃO:
+
+Futuro colega, para fixar os escopos da jurisdição, pense neles como os três pilares que sustentam a justiça em nossa sociedade:
+
+• Pilar Jurídico: A aplicação da lei, como um mapa que nos guia para a solução correta.
 ```
 
-### Depois (Acessível + Técnico):
+### Depois (corrigido):
 
 ```markdown
-## O Que é o Princípio da Legalidade?
+DICA DE MEMORIZAÇÃO:
+Escopos da Jurisdição - Os Três Pilares
 
-Imagine que você está jogando um jogo de tabuleiro. Você só pode ser 
-penalizado se quebrar uma regra que já existia ANTES de você jogar, certo? 
-O 'princípio da legalidade' funciona exatamente assim no Direito Penal.
+💡 DICA DE MEMORIZAÇÃO:
 
-Em latim, dizemos 'nullum crimen, nulla poena sine praevia lege' - que 
-significa, em bom português: **"não há crime, nem pena, sem lei anterior"**.
+Para fixar os três escopos da 'jurisdição' (poder do Estado de resolver conflitos), imagine-os como os três objetivos que o Estado busca quando você aciona a Justiça:
 
-📚 **EXEMPLO PRÁTICO:**
-João inventou uma nova forma de golpe pela internet em 2024. Se não existir 
-uma lei criada ANTES de 2024 que defina essa conduta como crime, João 
-não pode ser punido - mesmo que todo mundo ache errado o que ele fez.
+• **Escopo Jurídico**: A correta aplicação da lei ao caso concreto. Pense como um GPS que guia até a solução legal correta.
 
-> "Art. 1º do CP: Não há crime sem lei anterior que o defina. 
-> Não há pena sem prévia cominação legal."
+• **Escopo Social**: A pacificação dos conflitos. É o "apaziguador" - resolve a briga para que as partes sigam em paz.
 
-Conforme leciona 'Rogério Greco', esse princípio é uma das maiores 
-garantias do cidadão contra o arbítrio do Estado.
+• **Escopo Político**: A afirmação do poder estatal. O Estado mostra que tem autoridade para resolver disputas.
 
-💡 **MACETE PARA OAB:** Se a questão mencionar "lei posterior mais 
-benéfica", lembre que ela PODE retroagir. Mas lei nova que CRIA crime? 
-Essa NUNCA retroage!
+> ⚠️ **ATENÇÃO!** As bancas adoram perguntar qual escopo está relacionado com "pacificação social" (é o SOCIAL, não jurídico!).
 ```
 
 ---
 
-## Resumo das Mudanças
+## Sequencia de Implementacao
 
-| Arquivo | Mudança | Linhas |
-|---------|---------|--------|
-| `gerar-conteudo-oab-trilhas/index.ts` | Adicionar seção "LINGUAGEM ACESSÍVEL" no promptBase | ~325-381 |
-| `gerar-conteudo-resumo-oab/index.ts` | Adicionar mesma seção no promptBase | ~182-222 |
-| `gerar-slides-artigo/index.ts` | Reforçar seção existente com padrão unificado | ~174-215 |
-
----
-
-## Sequência de Implementação
-
-1. Atualizar `gerar-conteudo-oab-trilhas/index.ts` com nova seção
-2. Atualizar `gerar-conteudo-resumo-oab/index.ts` com mesma seção
-3. Atualizar `gerar-slides-artigo/index.ts` para reforçar padrão
+1. Atualizar `gerar-conteudo-oab-trilhas/index.ts` - promptBase e regex
+2. Atualizar `gerar-conteudo-resumo-oab/index.ts` - promptBase e regex
+3. Atualizar `gerar-slides-artigo/index.ts` - prompt principal
 4. Deploy das 3 edge functions
-5. Testar gerando um novo conteúdo
+5. Testar gerando novo conteúdo para verificar mudanças
 
