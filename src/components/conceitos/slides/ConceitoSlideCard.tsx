@@ -24,6 +24,7 @@ import { SlideTabela } from "@/components/aula-v2/SlideTabela";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { isImageCached } from "@/hooks/useImagePreload";
 import EnrichedMarkdownRenderer from "@/components/EnrichedMarkdownRenderer";
+import DragDropMatchingGame from "@/components/DragDropMatchingGame";
 import confetti from "canvas-confetti";
 import type { ConceitoSlide, CollapsibleItem } from "./types";
 
@@ -45,6 +46,7 @@ const iconMap: Record<string, ElementType> = {
   introducao: Sparkles,
   texto: FileText,
   termos: BookOpen,
+  correspondencias: Scale,
   explicacao: Lightbulb,
   linha_tempo: Clock,
   tabela: Table2,
@@ -60,6 +62,7 @@ const getPaginaLabel = (tipo: string): string => {
     case 'introducao': return 'Introdução';
     case 'texto': return 'Conteúdo';
     case 'termos': return 'Termos importantes';
+    case 'correspondencias': return 'Exercício interativo';
     case 'explicacao': return 'Isso significa';
     case 'linha_tempo': return 'Passo a passo';
     case 'tabela': return 'Quadro comparativo';
@@ -271,6 +274,23 @@ export const ConceitoSlideCard = ({
           );
         }
         break;
+
+      case 'correspondencias': {
+        const pares = (slide.correspondencias || []).filter((p) => p?.termo && p?.definicao);
+        if (pares.length > 0) {
+          return (
+            <div className="space-y-6">
+              {slide.conteudo ? (
+                <EnrichedMarkdownRenderer content={slide.conteudo} fontSize={fontSize} theme="classicos" />
+              ) : null}
+              <DragDropMatchingGame
+                items={pares.map((p) => ({ conceito: p.termo, definicao: p.definicao }))}
+              />
+            </div>
+          );
+        }
+        break;
+      }
 
       case 'quickcheck':
         return (
