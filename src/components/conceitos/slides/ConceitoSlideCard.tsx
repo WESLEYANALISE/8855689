@@ -492,34 +492,53 @@ export const ConceitoSlideCard = ({
           {/* Conteúdo */}
           {renderContent()}
           
-          {/* Botão de navegação para Flashcards no último slide */}
-          {isLastSlide && onGoToFlashcards && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 pt-6 border-t border-white/10"
-            >
-              <div className="text-center mb-4">
-                <p className="text-sm text-gray-400">
-                  Parabéns! Você completou a leitura. 🎉
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Continue para os flashcards e fixe o conteúdo
-                </p>
-              </div>
-              <Button
-                onClick={onGoToFlashcards}
-                className="w-full bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-purple-500/20"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Ir para Flashcards
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            </motion.div>
-          )}
         </div>
       </div>
+      
+      {/* Botão FLUTUANTE para Flashcards no último slide - aparece com animação */}
+      {isLastSlide && onGoToFlashcards && (
+        <motion.div
+          initial={{ opacity: 0, y: 100, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ 
+            delay: 0.5, 
+            type: "spring", 
+            stiffness: 200, 
+            damping: 20 
+          }}
+          className="fixed bottom-24 left-4 right-4 z-50 max-w-md mx-auto"
+        >
+          <div className="bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 rounded-2xl p-4 shadow-2xl shadow-purple-500/40 border border-purple-400/30">
+            <div className="text-center mb-3">
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="text-white font-medium"
+              >
+                🎉 Parabéns! Leitura concluída!
+              </motion.p>
+              <p className="text-purple-200 text-xs mt-1">
+                Continue para fixar o conteúdo
+              </p>
+            </div>
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: [0.95, 1.02, 1] }}
+              transition={{ delay: 1, duration: 0.5 }}
+            >
+              <Button
+                onClick={onGoToFlashcards}
+                className="w-full bg-white hover:bg-gray-100 text-purple-700 font-bold py-3 rounded-xl shadow-lg"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Ir para Flashcards
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Navigation buttons removed - now in ConceitosSlidesFooter */}
     </motion.div>
