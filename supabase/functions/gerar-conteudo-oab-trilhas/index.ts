@@ -7,21 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Constantes de configuração - AUMENTAR PARA PADRÃO CONCEITOS
+// Constantes de configuração
 const MIN_PAGINAS = 30;
 const MAX_TENTATIVAS = 3;
+
+// Declarar EdgeRuntime para processamento em background
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let topicoIdForCatch: number | null = null;
-  let supabaseForCatch: any = null;
-
   try {
     const { topico_id, force_restart } = await req.json();
-    topicoIdForCatch = topico_id ?? null;
     
     if (!topico_id) {
       return new Response(
@@ -33,7 +34,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    supabaseForCatch = supabase;
 
     // ============================================
     // SISTEMA DE FILA: Verificar se já há geração ativa
@@ -109,7 +109,7 @@ serve(async (req) => {
     }
 
     // ============================================
-    // INÍCIO DA GERAÇÃO
+    // VERIFICAR TÓPICO E MARCAR COMO GERANDO
     // ============================================
     const { data: topico, error: topicoError } = await supabase
       .from("oab_trilhas_topicos")
@@ -129,7 +129,7 @@ serve(async (req) => {
 
     if (topico.status === "gerando" && !force_restart) {
       return new Response(
-        JSON.stringify({ message: "Geração já em andamento" }),
+        JSON.stringify({ message: "Geração já em andamento", background: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -140,6 +140,7 @@ serve(async (req) => {
 
     const posicaoRemovida = topico.posicao_fila;
     
+    // Marcar como gerando IMEDIATAMENTE
     await supabase
       .from("oab_trilhas_topicos")
       .update({ 
@@ -150,6 +151,7 @@ serve(async (req) => {
       })
       .eq("id", topico_id);
 
+    // Atualizar posições da fila
     if (posicaoRemovida) {
       const { data: filaParaAtualizar } = await supabase
         .from("oab_trilhas_topicos")
@@ -168,10 +170,57 @@ serve(async (req) => {
       }
     }
 
+    console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
+    console.log(`[OAB Trilhas] 🚀 Iniciando geração em BACKGROUND: ${topico.titulo}`);
+    console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
+
+    // ============================================
+    // PROCESSAR EM BACKGROUND - Retornar imediatamente
+    // ============================================
+    EdgeRuntime.waitUntil(processarGeracaoBackground(
+      supabase, 
+      supabaseUrl, 
+      supabaseServiceKey, 
+      topico_id, 
+      topico
+    ));
+
+    // Retornar IMEDIATAMENTE - processamento continua em background
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        background: true,
+        message: "Geração iniciada em background. O progresso será atualizado automaticamente.",
+        topico_id,
+        titulo: topico.titulo
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error: any) {
+    console.error("[OAB Trilhas] ❌ Erro ao iniciar geração:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+// ============================================
+// FUNÇÃO DE PROCESSAMENTO EM BACKGROUND
+// ============================================
+async function processarGeracaoBackground(
+  supabase: any, 
+  supabaseUrl: string, 
+  supabaseServiceKey: string,
+  topico_id: number,
+  topico: any
+) {
+  try {
     const updateProgress = async (value: number) => {
       await supabase
         .from("oab_trilhas_topicos")
-        .update({ progresso: value })
+        .update({ progresso: value, updated_at: new Date().toISOString() })
         .eq("id", topico_id);
     };
 
@@ -179,7 +228,6 @@ serve(async (req) => {
     const topicoTitulo = topico.titulo;
     const tentativasAtuais = topico.tentativas || 0;
 
-    console.log(`[OAB Trilhas] ══════════════════════════════════════════`);
     console.log(`[OAB Trilhas] Gerando conteúdo INCREMENTAL: ${topicoTitulo} (tentativa ${tentativasAtuais + 1})`);
 
     // 1. Buscar conteúdo extraído das páginas do PDF
@@ -193,8 +241,8 @@ serve(async (req) => {
     let conteudoPDF = "";
     if (paginas && paginas.length > 0) {
       conteudoPDF = paginas
-        .filter(p => p.conteudo && p.conteudo.trim().length > 0)
-        .map(p => `\n--- PÁGINA ${p.pagina} ---\n${p.conteudo}`)
+        .filter((p: any) => p.conteudo && p.conteudo.trim().length > 0)
+        .map((p: any) => `\n--- PÁGINA ${p.pagina} ---\n${p.conteudo}`)
         .join("\n\n");
       console.log(`[OAB Trilhas] PDF: ${paginas.length} páginas, ${conteudoPDF.length} chars`);
     } else {
@@ -214,7 +262,7 @@ serve(async (req) => {
       .limit(15);
 
     if (resumos && resumos.length > 0) {
-      conteudoResumo = resumos.map(r => {
+      conteudoResumo = resumos.map((r: any) => {
         const sub = r.subtema ? `### ${r.subtema}\n` : "";
         return sub + (r.conteudo || "");
       }).join("\n\n");
@@ -378,13 +426,11 @@ ${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
     const limparSaudacoesProibidas = (texto: string): string => {
       if (!texto) return texto;
       const saudacoesProibidas = [
-        // Vocativos formais
         /^Futuro\s+colega,?\s*/gi,
         /^Prezad[oa]\s+(advogad[oa]|coleg[ao]|estudante)[^.]*,?\s*/gi,
         /^Car[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
         /^Coleg[ao],?\s*/gi,
         /^Estimad[oa]\s+(colega|estudante|futuro)[^.]*,?\s*/gi,
-        // Saudações casuais
         /^E aí,?\s*(galera|futuro|colega|pessoal)?[!,.\s]*/gi,
         /^Olha só[!,.\s]*/gi,
         /^Olá[!,.\s]*/gi,
@@ -404,7 +450,6 @@ ${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
       for (const regex of saudacoesProibidas) {
         resultado = resultado.replace(regex, '');
       }
-      // Se o resultado começar com letra minúscula após limpeza, capitalize
       if (resultado.length > 0 && /^[a-z]/.test(resultado)) {
         resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
       }
@@ -412,7 +457,7 @@ ${contextoBase ? `\n═══ BASE OAB ═══\n${contextoBase}` : ""}
     };
 
     // ============================================
-    // ETAPA 1: GERAR ESTRUTURA/ESQUELETO (IGUAL CONCEITOS)
+    // ETAPA 1: GERAR ESTRUTURA/ESQUELETO
     // ============================================
     console.log(`[OAB Trilhas] ETAPA 1: Gerando estrutura/esqueleto...`);
     await updateProgress(30);
@@ -479,7 +524,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
     await updateProgress(35);
 
     // ============================================
-    // ETAPA 2: GERAR CONTEÚDO POR SEÇÃO (BATCH INCREMENTAL - IGUAL CONCEITOS)
+    // ETAPA 2: GERAR CONTEÚDO POR SEÇÃO
     // ============================================
     console.log(`[OAB Trilhas] ETAPA 2: Gerando conteúdo seção por seção...`);
     
@@ -488,7 +533,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
 
     for (let i = 0; i < totalSecoes; i++) {
       const secaoEstrutura = estrutura.secoes[i];
-      const progressoSecao = Math.round(35 + (i / totalSecoes) * 40); // 35% a 75%
+      const progressoSecao = Math.round(35 + (i / totalSecoes) * 40);
       
       console.log(`[OAB Trilhas] Gerando seção ${i + 1}/${totalSecoes}: ${secaoEstrutura.titulo}`);
       await updateProgress(progressoSecao);
@@ -562,9 +607,8 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
           throw new Error(`Seção ${i + 1} com apenas ${secaoCompleta.slides.length} slides`);
         }
         
-        // PÓS-PROCESSAMENTO: Remover saudações proibidas de slides que não são introdução
+        // PÓS-PROCESSAMENTO: Remover saudações proibidas
         for (const slide of secaoCompleta.slides) {
-          // Só limpa se não for introdução da primeira seção
           const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
           if (!isPrimeiraSecaoIntro && slide.conteudo) {
             slide.conteudo = limparSaudacoesProibidas(slide.conteudo);
@@ -572,7 +616,7 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
         }
         
         secoesCompletas.push(secaoCompleta);
-        console.log(`[OAB Trilhas] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas (sanitizado)`);
+        console.log(`[OAB Trilhas] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas`);
         
       } catch (err) {
         console.error(`[OAB Trilhas] ❌ Erro na seção ${i + 1}:`, err);
@@ -591,7 +635,7 @@ Retorne APENAS o JSON da seção, sem texto adicional.`;
     await updateProgress(80);
 
     // ============================================
-    // ETAPA 3: GERAR EXTRAS (correspondências, flashcards, questões)
+    // ETAPA 3: GERAR EXTRAS
     // ============================================
     console.log(`[OAB Trilhas] ETAPA 3: Gerando extras (flashcards, questões)...`);
 
@@ -639,12 +683,11 @@ Retorne APENAS o JSON, sem texto adicional.`;
     await updateProgress(85);
 
     // ============================================
-    // MONTAR CONTEÚDO FINAL (FORMATO IGUAL CONCEITOS)
+    // VALIDAR PÁGINAS MÍNIMAS
     // ============================================
     const totalPaginas = secoesCompletas.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
     console.log(`[OAB Trilhas] Total de páginas geradas: ${totalPaginas}`);
 
-    // Validação de páginas mínimas
     if (totalPaginas < MIN_PAGINAS) {
       console.log(`[OAB Trilhas] ⚠️ Apenas ${totalPaginas} páginas (mínimo: ${MIN_PAGINAS})`);
       
@@ -657,11 +700,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
           .eq("id", topico_id);
         
         await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
-        
-        return new Response(
-          JSON.stringify({ error: `Falha após ${MAX_TENTATIVAS} tentativas (${totalPaginas}/${MIN_PAGINAS} páginas)` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return;
       }
       
       // Recolocar na fila
@@ -686,15 +725,11 @@ Retorne APENAS o JSON, sem texto adicional.`;
         .eq("id", topico_id);
       
       await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
-      
-      return new Response(
-        JSON.stringify({ requeued: true, reason: `${totalPaginas}/${MIN_PAGINAS} páginas`, position: novaPosicao }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return;
     }
 
     // ============================================
-    // ETAPA 4: GERAR SÍNTESE FINAL (SLIDE DE ENCERRAMENTO)
+    // ETAPA 4: GERAR SÍNTESE FINAL
     // ============================================
     console.log(`[OAB Trilhas] ETAPA 4: Gerando síntese final...`);
     
@@ -734,13 +769,12 @@ Retorne APENAS o JSON, sem texto adicional.`;
       }
     } catch (err) {
       console.error(`[OAB Trilhas] ⚠️ Erro na síntese final (usando fallback):`, err);
-      // Fallback: gerar pontos a partir dos títulos das seções
       sinteseFinalPontos = secoesCompletas.flatMap(s => 
         (s.slides || []).slice(0, 2).map((slide: any) => slide.titulo || "")
       ).filter(Boolean).slice(0, 8);
     }
 
-    // Criar slide de Síntese Final e adicionar como última seção
+    // Criar slide de Síntese Final
     const slideSinteseFinal = {
       tipo: "resumo",
       titulo: "Síntese Final",
@@ -748,7 +782,6 @@ Retorne APENAS o JSON, sem texto adicional.`;
       pontos: sinteseFinalPontos
     };
 
-    // Adicionar seção de Síntese Final ao final
     const secaoSinteseFinal = {
       id: secoesCompletas.length + 1,
       titulo: "Síntese Final",
@@ -756,7 +789,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
     };
     secoesCompletas.push(secaoSinteseFinal);
 
-    // Montar estrutura final no formato de Conceitos
+    // Montar estrutura final
     const conteudoFinal = {
       versao: 1,
       titulo: topicoTitulo,
@@ -764,7 +797,6 @@ Retorne APENAS o JSON, sem texto adicional.`;
       area: areaNome,
       objetivos: estrutura.objetivos || [],
       secoes: secoesCompletas,
-      // Manter também o formato de páginas flat para compatibilidade
       paginas: secoesCompletas.flatMap(s => s.slides || []).map((slide: any) => ({
         titulo: slide.titulo,
         tipo: slide.tipo,
@@ -793,7 +825,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
     const { error: updateError } = await supabase
       .from("oab_trilhas_topicos")
       .update({
-        conteudo_gerado: conteudoFinal,  // Agora salva o JSON completo, não markdown
+        conteudo_gerado: conteudoFinal,
         exemplos: extras.exemplos || [],
         termos: termosComCorrespondencias,
         flashcards: extras.flashcards || [],
@@ -815,9 +847,7 @@ Retorne APENAS o JSON, sem texto adicional.`;
 
     await updateProgress(95);
 
-    // ============================================
-    // GERAR CAPA DO TÓPICO (IGUAL CONCEITOS)
-    // ============================================
+    // Gerar capa do tópico
     console.log(`[OAB Trilhas] Gerando capa do tópico...`);
     try {
       await supabase.functions.invoke("gerar-capa-topico-oab", {
@@ -835,86 +865,57 @@ Retorne APENAS o JSON, sem texto adicional.`;
     // Processar próximo da fila
     await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Conteúdo gerado com sucesso - ${totalPaginas} páginas em ${secoesCompletas.length} seções`,
-        topico_id,
-        titulo: topicoTitulo,
-        area: areaNome,
-        stats: {
-          secoes: secoesCompletas.length,
-          paginas: totalPaginas,
-          correspondencias: correspondenciasValidas.length,
-          flashcards: extras.flashcards?.length || 0,
-          questoes: extras.questoes?.length || 0,
-        }
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error: any) {
-    console.error("[OAB Trilhas] ❌ Erro ao gerar conteúdo:", error);
+    console.error("[OAB Trilhas] ❌ Erro no processamento background:", error);
 
     try {
-      if (topicoIdForCatch) {
-        const supabase = supabaseForCatch || createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
+      const { data: topicoAtual } = await supabase
+        .from("oab_trilhas_topicos")
+        .select("tentativas")
+        .eq("id", topico_id)
+        .single();
 
-        const { data: topicoAtual } = await supabase
+      const tentativas = (topicoAtual?.tentativas || 0) + 1;
+
+      if (tentativas < MAX_TENTATIVAS) {
+        const { data: maxPos } = await supabase
           .from("oab_trilhas_topicos")
-          .select("tentativas")
-          .eq("id", topicoIdForCatch)
+          .select("posicao_fila")
+          .eq("status", "na_fila")
+          .order("posicao_fila", { ascending: false })
+          .limit(1)
           .single();
 
-        const tentativas = (topicoAtual?.tentativas || 0) + 1;
+        const novaPosicao = (maxPos?.posicao_fila || 0) + 1;
 
-        if (tentativas < MAX_TENTATIVAS) {
-          const { data: maxPos } = await supabase
-            .from("oab_trilhas_topicos")
-            .select("posicao_fila")
-            .eq("status", "na_fila")
-            .order("posicao_fila", { ascending: false })
-            .limit(1)
-            .single();
+        await supabase
+          .from("oab_trilhas_topicos")
+          .update({ 
+            status: "na_fila", 
+            posicao_fila: novaPosicao,
+            tentativas,
+            progresso: 0,
+            conteudo_gerado: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", topico_id);
 
-          const novaPosicao = (maxPos?.posicao_fila || 0) + 1;
+        console.log(`[OAB Fila] ♻️ Erro recuperável, recolocando na fila (tentativa ${tentativas}/${MAX_TENTATIVAS})`);
+      } else {
+        await supabase
+          .from("oab_trilhas_topicos")
+          .update({ status: "erro", tentativas, progresso: 0, updated_at: new Date().toISOString() })
+          .eq("id", topico_id);
 
-          await supabase
-            .from("oab_trilhas_topicos")
-            .update({ 
-              status: "na_fila", 
-              posicao_fila: novaPosicao,
-              tentativas,
-              progresso: 0,
-              conteudo_gerado: null,
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", topicoIdForCatch);
-
-          console.log(`[OAB Fila] ♻️ Erro recuperável, recolocando na fila (tentativa ${tentativas}/${MAX_TENTATIVAS})`);
-        } else {
-          await supabase
-            .from("oab_trilhas_topicos")
-            .update({ status: "erro", tentativas, progresso: 0, updated_at: new Date().toISOString() })
-            .eq("id", topicoIdForCatch);
-
-          console.log(`[OAB Fila] ❌ Erro após ${MAX_TENTATIVAS} tentativas`);
-        }
-        
-        await processarProximoDaFila(supabase, Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        console.log(`[OAB Fila] ❌ Erro após ${MAX_TENTATIVAS} tentativas`);
       }
+      
+      await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey);
     } catch (catchErr) {
       console.error("[OAB Trilhas] Erro ao processar retry:", catchErr);
     }
-
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   }
-});
+}
 
 // Função auxiliar para processar próximo item da fila
 async function processarProximoDaFila(supabase: any, supabaseUrl: string, supabaseServiceKey: string) {
