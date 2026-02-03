@@ -473,6 +473,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('intro');
         secoes={slidesData}
         titulo={resumo?.subtema || ""}
         materiaName={resumo?.area}
+        capaUrl={capaUrl || undefined}
         onClose={handleCloseSlides}
         onComplete={handleSlidesComplete}
         onProgressChange={handleProgressChange}

@@ -12,6 +12,7 @@ interface ConceitosSlidesViewerProps {
   secoes: ConceitoSecao[];
   titulo: string;
   materiaName?: string;
+  capaUrl?: string; // Capa fixa como background dos slides
   onClose: () => void;
   onComplete?: () => void;
   onProgressChange?: (progress: number) => void;
@@ -30,6 +31,7 @@ export const ConceitosSlidesViewer = ({
   secoes,
   titulo,
   materiaName,
+  capaUrl,
   onClose,
   onComplete,
   onProgressChange,
@@ -174,8 +176,23 @@ export const ConceitosSlidesViewer = ({
 
   return (
     <div className="fixed inset-0 min-h-screen bg-[#0a0a0f] flex flex-col z-[60]">
+      {/* Capa fixa como background (se disponível) */}
+      {capaUrl && (
+        <div 
+          className="absolute inset-0 z-0 pointer-events-none"
+          aria-hidden="true"
+        >
+          <img 
+            src={capaUrl} 
+            alt=""
+            className="w-full h-full object-cover opacity-20"
+          />
+          {/* Gradiente escuro por cima da capa */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/70 via-[#0a0a0f]/90 to-[#0a0a0f]" />
+        </div>
+      )}
       {/* Header - aligned with reader design */}
-      <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+      <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/10 px-4 py-3 relative">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-red-400 uppercase tracking-widest truncate">
@@ -206,7 +223,7 @@ export const ConceitosSlidesViewer = ({
       </div>
 
       {/* Page content */}
-      <div className="flex-1 pb-20 overflow-y-auto">
+      <div className="flex-1 pb-20 overflow-y-auto relative z-10">
         <AnimatePresence mode="popLayout" custom={direction}>
           <ConceitoSlideCard
             key={currentIndex}
