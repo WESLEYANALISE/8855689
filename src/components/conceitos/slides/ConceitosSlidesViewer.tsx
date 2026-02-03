@@ -186,10 +186,10 @@ export const ConceitosSlidesViewer = ({
           <img 
             src={capaUrl} 
             alt=""
-            className="w-full h-full object-cover opacity-30"
+            className="w-full h-full object-cover opacity-40"
           />
-          {/* Gradiente suave por cima da capa - mais visível no topo */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/50 via-[#0a0a0f]/80 to-[#0a0a0f]/95" />
+          {/* Gradiente mais sutil para deixar a capa mais visível */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/30 via-[#0a0a0f]/60 to-[#0a0a0f]/90" />
         </div>
       )}
       {/* Header - aligned with reader design */}
