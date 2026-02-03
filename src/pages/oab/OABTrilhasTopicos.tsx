@@ -241,7 +241,7 @@ const OABTrilhasTopicos = () => {
                 </h1>
                 {/* Estatísticas inline */}
                 <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                  <span>{totalSubtemas} tópicos</span>
+                  <span>{totalSubtemas} aulas</span>
                   <span className="text-gray-600">•</span>
                   <div className="flex items-center gap-1">
                     <Scale className="w-3 h-3" />
@@ -260,7 +260,7 @@ const OABTrilhasTopicos = () => {
                 <div className="flex items-center gap-4 text-sm text-gray-300">
                   <div className="flex items-center gap-1.5">
                     <BookOpen className={`w-4 h-4 ${isEtica ? "text-amber-400" : "text-red-400"}`} />
-                    <span>{totalSubtemas} tópicos</span>
+                    <span>{totalSubtemas} aulas</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-green-400" />
@@ -420,7 +420,7 @@ const OABTrilhasTopicos = () => {
           ) : (
             <div className="text-center py-12 text-gray-400">
               <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium text-white">Nenhum tópico encontrado</p>
+              <p className="text-lg font-medium text-white">Nenhuma aula encontrada</p>
               <p className="text-sm mt-2 opacity-70">
                 Área: {area?.nome || "N/A"} | Tema: {topico?.titulo || "N/A"}
               </p>
