@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
 // VERSÃO para debugging de deploy
-const VERSION = "v2.7.0-enhanced-pedagogy";
+const VERSION = "v2.8.0-flashcards-questoes-fix";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -920,7 +920,7 @@ QUANTIDADES EXATAS:
 IMPORTANTE: Definições curtas, máximo 50 caracteres cada.
 Retorne APENAS o JSON, nada mais.`;
 
-    // PARTE B: Flashcards e Questões
+    // PARTE B: Flashcards e Questões (AUMENTADO para 20-25 flashcards e 15-20 questões)
     const promptFlashQuestoes = `${promptBase}
 
 ═══ SUA TAREFA ═══
@@ -929,16 +929,27 @@ Gere FLASHCARDS e QUESTÕES estilo OAB sobre "${topicoTitulo}".
 Retorne JSON com EXATAMENTE esta estrutura:
 {
   "flashcards": [
-    {"frente": "Pergunta direta", "verso": "Resposta clara", "exemplo": "Exemplo prático"}
+    {"frente": "Pergunta direta sobre conceito-chave", "verso": "Resposta clara e objetiva", "exemplo": "Exemplo prático do cotidiano jurídico"}
   ],
   "questoes": [
-    {"pergunta": "Enunciado", "alternativas": ["A) ...", "B) ...", "C) ...", "D) ..."], "correta": 0, "explicacao": "Por que a alternativa X está certa"}
+    {"pergunta": "Enunciado completo da questão estilo OAB", "alternativas": ["A) Alternativa A", "B) Alternativa B", "C) Alternativa C", "D) Alternativa D"], "correta": 0, "explicacao": "Explicação detalhada de por que a alternativa correta está certa e as outras estão erradas"}
   ]
 }
 
-QUANTIDADES EXATAS:
-- flashcards: 15 cards
-- questoes: 12 questões estilo OAB
+QUANTIDADES EXATAS (OBRIGATÓRIO):
+- flashcards: EXATAMENTE 22 cards (entre 20 e 25)
+- questoes: EXATAMENTE 17 questões estilo OAB (entre 15 e 20)
+
+REGRAS PARA FLASHCARDS:
+- Frente: Pergunta direta e objetiva
+- Verso: Resposta clara, não muito longa (máx 100 palavras)
+- Exemplo: Situação prática que ilustra o conceito
+
+REGRAS PARA QUESTÕES:
+- Enunciado claro e contextualizado (estilo OAB real)
+- 4 alternativas plausíveis (A, B, C, D)
+- Explicação que justifique a correta E refute as incorretas
+- Variar os temas cobertos no conteúdo
 
 Retorne APENAS o JSON, nada mais.`;
 
@@ -1778,6 +1789,55 @@ REGRAS CRÍTICAS:
       slides: [slideSinteseFinal]
     });
 
+    // ============================================
+    // ETAPA 3: GERAR FLASHCARDS E QUESTÕES (NOVO!)
+    // ============================================
+    console.log(`[OAB Resumo] ETAPA 3: Gerando flashcards e questões...`);
+    
+    const promptFlashQuestoesResumo = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere FLASHCARDS e QUESTÕES estilo OAB sobre "${subtema}".
+
+Retorne JSON com EXATAMENTE esta estrutura:
+{
+  "flashcards": [
+    {"frente": "Pergunta direta sobre conceito-chave", "verso": "Resposta clara e objetiva", "exemplo": "Exemplo prático do cotidiano jurídico"}
+  ],
+  "questoes": [
+    {"pergunta": "Enunciado completo da questão estilo OAB", "alternativas": ["A) Alternativa A", "B) Alternativa B", "C) Alternativa C", "D) Alternativa D"], "correta": 0, "explicacao": "Explicação detalhada de por que a alternativa correta está certa e as outras estão erradas"}
+  ]
+}
+
+QUANTIDADES EXATAS (OBRIGATÓRIO):
+- flashcards: EXATAMENTE 22 cards (entre 20 e 25)
+- questoes: EXATAMENTE 17 questões estilo OAB (entre 15 e 20)
+
+REGRAS PARA FLASHCARDS:
+- Frente: Pergunta direta e objetiva sobre conceito do tema
+- Verso: Resposta clara, não muito longa (máx 100 palavras)
+- Exemplo: Situação prática que ilustra o conceito
+
+REGRAS PARA QUESTÕES:
+- Enunciado claro e contextualizado (estilo OAB real)
+- 4 alternativas plausíveis (A, B, C, D)
+- Explicação que justifique a correta E refute as incorretas
+- Variar os temas cobertos no conteúdo
+
+Retorne APENAS o JSON, nada mais.`;
+
+    let flashcards: any[] = [];
+    let questoes: any[] = [];
+    
+    try {
+      const flashQuestoes = await gerarJSON(promptFlashQuestoesResumo, 2, 8192);
+      flashcards = Array.isArray(flashQuestoes?.flashcards) ? flashQuestoes.flashcards : [];
+      questoes = Array.isArray(flashQuestoes?.questoes) ? flashQuestoes.questoes : [];
+      console.log(`[OAB Resumo] ✓ Gerados: ${flashcards.length} flashcards, ${questoes.length} questões`);
+    } catch (err) {
+      console.error(`[OAB Resumo] ⚠️ Erro ao gerar flashcards/questões:`, err);
+    }
+
     // Montar estrutura final
     const totalPaginas = secoesCompletas.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
     
@@ -1787,12 +1847,16 @@ REGRAS CRÍTICAS:
       tempoEstimado: estrutura.tempoEstimado || "15 min",
       area: areaNome,
       objetivos: estrutura.objetivos || [],
-      secoes: secoesCompletas
+      secoes: secoesCompletas,
+      flashcards: flashcards,
+      questoes: questoes
     };
 
     const conteudoGerado = {
       secoes: secoesCompletas,
       objetivos: estrutura.objetivos || [],
+      flashcards: flashcards,
+      questoes: questoes,
       paginas: secoesCompletas.flatMap(s => s.slides || []).map((slide: any) => ({
         titulo: slide.titulo,
         tipo: slide.tipo,
@@ -1805,7 +1869,9 @@ REGRAS CRÍTICAS:
       .from("RESUMO")
       .update({
         slides_json: slidesJson,
-        conteudo_gerado: conteudoGerado
+        conteudo_gerado: conteudoGerado,
+        flashcards: flashcards,
+        questoes: questoes
       })
       .eq("id", resumo_id);
 
@@ -1814,7 +1880,7 @@ REGRAS CRÍTICAS:
     }
 
     console.log(`[OAB Resumo] ✅ Conteúdo salvo com sucesso: ${subtema}`);
-    console.log(`[OAB Resumo] Stats: ${totalPaginas} slides, ${secoesCompletas.length} seções`);
+    console.log(`[OAB Resumo] Stats: ${totalPaginas} slides, ${secoesCompletas.length} seções, ${flashcards.length} flashcards, ${questoes.length} questões`);
 
   } catch (error: any) {
     console.error("[OAB Resumo] ❌ Erro no processamento:", error);
