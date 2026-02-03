@@ -1,96 +1,177 @@
 
-# Plano: Grifo Automático de Termos-Chave pela Gemini
+# Plano: Aprimorar Geração de Slides (40-55 slides, Introdução Engajada, Correspondências no Meio)
 
-## Contexto Atual
+## Resumo das Alterações Solicitadas
 
-O sistema atual tem dois mecanismos de destaque de termos:
+| Aspecto | Atual | Novo |
+|---------|-------|------|
+| Quantidade de slides | 35-55 (mínimo 30) | **40-55** (mínimo 40) |
+| Slide de introdução | Genérico | **"Prepare seu café!"** + tópicos que serão abordados |
+| Título | Pode ser alterado | **Manter título original do PDF** |
+| Detalhamento | Médio | **Alto**: explicar termos jurídicos inline no texto |
+| Jogo "Ligar Termos" | Qualquer posição | **Posição: entre slides 25-30** (meio) |
+| Estrutura | Básica | **Hierárquica e bem estruturada** |
 
-1. **`EnrichedMarkdownRenderer`** (frontend):
-   - Destaca termos entre aspas simples `'termo'` ou duplas `"termo"`
-   - Destaca automaticamente termos latinos (habeas corpus, ex tunc) e jurídicos
-   - Transforma `Art. 5º` em popovers clicáveis
+---
 
-2. **`highlightKeyTerms.tsx`** (frontend):
-   - Aplica regex para detectar idades, leis, valores, prazos
-   - Converte em `<mark class="key-term">` para destaque visual
-   - **Problema**: Não está sendo usado no `ConceitoSlideCard.tsx`
+## Alterações Técnicas
 
-3. **Prompt da Gemini** (edge function):
-   - Instrui tom conversacional
-   - **Falta**: Instruir a marcar termos-chave com aspas simples
+### 1. Atualizar Constante MIN_PAGINAS
 
-## Problema Identificado
+**Arquivo:** `supabase/functions/gerar-conteudo-oab-trilhas/index.ts`
+**Linha:** 15
 
-A Gemini gera texto como:
-```
-"Pessoas a partir de 16 anos podem votar, conforme a Lei 9.504/97..."
-```
+```typescript
+// Antes
+const MIN_PAGINAS = 30;
 
-Mas deveria gerar:
-```
-"Pessoas a partir de '16 anos' podem votar, conforme a 'Lei 9.504/97'..."
+// Depois
+const MIN_PAGINAS = 40;
 ```
 
-Assim o `EnrichedMarkdownRenderer` detectaria e destacaria automaticamente.
+---
 
-## Solução em 2 Partes
+### 2. Atualizar Prompt da Estrutura (Modo Tópico)
 
-### Parte 1: Atualizar Prompt da Gemini
+**Linhas:** 666-676
 
-Adicionar instrução explícita no `promptBase` para marcar termos-chave:
+Ajustar as regras para:
+- Gerar entre 6-8 seções (para atingir 40-55 slides)
+- Cada seção com 6-9 páginas
+- Incluir "correspondencias" no meio (entre páginas 25-30)
 
 ```text
-═══ GRIFO DE TERMOS-CHAVE ═══
-Marque AUTOMATICAMENTE com aspas simples os seguintes tipos de informação importante:
-
-• IDADES: '16 anos', '18 anos', '35 anos de idade'
-• LEIS E ARTIGOS: 'Lei 9.504/97', 'Art. 5º da CF', 'LC 64/90'
-• PRAZOS: '30 dias', '90 dias úteis', 'prazo de 15 dias'
-• VALORES: 'R$ 5.000', '10 salários mínimos'
-• PORCENTAGENS: '50%', '10,5%'
-• DATAS: '15 de agosto', '1º de janeiro'
-• MULTAS: 'multa de R$ 1.000 a R$ 5.000'
-
-EXEMPLO DE APLICAÇÃO:
-❌ ERRADO: "O voto é facultativo para maiores de 16 anos e obrigatório para maiores de 18 anos."
-✅ CERTO: "O voto é facultativo para maiores de '16 anos' e obrigatório para maiores de '18 anos'."
-
-❌ ERRADO: "Conforme o Art. 14 da Constituição Federal..."
-✅ CERTO: "Conforme o 'Art. 14 da Constituição Federal'..."
+REGRAS:
+1. Gere entre 6-8 seções (para alcançar 40-55 páginas totais)
+2. Cada seção deve ter 6-9 páginas
+3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck, correspondencias
+4. Distribua bem os tipos (não só "texto")
+5. Cada seção deve ter pelo menos 1 quickcheck
+6. INCLUA pelo menos 2-3 slides tipo "tabela" no total (comparativos)
+7. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO (entre páginas 25-30)
+8. Use títulos descritivos para cada página
+9. MANTENHA o título original: "${topicoTitulo}" (não altere)
+10. Cubra TODO o conteúdo do material
 ```
 
-### Parte 2: Aplicar highlightKeyTerms como Fallback
+---
 
-Para conteúdo já gerado (ou caso a Gemini esqueça), aplicar o `highlightKeyTerms` no `ConceitoSlideCard.tsx`:
+### 3. Atualizar Prompt de Introdução
 
-- Importar a função `highlightKeyTerms`
-- Aplicar nos renders de `termos`, `definicao`, e no conteúdo de texto antes de passar ao `EnrichedMarkdownRenderer`
+**Linhas:** 712-725
 
-## Arquivos a Modificar
+Alterar o exemplo de slide "introducao" para incluir engajamento e tópicos:
+
+```json
+1. Para tipo "introducao":
+   {
+     "tipo": "introducao", 
+     "titulo": "${topicoTitulo}",
+     "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante para a OAB!\n\nNesta aula, vamos estudar [tema] de forma clara e prática. Ao final, você vai entender:\n\n• Tópico 1 que será abordado\n• Tópico 2 importante\n• Tópico 3 essencial\n• Tópico 4 que cai na prova\n\nBora começar?"
+   }
+```
+
+---
+
+### 4. Adicionar Regra de Detalhamento Inline
+
+**Linhas:** 581-586 (seção PROFUNDIDADE)**
+
+Expandir para instruir explicação inline de termos:
+
+```text
+═══ PROFUNDIDADE E DETALHAMENTO ═══
+- Mínimo 250-400 palavras em slides tipo "texto"
+- SEMPRE que usar um termo jurídico, explique-o INLINE imediatamente:
+  ✅ "A 'competência absoluta' (ou seja, regras que não podem ser mudadas pelas partes) determina..."
+  ✅ "Isso configura a 'litispendência' (quando já existe outra ação idêntica em andamento)"
+- Cite artigos de lei de forma acessível: "O 'artigo 5º da Constituição' garante que..."
+- Estruture o texto com hierarquias claras:
+  - Use parágrafos curtos (2-3 frases)
+  - Separe conceitos principais de detalhes
+  - Crie conexões: "Agora que você entendeu X, vamos ver como isso se aplica em Y..."
+- Termos-chave entre aspas simples: 'tipicidade', 'culpabilidade'
+```
+
+---
+
+### 5. Atualizar Prompt para Correspondências no Meio
+
+**Linhas:** 729-735
+
+Adicionar tipo "correspondencias" nos prompts de seção:
+
+```json
+11. Para tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO DA AULA):
+    {
+      "tipo": "correspondencias", 
+      "titulo": "Vamos praticar?", 
+      "conteudo": "Conecte cada termo à sua definição correta:",
+      "correspondencias": [
+        {"termo": "Termo técnico 1", "definicao": "Definição simples 1"},
+        {"termo": "Termo técnico 2", "definicao": "Definição simples 2"},
+        {"termo": "Termo técnico 3", "definicao": "Definição simples 3"},
+        {"termo": "Termo técnico 4", "definicao": "Definição simples 4"}
+      ]
+    }
+```
+
+---
+
+### 6. Atualizar Regras Críticas por Seção
+
+**Linhas:** 763-770
+
+Adicionar regras sobre estrutura hierárquica e correspondências:
+
+```text
+REGRAS CRÍTICAS:
+- Use TOM CONVERSACIONAL: "Olha só...", "Percebeu?", "Faz sentido, né?"
+- SIMPLES PRIMEIRO → TÉCNICO DEPOIS: Explique o conceito antes de dar o nome técnico
+- EXPLICAÇÃO INLINE: Todo termo jurídico deve ser explicado entre parênteses
+- Tradução IMEDIATA de latim e juridiquês
+- Páginas "texto" devem ter 250-400 palavras
+- Use HIERARQUIA clara: conceito principal → detalhes → aplicação prática
+- Crie conexões entre os slides: "Lembra do que vimos antes? Agora..."
+- Se esta seção está no MEIO (seções 3-4), inclua o slide "correspondencias"
+- NUNCA use emojis no texto (a interface já adiciona ícones)
+```
+
+---
+
+### 7. Modo Resumo: Mesmas Regras
+
+**Linhas:** 1480-1510
+
+Atualizar prompt de estrutura do modo resumo com regras similares:
+- 4-6 seções para 25-40 páginas
+- Correspondências no meio
+- Introdução engajada
+
+---
+
+## Arquivo Modificado
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `supabase/functions/gerar-conteudo-oab-trilhas/index.ts` | Adicionar seção "GRIFO DE TERMOS-CHAVE" no promptBase (duas ocorrências: modo tópico e modo resumo) |
+| `supabase/functions/gerar-conteudo-oab-trilhas/index.ts` | Atualizar constante MIN_PAGINAS, prompts de estrutura, introdução, detalhamento e correspondências |
 
-## Impacto
+---
 
-- **Conteúdo novo**: Será gerado com aspas simples nos termos-chave, que serão destacados automaticamente pelo frontend
-- **Conteúdo existente**: Precisa ser regenerado para aplicar o novo formato
+## Resultado Esperado
 
-## Exemplo Visual
+1. **Introdução Engajada**: "☕ Prepare seu café!" + lista de tópicos
+2. **40-55 slides** por aula (mínimo garantido de 40)
+3. **Título preservado** do PDF original
+4. **Termos explicados inline** no texto
+5. **Correspondências no meio** da aula (entre slides 25-30)
+6. **Estrutura hierárquica** clara e bem organizada
+7. **Conteúdo mais detalhado** e engajante
 
-Antes:
-```
-O voto é facultativo para maiores de 16 anos.
-```
+---
 
-Depois:
-```
-O voto é facultativo para maiores de '16 anos'.
-```
+## Próximos Passos
 
-Resultado na tela: "O voto é facultativo para maiores de [**16 anos**]." (com destaque visual clicável)
-
-## Correção do Erro de Build
-
-O erro de build atual é causado pelo tamanho excessivo dos chunks. Isso será corrigido automaticamente na próxima compilação.
+1. Implementar as alterações na Edge Function
+2. Fazer deploy
+3. Regenerar um subtema para testar o novo formato
