@@ -372,16 +372,13 @@ const OABTrilhasMateria = () => {
                           {/* Capa da matéria - SEMPRE usa capa da ÁREA */}
                           <div className="h-20 w-full overflow-hidden relative flex-shrink-0">
                             {area?.capa_url ? (
-                              <>
-                                <UniversalImage
-                                  src={area.capa_url}
-                                  alt={materia.titulo}
-                                  priority={index < 4}
-                                  blurCategory="oab"
-                                  containerClassName="w-full h-full"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                              </>
+                              <UniversalImage
+                                src={area.capa_url}
+                                alt={materia.titulo}
+                                priority={index < 4}
+                                blurCategory="oab"
+                                containerClassName="w-full h-full"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-800 to-red-900">
                                 <ImageIcon className="w-8 h-8 text-white/30" />
