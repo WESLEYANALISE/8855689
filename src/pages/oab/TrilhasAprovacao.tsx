@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, FileText } from "lucide-react";
+import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, FileText, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import bgAreasOab from "@/assets/bg-areas-oab.webp";
 import { getOptimizedImageUrl } from "@/lib/imageOptimizer";
+import { Input } from "@/components/ui/input";
 
 // Função de preload local para capas do Supabase
 const preloadImages = (urls: string[]) => {
@@ -22,6 +23,7 @@ export default function TrilhasAprovacao() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Buscar todas as matérias da OAB - CACHE FIRST
   const { data: materias, isLoading, isFetching } = useQuery({
@@ -126,6 +128,17 @@ export default function TrilhasAprovacao() {
   const totalMaterias = materias?.length || 0;
   const totalTopicos = Object.values(topicosCount || {}).reduce((a: number, b: number) => a + b, 0);
 
+  // Filtrar matérias baseado na pesquisa
+  const filteredMaterias = useMemo(() => {
+    if (!materias) return [];
+    if (!searchTerm.trim()) return materias;
+    
+    const term = searchTerm.toLowerCase().trim();
+    return materias.filter(m => 
+      m.nome.toLowerCase().includes(term)
+    );
+  }, [materias, searchTerm]);
+
   // Preload das capas do Supabase assim que os dados chegarem
   useEffect(() => {
     if (materias && materias.length > 0) {
@@ -215,6 +228,35 @@ export default function TrilhasAprovacao() {
           </div>
         </div>
 
+        {/* Barra de Pesquisa */}
+        <div className="px-4 pb-4">
+          <div className="max-w-lg mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar área do direito..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-red-500/50"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                {filteredMaterias.length} área{filteredMaterias.length !== 1 ? 's' : ''} encontrada{filteredMaterias.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Timeline de Matérias */}
         {materias && (
           <div className="px-4 pb-24 pt-4">
@@ -231,7 +273,7 @@ export default function TrilhasAprovacao() {
               </div>
               
               <div className="space-y-6">
-                {materias.map((materia, index) => {
+                {filteredMaterias.map((materia, index) => {
                   const isLeft = index % 2 === 0;
                   const topicos = topicosCount?.[materia.id] || 0;
                   const temCapa = !!materia.capa_url;

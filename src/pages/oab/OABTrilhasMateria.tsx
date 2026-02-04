@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Scale, ImageIcon, Footprints, FileText, RefreshCw, Sparkles, CheckCircle } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Scale, ImageIcon, Footprints, FileText, RefreshCw, Sparkles, CheckCircle, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import bgMateriasOab from "@/assets/bg-materias-oab.webp";
 import { OABPdfProcessorModal } from "@/components/oab/OABPdfProcessorModal";
@@ -15,12 +15,14 @@ import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
 
 const SCROLL_KEY_PREFIX = "oab-trilhas-scroll-materia";
 
 const OABTrilhasMateria = () => {
   const { materiaId } = useParams<{ materiaId: string }>();
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -210,6 +212,17 @@ const OABTrilhasMateria = () => {
   const totalTopicos = Object.values(subtemasCount || {}).reduce((a, b) => a + b, 0);
   const isLoading = loadingArea || loadingMaterias;
 
+  // Filtrar matérias baseado na pesquisa
+  const filteredMaterias = useMemo(() => {
+    if (!materias) return [];
+    if (!searchTerm.trim()) return materias;
+    
+    const term = searchTerm.toLowerCase().trim();
+    return materias.filter(m => 
+      m.titulo.toLowerCase().includes(term)
+    );
+  }, [materias, searchTerm]);
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background com InstantBackground */}
@@ -306,6 +319,35 @@ const OABTrilhasMateria = () => {
           )}
         </div>
 
+        {/* Barra de Pesquisa */}
+        <div className="px-4 pb-4">
+          <div className="max-w-lg mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar matéria..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-red-500/50"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                {filteredMaterias.length} matéria{filteredMaterias.length !== 1 ? 's' : ''} encontrada{filteredMaterias.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Timeline de Matérias - Só mostra loading se não tem cache */}
         {isLoading && !materias ? (
           <div className="flex items-center justify-center py-12">
@@ -326,7 +368,7 @@ const OABTrilhasMateria = () => {
               </div>
               
               <div className="space-y-6">
-                {materias.map((materia, index) => {
+                {filteredMaterias.map((materia, index) => {
                   const isLeft = index % 2 === 0;
                   
                   return (
