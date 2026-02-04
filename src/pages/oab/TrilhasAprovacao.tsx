@@ -25,8 +25,8 @@ export default function TrilhasAprovacao() {
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Buscar todas as matérias da OAB - CACHE FIRST
-  const { data: materias, isLoading, isFetching } = useQuery({
+  // Buscar todas as matérias da OAB - CACHE INFINITO para navegação instantânea
+  const { data: materias, isLoading } = useQuery({
     queryKey: ["oab-trilhas-materias"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -38,11 +38,11 @@ export default function TrilhasAprovacao() {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutos - mostra cache instantaneamente
-    gcTime: 1000 * 60 * 30,   // 30 minutos - mantém em cache
+    staleTime: Infinity, // Cache infinito - NUNCA refetch automático
+    gcTime: Infinity,    // Manter em cache para sempre durante a sessão
   });
 
-  // Buscar contagem de tópicos por matéria da tabela unificada oab_trilhas_topicos - CACHE FIRST
+  // Buscar contagem de tópicos por matéria - CACHE INFINITO
   const { data: topicosCount } = useQuery({
     queryKey: ["oab-trilhas-topicos-count"],
     queryFn: async () => {
@@ -77,8 +77,8 @@ export default function TrilhasAprovacao() {
       
       return counts;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutos
-    gcTime: 1000 * 60 * 30,   // 30 minutos
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   // Buscar contagem total de subtemas (tópicos) da tabela RESUMO
@@ -139,17 +139,35 @@ export default function TrilhasAprovacao() {
     );
   }, [materias, searchTerm]);
 
-  // Preload das capas do Supabase assim que os dados chegarem
+  // Preload das capas + PREFETCH de todas as matérias para navegação instantânea
   useEffect(() => {
     if (materias && materias.length > 0) {
+      // Preload imagens
       const capaUrls = materias
         .map(m => m.capa_url)
         .filter(Boolean) as string[];
       if (capaUrls.length > 0) {
         preloadImages(capaUrls);
       }
+      
+      // Prefetch de todas as matérias de cada área em background
+      materias.forEach(materia => {
+        queryClient.prefetchQuery({
+          queryKey: ["oab-trilha-materias-da-area", materia.id],
+          queryFn: async () => {
+            const { data, error } = await supabase
+              .from("oab_trilhas_topicos")
+              .select("*")
+              .eq("materia_id", materia.id)
+              .order("ordem");
+            if (error) throw error;
+            return data;
+          },
+          staleTime: Infinity,
+        });
+      });
     }
-  }, [materias]);
+  }, [materias, queryClient]);
 
   // Só mostra loading se não tem dados em cache
   if (isLoading && !materias) {

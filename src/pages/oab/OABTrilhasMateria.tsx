@@ -46,8 +46,7 @@ const OABTrilhasMateria = () => {
     navigate(path);
   };
 
-  // Buscar área (antiga "matéria") pelo ID
-  // CACHE FIRST: Mostra dados em cache imediatamente
+  // Buscar área - CACHE INFINITO para navegação instantânea
   const { data: area, isLoading: loadingArea } = useQuery({
     queryKey: ["oab-trilha-area", parsedMateriaId],
     queryFn: async () => {
@@ -60,8 +59,8 @@ const OABTrilhasMateria = () => {
       return data;
     },
     enabled: !!parsedMateriaId,
-    staleTime: 1000 * 60 * 10, // Cache válido por 10 minutos (área muda pouco)
-    gcTime: 1000 * 60 * 60, // Manter em cache por 1 hora
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   // Buscar total de áreas ativas
@@ -77,8 +76,7 @@ const OABTrilhasMateria = () => {
     },
   });
 
-  // Buscar matérias (antigos "tópicos") da área
-  // CACHE FIRST: Mostra dados em cache imediatamente enquanto revalida
+  // Buscar matérias - CACHE INFINITO + refetch apenas durante geração
   const { data: materias, isLoading: loadingMaterias } = useQuery({
     queryKey: ["oab-trilha-materias-da-area", parsedMateriaId],
     queryFn: async () => {
@@ -91,16 +89,13 @@ const OABTrilhasMateria = () => {
       return data;
     },
     enabled: !!parsedMateriaId,
-    staleTime: 1000 * 60 * 5, // Cache válido por 5 minutos
-    gcTime: 1000 * 60 * 30, // Manter em cache por 30 minutos
-    refetchOnMount: "always", // Sempre revalida, mas mostra cache primeiro
+    staleTime: Infinity, // Cache infinito quando não há geração
+    gcTime: Infinity,
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Refetch enquanto houver algum tópico em geração ou pendente
-      const hasGenerating = data?.some(t => t.status === "gerando");
-      const hasPending = data?.some(t => t.status === "pendente" || !t.status);
-      const hasPendingCapa = data?.some(t => t.status === "concluido" && !t.capa_url);
-      return hasGenerating || hasPendingCapa ? 3000 : (hasPending ? 5000 : false);
+      // Só refetch se há geração ativa (intervalo maior de 5s)
+      const hasGenerating = data?.some(t => t.status === "gerando" || t.status === "na_fila");
+      return hasGenerating ? 5000 : false;
     },
   });
 
@@ -306,17 +301,6 @@ const OABTrilhasMateria = () => {
             </motion.div>
           )}
 
-          {/* Banner de conclusão */}
-          {!isGenerating && concluidos === totalTopicosGerados && totalTopicosGerados > 0 && pendentes === 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-4 bg-gradient-to-r from-green-900/40 to-green-800/30 border border-green-500/30 rounded-xl p-3 flex items-center gap-2"
-            >
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-white">Todos os {totalTopicosGerados} conteúdos foram gerados!</span>
-            </motion.div>
-          )}
         </div>
 
         {/* Barra de Pesquisa */}
