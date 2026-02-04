@@ -117,7 +117,7 @@ export const useOABTrilhasAutoGeneration = ({
     isGeneratingRef.current = false;
   }, [findNextPendingBatch]);
 
-  // Monitorar progresso via polling
+  // Monitorar progresso via polling - INTERVALO AUMENTADO para 5s
   useEffect(() => {
     if (!enabled || !materiaId || !currentlyGenerating) return;
 
@@ -133,8 +133,8 @@ export const useOABTrilhasAutoGeneration = ({
       }
     };
 
-    // Poll a cada 2 segundos enquanto estiver gerando
-    const interval = setInterval(pollProgress, 2000);
+    // Poll a cada 5 segundos (reduzido de 2s para menos requisições)
+    const interval = setInterval(pollProgress, 5000);
     pollProgress(); // Primeira chamada imediata
 
     return () => clearInterval(interval);
