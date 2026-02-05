@@ -134,14 +134,19 @@ serve(async (req) => {
     // 1. Verificar cache
     const { data: cached, error: cacheError } = await supabase
       .from('cache_definicoes_termos')
-      .select('definicao')
+      .select('definicao, exemplo_pratico')
       .eq('termo_normalizado', termoNormalizado)
       .maybeSingle();
 
     if (cached?.definicao) {
       console.log(`Cache hit para: "${termo}"`);
       return new Response(
-        JSON.stringify({ success: true, definicao: cached.definicao, fromCache: true }),
+        JSON.stringify({ 
+          success: true, 
+          definicao: cached.definicao, 
+          exemploPratico: cached.exemplo_pratico || undefined,
+          fromCache: true 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -150,13 +155,14 @@ serve(async (req) => {
     console.log(`Gerando definição com IA para: "${termo}"`);
     const resultado = await gerarDefinicaoComGemini(termo);
 
-    // 3. Salvar no cache (apenas definição, exemplo pode variar)
+    // 3. Salvar no cache (definição e exemplo prático)
     const { error: insertError } = await supabase
       .from('cache_definicoes_termos')
       .upsert({
         termo: termo,
         termo_normalizado: termoNormalizado,
         definicao: resultado.definicao,
+        exemplo_pratico: resultado.exemploPratico || null,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'termo_normalizado'

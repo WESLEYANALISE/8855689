@@ -2120,6 +2120,7 @@ export type Database = {
         Row: {
           created_at: string
           definicao: string
+          exemplo_pratico: string | null
           id: string
           termo: string
           termo_normalizado: string
@@ -2128,6 +2129,7 @@ export type Database = {
         Insert: {
           created_at?: string
           definicao: string
+          exemplo_pratico?: string | null
           id?: string
           termo: string
           termo_normalizado: string
@@ -2136,6 +2138,7 @@ export type Database = {
         Update: {
           created_at?: string
           definicao?: string
+          exemplo_pratico?: string | null
           id?: string
           termo?: string
           termo_normalizado?: string
