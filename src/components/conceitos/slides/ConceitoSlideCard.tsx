@@ -152,11 +152,17 @@ export const ConceitoSlideCard = ({
     onQuestionAnswered?.(true); // Questão foi respondida
     
     if (index === slide.resposta) {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
+      // Confete com tratamento de erro para evitar tela branca em mobile/iFrame
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 },
+          disableForReducedMotion: true
+        });
+      } catch (error) {
+        console.warn('Confetti animation failed:', error);
+      }
     }
   };
 
@@ -217,15 +223,28 @@ export const ConceitoSlideCard = ({
         break;
 
       case 'resumo':
-        if (slide.pontos && slide.pontos.length > 0) {
-          // Converte pontos para markdown ao invés de usar componente
-          const resumoMarkdown = slide.pontos.map((ponto, idx) => 
+        // Se tem pontos significativos (não são apenas títulos de seções), renderiza como lista
+        // Caso contrário, renderiza o conteúdo como texto corrido (síntese real)
+        const temPontosReais = slide.pontos && slide.pontos.length > 0 && 
+          slide.pontos.some(p => p && p.length > 50); // Pontos reais têm mais de 50 caracteres
+        
+        if (temPontosReais) {
+          const resumoMarkdown = slide.pontos!.map((ponto, idx) => 
             `**${idx + 1}.** ${ponto}`
           ).join('\n\n');
           
           return (
             <EnrichedMarkdownRenderer 
               content={resumoMarkdown}
+              fontSize={fontSize}
+              theme="classicos"
+            />
+          );
+        } else if (slide.conteudo) {
+          // Síntese como texto corrido
+          return (
+            <EnrichedMarkdownRenderer 
+              content={slide.conteudo}
               fontSize={fontSize}
               theme="classicos"
             />
