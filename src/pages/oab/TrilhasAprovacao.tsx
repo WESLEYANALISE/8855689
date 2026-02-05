@@ -237,11 +237,7 @@ export default function TrilhasAprovacao() {
             </div>
             <div className="flex items-center gap-2">
               <Footprints className="w-4 h-4 text-yellow-400" />
-              <span>{totalTopicos} matérias</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-400" />
-              <span>{totalSubtemas || 0} tópicos</span>
+              <span>{totalTopicos} aulas</span>
             </div>
           </div>
         </div>
@@ -412,7 +408,7 @@ export default function TrilhasAprovacao() {
                               {topicos > 0 && (
                                 <div className="flex items-center gap-1 mt-2">
                                   <BookOpen className="w-3 h-3 text-yellow-400" />
-                                  <span className="text-xs text-yellow-400 font-medium">{topicos} matérias</span>
+                                <span className="text-xs text-yellow-400 font-medium">{topicos} aulas</span>
                                 </div>
                               )}
                             </div>
