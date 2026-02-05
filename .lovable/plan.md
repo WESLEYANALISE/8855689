@@ -1,91 +1,142 @@
 
-# Plano: Igualar a Trilha "Jornada de Estudos" ao Estilo da "Jornada OAB"
+# Plano: Adicionar Modo "Selecionar" e Corrigir Tela Preta nos Flashcards
 
-## Diferenças Identificadas
+## Problemas Identificados
 
-| Aspecto | Jornada OAB ✅ | Jornada Estudos ❌ |
-|---------|---------------|-------------------|
-| **Linha central** | `w-0.5` (2px - fina) | `w-1` (4px - grossa) |
-| **Cor da linha** | `bg-gradient-to-b from-red-900/50 via-red-800/50 to-amber-900/50` | Gradiente âmbar sólido |
-| **Animação da linha** | CSS `electricFlow` com vermelho/âmbar | Framer-motion simples |
-| **Tamanho pegadas** | `p-2` com `w-4 h-4` ícone (menores) | `w-10 h-10` (maiores) |
-| **Animação pegadas** | CSS `footprintPulse` + `animate-ping` | Framer-motion scale/shadow |
-| **Estilo pegadas** | `ring-4 ring-background` (borda do fundo) | `boxShadow` glow colorido |
+### 1. Erro de Build
+O ícone `RefreshCw` foi removido do componente mas ainda está importado na linha 2, causando erro de build.
 
-## Mudanças no Arquivo
+### 2. Tela Preta ao Entrar na Área
+O problema ocorre porque:
+- **Configuração agressiva de cache**: `staleTime: 0`, `gcTime: 0` e `refetchOnMount: 'always'` forçam recarregamento completo a cada navegação
+- **Sem cache persistente**: Cada vez que entra na página, busca tudo novamente do zero
+- **Loading blocking**: Mostra estado de loading com fundo escuro enquanto busca dados
 
-**Arquivo:** `src/components/mobile/MobileTrilhasAprender.tsx`
+### 3. Falta Modo "Selecionar"
+O toggle atual só tem "Cronológica" e "Alfabética". É necessário adicionar um terceiro modo para seleção múltipla de temas.
 
-### 1. Linha Central - Tornar Mais Fina
+---
+
+## Mudanças Propostas
+
+### Arquivo: `src/pages/FlashcardsTemas.tsx`
+
+#### 1. Corrigir Import (remover RefreshCw não usado)
 ```tsx
-// De:
-<div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
-  <div className="w-full h-full bg-gradient-to-b from-amber-500/80 via-amber-600/60 to-amber-700/40 rounded-full" />
-  <motion.div ... />
-</div>
-
-// Para (igual OAB):
-<div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-900/50 via-amber-800/50 to-amber-700/50 transform -translate-x-1/2" />
-<div className="absolute left-1/2 top-0 bottom-0 w-0.5 transform -translate-x-1/2 overflow-hidden">
-  <div 
-    className="absolute inset-0 w-full"
-    style={{
-      background: 'linear-gradient(to bottom, transparent, #f59e0b, #fbbf24, transparent)',
-      backgroundSize: '100% 200%',
-      animation: 'electricFlow 2s ease-in-out infinite',
-    }}
-  />
-</div>
+// Linha 2 - REMOVER RefreshCw
+import { Sparkles, Search, ArrowLeft, BookOpen, FileText, Loader2, Lock, Crown, CheckCircle2, ArrowDownAZ, ListOrdered, CheckSquare } from "lucide-react";
 ```
 
-### 2. Marcadores de Pegada - Menores e Estilo OAB
+#### 2. Adicionar Estado para Modo Selecionar
 ```tsx
-// De:
-<motion.div
-  animate={{ scale: [1, 1.15, 1], boxShadow: [...] }}
-  className="w-10 h-10 rounded-full ..."
->
-  <Footprints className="w-5 h-5 text-white" />
-</motion.div>
+// Após linha 24
+const [modo, setModo] = useState<"cronologica" | "alfabetica" | "selecionar">("cronologica");
+const [temasSelecionados, setTemasSelecionados] = useState<string[]>([]);
+```
 
-// Para (igual OAB):
-<div 
-  className="absolute left-1/2 transform -translate-x-1/2 z-10"
-  style={{ animation: `footprintPulse 2s ease-in-out infinite ${index * 0.3}s` }}
+#### 3. Otimizar Cache (remover reloads desnecessários)
+```tsx
+// Alterar configuração do useQuery (linhas 133-140)
+staleTime: 1000 * 60 * 5, // 5 minutos de cache
+gcTime: 1000 * 60 * 30,   // 30 minutos no garbage collector
+refetchOnMount: false,     // Não recarrega se já tem dados
+refetchOnWindowFocus: false,
+```
+
+#### 4. Adicionar Botão "Selecionar" no Toggle
+```tsx
+// Adicionar após ToggleGroupItem de "Alfabética" (linha 284)
+<ToggleGroupItem 
+  value="selecionar" 
+  aria-label="Selecionar temas"
+  className="text-xs px-3 py-1.5 h-auto data-[state=on]:bg-green-500/20 data-[state=on]:text-green-400 data-[state=on]:shadow-sm text-gray-400"
 >
-  <div 
-    className="rounded-full p-2 shadow-lg ring-4 ring-background relative"
-    style={{ backgroundColor: trilha.color }}
+  <CheckSquare className="w-3.5 h-3.5 mr-1.5" />
+  Selecionar
+</ToggleGroupItem>
+```
+
+#### 5. Lógica de Seleção de Temas
+```tsx
+// Função para alternar seleção
+const toggleTemaSelecionado = (tema: string) => {
+  setTemasSelecionados(prev => 
+    prev.includes(tema) 
+      ? prev.filter(t => t !== tema)
+      : [...prev, tema]
+  );
+};
+
+// Função para iniciar estudo com temas selecionados
+const iniciarEstudoSelecionado = () => {
+  if (temasSelecionados.length === 0) {
+    toast.error("Selecione pelo menos um tema");
+    return;
+  }
+  // Navega com múltiplos temas
+  const temasParam = temasSelecionados.map(t => encodeURIComponent(t)).join(",");
+  navigate(`/flashcards/estudar?area=${encodeURIComponent(area)}&temas=${temasParam}`);
+};
+```
+
+#### 6. UI do Modo Selecionar
+- Mostrar checkbox em cada card de tema
+- Exibir contador de temas selecionados
+- Botão flutuante "Estudar X temas" quando há seleção
+
+```tsx
+{/* Barra inferior com botão de estudar (quando em modo selecionar) */}
+{modo === "selecionar" && temasSelecionados.length > 0 && (
+  <motion.div
+    initial={{ y: 100, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    className="fixed bottom-20 left-0 right-0 z-50 px-4"
   >
-    <div 
-      className="absolute inset-0 rounded-full animate-ping opacity-30" 
-      style={{ backgroundColor: trilha.color, animationDelay: `${index * 0.3}s` }}
-    />
-    <Footprints className="w-4 h-4 text-white relative z-10" />
-  </div>
-</div>
+    <div className="max-w-lg mx-auto">
+      <Button 
+        onClick={iniciarEstudoSelecionado}
+        className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl shadow-lg"
+      >
+        Estudar {temasSelecionados.length} tema{temasSelecionados.length > 1 ? 's' : ''}
+      </Button>
+    </div>
+  </motion.div>
+)}
 ```
 
-### 3. Adicionar CSS Keyframes (igual OAB)
-```tsx
-// Adicionar no final do componente, antes do return ou via <style>:
-<style>{`
-  @keyframes electricFlow {
-    0% { background-position: 100% 0%; opacity: 0.3; }
-    50% { opacity: 1; }
-    100% { background-position: 100% 100%; opacity: 0.3; }
-  }
-  @keyframes footprintPulse {
-    0%, 100% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.15); }
-  }
-`}</style>
+#### 7. Modificar Card de Tema para Modo Selecionar
+Quando `modo === "selecionar"`:
+- Adicionar checkbox visual no card
+- Click seleciona/desseleciona em vez de navegar
+- Mostrar estado selecionado com borda verde
+
+---
+
+## Fluxo Visual
+
+```text
+┌─────────────────────────────────────┐
+│  Modo: [Cronológica][Alfabética][✓ Selecionar]
+└─────────────────────────────────────┘
+                    │
+     Quando "Selecionar" ativo:
+                    ▼
+┌─────────────────────────────────────┐
+│  ☐ Tema 1 - Princípios...           │
+│  ☑ Tema 2 - Agentes Públicos        │ ← Selecionado
+│  ☑ Tema 3 - Bens Públicos           │ ← Selecionado  
+│  ☐ Tema 4 - ...                     │
+└─────────────────────────────────────┘
+                    ▼
+┌─────────────────────────────────────┐
+│    [ Estudar 2 temas ]              │ ← Botão flutuante
+└─────────────────────────────────────┘
 ```
 
-## Resultado Visual Esperado
+---
 
-- ✅ Linha central **mais fina** (2px em vez de 4px)
-- ✅ Animação **"elétrica"** igual à OAB (gradiente fluindo)
-- ✅ Marcadores de pegada **menores** com borda ring-background
-- ✅ Animação **ping** nos marcadores (pulso de expansão)
-- ✅ **Consistência visual** entre as duas trilhas
+## Resultado Esperado
+
+1. **Build funciona** - Sem erro de import não utilizado
+2. **Navegação instantânea** - Cache otimizado elimina tela preta
+3. **Modo Selecionar** - Permite escolher múltiplos temas para estudo combinado
