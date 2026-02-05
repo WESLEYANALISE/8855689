@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, GraduationCap, ChevronRight, BookOpen, HelpCircle, Play, Clock, Target, List, ArrowLeft, Sparkles, Lock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,78 @@ export const AulaArtigoSlidesViewer = ({
   // Progress state for realistic loading indicator
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("Iniciando...");
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const queryClient = useQueryClient();
+
+  // Query para verificar se a aula já existe no cache do banco
+  const { data: cachedAula, isLoading: isCheckingCache } = useQuery({
+    queryKey: ['aula-artigo', codigoTabela, numeroArtigo],
+    queryFn: async () => {
+      const codigoNorm = codigoTabela.toUpperCase().split(' ')[0].split('-')[0].trim();
+      
+      // Verificar primeiro com código normalizado
+      const { data: aulaNorm } = await supabase
+        .from('aulas_artigos')
+        .select('id, slides_json')
+        .eq('codigo_tabela', codigoNorm)
+        .eq('numero_artigo', numeroArtigo)
+        .single();
+      
+      if (aulaNorm?.slides_json) {
+        const slidesSecoes = (aulaNorm.slides_json as any)?.secoes;
+        const hasSufficientSlides = slidesSecoes && 
+          slidesSecoes.length >= 5 &&
+          slidesSecoes.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) >= 40;
+        
+        if (hasSufficientSlides) {
+          return {
+            ...(aulaNorm.slides_json as unknown as SlidesData),
+            cached: true,
+            aulaId: aulaNorm.id
+          };
+        }
+      }
+      
+      // Verificar com código original
+      const { data: aulaOrig } = await supabase
+        .from('aulas_artigos')
+        .select('id, slides_json')
+        .eq('codigo_tabela', codigoTabela)
+        .eq('numero_artigo', numeroArtigo)
+        .single();
+      
+      if (aulaOrig?.slides_json) {
+        const slidesSecoes = (aulaOrig.slides_json as any)?.secoes;
+        const hasSufficientSlides = slidesSecoes && 
+          slidesSecoes.length >= 5 &&
+          slidesSecoes.reduce((acc: number, s: any) => acc + (s.slides?.length || 0), 0) >= 40;
+        
+        if (hasSufficientSlides) {
+          return {
+            ...(aulaOrig.slides_json as unknown as SlidesData),
+            cached: true,
+            aulaId: aulaOrig.id
+          };
+        }
+      }
+      
+      return null;
+    },
+    enabled: isOpen,
+    staleTime: 1000 * 60 * 10, // 10 minutos
+    gcTime: 1000 * 60 * 30 // 30 minutos
+  });
+
+  // Quando temos cache, definir slidesData e ir para intro imediatamente
+  useEffect(() => {
+    if (cachedAula && isOpen && !slidesData) {
+      console.log('[AulaArtigo] ✅ Carregado do cache React Query');
+      setSlidesData(cachedAula);
+      setEtapaAtual('intro');
+      toast.success("Aula carregada!");
+    }
+  }, [cachedAula, isOpen, slidesData]);
 
   // Rotate loading messages
   useEffect(() => {
@@ -139,13 +212,17 @@ export const AulaArtigoSlidesViewer = ({
   }, [codigoTabela]);
 
   // Fetch or generate slides when modal opens
+  // Gerar slides SOMENTE se não existir no cache
   useEffect(() => {
-    if (isOpen && !slidesData) {
-      fetchOrGenerateSlides();
+    if (isOpen && !isCheckingCache && !cachedAula && !slidesData && !isGenerating) {
+      generateSlidesFromScratch();
     }
-  }, [isOpen]);
+  }, [isOpen, isCheckingCache, cachedAula, slidesData, isGenerating]);
 
-  const fetchOrGenerateSlides = async () => {
+  const generateSlidesFromScratch = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    
     let progressInterval: number | undefined;
     let currentProgress = 0;
     
@@ -208,6 +285,9 @@ export const AulaArtigoSlidesViewer = ({
 
       const data = response.data as SlidesData;
       setSlidesData(data);
+      
+      // Invalidar e atualizar cache React Query
+      queryClient.setQueryData(['aula-artigo', codigoTabela, numeroArtigo], data);
 
       if (data.cached) {
         toast.success("Aula carregada!");
@@ -221,7 +301,10 @@ export const AulaArtigoSlidesViewer = ({
       console.error('Erro ao gerar slides:', error);
       if (progressInterval) clearInterval(progressInterval);
       toast.error("Erro ao gerar aula. Tente novamente.");
+      setIsGenerating(false);
       onClose();
+    } finally {
+      setIsGenerating(false);
     }
   };
 
