@@ -1,184 +1,70 @@
 
-# Plano: Limites de Conteúdo Gratuito para OAB Trilhas e Conceitos
+# Plano: Corrigir Cache de Aulas Interativas e Botão "Começar Leitura"
 
-## Resumo
+## Problema Identificado
 
-Implementar restrições de conteúdo para contas gratuitas, permitindo acesso limitado a:
-- **2 matérias por área** (dentro de cada área OAB)
-- **9 áreas** (trilhas) na página principal OAB Trilhas
-- **9 matérias** em Conceitos Trilhante
+### 1. Aula sendo recriada quando já existe
+A verificação de cache no React Query (`useQuery`) está correta, mas há uma condição de corrida:
+- O `useEffect` que dispara `generateSlidesFromScratch` verifica `!cachedAula && !slidesData && !isGenerating`
+- Porém, durante o tempo em que `isCheckingCache` é `true` e a query está pendente, pode haver um ciclo onde a geração é disparada antes do cache retornar
 
-Itens além desses limites aparecerão bloqueados com visual de cadeado e exigirão assinatura Premium para acesso.
+### 2. Botão "Começar Leitura" não clicável
+O botão está vinculado a `handleStartSlides()`, que verifica se `slidesData?.secoes` existe. Quando a aula vem do cache:
+- O `useEffect` que seta `setSlidesData(cachedAula)` depende de `cachedAula` mudar
+- Mas se `slidesData` já tiver um valor (mesmo que incompleto), o efeito não roda novamente
 
----
+## Solução Técnica
 
-## Arquitetura da Solução
+### Arquivo: `src/components/AulaArtigoSlidesViewer.tsx`
+
+1. **Corrigir race condition na verificação de cache:**
+   - Garantir que a geração NUNCA seja disparada enquanto `isCheckingCache === true`
+   - Adicionar log detalhado para debug
+
+2. **Usar `cachedAula` diretamente quando disponível:**
+   - Em vez de depender de um `useEffect` para setar `slidesData`, usar diretamente nos handlers
+   - O `handleStartSlides` deve verificar `cachedAula || slidesData`
+
+3. **Refatorar estado para evitar duplicação:**
+   - Usar um único estado derivado: se `cachedAula` existe, usar ele; senão usar `slidesData` gerado
+   - Remover a dependência de múltiplos `useEffect`
+
+4. **Corrigir a lógica do botão "Começar Leitura":**
+   - O botão deve usar `currentSlidesData` (memoizado) que combina cache + gerado
+   - Garantir que `etapaAtual` vá para `'intro'` imediatamente quando cache existe
+
+## Mudanças Específicas
 
 ```text
-+------------------------------------------+
-|       Hook useFixedContentLimit          |
-|  (limites absolutos, não percentuais)    |
-+------------------------------------------+
-            |
-            v
-+------------------------------------------+
-|         Componentes de Lista             |
-|  TrilhasAprovacao | OABTrilhasMateria    |
-|  ConceitosTrilhante                      |
-+------------------------------------------+
-            |
-            v
-+------------------------------------------+
-|   LockedContentListItem / Card           |
-|   (visual de item bloqueado)             |
-+------------------------------------------+
-            |
-            v
-+------------------------------------------+
-|       PremiumFloatingCard                |
-|   (modal de upgrade ao clicar)           |
-+------------------------------------------+
+1. Criar variável memoizada:
+   const currentSlidesData = cachedAula || slidesData;
+
+2. Corrigir useEffect de etapa inicial:
+   - Se !isCheckingCache && cachedAula -> setEtapaAtual('intro')
+   - Não depender mais de slidesData para isso
+
+3. Corrigir condição de geração:
+   if (isOpen && !isCheckingCache && !cachedAula && !slidesData && !isGenerating)
+   -> Garantir que isCheckingCache seja verificado PRIMEIRO
+
+4. Atualizar handleStartSlides:
+   - Usar currentSlidesData em vez de slidesData
+   - Adicionar fallback se secoes não existir
+
+5. Atualizar renderização da tela de intro:
+   - Usar currentSlidesData para exibir dados
+   - Garantir botões responsivos
 ```
 
----
+## Arquivos a Modificar
 
-## Etapas de Implementação
-
-### 1. Criar Hook `useFixedContentLimit`
-
-Novo hook em `src/hooks/useFixedContentLimit.ts` que trabalha com limites absolutos (não percentuais).
-
-**Funcionalidades:**
-- Recebe array de itens e limite máximo
-- Retorna `visibleItems` (até o limite) e `lockedItems` (além do limite)
-- Usuários Premium têm acesso total
-- Durante loading, mantém acesso total (evita flash)
-
-**Limites definidos:**
-- `oab-trilhas-areas`: 9 áreas
-- `oab-trilhas-materias`: 2 matérias por área
-- `conceitos-materias`: 9 matérias
-
----
-
-### 2. Atualizar `TrilhasAprovacao.tsx` (OAB Trilhas)
-
-**Alterações:**
-- Importar `useFixedContentLimit` e `useSubscription`
-- Aplicar limite de 9 áreas para usuários gratuitos
-- Renderizar `LockedContentCard` para áreas bloqueadas
-- Adicionar `PremiumFloatingCard` para modal de upgrade
-- Exibir badge de quantidade bloqueada no topo
-
----
-
-### 3. Atualizar `OABTrilhasMateria.tsx` (Matérias por Área)
-
-**Alterações:**
-- Aplicar limite de 2 matérias por área para usuários gratuitos
-- Renderizar versão bloqueada dos cards de matéria
-- Adicionar modal de upgrade ao clicar em item bloqueado
-
----
-
-### 4. Atualizar `ConceitosTrilhante.tsx` (Conceitos)
-
-**Alterações:**
-- Aplicar limite de 9 matérias para usuários gratuitos
-- Usar mesmo padrão visual de bloqueio
-- Adicionar modal de upgrade
-
----
-
-### 5. Criar Componente `LockedTimelineCard`
-
-Novo componente em `src/components/LockedTimelineCard.tsx` específico para o visual de timeline usado em OAB Trilhas e Conceitos.
-
-**Características:**
-- Mantém o layout de timeline alternado (esquerda/direita)
-- Capa com overlay escuro e cadeado centralizado
-- Badge "Premium" no canto
-- Texto em tom mais escuro (muted)
-
----
-
-## Detalhes Técnicos
-
-### Hook `useFixedContentLimit`
-
-```typescript
-// Limites absolutos por tipo de conteúdo
-const FIXED_LIMITS: Record<string, number> = {
-  'oab-trilhas-areas': 9,      // 9 áreas na página principal
-  'oab-trilhas-materias': 2,   // 2 matérias por área
-  'conceitos-materias': 9,     // 9 matérias em conceitos
-};
-
-export function useFixedContentLimit<T>(
-  items: T[] | undefined,
-  type: keyof typeof FIXED_LIMITS
-): {
-  visibleItems: T[];
-  lockedItems: T[];
-  totalCount: number;
-  isPremiumRequired: boolean;
-}
-```
-
-### Estrutura do Card Bloqueado
-
-O card bloqueado na timeline terá:
-- Imagem de capa com blur + overlay escuro
-- Cadeado dourado centralizado
-- Badge "Premium" no canto superior direito
-- Título e subtítulo em cor muted
-- Ao clicar: abre `PremiumFloatingCard`
-
----
-
-## Arquivos a Modificar/Criar
-
-| Arquivo | Ação |
-|---------|------|
-| `src/hooks/useFixedContentLimit.ts` | **Criar** - Hook de limite absoluto |
-| `src/components/LockedTimelineCard.tsx` | **Criar** - Card bloqueado para timeline |
-| `src/pages/oab/TrilhasAprovacao.tsx` | **Modificar** - Aplicar limite de 9 áreas |
-| `src/pages/oab/OABTrilhasMateria.tsx` | **Modificar** - Aplicar limite de 2 matérias |
-| `src/pages/ConceitosTrilhante.tsx` | **Modificar** - Aplicar limite de 9 matérias |
-
----
-
-## Comportamento Visual
-
-### Usuário Gratuito
-
-1. **OAB Trilhas (Áreas)**: Vê 9 áreas normalmente, restante com cadeado
-2. **Dentro de uma Área (Matérias)**: Vê 2 matérias, restante bloqueado
-3. **Conceitos Trilhante**: Vê 9 matérias, restante bloqueado
-
-### Usuário Premium
-
-- Acesso completo a todo o conteúdo
-- Nenhum indicador de bloqueio exibido
-
----
-
-## Experiência do Usuário
-
-1. Usuário gratuito navega normalmente pelos itens liberados
-2. Ao visualizar item bloqueado, vê visual com cadeado
-3. Ao clicar no item bloqueado, abre modal persuasivo com:
-   - Título "Conteúdo Premium"
-   - Descrição contextual
-   - Áudio persuasivo (já existente)
-   - Botão "Ver Planos"
-4. Usuário é direcionado para página de assinatura
-
----
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/AulaArtigoSlidesViewer.tsx` | Refatorar lógica de cache e estado |
 
 ## Resultado Esperado
 
-- Usuários gratuitos têm amostra significativa do conteúdo
-- Limite claro e previsível (não percentual que varia)
-- Visual atrativo que incentiva upgrade sem frustrar
-- Experiência consistente entre OAB Trilhas e Conceitos
+- Ao abrir aula que já existe, carregar instantaneamente do cache sem regenerar
+- Botão "Começar Leitura" funcionar imediatamente quando cache carrega
+- Toast "Aula carregada!" aparecer (não "Aula criada!")
+- Nenhuma chamada à Edge Function se a aula já existir no banco
