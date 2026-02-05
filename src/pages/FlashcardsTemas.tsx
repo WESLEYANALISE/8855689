@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Sparkles, Search, ArrowLeft, BookOpen, FileText, Loader2, Lock, Crown, CheckCircle2, RefreshCw, ArrowDownAZ, ListOrdered } from "lucide-react";
+import { Sparkles, Search, ArrowLeft, BookOpen, FileText, Loader2, Lock, Crown, CheckCircle2, ArrowDownAZ, ListOrdered, CheckSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useContentLimit } from "@/hooks/useContentLimit";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import themisBackground from "@/assets/themis-estudos-background.webp";
 
 // Preload da imagem de fundo
@@ -21,7 +23,8 @@ const FlashcardsTemas = () => {
   const [searchParams] = useSearchParams();
   const area = searchParams.get("area") || "";
   const [searchTerm, setSearchTerm] = useState("");
-  const [modo, setModo] = useState<"cronologica" | "alfabetica">("cronologica");
+  const [modo, setModo] = useState<"cronologica" | "alfabetica" | "selecionar">("cronologica");
+  const [temasSelecionados, setTemasSelecionados] = useState<string[]>([]);
 
   // Redireciona para seleção de área se não houver área definida
   useEffect(() => {
@@ -130,10 +133,10 @@ const FlashcardsTemas = () => {
       }).sort((a, b) => a.ordem - b.ordem);
     },
     enabled: !!area,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache
+    gcTime: 1000 * 60 * 30,   // 30 minutos no garbage collector
+    refetchOnMount: false,     // Não recarrega se já tem dados
+    refetchOnWindowFocus: false,
     refetchInterval: (query) => {
       const temPendentes = query.state.data?.some(t => !t.temFlashcards && t.parcial);
       return temPendentes ? 5000 : false;
@@ -143,10 +146,28 @@ const FlashcardsTemas = () => {
   const sortedTemas = temas?.filter(item =>
     item.tema.toLowerCase().includes(searchTerm.toLowerCase())
   ).sort((a, b) => 
-    modo === "alfabetica" 
+    modo === "selecionar" || modo === "alfabetica" 
       ? a.tema.localeCompare(b.tema) 
       : a.ordem - b.ordem
   );
+
+  // Funções para modo selecionar
+  const toggleTemaSelecionado = (tema: string) => {
+    setTemasSelecionados(prev => 
+      prev.includes(tema) 
+        ? prev.filter(t => t !== tema)
+        : [...prev, tema]
+    );
+  };
+
+  const iniciarEstudoSelecionado = () => {
+    if (temasSelecionados.length === 0) {
+      toast.error("Selecione pelo menos um tema");
+      return;
+    }
+    const temasParam = temasSelecionados.map(t => encodeURIComponent(t)).join(",");
+    navigate(`/flashcards/estudar?area=${encodeURIComponent(area)}&temas=${temasParam}`);
+  };
 
   // Aplica limite de 10% para usuários free
   const { visibleItems, lockedItems, isPremiumRequired } = useContentLimit(sortedTemas, 'flashcards-temas');
@@ -260,7 +281,10 @@ const FlashcardsTemas = () => {
                   value={modo} 
                   onValueChange={(value) => {
                     if (value) {
-                      setModo(value as "cronologica" | "alfabetica");
+                      setModo(value as "cronologica" | "alfabetica" | "selecionar");
+                      if (value !== "selecionar") {
+                        setTemasSelecionados([]);
+                      }
                     }
                   }}
                   className="bg-white/5 rounded-lg p-1"
@@ -281,6 +305,14 @@ const FlashcardsTemas = () => {
                     <ArrowDownAZ className="w-3.5 h-3.5 mr-1.5" />
                     Alfabética
                   </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="selecionar" 
+                    aria-label="Selecionar temas"
+                    className="text-xs px-3 py-1.5 h-auto data-[state=on]:bg-green-500/20 data-[state=on]:text-green-400 data-[state=on]:shadow-sm text-gray-400"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5 mr-1.5" />
+                    Selecionar
+                  </ToggleGroupItem>
                 </ToggleGroup>
               </div>
             </div>
@@ -295,82 +327,108 @@ const FlashcardsTemas = () => {
                 ) : (
                   <div className="space-y-3">
                     {/* Temas liberados */}
-                    {visibleItems?.map((item, index) => (
-                      <motion.div
-                        key={item.tema}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => navegarParaTema(item.tema, false)}
-                        className={`cursor-pointer rounded-xl bg-[#12121a]/90 backdrop-blur-sm border transition-all overflow-hidden ${
-                          item.temFlashcards 
-                            ? "border-green-500/30 hover:border-green-500/50"
-                            : item.parcial
-                            ? "border-blue-500/30 hover:border-blue-500/50"
-                            : "border-white/10 hover:border-violet-500/50"
-                        }`}
-                      >
-                        <div className="p-4 flex items-center gap-4">
-                          {/* Número/Ícone */}
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                            item.temFlashcards 
-                              ? "bg-gradient-to-br from-green-500/20 to-green-700/20 border border-green-500/30"
+                    {visibleItems?.map((item, index) => {
+                      const isSelected = temasSelecionados.includes(item.tema);
+                      return (
+                        <motion.div
+                          key={item.tema}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            if (modo === "selecionar") {
+                              toggleTemaSelecionado(item.tema);
+                            } else {
+                              navegarParaTema(item.tema, false);
+                            }
+                          }}
+                          className={`cursor-pointer rounded-xl bg-[#12121a]/90 backdrop-blur-sm border transition-all overflow-hidden ${
+                            modo === "selecionar" && isSelected
+                              ? "border-green-500 ring-2 ring-green-500/30"
+                              : item.temFlashcards 
+                              ? "border-green-500/30 hover:border-green-500/50"
                               : item.parcial
-                              ? "bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30"
-                              : "bg-gradient-to-br from-violet-500/20 to-violet-700/20 border border-violet-500/30"
-                          }`}>
-                            {item.temFlashcards ? (
-                              <CheckCircle2 className="w-5 h-5 text-green-400" />
-                            ) : item.parcial ? (
-                              <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
-                            ) : (
-                              <span className="text-lg font-bold text-violet-400">{item.ordem + 1}</span>
-                            )}
-                          </div>
-                          
-                          {/* Conteúdo */}
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs mb-0.5 ${
-                              item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-violet-400"
-                            }`}>
-                              Tema {item.ordem + 1}
-                            </p>
-                            
-                            <h3 className="text-sm leading-snug text-white line-clamp-2">
-                              {item.tema}
-                            </h3>
-                            
-                            {/* Status */}
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <Sparkles className={`w-3 h-3 shrink-0 ${
-                                item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-yellow-400"
-                              }`} />
-                              <span className={`text-xs ${
-                                item.temFlashcards ? "text-green-400/80" : item.parcial ? "text-blue-400/80" : "text-yellow-400/80"
+                              ? "border-blue-500/30 hover:border-blue-500/50"
+                              : "border-white/10 hover:border-violet-500/50"
+                          }`}
+                        >
+                          <div className="p-4 flex items-center gap-4">
+                            {/* Checkbox ou Número/Ícone */}
+                            {modo === "selecionar" ? (
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                isSelected
+                                  ? "bg-gradient-to-br from-green-500/30 to-green-700/30 border-2 border-green-500"
+                                  : "bg-gradient-to-br from-gray-500/20 to-gray-700/20 border border-gray-500/30"
                               }`}>
-                                {item.temFlashcards 
-                                  ? `${item.totalFlashcards} flashcards` 
-                                  : item.parcial 
-                                  ? `${item.subtemasGerados}/${item.totalSubtemas} subtemas`
-                                  : `${item.totalSubtemas} subtemas`}
-                              </span>
-                            </div>
-                            
-                            {/* Barra de progresso para parcial */}
-                            {item.parcial && (
-                              <div className="mt-2">
-                                <Progress 
-                                  value={item.progressoPercent} 
-                                  className="h-1 bg-gray-700/50"
-                                />
+                                {isSelected ? (
+                                  <CheckCircle2 className="w-6 h-6 text-green-400" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-md border-2 border-gray-500" />
+                                )}
+                              </div>
+                            ) : (
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                item.temFlashcards 
+                                  ? "bg-gradient-to-br from-green-500/20 to-green-700/20 border border-green-500/30"
+                                  : item.parcial
+                                  ? "bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30"
+                                  : "bg-gradient-to-br from-violet-500/20 to-violet-700/20 border border-violet-500/30"
+                              }`}>
+                                {item.temFlashcards ? (
+                                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                ) : item.parcial ? (
+                                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                                ) : (
+                                  <span className="text-lg font-bold text-violet-400">{item.ordem + 1}</span>
+                                )}
                               </div>
                             )}
+                            
+                            {/* Conteúdo */}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs mb-0.5 ${
+                                modo === "selecionar" && isSelected ? "text-green-400" :
+                                item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-violet-400"
+                              }`}>
+                                Tema {item.ordem + 1}
+                              </p>
+                              
+                              <h3 className="text-sm leading-snug text-white line-clamp-2">
+                                {item.tema}
+                              </h3>
+                              
+                              {/* Status */}
+                              <div className="flex items-center gap-1 mt-1.5">
+                                <Sparkles className={`w-3 h-3 shrink-0 ${
+                                  item.temFlashcards ? "text-green-400" : item.parcial ? "text-blue-400" : "text-yellow-400"
+                                }`} />
+                                <span className={`text-xs ${
+                                  item.temFlashcards ? "text-green-400/80" : item.parcial ? "text-blue-400/80" : "text-yellow-400/80"
+                                }`}>
+                                  {item.temFlashcards 
+                                    ? `${item.totalFlashcards} flashcards` 
+                                    : item.parcial 
+                                    ? `${item.subtemasGerados}/${item.totalSubtemas} subtemas`
+                                    : `${item.totalSubtemas} subtemas`}
+                                </span>
+                              </div>
+                              
+                              {/* Barra de progresso para parcial */}
+                              {item.parcial && (
+                                <div className="mt-2">
+                                  <Progress 
+                                    value={item.progressoPercent} 
+                                    className="h-1 bg-gray-700/50"
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
 
                     {/* Temas bloqueados */}
                     {lockedItems?.map((item, index) => (
@@ -436,6 +494,25 @@ const FlashcardsTemas = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* Botão flutuante para estudar temas selecionados */}
+        {modo === "selecionar" && temasSelecionados.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="fixed bottom-20 left-0 right-0 z-50 px-4"
+          >
+            <div className="max-w-lg mx-auto">
+              <Button 
+                onClick={iniciarEstudoSelecionado}
+                className="w-full bg-green-600 hover:bg-green-500 text-white py-6 rounded-xl shadow-lg shadow-green-500/30 text-base font-semibold"
+              >
+                <CheckSquare className="w-5 h-5 mr-2" />
+                Estudar {temasSelecionados.length} tema{temasSelecionados.length > 1 ? 's' : ''}
+              </Button>
+            </div>
+          </motion.div>
         )}
       </div>
     </div>
