@@ -12,11 +12,16 @@ import LivroResumoPlayer from "@/components/biblioteca/LivroResumoPlayer";
 import LeituraDinamicaReader from "@/components/biblioteca/LeituraDinamicaReader";
 import LeituraDinamicaSetup from "@/components/biblioteca/LeituraDinamicaSetup";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 
 const BibliotecaClassicosLivro = () => {
   const { livroId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const [showPDF, setShowPDF] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'vertical'>('normal');
@@ -272,14 +277,16 @@ const BibliotecaClassicosLivro = () => {
                   Ler agora
                 </Button>
               )}
-              <Button
-                onClick={() => navigate(`/biblioteca-classicos/${livroId}/analise`)}
-                size="lg"
-                className="bg-purple-600/80 hover:bg-purple-600 text-white shadow-lg transition-all"
-              >
-                <Microscope className="w-5 h-5 mr-2" />
-                Análise
-              </Button>
+              {isAdmin && (
+                <Button
+                  onClick={() => navigate(`/biblioteca-classicos/${livroId}/analise`)}
+                  size="lg"
+                  className="bg-purple-600/80 hover:bg-purple-600 text-white shadow-lg transition-all"
+                >
+                  <Microscope className="w-5 h-5 mr-2" />
+                  Análise
+                </Button>
+              )}
             </div>
 
             {/* Tabs de Conteúdo */}
@@ -429,6 +436,7 @@ const BibliotecaClassicosLivro = () => {
         }}
         bookTitle={livro?.livro || ''}
         hasLeituraDinamica={hasLeituraDinamica}
+        isAdmin={isAdmin}
       />
 
       <LeituraDinamicaSetup

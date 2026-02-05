@@ -8,6 +8,7 @@ interface PDFReaderModeSelectorProps {
   onSelectMode: (mode: 'normal' | 'vertical' | 'dinamica') => void;
   bookTitle: string;
   hasLeituraDinamica?: boolean;
+  isAdmin?: boolean;
 }
 
 const PDFReaderModeSelector = ({ 
@@ -15,7 +16,8 @@ const PDFReaderModeSelector = ({
   onClose, 
   onSelectMode, 
   bookTitle,
-  hasLeituraDinamica = false
+  hasLeituraDinamica = false,
+  isAdmin = false
 }: PDFReaderModeSelectorProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -27,7 +29,7 @@ const PDFReaderModeSelector = ({
           <p className="text-xs text-muted-foreground text-center line-clamp-1">{bookTitle}</p>
         </DialogHeader>
         
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className={`grid gap-3 sm:gap-4 ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <Card 
             className="group relative p-4 sm:p-6 cursor-pointer transition-all duration-300 border-2 hover:border-primary hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
             onClick={() => onSelectMode('normal')}
@@ -66,24 +68,26 @@ const PDFReaderModeSelector = ({
             </div>
           </Card>
 
-          <Card 
-            className="group relative p-4 sm:p-6 cursor-pointer transition-all duration-300 border-2 hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5 active:scale-95"
-            onClick={() => onSelectMode('dinamica')}
-          >
-            <div className="flex flex-col items-center text-center gap-2 sm:gap-3">
-              <div className="p-3 sm:p-4 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                <Sparkles className="w-6 h-6 sm:w-10 sm:h-10 text-purple-500" />
+          {isAdmin && (
+            <Card 
+              className="group relative p-4 sm:p-6 cursor-pointer transition-all duration-300 border-2 hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5 active:scale-95"
+              onClick={() => onSelectMode('dinamica')}
+            >
+              <div className="flex flex-col items-center text-center gap-2 sm:gap-3">
+                <div className="p-3 sm:p-4 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                  <Sparkles className="w-6 h-6 sm:w-10 sm:h-10 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs sm:text-base mb-1">
+                    Dinâmica
+                  </h3>
+                  <p className="text-[9px] sm:text-xs text-muted-foreground leading-tight">
+                    Texto formatado
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-xs sm:text-base mb-1">
-                  Dinâmica
-                </h3>
-                <p className="text-[9px] sm:text-xs text-muted-foreground leading-tight">
-                  Texto formatado
-                </p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
       </DialogContent>
     </Dialog>
