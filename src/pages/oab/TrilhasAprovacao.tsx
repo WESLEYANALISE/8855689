@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, Search, X } from "lucide-react";
-import { FileText } from "lucide-react";
+import { FileText, Layers } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import bgAreasOab from "@/assets/bg-areas-oab.webp";
@@ -82,7 +82,7 @@ export default function TrilhasAprovacao() {
   const { data: topicosCount } = useQuery({
     queryKey: ["oab-trilhas-topicos-count"],
     queryFn: async () => {
-      const counts: Record<number, number> = {};
+      const aulaCounts: Record<number, number> = {};
       let totalAulas = 0;
       
       // Buscar contagem da tabela unificada
@@ -91,8 +91,9 @@ export default function TrilhasAprovacao() {
         .select("materia_id");
       
       if (topicos) {
+        // Contar aulas por área (materia_id)
         topicos.forEach(t => {
-          counts[t.materia_id] = (counts[t.materia_id] || 0) + 1;
+          aulaCounts[t.materia_id] = (aulaCounts[t.materia_id] || 0) + 1;
         });
         totalAulas = topicos.length;
       }
@@ -110,19 +111,22 @@ export default function TrilhasAprovacao() {
         .maybeSingle();
       
       if (eticaTopicos && eticaMateria) {
-        counts[eticaMateria.id] = (counts[eticaMateria.id] || 0) + eticaTopicos.length;
+        aulaCounts[eticaMateria.id] = (aulaCounts[eticaMateria.id] || 0) + eticaTopicos.length;
         totalAulas += eticaTopicos.length;
       }
       
+      // Contar quantas áreas têm aulas (= matérias com conteúdo)
+      const totalMaterias = Object.keys(aulaCounts).length;
+      
       // Salvar no cache persistente
-      const result = { counts, totalAulas };
+      const result = { aulaCounts, totalAulas, totalMaterias };
       setCachedData(CACHE_KEYS.topicosCount, result);
       
       return result;
     },
     staleTime: Infinity,
     gcTime: Infinity,
-    placeholderData: getCachedData<{ counts: Record<number, number>; totalAulas: number }>(CACHE_KEYS.topicosCount) || { counts: {}, totalAulas: 0 },
+    placeholderData: getCachedData<{ aulaCounts: Record<number, number>; totalAulas: number; totalMaterias: number }>(CACHE_KEYS.topicosCount) || { aulaCounts: {}, totalAulas: 0, totalMaterias: 0 },
   });
 
   const handleGerarCapa = async (materiaId: number, e: React.MouseEvent) => {
@@ -157,12 +161,12 @@ export default function TrilhasAprovacao() {
     }
   };
 
-  const totalMaterias = materias?.length || 0;
-  const totalTopicos = Object.values(topicosCount?.counts || {}).reduce((a: number, b: number) => a + b, 0);
+  const totalAreas = materias?.length || 0;
+  const totalMaterias = topicosCount?.totalMaterias || 0;
   const totalAulas = topicosCount?.totalAulas || 0;
   
   // Flag para mostrar dados - mostra imediatamente se temos cache
-  const hasData = totalMaterias > 0 || getCachedData(CACHE_KEYS.materias);
+  const hasData = totalAreas > 0 || getCachedData(CACHE_KEYS.materias);
 
   // Filtrar matérias baseado na pesquisa
   const filteredMaterias = useMemo(() => {
@@ -269,11 +273,11 @@ export default function TrilhasAprovacao() {
           <div className="flex items-center justify-center gap-6 text-sm text-white/80">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-red-400" />
-              <span>{totalMaterias} áreas</span>
+              <span>{totalAreas} áreas</span>
             </div>
             <div className="flex items-center gap-2">
-              <Footprints className="w-4 h-4 text-yellow-400" />
-              <span>{totalTopicos} matérias</span>
+              <Layers className="w-4 h-4 text-yellow-400" />
+              <span>{totalMaterias} matérias</span>
             </div>
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-400" />
@@ -329,7 +333,7 @@ export default function TrilhasAprovacao() {
               <div className="space-y-6">
                 {filteredMaterias.map((materia, index) => {
                   const isLeft = index % 2 === 0;
-                  const topicoCount = topicosCount?.counts?.[materia.id] || 0;
+                  const aulaCount = topicosCount?.aulaCounts?.[materia.id] || 0;
                   const temCapa = !!materia.capa_url;
                   const isGenerating = generatingId === materia.id;
                   
@@ -445,10 +449,10 @@ export default function TrilhasAprovacao() {
                               </h3>
                               
                               {/* Contagem de matérias */}
-                              {topicoCount > 0 && (
+                              {aulaCount > 0 && (
                                 <div className="flex items-center gap-1 mt-2">
-                                  <BookOpen className="w-3 h-3 text-yellow-400" />
-                                  <span className="text-xs text-yellow-400 font-medium">{topicoCount} aulas</span>
+                                  <FileText className="w-3 h-3 text-yellow-400" />
+                                  <span className="text-xs text-yellow-400 font-medium">{aulaCount} {aulaCount === 1 ? 'aula' : 'aulas'}</span>
                                 </div>
                               )}
                             </div>
