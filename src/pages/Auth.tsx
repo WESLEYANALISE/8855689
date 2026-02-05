@@ -17,7 +17,7 @@ import { useHomePreloader } from '@/hooks/useHomePreloader';
 import { useDeviceType } from '@/hooks/use-device-type';
 import { preloadOnboardingVideo } from '@/hooks/useOnboardingVideoPreloader';
 import DesktopLandingSections from '@/components/landing/DesktopLandingSections';
-import logoSmall from '@/assets/logo-small.webp';
+import logoImage from '@/assets/logo.jpg';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -374,7 +374,7 @@ const Auth: React.FC = () => {
             className="flex flex-col items-center mb-4"
           >
             <img 
-              src={logoSmall} 
+              src={logoImage} 
               alt="Direito X" 
               className="w-12 h-12 mb-2"
             />
