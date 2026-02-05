@@ -208,11 +208,6 @@ const FlashcardsTemas = () => {
                   Escolha um tema
                 </p>
               </div>
-              {temPendentes && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-white/5 px-2 py-1 rounded-full">
-                  <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin' : ''}`} />
-                </div>
-              )}
             </motion.div>
           </div>
         </div>
