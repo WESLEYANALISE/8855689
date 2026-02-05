@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Monitor, Menu, Landmark, GraduationCap, Volume2, VolumeX, Pause, Play } from "lucide-react";
+import { Home, Bot, Menu, Landmark, GraduationCap, Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AppSidebar } from "./AppSidebar";
@@ -114,16 +114,16 @@ export const BottomNav = () => {
             </button>
           ) : (
             <button
-              onClick={() => navigate("/videoaulas")}
+              onClick={() => navigate("/evelyn")}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
-                isActive("/videoaulas")
+                isActive("/evelyn")
                   ? "text-primary bg-primary/15 ring-1 ring-primary/20"
                   : "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
             >
-              <Monitor className={cn("w-6 h-6 transition-transform", isActive("/videoaulas") && "scale-110")} />
-              <span className="text-[10px] font-medium leading-tight text-center">Desktop</span>
+              <Bot className={cn("w-6 h-6 transition-transform", isActive("/evelyn") && "scale-110")} />
+              <span className="text-[10px] font-medium leading-tight text-center">Evelyn</span>
             </button>
           )}
 
