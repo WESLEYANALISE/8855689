@@ -1,98 +1,91 @@
 
-# Plano: Apenas Plano Vitalício R$89,90 + Ativar Premium da Mel
+# Plano: Igualar a Trilha "Jornada de Estudos" ao Estilo da "Jornada OAB"
 
-## Resumo das Mudanças
+## Diferenças Identificadas
 
-### 1. Ativar Premium da usuária Mel
-- Atualizar o status da assinatura de `pending` para `authorized` no banco de dados
-- User ID: `f6c3e6b9-aa69-456b-920e-d2698bc80c0d`
+| Aspecto | Jornada OAB ✅ | Jornada Estudos ❌ |
+|---------|---------------|-------------------|
+| **Linha central** | `w-0.5` (2px - fina) | `w-1` (4px - grossa) |
+| **Cor da linha** | `bg-gradient-to-b from-red-900/50 via-red-800/50 to-amber-900/50` | Gradiente âmbar sólido |
+| **Animação da linha** | CSS `electricFlow` com vermelho/âmbar | Framer-motion simples |
+| **Tamanho pegadas** | `p-2` com `w-4 h-4` ícone (menores) | `w-10 h-10` (maiores) |
+| **Animação pegadas** | CSS `footprintPulse` + `animate-ping` | Framer-motion scale/shadow |
+| **Estilo pegadas** | `ring-4 ring-background` (borda do fundo) | `boxShadow` glow colorido |
 
-### 2. Remover Plano Mensal - Deixar Apenas Vitalício R$89,90
+## Mudanças no Arquivo
 
-Vou modificar todos os arquivos onde o plano mensal está definido:
+**Arquivo:** `src/components/mobile/MobileTrilhasAprender.tsx`
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/Assinatura.tsx` | Remover `mensal` do PLANS, manter apenas `vitalicio: { price: 89.90, ... }` e remover o card do plano mensal |
-| `src/hooks/use-mercadopago-pix.ts` | Alterar tipo `PlanType = 'vitalicio'` (apenas vitalício) |
-| `supabase/functions/mercadopago-criar-pix/index.ts` | Remover plano mensal, manter apenas vitalício R$89,90 |
-| `supabase/functions/evelyn-gerar-pix/index.ts` | Remover plano mensal, manter apenas vitalício R$89,90 |
-| `src/hooks/use-assinatura-experiencia.ts` | Remover referência a `mensal` nas imagens |
-| `src/components/AssinaturaGerenciamento.tsx` | Atualizar para mostrar "Premium Vitalício" |
-| `src/pages/MinhaAssinatura.tsx` | Atualizar labels para vitalício |
-| `src/components/PremiumUpgradeModal.tsx` | Atualizar preço para R$89,90 |
-
----
-
-## Detalhes Técnicos
-
-### Página de Assinatura (`src/pages/Assinatura.tsx`)
-
-**Antes:**
-```typescript
-const PLANS: Record<PlanType, PlanConfig> = {
-  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null },
-  vitalicio: { price: 79.90, label: 'Vitalício', days: 36500, badge: 'MAIS POPULAR', featured: true }
-};
-```
-
-**Depois:**
-```typescript
-const PLANS: Record<PlanType, PlanConfig> = {
-  vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'OFERTA ESPECIAL', featured: true }
-};
-```
-
-- Remover o grid de 2 colunas, deixar apenas 1 card centralizado
-- Remover o `PlanoCardNovo` do mensal
-
-### Edge Functions (mercadopago-criar-pix e evelyn-gerar-pix)
-
-**Antes:**
-```typescript
-const PLANS = {
-  mensal: { amount: 15.90, days: 30, description: 'Direito Premium - Mensal' },
-  vitalicio: { amount: 89.90, days: 36500, description: 'Direito Premium - Vitalício' }
-};
-```
-
-**Depois:**
-```typescript
-const PLANS = {
-  vitalicio: { amount: 89.90, days: 36500, description: 'Direito Premium - Vitalício' }
-};
-```
-
-### Tipo PlanType (`src/hooks/use-mercadopago-pix.ts`)
-
-**Antes:**
-```typescript
-export type PlanType = 'mensal' | 'vitalicio';
-```
-
-**Depois:**
-```typescript
-export type PlanType = 'vitalicio';
-```
-
-### Modal de Upgrade Premium
-
-**Antes:**
+### 1. Linha Central - Tornar Mais Fina
 ```tsx
-Ver planos a partir de R$ 21,90/mês
+// De:
+<div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
+  <div className="w-full h-full bg-gradient-to-b from-amber-500/80 via-amber-600/60 to-amber-700/40 rounded-full" />
+  <motion.div ... />
+</div>
+
+// Para (igual OAB):
+<div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-900/50 via-amber-800/50 to-amber-700/50 transform -translate-x-1/2" />
+<div className="absolute left-1/2 top-0 bottom-0 w-0.5 transform -translate-x-1/2 overflow-hidden">
+  <div 
+    className="absolute inset-0 w-full"
+    style={{
+      background: 'linear-gradient(to bottom, transparent, #f59e0b, #fbbf24, transparent)',
+      backgroundSize: '100% 200%',
+      animation: 'electricFlow 2s ease-in-out infinite',
+    }}
+  />
+</div>
 ```
 
-**Depois:**
+### 2. Marcadores de Pegada - Menores e Estilo OAB
 ```tsx
-Assinar por R$ 89,90 (acesso vitalício)
+// De:
+<motion.div
+  animate={{ scale: [1, 1.15, 1], boxShadow: [...] }}
+  className="w-10 h-10 rounded-full ..."
+>
+  <Footprints className="w-5 h-5 text-white" />
+</motion.div>
+
+// Para (igual OAB):
+<div 
+  className="absolute left-1/2 transform -translate-x-1/2 z-10"
+  style={{ animation: `footprintPulse 2s ease-in-out infinite ${index * 0.3}s` }}
+>
+  <div 
+    className="rounded-full p-2 shadow-lg ring-4 ring-background relative"
+    style={{ backgroundColor: trilha.color }}
+  >
+    <div 
+      className="absolute inset-0 rounded-full animate-ping opacity-30" 
+      style={{ backgroundColor: trilha.color, animationDelay: `${index * 0.3}s` }}
+    />
+    <Footprints className="w-4 h-4 text-white relative z-10" />
+  </div>
+</div>
 ```
 
----
+### 3. Adicionar CSS Keyframes (igual OAB)
+```tsx
+// Adicionar no final do componente, antes do return ou via <style>:
+<style>{`
+  @keyframes electricFlow {
+    0% { background-position: 100% 0%; opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { background-position: 100% 100%; opacity: 0.3; }
+  }
+  @keyframes footprintPulse {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.15); }
+  }
+`}</style>
+```
 
-## Resultado Esperado
+## Resultado Visual Esperado
 
-1. ✅ Mel Pereira Alves terá acesso Premium ativado imediatamente
-2. ✅ Página de assinatura mostrará apenas o plano vitalício de R$89,90
-3. ✅ Ao pagar, usuário receberá acesso vitalício (36500 dias = ~100 anos)
-4. ✅ Tela de sucesso mostrará "Acesso Vitalício" em vez de "Mensal"
-5. ✅ Edge Functions aceitarão apenas `planType: 'vitalicio'`
+- ✅ Linha central **mais fina** (2px em vez de 4px)
+- ✅ Animação **"elétrica"** igual à OAB (gradiente fluindo)
+- ✅ Marcadores de pegada **menores** com borda ring-background
+- ✅ Animação **ping** nos marcadores (pulso de expansão)
+- ✅ **Consistência visual** entre as duas trilhas
