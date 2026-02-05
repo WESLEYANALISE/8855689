@@ -274,9 +274,8 @@ const FlashcardsTemas = () => {
 
             {/* Toggle de ordenação */}
             <div className="px-4 pb-3">
-              <div className="max-w-lg mx-auto flex items-center justify-center gap-2">
-                <span className="text-xs text-gray-500">Modo:</span>
-                <ToggleGroup 
+              <div className="max-w-lg mx-auto flex items-center justify-center">
+                <ToggleGroup
                   type="single" 
                   value={modo} 
                   onValueChange={(value) => {
