@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.gerar-capa-topico-aprovacao]
 verify_jwt = false
+
+[functions.gerar-conteudo-etica-oab]
+verify_jwt = false

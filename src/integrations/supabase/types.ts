@@ -13544,46 +13544,67 @@ export type Database = {
       }
       oab_etica_temas: {
         Row: {
+          audio_url: string | null
           capa_url: string | null
+          conteudo_markdown: string | null
           created_at: string | null
           descricao: string | null
+          exemplos: Json | null
+          flashcards: Json | null
           id: number
           livro_id: number | null
           ordem: number
           pagina_final: number | null
           pagina_inicial: number | null
+          questoes: Json | null
+          resumo: string | null
           status: string | null
           subtopicos: Json | null
+          termos: Json | null
           titulo: string
           total_topicos: number | null
           updated_at: string | null
         }
         Insert: {
+          audio_url?: string | null
           capa_url?: string | null
+          conteudo_markdown?: string | null
           created_at?: string | null
           descricao?: string | null
+          exemplos?: Json | null
+          flashcards?: Json | null
           id?: number
           livro_id?: number | null
           ordem: number
           pagina_final?: number | null
           pagina_inicial?: number | null
+          questoes?: Json | null
+          resumo?: string | null
           status?: string | null
           subtopicos?: Json | null
+          termos?: Json | null
           titulo: string
           total_topicos?: number | null
           updated_at?: string | null
         }
         Update: {
+          audio_url?: string | null
           capa_url?: string | null
+          conteudo_markdown?: string | null
           created_at?: string | null
           descricao?: string | null
+          exemplos?: Json | null
+          flashcards?: Json | null
           id?: number
           livro_id?: number | null
           ordem?: number
           pagina_final?: number | null
           pagina_inicial?: number | null
+          questoes?: Json | null
+          resumo?: string | null
           status?: string | null
           subtopicos?: Json | null
+          termos?: Json | null
           titulo?: string
           total_topicos?: number | null
           updated_at?: string | null

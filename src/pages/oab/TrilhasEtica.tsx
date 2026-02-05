@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, BookOpen, FileText, ChevronRight, ImageIcon } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, FileText, ChevronRight, ImageIcon, Footprints } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ const TrilhasEtica = () => {
   const navigate = useNavigate();
   const [showPdfModal, setShowPdfModal] = useState(false);
 
-  // Buscar temas de ética com polling para atualização de capas
+  // Buscar temas de ética (que funcionam como a lista de tópicos diretos do PDF único)
   const { data: temas, isLoading } = useQuery({
     queryKey: ["oab-etica-temas"],
     queryFn: async () => {
@@ -24,14 +24,7 @@ const TrilhasEtica = () => {
       if (error) throw error;
       return data;
     },
-    // Polling rápido (2s) se há temas sem capa
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      const hasPendingCapa = data?.some(t => 
-        t.status === "concluido" && !t.capa_url
-      );
-      return hasPendingCapa ? 2000 : false;
-    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
   if (isLoading) {
@@ -83,6 +76,11 @@ const TrilhasEtica = () => {
             <p className="text-sm text-gray-400">
               Estatuto da OAB e Código de Ética
             </p>
+            {temas && temas.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                {temas.length} tópicos disponíveis
+              </p>
+            )}
             
             {/* Botão para processar PDF - só aparece se não tem temas */}
             {!temTemas && (
@@ -99,69 +97,114 @@ const TrilhasEtica = () => {
           </div>
         </div>
 
-        {/* Lista de Temas - Layout igual Conceitos */}
-        <div className="px-4 pb-24">
-          <div className="max-w-lg mx-auto space-y-3">
-            {temas?.map((tema, index) => {
-              return (
-                <motion.button
-                  key={tema.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.02 }}
-                  onClick={() => navigate(`/oab/trilhas-etica/${tema.id}`)}
-                  className="w-full text-left bg-neutral-800/90 hover:bg-neutral-700/90 border border-neutral-700/50 rounded-xl transition-all overflow-hidden"
-                >
-                  <div className="flex items-center">
-                    {/* Capa à esquerda - quadrada */}
-                    <div className="relative w-20 h-20 flex-shrink-0 bg-neutral-800 rounded-l-xl overflow-hidden">
-                      {tema.capa_url ? (
-                        <img 
-                          key={`${tema.id}-${tema.capa_url}`}
-                          src={tema.capa_url} 
-                          alt={tema.titulo}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      {/* Fallback sempre presente, oculto quando há capa */}
-                      <div 
-                        className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/50 to-red-950/70"
-                        style={{ display: tema.capa_url ? 'none' : 'flex' }}
+        {/* Timeline de Tópicos - Layout similar a TrilhasAprovacao */}
+        <div className="px-4 pb-24 pt-4">
+          <div className="max-w-lg mx-auto relative">
+            {/* Linha central da timeline */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
+              <div className="w-full h-full bg-gradient-to-b from-red-500/80 via-red-600/60 to-red-700/40 rounded-full" />
+              <motion.div
+                className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-red-300/30 to-transparent rounded-full"
+                animate={{ y: ["0%", "300%"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
+            
+            <div className="space-y-6">
+              {temas?.map((tema, index) => {
+                const isLeft = index % 2 === 0;
+                
+                return (
+                  <motion.div
+                    key={tema.id}
+                    initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`relative flex items-center ${
+                      isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
+                    }`}
+                  >
+                    {/* Marcador no centro */}
+                    <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.15, 1],
+                          boxShadow: [
+                            "0 0 0 0 rgba(239, 68, 68, 0.4)",
+                            "0 0 0 10px rgba(239, 68, 68, 0)",
+                            "0 0 0 0 rgba(239, 68, 68, 0.4)"
+                          ]
+                        }}
+                        transition={{ 
+                          duration: 2, 
+                          repeat: Infinity,
+                          delay: index * 0.2
+                        }}
+                        className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-red-500 to-red-700 shadow-red-500/40"
                       >
-                        <ImageIcon className="w-6 h-6 text-red-500/50" />
-                      </div>
-                      {/* Número no canto inferior esquerdo */}
-                      <div className="absolute bottom-0 left-0 bg-red-500/90 text-white text-xs font-bold px-2 py-1 rounded-tr-lg">
-                        {String(tema.ordem).padStart(2, '0')}
-                      </div>
+                        <Footprints className="w-5 h-5 text-white" />
+                      </motion.div>
                     </div>
                     
-                    {/* Conteúdo à direita */}
-                    <div className="flex-1 min-w-0 px-3 py-2">
-                      <h3 className="text-sm font-medium leading-snug text-neutral-100">
-                        {tema.titulo}
-                      </h3>
+                    {/* Card do Tópico */}
+                    <div className="w-full">
+                      <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate(`/oab/trilhas-etica/estudo/${tema.id}`)}
+                        className="cursor-pointer rounded-2xl backdrop-blur-sm border transition-all overflow-hidden min-h-[140px] flex flex-col bg-[#12121a]/90 border-white/10 hover:border-red-500/50"
+                      >
+                        {/* Capa do tema */}
+                        <div className="h-16 w-full overflow-hidden relative flex-shrink-0">
+                          {tema.capa_url ? (
+                            <>
+                              <img 
+                                src={tema.capa_url} 
+                                alt={tema.titulo}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-800 to-red-900">
+                              <ImageIcon className="w-6 h-6 text-white/30" />
+                            </div>
+                          )}
+                          
+                          {/* Badge de ordem */}
+                          <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-md">
+                            <span className="text-xs font-bold text-red-400">
+                              {String(tema.ordem).padStart(2, '0')}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Conteúdo */}
+                        <div className="p-3 flex-1 flex flex-col justify-between">
+                          <h3 className="font-medium text-sm text-white line-clamp-2">
+                            {tema.titulo}
+                          </h3>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">
+                              Págs. {tema.pagina_inicial}-{tema.pagina_final}
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                          </div>
+                        </div>
+                      </motion.div>
                     </div>
-                    
-                    <ChevronRight className="w-4 h-4 text-neutral-500 flex-shrink-0 mr-3" />
-                  </div>
-                </motion.button>
-              );
-            })}
+                  </motion.div>
+                );
+              })}
+            </div>
             
             {/* Mensagem quando não tem temas */}
             {!temTemas && (
               <div className="text-center py-12 text-gray-400">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-red-400" />
-                <p className="text-lg font-medium text-white">Nenhum tema encontrado</p>
-                <p className="text-xs text-gray-500 mt-1">Carregue um PDF para extrair os temas automaticamente</p>
+                <p className="text-lg font-medium text-white">Nenhum tópico encontrado</p>
+                <p className="text-xs text-gray-500 mt-1">Carregue um PDF para extrair os tópicos automaticamente</p>
               </div>
             )}
           </div>
