@@ -1,14 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { 
   Eye, 
-  BookOpen, 
-  HelpCircle, 
-  Landmark,
-  Flag,
   TrendingUp,
   ArrowRight,
   Newspaper,
@@ -27,44 +22,6 @@ import {
   PoliticaLivros
 } from "@/components/politica";
 import ResumosDisponiveisCarousel from '@/components/ResumosDisponiveisCarousel';
-
-const funcionalidades = [
-  {
-    id: "blog",
-    titulo: "Blog Político",
-    subtitulo: "Presidentes e história",
-    icon: BookOpen,
-  },
-  {
-    id: "como-funciona",
-    titulo: "Como Funciona?",
-    subtitulo: "Sistema político",
-    icon: HelpCircle,
-  },
-  {
-    id: "camara",
-    titulo: "Câmara",
-    subtitulo: "Dados oficiais",
-    icon: Landmark,
-  },
-  {
-    id: "partidos",
-    titulo: "Partidos",
-    subtitulo: "Informações",
-    icon: Flag,
-  },
-];
-
-const getPath = (id: string) => {
-  const paths: Record<string, string> = {
-    noticias: "/politica/noticias",
-    blog: "/politica/blog",
-    "como-funciona": "/politica/como-funciona",
-    camara: "/camara-deputados",
-    partidos: "/camara-deputados/partidos",
-  };
-  return paths[id] || "/politica";
-};
 
 type OrientacaoType = 'esquerda' | 'centro' | 'direita';
 
@@ -85,6 +42,7 @@ const Politica = () => {
         lineColor="via-red-500"
         pageKey="politica"
         showGenerateButton={true}
+        showBackButton={false}
       />
 
       {/* Tabs principais */}
@@ -109,9 +67,9 @@ const Politica = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: Feed - Estudos Políticos PRIMEIRO, depois Boletins, depois Notícias, depois Explorar */}
+          {/* Tab: Feed - Estudos Políticos, Boletins e Notícias */}
           <TabsContent value="feed" className="space-y-6">
-            {/* Seção Estudos Políticos - 3 cards - PRIMEIRO */}
+            {/* Seção Estudos Políticos - 3 cards */}
             <EstudosPoliticosSection />
             
             {/* Carrossel de Boletins Políticos */}
@@ -119,45 +77,6 @@ const Politica = () => {
             
             {/* Notícias gerais */}
             <NoticiasPorOrientacao orientacao="todos" />
-            
-            {/* Explorar - Cards no final do Feed */}
-            <div className="space-y-3 animate-fade-in">
-              <h2 className="font-semibold text-base text-white flex items-center gap-2">
-                <Eye className="w-5 h-5 text-red-400" />
-                Explorar
-              </h2>
-              
-              {funcionalidades.map((func) => {
-                const Icon = func.icon;
-                return (
-                  <div key={func.id}>
-                    <Card
-                      className="overflow-hidden cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all bg-card/50 backdrop-blur-sm border-white/10 hover:border-red-500/30"
-                      onClick={() => navigate(getPath(func.id))}
-                    >
-                      <div className="flex items-center gap-4 h-16">
-                        <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-red-500/20 rounded-l-lg">
-                          <Icon className="w-6 h-6 text-red-400" />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm text-white truncate">
-                            {func.titulo}
-                          </h3>
-                          <p className="text-xs text-neutral-400 truncate">
-                            {func.subtitulo}
-                          </p>
-                        </div>
-
-                        <div className="pr-4">
-                          <ArrowRight className="w-4 h-4 text-neutral-500" />
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                );
-              })}
-            </div>
           </TabsContent>
 
           {/* Tab: Biblioteca - Sub-abas Esquerda, Centro, Direita */}
