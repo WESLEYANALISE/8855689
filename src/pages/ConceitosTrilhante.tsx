@@ -3,17 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, BookOpen, Footprints, GraduationCap, Loader2, ImagePlus, Scale } from "lucide-react";
+ import { Lock, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import themisBackground from "@/assets/themis-estudos-background.webp";
 import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
+ import { useFixedContentLimit } from "@/hooks/useFixedContentLimit";
+ import { LockedTimelineCard } from "@/components/LockedTimelineCard";
+ import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 const ConceitosTrilhante = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
+   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Buscar todas as matérias do Trilhante
   const { data: materias, isLoading } = useQuery({
@@ -114,6 +119,12 @@ const ConceitosTrilhante = () => {
   const totalMaterias = materias?.length || 0;
   const totalTopicos = Object.values(topicosCount || {}).reduce((a, b) => a + b, 0);
 
+   // Aplicar limite de 9 matérias para usuários gratuitos
+   const { visibleItems, lockedItems, lockedCount } = useFixedContentLimit(
+     materias,
+     'conceitos-materias'
+   );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d14]">
@@ -199,7 +210,8 @@ const ConceitosTrilhante = () => {
               </div>
               
               <div className="space-y-6">
-                {materias.map((materia, index) => {
+                 {/* Matérias visíveis (liberadas) */}
+                 {visibleItems.map((materia, index) => {
                   const isLeft = index % 2 === 0;
                   const topicos = topicosCount?.[materia.id] || 0;
                   const temCapa = !!materia.capa_url;
@@ -327,6 +339,24 @@ const ConceitosTrilhante = () => {
                     </motion.div>
                   );
                 })}
+                 
+                 {/* Matérias bloqueadas (Premium) */}
+                 {lockedItems.map((materia, index) => {
+                   const realIndex = visibleItems.length + index;
+                   const isLeft = realIndex % 2 === 0;
+                   
+                   return (
+                     <LockedTimelineCard
+                       key={materia.id}
+                       title={materia.nome}
+                       subtitle={`Tema ${materia.area_ordem}`}
+                       imageUrl={materia.capa_url || undefined}
+                       isLeft={isLeft}
+                       index={realIndex}
+                       onClick={() => setShowPremiumModal(true)}
+                     />
+                   );
+                 })}
               </div>
             </div>
           </div>
@@ -334,6 +364,13 @@ const ConceitosTrilhante = () => {
         
         {/* Botão flutuante de scroll */}
         <FloatingScrollButton />
+         
+         {/* Modal Premium */}
+         <PremiumUpgradeModal
+           open={showPremiumModal}
+           onOpenChange={setShowPremiumModal}
+           featureName="Todos os conceitos"
+         />
       </div>
     </div>
   );

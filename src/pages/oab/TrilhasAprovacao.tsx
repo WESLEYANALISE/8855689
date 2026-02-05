@@ -4,11 +4,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, Search, X } from "lucide-react";
 import { FileText, Layers } from "lucide-react";
+ import { Lock, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import bgAreasOab from "@/assets/bg-areas-oab.webp";
 import { getOptimizedImageUrl } from "@/lib/imageOptimizer";
 import { Input } from "@/components/ui/input";
+ import { useFixedContentLimit } from "@/hooks/useFixedContentLimit";
+ import { LockedTimelineCard } from "@/components/LockedTimelineCard";
+ import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -53,6 +57,7 @@ export default function TrilhasAprovacao() {
   const queryClient = useQueryClient();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Buscar todas as matérias da OAB - CACHE INFINITO para navegação instantânea
   const { data: materias, isLoading } = useQuery({
@@ -178,6 +183,12 @@ export default function TrilhasAprovacao() {
       m.nome.toLowerCase().includes(term)
     );
   }, [materias, searchTerm]);
+
+   // Aplicar limite de 9 áreas para usuários gratuitos
+   const { visibleItems, lockedItems, lockedCount } = useFixedContentLimit(
+     filteredMaterias,
+     'oab-trilhas-areas'
+   );
 
   // Preload das capas + PREFETCH de todas as matérias para navegação instantânea
   useEffect(() => {
@@ -331,7 +342,8 @@ export default function TrilhasAprovacao() {
               </div>
               
               <div className="space-y-6">
-                {filteredMaterias.map((materia, index) => {
+                 {/* Matérias visíveis (liberadas) */}
+                 {visibleItems.map((materia, index) => {
                   const isLeft = index % 2 === 0;
                   const aulaCount = topicosCount?.aulaCounts?.[materia.id] || 0;
                   const temCapa = !!materia.capa_url;
@@ -476,10 +488,35 @@ export default function TrilhasAprovacao() {
                     </motion.div>
                   );
                 })}
+                 
+                 {/* Matérias bloqueadas (Premium) */}
+                 {lockedItems.map((materia, index) => {
+                   const realIndex = visibleItems.length + index;
+                   const isLeft = realIndex % 2 === 0;
+                   
+                   return (
+                     <LockedTimelineCard
+                       key={materia.id}
+                       title={materia.nome}
+                       subtitle={`Área ${materia.ordem}`}
+                       imageUrl={materia.capa_url || undefined}
+                       isLeft={isLeft}
+                       index={realIndex}
+                       onClick={() => setShowPremiumModal(true)}
+                     />
+                   );
+                 })}
               </div>
             </div>
           </div>
         )}
+         
+         {/* Modal Premium */}
+         <PremiumUpgradeModal
+           open={showPremiumModal}
+           onOpenChange={setShowPremiumModal}
+           featureName="Todas as áreas"
+         />
       </div>
     </div>
   );
