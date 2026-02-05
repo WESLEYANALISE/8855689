@@ -17,6 +17,7 @@ import { useHomePreloader } from '@/hooks/useHomePreloader';
 import { useDeviceType } from '@/hooks/use-device-type';
 import { preloadOnboardingVideo } from '@/hooks/useOnboardingVideoPreloader';
 import DesktopLandingSections from '@/components/landing/DesktopLandingSections';
+import logoSmall from '@/assets/logo-small.webp';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -77,6 +78,7 @@ const Auth: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [emailEntered, setEmailEntered] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -122,7 +124,18 @@ const Auth: React.FC = () => {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+    
+    // Detectar quando o email foi preenchido (para mostrar campo de senha)
+    if (name === 'email' && mode === 'login') {
+      const isValidEmail = value.includes('@') && value.includes('.');
+      setEmailEntered(isValidEmail && value.length >= 5);
+    }
   };
+
+  // Reset emailEntered quando mudar de modo
+  useEffect(() => {
+    setEmailEntered(false);
+  }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,6 +366,23 @@ const Auth: React.FC = () => {
   const formContent = (
     <Card className="border-border/30 bg-card/90 backdrop-blur-md shadow-2xl">
       <CardHeader className="space-y-1 pb-6">
+        {/* Logo e título "Direito X" - apenas no login */}
+        {mode === 'login' && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center mb-4"
+          >
+            <img 
+              src={logoSmall} 
+              alt="Direito X" 
+              className="w-12 h-12 mb-2"
+            />
+            <h1 className="text-2xl font-bold text-foreground">Direito X</h1>
+            <p className="text-sm text-muted-foreground mt-1">Direito descomplicado</p>
+          </motion.div>
+        )}
+
         {/* Toggle menu for login/signup */}
         {(mode === 'login' || mode === 'signup') && (
           <div className="flex rounded-lg bg-muted/50 p-1 mb-4">
@@ -383,14 +413,17 @@ const Auth: React.FC = () => {
           </div>
         )}
         
-        <div>
-          <CardTitle className="text-2xl font-bold text-center">
-            {getTitle()}
-          </CardTitle>
-          <CardDescription className="text-center mt-2">
-            {getDescription()}
-          </CardDescription>
-        </div>
+        {/* Título e descrição - apenas para modos que não são login */}
+        {mode !== 'login' && (
+          <div>
+            <CardTitle className="text-2xl font-bold text-center">
+              {getTitle()}
+            </CardTitle>
+            <CardDescription className="text-center mt-2">
+              {getDescription()}
+            </CardDescription>
+          </div>
+        )}
       </CardHeader>
       
       <CardContent>
@@ -443,41 +476,52 @@ const Auth: React.FC = () => {
             </div>
           )}
 
-          {(mode === 'login' || mode === 'signup' || mode === 'reset') && (
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
-                {mode === 'reset' ? 'Nova senha' : 'Senha'}
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
-              )}
-            </div>
-          )}
+          {/* Campo de senha - animado no modo login */}
+          <AnimatePresence mode="wait">
+            {((mode === 'login' && emailEntered) || mode === 'signup' || mode === 'reset') && (
+              <motion.div
+                key="password-field"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="space-y-2 overflow-hidden"
+              >
+                <Label htmlFor="password" className="text-sm font-medium">
+                  {mode === 'reset' ? 'Nova senha' : 'Senha'}
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
+                    disabled={isLoading}
+                    autoFocus={mode === 'login' && emailEntered}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-xs text-destructive">{errors.password}</p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {(mode === 'signup' || mode === 'reset') && (
             <div className="space-y-2">
