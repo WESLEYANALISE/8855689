@@ -55,6 +55,19 @@ export const MobileTrilhasAprender = () => {
 
   return (
     <div className="relative py-4 flex flex-col items-center">
+      {/* CSS Keyframes - igual OAB */}
+      <style>{`
+        @keyframes electricFlow {
+          0% { background-position: 100% 0%; opacity: 0.3; }
+          50% { opacity: 1; }
+          100% { background-position: 100% 100%; opacity: 0.3; }
+        }
+        @keyframes footprintPulse {
+          0%, 100% { transform: translateX(-50%) scale(1); }
+          50% { transform: translateX(-50%) scale(1.15); }
+        }
+      `}</style>
+
       {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -70,14 +83,18 @@ export const MobileTrilhasAprender = () => {
 
       {/* Cards das Trilhas - Layout Timeline igual OAB */}
       <div className="w-full px-2 relative">
-        {/* Linha central da timeline - mesma espessura e estilo da OAB */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
-          <div className="w-full h-full bg-gradient-to-b from-amber-500/80 via-amber-600/60 to-amber-700/40 rounded-full" />
-          {/* Animação de fluxo elétrico igual OAB */}
-          <motion.div
-            className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-amber-300/30 to-transparent rounded-full"
-            animate={{ y: ["0%", "300%"] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        {/* Linha central da timeline - FINA igual OAB */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-900/50 via-amber-800/50 to-amber-700/50 transform -translate-x-1/2" />
+        
+        {/* Animação elétrica na linha - igual OAB */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 transform -translate-x-1/2 overflow-hidden">
+          <div 
+            className="absolute inset-0 w-full"
+            style={{
+              background: 'linear-gradient(to bottom, transparent, #f59e0b, #fbbf24, transparent)',
+              backgroundSize: '100% 200%',
+              animation: 'electricFlow 2s ease-in-out infinite',
+            }}
           />
         </div>
 
@@ -95,30 +112,22 @@ export const MobileTrilhasAprender = () => {
                   isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
                 }`}
               >
-                {/* Marcador Pegadas no centro - Animação igual OAB */}
-                <div className="absolute left-1/2 -translate-x-1/2 z-10">
-                  <motion.div
-                    animate={{ 
-                      scale: [1, 1.15, 1],
-                      boxShadow: [
-                        `0 0 0 0 ${trilha.color}66`,
-                        `0 0 0 10px ${trilha.color}00`,
-                        `0 0 0 0 ${trilha.color}66`
-                      ]
-                    }}
-                    transition={{ 
-                      duration: 2, 
-                      repeat: Infinity,
-                      delay: index * 0.3
-                    }}
-                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                    style={{ 
-                      background: `linear-gradient(to bottom right, ${trilha.color}, ${trilha.color}dd)`,
-                      boxShadow: `0 4px 20px ${trilha.color}40`
-                    }}
+                {/* Marcador Pegadas no centro - Estilo OAB (menor, com ring) */}
+                <div 
+                  className="absolute left-1/2 transform -translate-x-1/2 z-10"
+                  style={{ animation: `footprintPulse 2s ease-in-out infinite ${index * 0.3}s` }}
+                >
+                  <div 
+                    className="rounded-full p-2 shadow-lg ring-4 ring-background relative"
+                    style={{ backgroundColor: trilha.color }}
                   >
-                    <Footprints className="w-5 h-5 text-white" />
-                  </motion.div>
+                    {/* Ping animation - igual OAB */}
+                    <div 
+                      className="absolute inset-0 rounded-full animate-ping opacity-30" 
+                      style={{ backgroundColor: trilha.color, animationDelay: `${index * 0.3}s` }}
+                    />
+                    <Footprints className="w-4 h-4 text-white relative z-10" />
+                  </div>
                 </div>
                 
                 {/* Card */}
