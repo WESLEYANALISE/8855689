@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Landmark, Scale, ChevronRight, Footprints } from "lucide-react";
-import { motion } from "framer-motion";
+import { Landmark, Scale, ChevronRight, Footprints, Clock, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface TrilhaCardProps {
   title: string;
@@ -9,17 +10,26 @@ interface TrilhaCardProps {
   onClick: () => void;
   delay?: number;
   color: string;
+  comingSoon?: boolean;
 }
 
-const TrilhaCard = ({ title, subtitle, icon, onClick, delay = 0 }: TrilhaCardProps) => (
+const TrilhaCard = ({ title, subtitle, icon, onClick, delay = 0, comingSoon }: TrilhaCardProps) => (
   <motion.button
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, delay }}
     onClick={onClick}
     whileTap={{ scale: 0.98 }}
-    className="w-full h-[100px] bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-red-800/30 flex items-center gap-3"
+    className="w-full h-[100px] bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-red-800/30 flex items-center gap-3 relative overflow-hidden"
   >
+    {/* Badge "Em breve" */}
+    {comingSoon && (
+      <div className="absolute top-2 right-2 bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+        <Clock className="w-3 h-3" />
+        Em breve
+      </div>
+    )}
+    
     <div className="bg-white/15 rounded-xl p-2.5">
       {icon}
     </div>
@@ -33,6 +43,7 @@ const TrilhaCard = ({ title, subtitle, icon, onClick, delay = 0 }: TrilhaCardPro
 
 export const MobileTrilhasAprender = () => {
   const navigate = useNavigate();
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
 
   const trilhas = [
     {
@@ -42,14 +53,16 @@ export const MobileTrilhasAprender = () => {
       onClick: () => navigate("/primeiros-passos"),
       position: 'left' as const,
       color: "#f59e0b",
+      comingSoon: false,
     },
     {
       title: "Temática",
       subtitle: "Por Área",
       icon: <Scale className="w-6 h-6 text-amber-400" />,
-      onClick: () => navigate("/biblioteca-tematica"),
+      onClick: () => setShowComingSoonModal(true),
       position: 'right' as const,
       color: "#8b5cf6",
+      comingSoon: true,
     },
   ];
 
@@ -139,6 +152,7 @@ export const MobileTrilhasAprender = () => {
                     onClick={trilha.onClick}
                     delay={index * 0.15}
                     color={trilha.color}
+                    comingSoon={trilha.comingSoon}
                   />
                 </div>
               </motion.div>
@@ -146,6 +160,73 @@ export const MobileTrilhasAprender = () => {
           })}
         </div>
       </div>
+
+      {/* Modal "Em breve" */}
+      <AnimatePresence>
+        {showComingSoonModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => setShowComingSoonModal(false)}
+            />
+            
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[85%] max-w-sm"
+            >
+              <div className="bg-gradient-to-br from-[#1a1a2e] to-[#12121a] rounded-2xl border border-amber-500/30 shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-amber-600 to-amber-500 p-4 relative">
+                  <button
+                    onClick={() => setShowComingSoonModal(false)}
+                    className="absolute top-3 right-3 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 rounded-full p-2">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-cinzel text-lg font-bold text-white">Em Breve</h3>
+                      <p className="text-white/80 text-xs">Novidade chegando!</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Content */}
+                <div className="p-5 text-center">
+                  <div className="mb-4">
+                    <Scale className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+                  </div>
+                  <h4 className="font-semibold text-white text-base mb-2">
+                    Trilha Temática
+                  </h4>
+                  <p className="text-gray-400 text-sm leading-relaxed">
+                    Estamos preparando uma experiência incrível de estudo por áreas do Direito. 
+                    <span className="text-amber-400 font-medium"> Esta atualização virá em breve!</span>
+                  </p>
+                  
+                  <button
+                    onClick={() => setShowComingSoonModal(false)}
+                    className="mt-5 w-full py-3 bg-gradient-to-r from-amber-600 to-amber-500 text-white font-semibold rounded-xl hover:from-amber-500 hover:to-amber-400 transition-all"
+                  >
+                    Entendi
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
