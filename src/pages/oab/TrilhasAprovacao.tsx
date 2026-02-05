@@ -1,13 +1,41 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, FileText, Search, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import bgAreasOab from "@/assets/bg-areas-oab.webp";
 import { getOptimizedImageUrl } from "@/lib/imageOptimizer";
 import { Input } from "@/components/ui/input";
+
+// Cache keys for localStorage
+const CACHE_KEYS = {
+  materias: 'oab-trilhas-materias-cache',
+  topicosCount: 'oab-trilhas-topicos-count-cache',
+};
+
+// Helper to get cached data from localStorage
+const getCachedData = <T,>(key: string): T | null => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    console.warn('Cache read error:', e);
+  }
+  return null;
+};
+
+// Helper to save data to localStorage
+const setCachedData = <T,>(key: string, data: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Cache write error:', e);
+  }
+};
 
 // Função de preload local para capas do Supabase
 const preloadImages = (urls: string[]) => {
@@ -36,10 +64,17 @@ export default function TrilhasAprovacao() {
         .order("ordem", { ascending: true });
       
       if (error) throw error;
+      
+      // Salvar no cache persistente
+      if (data) {
+        setCachedData(CACHE_KEYS.materias, data);
+      }
+      
       return data || [];
     },
     staleTime: Infinity, // Cache infinito - NUNCA refetch automático
     gcTime: Infinity,    // Manter em cache para sempre durante a sessão
+    placeholderData: (getCachedData<any[]>(CACHE_KEYS.materias) || []) as any, // Dados do localStorage
   });
 
   // Buscar contagem de tópicos por matéria - CACHE INFINITO
@@ -75,22 +110,14 @@ export default function TrilhasAprovacao() {
         counts[eticaMateria.id] = (counts[eticaMateria.id] || 0) + eticaTopicos.length;
       }
       
+      // Salvar no cache persistente
+      setCachedData(CACHE_KEYS.topicosCount, counts);
+      
       return counts;
     },
     staleTime: Infinity,
     gcTime: Infinity,
-  });
-
-  // Buscar contagem total de subtemas (tópicos) da tabela RESUMO
-  const { data: totalSubtemas } = useQuery({
-    queryKey: ["oab-trilhas-total-subtemas"],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("RESUMO")
-        .select("*", { count: "exact", head: true });
-      return count || 0;
-    },
-    staleTime: 1000 * 60 * 10,
+    placeholderData: (getCachedData<Record<number, number>>(CACHE_KEYS.topicosCount) || {}) as Record<number, number>, // Dados do localStorage
   });
 
   const handleGerarCapa = async (materiaId: number, e: React.MouseEvent) => {
@@ -127,6 +154,9 @@ export default function TrilhasAprovacao() {
 
   const totalMaterias = materias?.length || 0;
   const totalTopicos = Object.values(topicosCount || {}).reduce((a: number, b: number) => a + b, 0);
+  
+  // Flag para mostrar dados - mostra imediatamente se temos cache
+  const hasData = totalMaterias > 0 || getCachedData(CACHE_KEYS.materias);
 
   // Filtrar matérias baseado na pesquisa
   const filteredMaterias = useMemo(() => {
@@ -169,8 +199,8 @@ export default function TrilhasAprovacao() {
     }
   }, [materias, queryClient]);
 
-  // Só mostra loading se não tem dados em cache
-  if (isLoading && !materias) {
+  // Só mostra loading se não tem NENHUM dado (nem cache localStorage)
+  if (isLoading && !hasData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d14]">
         <Loader2 className="w-8 h-8 animate-spin text-red-500" />
