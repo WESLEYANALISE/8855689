@@ -348,6 +348,7 @@ import TrilhaSubtemaEstudo from "./pages/oab/TrilhaSubtemaEstudo";
 import TrilhasEtica from "./pages/oab/TrilhasEtica";
 import TrilhasEticaTema from "./pages/oab/TrilhasEticaTema";
 import TrilhasEticaEstudo from "./pages/oab/TrilhasEticaEstudo";
+import TrilhasEticaTemaEstudo from "./pages/oab/TrilhasEticaTemaEstudo";
 import OABTrilhasMateria from "./pages/oab/OABTrilhasMateria";
 import OABTrilhasTopicos from "./pages/oab/OABTrilhasTopicos";
 import OABTrilhasTopicoEstudo from "./pages/oab/OABTrilhasTopicoEstudo";
@@ -825,6 +826,7 @@ const App = () => {
               {/* Ética Profissional OAB */}
               <Route path="/oab/trilhas-etica" element={<TrilhasEtica />} />
               <Route path="/oab/trilhas-etica/:temaId" element={<TrilhasEticaTema />} />
+              <Route path="/oab/trilhas-etica/estudo/:temaId" element={<TrilhasEticaTemaEstudo />} />
               <Route path="/oab/trilhas-etica/topico/:topicoId" element={<TrilhasEticaEstudo />} />
               
               {/* Faculdade USP */}
