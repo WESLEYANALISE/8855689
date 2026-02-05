@@ -11,11 +11,9 @@ import { usePlanAnalytics } from "@/hooks/usePlanAnalytics";
 import type { PlanType } from "@/hooks/use-mercadopago-pix";
 
 // Imagens horizontais estáticas importadas localmente (pré-carregadas)
-import assinaturaMensalHorizontal from "@/assets/assinatura-mensal-horizontal.webp";
 import assinaturaVitalicioHorizontal from "@/assets/assinatura-vitalicio-horizontal.webp";
 
 const CAPAS_HORIZONTAIS_ESTATICAS: Record<PlanType, string> = {
-  mensal: assinaturaMensalHorizontal,
   vitalicio: assinaturaVitalicioHorizontal,
 };
 

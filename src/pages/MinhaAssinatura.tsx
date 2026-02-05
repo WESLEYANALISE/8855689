@@ -164,7 +164,7 @@ const MinhaAssinatura = () => {
                       {isPremium ? 'Assinatura ativa' : 'Assinatura inativa'}
                     </p>
                     <p className="text-sm text-zinc-400">
-                      Plano {subscription.planType === 'mensal' ? 'Mensal' : 'Anual'}
+                      Plano {subscription.planType === 'vitalicio' ? 'Vitalício' : subscription.planType === 'mensal' ? 'Mensal' : 'Anual'}
                     </p>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ const MinhaAssinatura = () => {
                   </div>
                   <span className="font-medium">
                     R$ {subscription.amount.toFixed(2).replace('.', ',')}
-                    {subscription.planType === 'mensal' ? '/mês' : '/ano'}
+                    {subscription.planType === 'vitalicio' ? ' (vitalício)' : subscription.planType === 'mensal' ? '/mês' : '/ano'}
                   </span>
                 </div>
 

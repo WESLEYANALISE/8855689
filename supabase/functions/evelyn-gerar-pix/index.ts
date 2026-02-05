@@ -6,9 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Configuração dos planos
+// Configuração dos planos - apenas vitalício
 const PLANS = {
-  mensal: { amount: 15.90, days: 30, description: 'Direito Premium - Mensal' },
   vitalicio: { amount: 89.90, days: 36500, description: 'Direito Premium - Vitalício' }
 };
 

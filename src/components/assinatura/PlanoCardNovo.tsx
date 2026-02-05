@@ -105,9 +105,7 @@ const PlanoCardNovo = ({
                   }`}>
                     {plan.price.toFixed(2).replace('.', ',')}
                   </span>
-                  {planKey === 'mensal' && (
-                    <span className="text-zinc-500 text-sm">/mês</span>
-                  )}
+                  <span className="text-zinc-500 text-sm">único</span>
                 </div>
               </div>
               

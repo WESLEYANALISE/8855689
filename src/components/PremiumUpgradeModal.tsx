@@ -66,7 +66,7 @@ export const PremiumUpgradeModal = ({
             className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
           >
             <Crown className="h-4 w-4 mr-2" />
-            Ver planos a partir de R$ 21,90/mês
+            Assinar por R$ 89,90 (acesso vitalício)
           </Button>
           <Button 
             variant="ghost" 

@@ -31,7 +31,7 @@ const SUPABASE_URL = "https://izspjvegxdfgkgibpyst.supabase.co";
 const BUCKET_NAME = "gerador-imagens";
 
 const IMAGENS_ESTATICAS = {
-  mensal: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/assinatura-mensal-permanente.png`,
+  vitalicio: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/assinatura-mensal-permanente.png`,
 };
 
 export function useAssinaturaExperiencia(): AssinaturaExperiencia {
@@ -40,7 +40,6 @@ export function useAssinaturaExperiencia(): AssinaturaExperiencia {
   
   // Imagens dos planos do storage
   const [planImages] = useState<Record<PlanType, string | null>>({
-    mensal: IMAGENS_ESTATICAS.mensal,
     vitalicio: vitalicioImage
   });
   
