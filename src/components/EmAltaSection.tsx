@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { Flame, ArrowRight, Scale, Library, MessageCircle, Newspaper, MapPin, Landmark, FileCheck2, Sparkles, Video, Target, Wrench, BookOpen, ChevronRight, Briefcase } from "lucide-react";
 
 // Imagens de carreiras
@@ -45,10 +45,18 @@ const itensCarreiras = [
   { id: "pf", title: "Polícia Federal", image: carreiraPf, route: "/blogger-juridico/artigos?tipo=carreiras&carreira=pf" },
 ];
 
-export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSectionProps) => {
+export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmAltaSectionProps) => {
   const [activeTab, setActiveTab] = useState<"ferramentas" | "estudos" | "carreiras">("estudos");
   
   const itensAtivos = activeTab === "ferramentas" ? itensFerramentas : itensEstudos;
+
+  const handleNavigate = useCallback((route: string) => {
+    navigate(route);
+  }, [navigate]);
+
+  const handleTabChange = useCallback((tab: "ferramentas" | "estudos" | "carreiras") => {
+    setActiveTab(tab);
+  }, []);
 
   return (
     <div className="space-y-3" data-tutorial="em-alta">
@@ -71,7 +79,7 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
         {/* Botão Ver mais para Carreiras */}
         {activeTab === "carreiras" && (
           <button
-            onClick={() => navigate('/carreiras-juridicas')}
+            onClick={() => handleNavigate('/carreiras-juridicas')}
             onMouseEnter={() => handleLinkHover('/carreiras-juridicas')}
             className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
           >
@@ -86,7 +94,7 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
         {/* Menu de Alternância com Shimmer em todos */}
         <div className="flex gap-2 mb-4 relative z-10">
           <button
-            onClick={() => setActiveTab("estudos")}
+            onClick={() => handleTabChange("estudos")}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-condensed font-medium transition-all duration-200 relative overflow-hidden ${
               activeTab === "estudos"
                 ? "bg-white/25 text-white shadow-lg border border-white/30"
@@ -98,7 +106,7 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
             <span className="relative z-10">Estudos</span>
           </button>
           <button
-            onClick={() => setActiveTab("ferramentas")}
+            onClick={() => handleTabChange("ferramentas")}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-condensed font-medium transition-all duration-200 relative overflow-hidden ${
               activeTab === "ferramentas"
                 ? "bg-white/25 text-white shadow-lg border border-white/30"
@@ -110,7 +118,7 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
             <span className="relative z-10">Ferramentas</span>
           </button>
           <button
-            onClick={() => setActiveTab("carreiras")}
+            onClick={() => handleTabChange("carreiras")}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-condensed font-medium transition-all duration-200 relative overflow-hidden ${
               activeTab === "carreiras"
                 ? "bg-white/25 text-white shadow-lg border border-white/30"
@@ -130,7 +138,7 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
             {itensCarreiras.map((item) => (
               <button 
                 key={item.id} 
-                onClick={() => navigate(item.route)} 
+                onClick={() => handleNavigate(item.route)} 
                 className={`group rounded-xl overflow-hidden relative transition-transform duration-150 hover:scale-[1.02] ${isDesktop ? 'aspect-square' : 'aspect-[4/3]'}`}
               >
                 {/* Imagem de fundo */}
@@ -162,7 +170,7 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
               return (
                 <button 
                   key={item.id} 
-                  onClick={() => navigate(item.route)} 
+                  onClick={() => handleNavigate(item.route)} 
                   className={`group bg-white/15 rounded-xl p-2.5 text-left transition-all duration-150 hover:bg-white/20 flex flex-col gap-1.5 border border-white/10 hover:border-white/20 overflow-hidden relative ${isDesktop ? 'h-[100px]' : 'h-[130px] rounded-2xl p-3 gap-2'}`}
                   style={{ boxShadow: '4px 6px 12px rgba(0, 0, 0, 0.4)' }}
                 >
@@ -195,6 +203,8 @@ export const EmAltaSection = ({ isDesktop, navigate, handleLinkHover }: EmAltaSe
       </div>
     </div>
   );
-};
+});
+
+EmAltaSection.displayName = 'EmAltaSection';
 
 export default EmAltaSection;

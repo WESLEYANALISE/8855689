@@ -1,5 +1,65 @@
 @tailwind base;
 
+/* ===========================================
+   PERFORMANCE-OPTIMIZED ANIMATIONS
+   GPU-accelerated, lightweight CSS animations
+   =========================================== */
+
+/* Core fade animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Slide animations - GPU accelerated with translateZ(0) */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
+}
+
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(16px) translateZ(0); }
+  to { opacity: 1; transform: translateX(0) translateZ(0); }
+}
+
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-16px) translateZ(0); }
+  to { opacity: 1; transform: translateX(0) translateZ(0); }
+}
+
+/* Scale animations */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95) translateZ(0); }
+  to { opacity: 1; transform: scale(1) translateZ(0); }
+}
+
+@keyframes scaleOut {
+  from { opacity: 1; transform: scale(1) translateZ(0); }
+  to { opacity: 0; transform: scale(0.95) translateZ(0); }
+}
+
+/* Combined fade + slide */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-12px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
+}
+
+/* Existing animations */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
@@ -11,38 +71,24 @@
 }
 
 @keyframes wave-pulse {
-  0%, 100% { 
-    transform: translateY(0) scale(1);
-    opacity: 0.5;
-  }
-  50% { 
-    transform: translateY(-3px) scale(1.02);
-    opacity: 0.8;
-  }
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+  50% { transform: translateY(-3px) scale(1.02); opacity: 0.8; }
 }
 
 @keyframes wave-shimmer {
-  0% { 
-    background-position: 200% 0; 
-    opacity: 0.3;
-  }
-  50% { 
-    opacity: 0.7;
-  }
-  100% { 
-    background-position: -200% 0; 
-    opacity: 0.3;
-  }
+  0% { background-position: 200% 0; opacity: 0.3; }
+  50% { opacity: 0.7; }
+  100% { background-position: -200% 0; opacity: 0.3; }
 }
 
-.animate-icon-shimmer {
-  animation: icon-shimmer 2s linear infinite;
+@keyframes grow-width {
+  0% { width: 0%; }
+  100% { width: 100%; }
 }
 
-.animate-wave-pulse {
-  animation: wave-pulse 3s ease-in-out infinite;
-}
-
+/* Utility classes for animations */
+.animate-icon-shimmer { animation: icon-shimmer 2s linear infinite; }
+.animate-wave-pulse { animation: wave-pulse 3s ease-in-out infinite; }
 .animate-wave-shimmer {
   background: linear-gradient(90deg, 
     rgba(239, 68, 68, 0.1) 0%, 
@@ -55,21 +101,26 @@
   animation: wave-shimmer 3s linear infinite;
 }
 
-@keyframes grow-width {
-  0% { width: 0%; }
-  100% { width: 100%; }
+/* 3D Transform utilities for card flips */
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+.perspective-1000 { perspective: 1000px; }
+
+/* CSS containment for performance isolation */
+.contain-layout { contain: layout; }
+.contain-paint { contain: paint; }
+.contain-strict { contain: strict; }
+
+/* Prefers reduced motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-@keyframes slideDown {
-  0% {
-    opacity: 0;
-    transform: translateY(-20px) translateZ(0);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) translateZ(0);
-  }
-}
 @tailwind components;
 @tailwind utilities;
 
