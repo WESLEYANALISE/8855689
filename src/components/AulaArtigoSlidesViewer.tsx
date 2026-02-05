@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, GraduationCap, ChevronRight, BookOpen, HelpCircle, Play, Clock, Target, List, ArrowLeft, Sparkles, Lock, CheckCircle2 } from "lucide-react";
@@ -145,15 +145,20 @@ export const AulaArtigoSlidesViewer = ({
     gcTime: 1000 * 60 * 30 // 30 minutos
   });
 
-  // Quando temos cache, definir slidesData e ir para intro imediatamente
+  // Variável memoizada: sempre usa cachedAula se disponível, senão slidesData gerado
+  const currentSlidesData = useMemo(() => {
+    return cachedAula || slidesData;
+  }, [cachedAula, slidesData]);
+
+  // Quando temos cache, ir para intro imediatamente (sem depender de setSlidesData)
   useEffect(() => {
-    if (cachedAula && isOpen && !slidesData) {
+    // IMPORTANTE: Só processar quando o cache terminou de carregar E temos dados
+    if (!isCheckingCache && cachedAula && isOpen && etapaAtual === 'loading') {
       console.log('[AulaArtigo] ✅ Carregado do cache React Query');
-      setSlidesData(cachedAula);
       setEtapaAtual('intro');
       toast.success("Aula carregada!");
     }
-  }, [cachedAula, isOpen, slidesData]);
+  }, [isCheckingCache, cachedAula, isOpen, etapaAtual]);
 
   // Rotate loading messages
   useEffect(() => {
@@ -214,10 +219,13 @@ export const AulaArtigoSlidesViewer = ({
   // Fetch or generate slides when modal opens
   // Gerar slides SOMENTE se não existir no cache
   useEffect(() => {
-    if (isOpen && !isCheckingCache && !cachedAula && !slidesData && !isGenerating) {
+    // CRÍTICO: NUNCA gerar enquanto isCheckingCache for true
+    // A ordem das condições é importante para evitar race condition
+    if (!isCheckingCache && isOpen && !cachedAula && !slidesData && !isGenerating) {
+      console.log('[AulaArtigo] 🔄 Iniciando geração (não há cache)');
       generateSlidesFromScratch();
     }
-  }, [isOpen, isCheckingCache, cachedAula, slidesData, isGenerating]);
+  }, [isCheckingCache, isOpen, cachedAula, slidesData, isGenerating]);
 
   const generateSlidesFromScratch = async () => {
     if (isGenerating) return;
@@ -309,14 +317,20 @@ export const AulaArtigoSlidesViewer = ({
   };
 
   const handleStartSlides = useCallback(() => {
-    console.log('[AulaArtigoSlides] Starting slides, secoes:', slidesData?.secoes?.length);
-    if (slidesData?.secoes && slidesData.secoes.length > 0) {
+    // Usar currentSlidesData que combina cache + gerado
+    const data = cachedAula || slidesData;
+    console.log('[AulaArtigoSlides] Starting slides, secoes:', data?.secoes?.length, 'cached:', !!cachedAula);
+    if (data?.secoes && data.secoes.length > 0) {
+      // Se veio do cache, garantir que slidesData seja setado para uso nos outros componentes
+      if (cachedAula && !slidesData) {
+        setSlidesData(cachedAula);
+      }
       setEtapaAtual('slides');
     } else {
       toast.error("Erro: Nenhum slide disponível");
-      console.error('[AulaArtigoSlides] No secoes found in slidesData:', slidesData);
+      console.error('[AulaArtigoSlides] No secoes found:', data);
     }
-  }, [slidesData]);
+  }, [cachedAula, slidesData]);
 
   const handleStartFlashcards = useCallback(() => {
     setEtapaAtual('flashcards');
@@ -357,12 +371,12 @@ export const AulaArtigoSlidesViewer = ({
   if (!isOpen) return null;
 
   // Slides viewer (full screen)
-  if (etapaAtual === 'slides' && slidesData) {
+  if (etapaAtual === 'slides' && currentSlidesData) {
     return (
       <ConceitosSlidesViewer
-        secoes={slidesData.secoes}
-        titulo={slidesData.titulo}
-        materiaName={slidesData.area}
+        secoes={currentSlidesData.secoes}
+        titulo={currentSlidesData.titulo}
+        materiaName={currentSlidesData.area}
         onClose={() => setEtapaAtual('intro')}
         onComplete={handleSlidesComplete}
         onProgressChange={setSlidesProgress}
@@ -371,8 +385,8 @@ export const AulaArtigoSlidesViewer = ({
     );
   }
 
-  const totalSlides = slidesData?.secoes?.reduce((acc, s) => acc + (s.slides?.length || 0), 0) || 0;
-  const totalSecoes = slidesData?.secoes?.length || 0;
+  const totalSlides = currentSlidesData?.secoes?.reduce((acc, s) => acc + (s.slides?.length || 0), 0) || 0;
+  const totalSecoes = currentSlidesData?.secoes?.length || 0;
   const leituraCompleta = slidesProgress >= 100;
   const flashcardsCompletos = flashcardsProgresso >= 100;
   const questoesCompletas = quizAcertos > 0;
@@ -460,7 +474,7 @@ export const AulaArtigoSlidesViewer = ({
         )}
 
         {/* Intro Screen (like OAB Trilhas) */}
-        {etapaAtual === 'intro' && slidesData && (
+        {etapaAtual === 'intro' && currentSlidesData && (
           <motion.div
             key="intro"
             initial={{ opacity: 0 }}
@@ -472,7 +486,7 @@ export const AulaArtigoSlidesViewer = ({
             <div className="relative w-full aspect-video max-h-72 overflow-hidden">
               <UniversalImage
                 src={capaUrl}
-                alt={slidesData.titulo}
+                alt={currentSlidesData.titulo}
                 priority
                 blurCategory="juridico"
                 containerClassName="w-full h-full"
@@ -546,7 +560,7 @@ export const AulaArtigoSlidesViewer = ({
                 </motion.div>
 
                 {/* Objetivos */}
-                {slidesData.objetivos && slidesData.objetivos.length > 0 && (
+                {currentSlidesData.objetivos && currentSlidesData.objetivos.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -558,7 +572,7 @@ export const AulaArtigoSlidesViewer = ({
                       <span className="text-sm font-medium text-white">Objetivos</span>
                     </div>
                     <ul className="space-y-2">
-                      {slidesData.objetivos.slice(0, 4).map((obj, idx) => (
+                      {currentSlidesData.objetivos.slice(0, 4).map((obj, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm text-gray-300">
                           <span className="text-red-400 mt-0.5">•</span>
                           {obj}
@@ -608,7 +622,7 @@ export const AulaArtigoSlidesViewer = ({
                   </motion.div>
 
                   {/* Módulo 2: Flashcards */}
-                  {slidesData.flashcards && slidesData.flashcards.length > 0 && (
+                  {currentSlidesData.flashcards && currentSlidesData.flashcards.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -644,7 +658,7 @@ export const AulaArtigoSlidesViewer = ({
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              {slidesData.flashcards.length} cards de revisão
+                              {currentSlidesData.flashcards.length} cards de revisão
                             </p>
                           </div>
                           {leituraCompleta ? (
@@ -658,7 +672,7 @@ export const AulaArtigoSlidesViewer = ({
                   )}
 
                   {/* Módulo 3: Praticar */}
-                  {slidesData.questoes && slidesData.questoes.length > 0 && (
+                  {currentSlidesData.questoes && currentSlidesData.questoes.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -694,7 +708,7 @@ export const AulaArtigoSlidesViewer = ({
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              {slidesData.questoes.length} questões estilo OAB
+                              {currentSlidesData.questoes.length} questões estilo OAB
                             </p>
                           </div>
                           {questoesCompletas ? (
@@ -725,7 +739,7 @@ export const AulaArtigoSlidesViewer = ({
         )}
 
         {/* Flashcards */}
-        {etapaAtual === 'flashcards' && slidesData && (
+        {etapaAtual === 'flashcards' && currentSlidesData && (
           <motion.div
             key="flashcards"
             initial={{ opacity: 0 }}
@@ -760,7 +774,7 @@ export const AulaArtigoSlidesViewer = ({
                   </p>
                   
                   <FlashcardViewer
-                    flashcards={slidesData.flashcards.map(f => ({
+                    flashcards={currentSlidesData.flashcards.map(f => ({
                       front: f.frente,
                       back: f.verso,
                       example: f.exemplo
@@ -791,7 +805,7 @@ export const AulaArtigoSlidesViewer = ({
         )}
 
         {/* Quiz */}
-        {etapaAtual === 'quiz' && slidesData && (
+        {etapaAtual === 'quiz' && currentSlidesData && (
           <motion.div
             key="quiz"
             initial={{ opacity: 0 }}
@@ -825,11 +839,11 @@ export const AulaArtigoSlidesViewer = ({
                     Teste seus conhecimentos sobre o artigo
                   </p>
                   
-                  <QuizViewerEnhanced questions={slidesData.questoes} />
+                  <QuizViewerEnhanced questions={currentSlidesData.questoes} />
                   
                   <div className="mt-6 flex justify-center">
                     <Button
-                      onClick={() => handleQuizComplete(0, slidesData.questoes.length)}
+                      onClick={() => handleQuizComplete(0, currentSlidesData.questoes.length)}
                       className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-semibold px-8 rounded-xl"
                     >
                       Concluir Aula
@@ -842,7 +856,7 @@ export const AulaArtigoSlidesViewer = ({
         )}
 
         {/* Resultado */}
-        {etapaAtual === 'resultado' && slidesData && (
+        {etapaAtual === 'resultado' && currentSlidesData && (
           <motion.div
             key="resultado"
             initial={{ opacity: 0, scale: 0.95 }}
