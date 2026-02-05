@@ -182,7 +182,7 @@ NOME DO CÓDIGO: ${codigoNome || codigoTabela}
 ARTIGO: ${numeroArtigo}
 
 TEXTO LITERAL DO ARTIGO:
-${conteudoArtigo}
+${conteudoArtigo.replace(/\s*\([Rr]edação\s+dada\s+pela\s+[^)]+\)/gi, '').replace(/\s*\([Ii]nclu[íi]d[oa]\s+pela\s+[^)]+\)/gi, '').replace(/\s*\([Vv]ide\s+[^)]+\)/gi, '').replace(/\s*\([Rr]evogad[oa]\s+pela\s+[^)]+\)/gi, '').replace(/\s*\([Rr]enumerad[oa]\s+pela\s+[^)]+\)/gi, '').trim()}
 
 ═══════════════════════════════════════════════════════════════════
           ⛔⛔⛔ REGRA ABSOLUTA - SAUDAÇÕES (CRÍTICO!) ⛔⛔⛔
