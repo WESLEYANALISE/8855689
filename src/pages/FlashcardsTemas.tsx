@@ -1,9 +1,9 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Sparkles, Search, ArrowLeft, BookOpen, FileText, Loader2, Lock, Crown, CheckCircle2, ArrowDownAZ, ListOrdered, CheckSquare } from "lucide-react";
+import { Sparkles, Search, ArrowLeft, BookOpen, FileText, Loader2, Lock, Crown, CheckCircle2, ArrowDownAZ, ListOrdered, CheckSquare, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -11,6 +11,7 @@ import { useContentLimit } from "@/hooks/useContentLimit";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useFlashcardsAutoGeneration } from "@/hooks/useFlashcardsAutoGeneration";
 import themisBackground from "@/assets/themis-estudos-background.webp";
 
 // Preload da imagem de fundo
@@ -169,6 +170,22 @@ const FlashcardsTemas = () => {
     navigate(`/flashcards/estudar?area=${encodeURIComponent(area)}&temas=${temasParam}`);
   };
 
+  // QueryClient para refresh
+  const queryClient = useQueryClient();
+  
+  // Callback para refresh dos dados quando flashcards são gerados
+  const handleAutoGenProgress = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["flashcards-temas-progressivo", area] });
+  }, [queryClient, area]);
+
+  // Geração automática em background
+  const { isGenerating, currentTema, geradosCount } = useFlashcardsAutoGeneration({
+    area,
+    temas,
+    enabled: !!area && !isLoading && (temas?.some(t => !t.temFlashcards) || false),
+    onProgress: handleAutoGenProgress
+  });
+
   // Aplica limite de 10% para usuários free
   const { visibleItems, lockedItems, isPremiumRequired } = useContentLimit(sortedTemas, 'flashcards-temas');
 
@@ -180,6 +197,7 @@ const FlashcardsTemas = () => {
   };
 
   const temPendentes = temas?.some(t => t.parcial);
+  const temasNaoGerados = temas?.filter(t => !t.temFlashcards).length || 0;
   const totalFlashcards = temas?.reduce((acc, t) => acc + t.totalFlashcards, 0) || 0;
   const totalTemas = temas?.length || 0;
 
@@ -243,6 +261,35 @@ const FlashcardsTemas = () => {
           </div>
         ) : (
           <>
+            {/* Indicador de geração automática */}
+            {isGenerating && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-2"
+              >
+                <div className="max-w-lg mx-auto">
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-xl px-4 py-3">
+                    <div className="relative">
+                      <Zap className="w-5 h-5 text-emerald-400" />
+                      <div className="absolute inset-0 animate-ping">
+                        <Zap className="w-5 h-5 text-emerald-400 opacity-50" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-emerald-300 font-medium">
+                        Gerando flashcards automaticamente...
+                      </p>
+                      <p className="text-xs text-emerald-400/70 truncate">
+                        {currentTema ? `Tema: ${currentTema}` : 'Iniciando...'} • {geradosCount} gerados
+                      </p>
+                    </div>
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400 shrink-0" />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* Info Stats */}
             <div className="px-4 py-2">
               <div className="flex items-center justify-center gap-6 text-sm text-white/80">
@@ -254,6 +301,12 @@ const FlashcardsTemas = () => {
                   <FileText className="w-4 h-4 text-yellow-400" />
                   <span>{totalFlashcards.toLocaleString('pt-BR')} flashcards</span>
                 </div>
+                {temasNaoGerados > 0 && !isGenerating && (
+                  <div className="flex items-center gap-2 text-amber-400/80">
+                    <Loader2 className="w-3.5 h-3.5" />
+                    <span>{temasNaoGerados} pendentes</span>
+                  </div>
+                )}
               </div>
             </div>
 
