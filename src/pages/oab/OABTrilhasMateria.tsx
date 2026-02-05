@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, ArrowLeft, Loader2, Scale, ImageIcon, Footprints, FileText, RefreshCw, Sparkles, CheckCircle, Search, X } from "lucide-react";
+ import { Lock, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import bgMateriasOab from "@/assets/bg-materias-oab.webp";
 import { OABPdfProcessorModal } from "@/components/oab/OABPdfProcessorModal";
@@ -16,6 +17,9 @@ import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
+ import { useFixedContentLimit } from "@/hooks/useFixedContentLimit";
+ import { LockedTimelineCard } from "@/components/LockedTimelineCard";
+ import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 const SCROLL_KEY_PREFIX = "oab-trilhas-scroll-materia";
 
@@ -28,6 +32,7 @@ const OABTrilhasMateria = () => {
   const location = useLocation();
   const { user } = useAuth();
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
+   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Restaurar posição do scroll ao voltar
   useEffect(() => {
@@ -218,6 +223,12 @@ const OABTrilhasMateria = () => {
     );
   }, [materias, searchTerm]);
 
+   // Aplicar limite de 2 matérias por área para usuários gratuitos
+   const { visibleItems, lockedItems, lockedCount } = useFixedContentLimit(
+     filteredMaterias,
+     'oab-trilhas-materias'
+   );
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background com InstantBackground */}
@@ -352,7 +363,8 @@ const OABTrilhasMateria = () => {
               </div>
               
               <div className="space-y-6">
-                {filteredMaterias.map((materia, index) => {
+                 {/* Matérias visíveis (liberadas) */}
+                 {visibleItems.map((materia, index) => {
                   const isLeft = index % 2 === 0;
                   
                   return (
@@ -459,10 +471,28 @@ const OABTrilhasMateria = () => {
                     </motion.div>
                   );
                 })}
+                 
+                 {/* Matérias bloqueadas (Premium) */}
+                 {lockedItems.map((materia, index) => {
+                   const realIndex = visibleItems.length + index;
+                   const isLeft = realIndex % 2 === 0;
+                   
+                   return (
+                     <LockedTimelineCard
+                       key={materia.id}
+                       title={materia.titulo}
+                       subtitle={`Matéria ${materia.ordem}`}
+                       imageUrl={area?.capa_url || undefined}
+                       isLeft={isLeft}
+                       index={realIndex}
+                       onClick={() => setShowPremiumModal(true)}
+                     />
+                   );
+                 })}
               </div>
             </div>
           </div>
-        ) : (
+         ) : materias && materias.length === 0 ? (
           <div className="text-center py-12 text-gray-400 px-4">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-red-400" />
             <p className="text-lg font-medium text-white">Nenhuma matéria encontrada</p>
@@ -475,7 +505,7 @@ const OABTrilhasMateria = () => {
               Carregar PDF
             </Button>
           </div>
-        )}
+         ) : null}
         
         {/* Botão de reprocessar PDF no canto (quando já tem matérias) */}
         {materias && materias.length > 0 && (
@@ -494,6 +524,13 @@ const OABTrilhasMateria = () => {
         
         {/* Botão flutuante de scroll */}
         <FloatingScrollButton />
+         
+         {/* Modal Premium */}
+         <PremiumUpgradeModal
+           open={showPremiumModal}
+           onOpenChange={setShowPremiumModal}
+           featureName="Todas as matérias"
+         />
         
         {/* Modal de processamento de PDF */}
         {area && (
