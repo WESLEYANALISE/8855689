@@ -550,7 +550,7 @@ export const AulaArtigoSlidesViewer = ({
                 >
                   <div className="flex items-center gap-1 text-gray-400">
                     <Clock className="w-4 h-4" />
-                    <span>{slidesData.tempoEstimado || "25 min"}</span>
+                    <span>{currentSlidesData?.tempoEstimado || "25 min"}</span>
                   </div>
                   <div className="w-1 h-1 rounded-full bg-gray-600" />
                   <div className="flex items-center gap-1 text-gray-400">
