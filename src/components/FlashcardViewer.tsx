@@ -9,6 +9,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 interface Flashcard {
   id?: number;
@@ -54,6 +57,9 @@ export const FlashcardViewer = ({
   codigoNome,
   numeroArtigo,
 }: FlashcardViewerProps) => {
+  const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
@@ -556,8 +562,8 @@ export const FlashcardViewer = ({
                 </p>
               </div>
 
-              {/* Botão Base Legal - apenas para flashcards gerados, não para artigos-lei */}
-              {tabela !== 'artigos-lei' && (
+              {/* Botão Base Legal - apenas para flashcards gerados e apenas para admin */}
+              {tabela !== 'artigos-lei' && isAdmin && (
                 <div className="mt-3 relative">
                   <Button
                     variant="outline"
