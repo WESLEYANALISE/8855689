@@ -69,12 +69,14 @@ const AssinaturaGerenciamento = () => {
   };
 
   const getPlanName = () => {
+    if (subscription?.planType === 'vitalicio') return 'Premium Vitalício';
     if (subscription?.planType === 'anual') return 'Premium Anual';
     if (subscription?.planType === 'mensal') return 'Premium Mensal';
     return 'Premium';
   };
 
   const getPlanValue = () => {
+    if (subscription?.planType === 'vitalicio') return 'R$ 89,90 (vitalício)';
     if (subscription?.planType === 'anual') return '12x R$ 15,00';
     if (subscription?.planType === 'mensal') return 'R$ 21,90/mês';
     return subscription?.amount ? `R$ ${subscription.amount.toFixed(2).replace('.', ',')}` : '';

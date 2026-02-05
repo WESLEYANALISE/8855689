@@ -26,8 +26,7 @@ interface PlanConfig {
 }
 
 const PLANS: Record<PlanType, PlanConfig> = {
-  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null },
-  vitalicio: { price: 79.90, label: 'Vitalício', days: 36500, badge: 'MAIS POPULAR', featured: true }
+  vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'OFERTA ESPECIAL', featured: true }
 };
 
 
@@ -131,29 +130,16 @@ const Assinatura = () => {
             audioBase64={audioBase64} 
           />
 
-          {/* Cards dos Planos - responsivo para desktop */}
-          <div className="max-w-4xl mx-auto mt-6 sm:mt-8 px-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {/* Plano Mensal */}
-              <PlanoCardNovo
-                planKey="mensal"
-                plan={PLANS.mensal}
-                imagemUrl={planImages.mensal || planImages.vitalicio}
-                imagemLoading={imagesLoading}
-                onVerMais={() => setModalPlano('mensal')}
-                delay={0.3}
-              />
-              
-              {/* Plano Vitalício */}
-              <PlanoCardNovo
-                planKey="vitalicio"
-                plan={PLANS.vitalicio}
-                imagemUrl={planImages.vitalicio}
-                imagemLoading={imagesLoading}
-                onVerMais={() => setModalPlano('vitalicio')}
-                delay={0.5}
-              />
-            </div>
+          {/* Card do Plano Vitalício - único plano disponível */}
+          <div className="max-w-md mx-auto mt-6 sm:mt-8 px-2">
+            <PlanoCardNovo
+              planKey="vitalicio"
+              plan={PLANS.vitalicio}
+              imagemUrl={planImages.vitalicio}
+              imagemLoading={imagesLoading}
+              onVerMais={() => setModalPlano('vitalicio')}
+              delay={0.3}
+            />
           </div>
 
           {/* Selo de segurança */}
