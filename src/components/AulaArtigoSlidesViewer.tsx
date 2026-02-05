@@ -151,10 +151,10 @@ export const AulaArtigoSlidesViewer = ({
     
     const startProgressAnimation = () => {
       progressInterval = window.setInterval(() => {
-        if (currentProgress < 85) {
-          // Progresso realista com velocidade variável
-          const increment = currentProgress < 15 ? 2 : currentProgress < 35 ? 1.5 : currentProgress < 55 ? 1.2 : currentProgress < 75 ? 0.8 : 0.5;
-          currentProgress = Math.min(85, currentProgress + increment);
+        if (currentProgress < 95) {
+          // Progresso realista com velocidade variável - vai até 95% (não trava em 85%)
+          const increment = currentProgress < 15 ? 2.5 : currentProgress < 35 ? 2 : currentProgress < 55 ? 1.5 : currentProgress < 75 ? 1 : currentProgress < 90 ? 0.6 : 0.3;
+          currentProgress = Math.min(95, currentProgress + increment);
           setProgress(Math.round(currentProgress));
           
           // Mensagens contextuais
@@ -166,11 +166,13 @@ export const AulaArtigoSlidesViewer = ({
             setProgressMessage("✍️ Gerando slides didáticos...");
           } else if (currentProgress < 75) {
             setProgressMessage("🎴 Criando flashcards...");
-          } else {
+          } else if (currentProgress < 90) {
             setProgressMessage("✨ Montando questões...");
+          } else {
+            setProgressMessage("🎯 Finalizando aula...");
           }
         }
-      }, 400);
+      }, 350);
     };
     
     try {
@@ -195,12 +197,12 @@ export const AulaArtigoSlidesViewer = ({
       if (progressInterval) clearInterval(progressInterval);
       
       // Animação suave até 100%
-      setProgress(90);
-      setProgressMessage("🎉 Quase pronto!");
-      await new Promise(r => setTimeout(r, 200));
-      setProgress(95);
-      await new Promise(r => setTimeout(r, 200));
-      setProgress(100);
+      // Animar suavemente até 100%
+      for (let i = Math.round(currentProgress); i <= 100; i += 2) {
+        setProgress(Math.min(i, 100));
+        if (i < 98) setProgressMessage("🎉 Quase pronto!");
+        await new Promise(r => setTimeout(r, 30));
+      }
       setProgressMessage("✅ Concluído!");
       await new Promise(r => setTimeout(r, 300));
 
@@ -358,7 +360,15 @@ export const AulaArtigoSlidesViewer = ({
                 <p className="text-xs text-gray-500">Isso pode levar alguns instantes</p>
               </div>
 
-              <Button variant="ghost" onClick={handleSair} className="text-gray-400">
+              <Button 
+                variant="ghost" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleSair();
+                }} 
+                className="text-gray-400 relative z-50"
+              >
                 <X className="w-4 h-4 mr-2" />
                 Cancelar
               </Button>
@@ -485,7 +495,11 @@ export const AulaArtigoSlidesViewer = ({
                     transition={{ delay: 0.25 }}
                   >
                     <button
-                      onClick={handleStartSlides}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleStartSlides();
+                      }}
                       className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/10 hover:from-red-500/30 hover:to-orange-500/20 border border-red-500/30 rounded-xl p-3 sm:p-4 transition-all active:scale-[0.98]"
                     >
                       <div className="flex items-center gap-3 sm:gap-4">
@@ -518,7 +532,9 @@ export const AulaArtigoSlidesViewer = ({
                       transition={{ delay: 0.3 }}
                     >
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                           if (leituraCompleta) {
                             handleStartFlashcards();
                           } else {
@@ -566,7 +582,9 @@ export const AulaArtigoSlidesViewer = ({
                       transition={{ delay: 0.35 }}
                     >
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                           if (leituraCompleta) {
                             handleStartQuiz();
                           } else {
@@ -815,14 +833,18 @@ export const AulaArtigoSlidesViewer = ({
               
               <div className="flex gap-3">
                 <Button
-                  onClick={() => setShowFlashcardsBlockedModal(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowFlashcardsBlockedModal(false);
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
                   Fechar
                 </Button>
                 <Button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShowFlashcardsBlockedModal(false);
                     handleStartSlides();
                   }}
@@ -866,14 +888,18 @@ export const AulaArtigoSlidesViewer = ({
               
               <div className="flex gap-3">
                 <Button
-                  onClick={() => setShowPraticarBlockedModal(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPraticarBlockedModal(false);
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
                   Fechar
                 </Button>
                 <Button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShowPraticarBlockedModal(false);
                     handleStartSlides();
                   }}
