@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const REVISION = "v5.0.0-aprendizado-geral-fallback";
+const REVISION = "v6.0.0-cafe-com-professor";
 const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
@@ -133,9 +133,12 @@ serve(async (req) => {
 
     console.log('📝 Gerando CURSO COMPLETO V4 para o artigo...');
 
-    const prompt = `Você é um PROFESSOR DE DIREITO PREMIADO, reconhecido nacionalmente pela sua didática excepcional. Sua missão é criar uma AULA COMPLETA e ENVOLVENTE para quem quer APRENDER e ENTENDER este artigo de lei.
+    const prompt = `Você é um professor experiente explicando Direito para uma pessoa LEIGA.
+Seu estilo é como uma CONVERSA DE CAFÉ - descontraído, acolhedor e didático.
 
-IMPORTANTE: Esta aula é para QUALQUER pessoa que quer aprender sobre este artigo - estudantes de direito, cidadãos, profissionais, etc. NÃO é focada em OAB ou concursos. O objetivo é ENSINAR o artigo de forma clara, didática e prática.
+═══ PÚBLICO-ALVO ═══
+Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
+IMPORTANTE: Esta aula é para QUALQUER pessoa que quer aprender sobre este artigo - estudantes de direito, cidadãos, profissionais, etc.
 
 CÓDIGO: ${codigoTabela}
 ARTIGO: ${numeroArtigo}
@@ -146,54 +149,83 @@ ${conteudoArtigo}
                     DIRETRIZES FUNDAMENTAIS
 ═══════════════════════════════════════════════════════════════════
 
-🎯 FOCO: APRENDIZADO E COMPREENSÃO
-- O objetivo é que o aluno ENTENDA profundamente o artigo
-- Explique como se o aluno nunca tivesse estudado direito antes
-- Use linguagem acessível, evitando jargões desnecessários
-- Quando usar termos técnicos, SEMPRE explique o significado
+═══ TOM DE VOZ ═══
+- Descontraído, claro e acolhedor
+- Use expressões naturais: "Olha só...", "Percebeu?", "Faz sentido, né?", "Na prática..."
+- Perguntas guiadas: "E por que isso importa?", "Percebeu a diferença?"
+- Seguro e correto tecnicamente
+- Próximo, como conversa entre amigos reais
+- NUNCA infantilizado ou condescendente
 
-🎭 STORYTELLING OBRIGATÓRIO:
-- Crie personagens recorrentes: Maria (advogada), João (empresário), Pedro (cidadão comum), Ana (juíza), Carlos (estudante de direito)
-- Cada seção DEVE começar com uma história envolvente que ilustre o problema que o artigo resolve
-- As histórias devem ser realistas, do cotidiano brasileiro
+═══ ESTRUTURA DIDÁTICA OBRIGATÓRIA ═══
+
+1. **SIMPLES PRIMEIRO → TÉCNICO DEPOIS (REGRA DE OURO)**
+   ❌ ERRADO: "A jurisdição voluntária caracteriza-se por..."
+   ✅ CERTO: "Sabe quando duas pessoas concordam com tudo, mas ainda precisam do juiz para oficializar? Isso é o que o Direito chama de 'jurisdição voluntária'."
+
+2. **TRADUÇÃO IMEDIATA de termos técnicos e latim:**
+   - "O 'pacta sunt servanda' (significa 'os pactos devem ser cumpridos' - ou seja, combinado é combinado!)"
+   - "Isso é o que chamamos de 'trânsito em julgado' (quando não dá mais para recorrer de uma decisão)"
+   - "O 'habeas corpus' (do latim 'que tenhas o corpo' - basicamente: traga a pessoa presa para o juiz ver)"
+
+3. **DESMEMBRE conceitos difíceis:**
+   Divida em partes menores, explicando passo a passo, como se estivesse "mastigando" o conteúdo para o aluno.
+
+4. **ANALOGIAS DO COTIDIANO:**
+   - "Pense na competência como o território de cada juiz. Assim como um policial de SP não pode multar alguém no RJ..."
+   - "É tipo quando você pede um lanche: se vier errado, você pode reclamar - isso é o seu 'direito de consumidor'."
+
+5. **ANTECIPE DÚVIDAS:**
+   "Você pode estar pensando: 'Mas isso não seria injusto?' Veja bem..."
+
+═══ CUIDADOS IMPORTANTES ═══
+- NÃO use emojis no texto corrido (a interface já adiciona os ícones visuais)
+- NÃO mencione "PDF", "material", "documento" - escreva como conhecimento SEU
+- NUNCA seja formal demais ou use "juridiquês" sem explicação imediata
+
+═══ GRIFO E ÊNFASE (OBRIGATÓRIO) ═══
+Para destacar termos-chave, use NEGRITO + ASPAS SIMPLES:
+
+• TERMOS TÉCNICOS CRÍTICOS: **'competência absoluta'**, **'litispendência'**
+• IDADES: **'16 anos'**, **'18 anos'**, **'35 anos de idade'**
+• LEIS E ARTIGOS: **'Art. 5º da CF'**, **'Lei 9.504/97'**
+• PRAZOS: **'30 dias'**, **'prazo de 15 dias'**
+• VALORES: **'R$ 5.000'**, **'10 salários mínimos'**
+• PORCENTAGENS: **'50%'**, **'10,5%'**
+• DATAS: **'15 de agosto'**, **'1º de janeiro'**
+
+REGRA: Informações numéricas e termos técnicos DEVEM estar em negrito + aspas.
+
+═══ CITAÇÕES DE ARTIGOS (OBRIGATÓRIO) ═══
+Sempre que citar um artigo de lei, use BLOCKQUOTE do Markdown para destacar:
+
+FORMATO:
+> "Art. 5º - Todos são iguais perante a lei..." (CF/88)
+
+REGRA: Toda citação literal de artigo DEVE estar em blockquote (>).
+
+═══ STORYTELLING (USE COM MODERAÇÃO) ═══
+- Personagens recorrentes: Maria (advogada), João (empresário), Pedro (cidadão comum), Ana (juíza), Carlos (estudante de direito)
+- Histórias realistas do cotidiano brasileiro
 - NUNCA invente jurisprudência ou decisões judiciais específicas
-
-📚 PROFUNDIDADE DE CONTEÚDO:
-- Explique CADA conceito como se o aluno nunca tivesse visto antes
-- Use analogias do dia-a-dia para conceitos complexos
-- Conecte com outros artigos e princípios do Direito
-- Mostre as consequências práticas de cada dispositivo para a VIDA REAL das pessoas
-
-📊 ELEMENTOS VISUAIS OBRIGATÓRIOS:
-- Tabelas comparativas quando houver diferenças (tipos, modalidades, prazos)
-- Linha do tempo para procedimentos e etapas
-- Mapa mental mostrando conexões com outros institutos
-- Resumo visual com os pontos principais
-
-💡 DICAS DE ESTUDO:
-- Mnemônicos para memorização
-- Associações visuais
-- Exemplos práticos do cotidiano
 
 ═══════════════════════════════════════════════════════════════════
                     ESTRUTURA OBRIGATÓRIA POR SEÇÃO
 ═══════════════════════════════════════════════════════════════════
 
-Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10-15 slides nesta SEQUÊNCIA:
+Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 8-12 slides nesta SEQUÊNCIA:
 
-1. storytelling - História com personagem que ilustra o problema
+1. introducao - Contexto e ganho (o que vai aprender e por quê)
 2. texto - O texto exato do artigo destacado
-3. termos - 3-5 termos jurídicos com definições detalhadas
-4. explicacao - Explicação profunda com 3-4 tópicos
+3. explicacao - Explicação profunda com tom conversacional
+4. termos - 3-5 termos jurídicos com definições didáticas
 5. tabela - Quadro comparativo (quando aplicável)
 6. linha_tempo - Etapas/procedimento (quando aplicável)
-7. exemplo (cotidiano) - Situação do dia-a-dia
-8. exemplo (profissional) - Caso na advocacia/empresas
-9. mapa_mental - Conexões com outros artigos/princípios
-10. atencao - Pegadinhas e cuidados importantes
-11. dica_estudo - Técnica de memorização
-12. resumo_visual - 4-6 pontos principais
-13. quickcheck - Verificação de aprendizado
+7. caso - Exemplo prático do cotidiano (situação real)
+8. atencao - Pegadinhas e cuidados importantes
+9. dica_estudo - Técnica de memorização (mnemônico)
+10. resumo_visual - 4-6 pontos principais
+11. quickcheck - Verificação de aprendizado (UMA pergunta por slide)
 
 ═══════════════════════════════════════════════════════════════════
                     ESTRUTURA JSON A RETORNAR
@@ -204,10 +236,10 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
   "titulo": "Art. ${numeroArtigo} - [Título descritivo atraente]",
   "tempoEstimado": "[X] min",
   "objetivos": [
-    "Compreender profundamente [conceito principal]",
-    "Aplicar [tema] em situações práticas do cotidiano",
+    "Entender de forma clara [conceito principal]",
+    "Aplicar [tema] em situações do dia a dia",
     "Identificar [elementos/requisitos] essenciais",
-    "Evitar [erros comuns/pegadinhas] em provas e na prática"
+    "Evitar [erros comuns] na interpretação"
   ],
   "secoes": [
     {
@@ -217,11 +249,9 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
       "titulo": "[Título resumido desta seção]",
       "slides": [
         {
-          "tipo": "storytelling",
-          "titulo": "Uma História Real",
-          "conteudo": "[Narrativa envolvente de 3-4 parágrafos com diálogos]",
-          "personagem": "Maria",
-          "narrativa": "[A mesma narrativa formatada]"
+          "tipo": "introducao",
+          "titulo": "O que você vai aprender",
+          "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante!\\n\\nNesta aula sobre **Art. ${numeroArtigo}**, vamos estudar de forma clara e prática. Ao final, você vai dominar:\\n\\n• **Conceito principal**: O que é e para que serve\\n• **Requisitos legais**: O que a lei exige\\n• **Casos práticos**: Como aplicar na vida real\\n• **Pontos de atenção**: O que muita gente confunde\\n\\nVamos lá? Bora começar!"
         },
         {
           "tipo": "texto",
@@ -230,29 +260,29 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
         },
         {
           "tipo": "termos",
-          "titulo": "Vocabulário Jurídico",
+          "titulo": "Termos Importantes",
           "conteudo": "",
           "termos": [
-            {"termo": "TERMO 1", "definicao": "Definição completa e didática do termo, com exemplos quando necessário"},
-            {"termo": "TERMO 2", "definicao": "Definição completa e didática"},
-            {"termo": "TERMO 3", "definicao": "Definição completa e didática"}
+            {"termo": "Termo técnico 1", "definicao": "Explicação em linguagem simples, como se explicasse para um amigo"},
+            {"termo": "Termo técnico 2", "definicao": "Definição clara e didática"},
+            {"termo": "Termo técnico 3", "definicao": "Definição acessível"}
           ]
         },
         {
           "tipo": "explicacao",
           "titulo": "Entendendo em Profundidade",
-          "conteudo": "[Parágrafo introdutório explicando a importância]",
+          "conteudo": "Olha só, vamos entender isso passo a passo...",
           "topicos": [
-            {"titulo": "Natureza Jurídica", "detalhe": "Explicação detalhada de 2-3 linhas sobre a natureza jurídica"},
-            {"titulo": "Elementos Essenciais", "detalhe": "Quais são os requisitos e elementos necessários para aplicação"},
-            {"titulo": "Aplicabilidade", "detalhe": "Quando e como este artigo se aplica na prática forense"},
-            {"titulo": "Consequências", "detalhe": "O que acontece quando este artigo é aplicado ou violado"}
+            {"titulo": "Na essência, o que é?", "detalhe": "Explicação didática em linguagem simples"},
+            {"titulo": "Quando se aplica?", "detalhe": "Em quais situações do dia a dia"},
+            {"titulo": "O que exige?", "detalhe": "Requisitos e elementos necessários"},
+            {"titulo": "E se não cumprir?", "detalhe": "Consequências práticas"}
           ]
         },
         {
           "tipo": "tabela",
           "titulo": "Quadro Comparativo",
-          "conteudo": "Veja as diferenças entre as modalidades/tipos:",
+          "conteudo": "Veja as diferenças de forma visual:",
           "tabela": {
             "cabecalhos": ["Aspecto", "Tipo A", "Tipo B", "Tipo C"],
             "linhas": [
@@ -264,68 +294,51 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
         },
         {
           "tipo": "linha_tempo",
-          "titulo": "Passo a Passo",
-          "conteudo": "Siga estas etapas para aplicar corretamente:",
+          "titulo": "Etapa por Etapa",
+          "conteudo": "Na prática, funciona assim:",
           "etapas": [
-            {"titulo": "Etapa 1: Verificação Inicial", "descricao": "Descrição do que fazer nesta etapa"},
-            {"titulo": "Etapa 2: Análise", "descricao": "Descrição detalhada do processo de análise"},
-            {"titulo": "Etapa 3: Aplicação", "descricao": "Como aplicar na prática"},
-            {"titulo": "Etapa 4: Conclusão", "descricao": "Finalização e verificação"}
+            {"titulo": "1ª Etapa", "descricao": "Descrição clara do que acontece primeiro"},
+            {"titulo": "2ª Etapa", "descricao": "O que vem em seguida"},
+            {"titulo": "3ª Etapa", "descricao": "Continuação do processo"},
+            {"titulo": "4ª Etapa", "descricao": "Conclusão"}
           ]
         },
         {
-          "tipo": "exemplo",
-          "titulo": "Na Vida Real",
-          "conteudo": "[Situação detalhada do cotidiano brasileiro, com nomes e contexto específico, mostrando como o artigo se aplica. Mínimo 3 parágrafos.]",
+          "tipo": "caso",
+          "titulo": "Na Prática: Caso Real",
+          "conteudo": "Imagine que João, um trabalhador comum, se encontra na seguinte situação...\n\nAqui, aplica-se exatamente o que vimos: [explicação]\n\nPercebeu como funciona na vida real?",
           "contexto": "Situação Cotidiana"
         },
         {
-          "tipo": "exemplo",
-          "titulo": "Na Prática Profissional",
-          "conteudo": "[Situação detalhada do ambiente profissional/empresarial, com nomes e contexto específico. Mínimo 3 parágrafos.]",
-          "contexto": "Ambiente Profissional"
-        },
-        {
-          "tipo": "mapa_mental",
-          "titulo": "Conexões Jurídicas",
-          "conteudo": "Este artigo se conecta com diversos outros institutos:",
-          "conceitos": [
-            {
-              "central": "[Conceito Central do Artigo]",
-              "relacionados": ["Princípio relacionado 1", "Art. XX do mesmo código", "Conceito conexo", "Doutrina relacionada"]
-            }
-          ]
-        },
-        {
           "tipo": "atencao",
-          "titulo": "Cuidado com Isso!",
-          "conteudo": "[Pegadinhas comuns em provas, exceções importantes, erros frequentes de interpretação. Seja específico sobre o que NÃO fazer ou interpretar errado. Mínimo 2 parágrafos.]"
+          "titulo": "Atenção: Cuidado com Isso!",
+          "conteudo": "Muita gente confunde [conceito A] com [conceito B], mas são coisas diferentes!\n\nO erro mais comum é pensar que... Na verdade, a lei diz que...\n\nFique esperto!"
         },
         {
           "tipo": "dica_estudo",
           "titulo": "Como Memorizar",
-          "conteudo": "[Técnica específica de memorização, pode incluir mnemônico, associação visual, ou método loci]",
+          "conteudo": "Para lembrar disso com facilidade, use esse macete...",
           "tecnica": "Mnemônico",
-          "dica": "[A dica específica de memorização]"
+          "dica": "Associe assim: [frase ou acrônimo]"
         },
         {
           "tipo": "resumo_visual",
           "titulo": "Pontos Principais",
           "conteudo": "",
           "pontos": [
-            "[Ponto principal 1 - uma frase clara e objetiva]",
-            "[Ponto principal 2 - uma frase clara e objetiva]",
-            "[Ponto principal 3 - uma frase clara e objetiva]",
-            "[Ponto principal 4 - uma frase clara e objetiva]",
-            "[Ponto principal 5 - uma frase clara e objetiva]"
+            "Ponto 1 - resumo claro e objetivo",
+            "Ponto 2 - o que você precisa lembrar",
+            "Ponto 3 - elemento essencial",
+            "Ponto 4 - destaque importante",
+            "Ponto 5 - conclusão"
           ]
         },
         {
           "tipo": "quickcheck",
-          "pergunta": "[Pergunta de verificação de aprendizado, estilo concurso]",
+          "pergunta": "Vamos testar se ficou claro? [Pergunta de verificação]",
           "opcoes": ["Alternativa A (uma correta)", "Alternativa B", "Alternativa C", "Alternativa D"],
           "resposta": 0,
-          "feedback": "[Explicação detalhada de por que a alternativa correta está certa e as outras erradas]",
+          "feedback": "Isso mesmo! A resposta correta é a A porque...",
           "conteudo": ""
         }
       ]
@@ -333,56 +346,35 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
   ],
   "atividadesFinais": {
     "matching": [
-      {"termo": "Termo 1", "definicao": "Def curta 1 (max 60 chars)"},
-      {"termo": "Termo 2", "definicao": "Def curta 2"},
-      {"termo": "Termo 3", "definicao": "Def curta 3"},
-      {"termo": "Termo 4", "definicao": "Def curta 4"},
-      {"termo": "Termo 5", "definicao": "Def curta 5"},
-      {"termo": "Termo 6", "definicao": "Def curta 6"}
+      {"termo": "Termo técnico 1", "definicao": "Definição curta (max 60 chars)"},
+      {"termo": "Termo técnico 2", "definicao": "Definição curta"},
+      {"termo": "Termo técnico 3", "definicao": "Definição curta"},
+      {"termo": "Termo técnico 4", "definicao": "Definição curta"}
     ],
     "flashcards": [
-      {"frente": "Pergunta/Conceito 1", "verso": "Resposta detalhada", "exemplo": "Exemplo prático"},
-      {"frente": "Pergunta/Conceito 2", "verso": "Resposta detalhada", "exemplo": "Exemplo prático"},
-      {"frente": "Pergunta/Conceito 3", "verso": "Resposta detalhada", "exemplo": "Exemplo prático"},
-      {"frente": "Pergunta/Conceito 4", "verso": "Resposta detalhada", "exemplo": "Exemplo prático"},
-      {"frente": "Pergunta/Conceito 5", "verso": "Resposta detalhada", "exemplo": "Exemplo prático"},
-      {"frente": "Pergunta/Conceito 6", "verso": "Resposta detalhada", "exemplo": "Exemplo prático"}
+      {"frente": "O que é [conceito]?", "verso": "Resposta clara e didática", "exemplo": "Exemplo prático do cotidiano"},
+      {"frente": "Quando se aplica [regra]?", "verso": "Resposta detalhada", "exemplo": "Situação real"},
+      {"frente": "Qual a diferença entre [A] e [B]?", "verso": "Resposta comparativa", "exemplo": "Exemplo ilustrativo"},
+      {"frente": "O que acontece se [situação]?", "verso": "Consequência prevista", "exemplo": "Caso prático"}
     ],
     "questoes": [
       {
-        "question": "[Questão elaborada estilo CESPE - mais complexa]",
-        "options": ["a) Alternativa A", "b) Alternativa B", "c) Alternativa C", "d) Alternativa D"],
+        "question": "Questão 1 sobre o tema",
+        "options": ["a) Alternativa correta", "b) Alternativa B", "c) Alternativa C", "d) Alternativa D"],
         "correctAnswer": 0,
-        "explicacao": "[Explicação completa de 3-4 linhas]",
-        "fonte": "Estilo CESPE"
+        "explicacao": "A alternativa A está correta porque..."
       },
       {
-        "question": "[Questão estilo FCC - análise de assertivas]",
-        "options": ["a) Alternativa", "b) Alternativa", "c) Alternativa", "d) Alternativa"],
+        "question": "Questão 2 de aplicação prática",
+        "options": ["a) Alternativa A", "b) Alternativa correta", "c) Alternativa C", "d) Alternativa D"],
         "correctAnswer": 1,
-        "explicacao": "[Explicação completa]",
-        "fonte": "Estilo FCC"
+        "explicacao": "A alternativa B está correta porque..."
       },
       {
-        "question": "[Questão estilo OAB - caso prático]",
-        "options": ["a) Alternativa", "b) Alternativa", "c) Alternativa", "d) Alternativa"],
+        "question": "Questão 3 sobre exceções e cuidados",
+        "options": ["a) Alternativa A", "b) Alternativa B", "c) Alternativa correta", "d) Alternativa D"],
         "correctAnswer": 2,
-        "explicacao": "[Explicação completa]",
-        "fonte": "Estilo OAB"
-      },
-      {
-        "question": "[Questão de raciocínio - correlação]",
-        "options": ["a) Alternativa", "b) Alternativa", "c) Alternativa", "d) Alternativa"],
-        "correctAnswer": 0,
-        "explicacao": "[Explicação completa]",
-        "fonte": ""
-      },
-      {
-        "question": "[Questão interpretativa]",
-        "options": ["a) Alternativa", "b) Alternativa", "c) Alternativa", "d) Alternativa"],
-        "correctAnswer": 3,
-        "explicacao": "[Explicação completa]",
-        "fonte": ""
+        "explicacao": "A alternativa C está correta porque..."
       }
     ]
   },
@@ -438,14 +430,14 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
 
 1. NUNCA invente jurisprudência, súmulas ou decisões específicas de tribunais
 2. Crie 2-4 seções dependendo da complexidade do artigo
-3. CADA seção DEVE ter TODOS os tipos de slides na sequência correta
-4. Histórias devem ter personagens com nomes e contexto realista
-5. Tabelas só quando houver REALMENTE comparação a fazer (tipos, modalidades, prazos)
-6. Linha do tempo só quando houver REALMENTE etapas/procedimento
-7. Mapa mental SEMPRE com conexões reais com outros artigos/princípios
-8. Textos devem ser didáticos, detalhados e voltados para a COMPREENSÃO (não para concursos)
-9. Slides tipo "quickcheck" devem ter exatamente 4 opções
-10. O campo "resposta" é o índice (0-3) da opção correta
+3. Use tom conversacional "café com professor" - próximo, mas correto
+4. Tabelas só quando houver REALMENTE comparação a fazer
+5. Linha do tempo só quando houver REALMENTE etapas/procedimento
+6. Slides "quickcheck" devem ter exatamente 4 opções
+7. O campo "resposta" é o índice (0-3) da opção correta
+8. atividadesFinais.matching deve ter 4 pares
+9. atividadesFinais.flashcards deve ter 4 cards
+10. atividadesFinais.questoes deve ter 3 questões
 11. Retorne APENAS o JSON, sem markdown ou código`;
 
     console.log('🚀 Enviando prompt para Gemini com fallback...');
@@ -529,7 +521,7 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
     // Ensure versao is set
     estrutura.versao = 2;
     
-    console.log('✅ Estrutura CURSO COMPLETO V4 gerada com sucesso:', estrutura.titulo);
+    console.log('✅ Estrutura café com professor gerada com sucesso:', estrutura.titulo);
     console.log(`📊 Seções: ${estrutura.secoes?.length || 0}, Slides por seção: ${estrutura.secoes?.[0]?.slides?.length || 0}`);
 
     const { data: savedAula, error: saveError } = await supabase
@@ -555,7 +547,7 @@ Para CADA parte do artigo (caput, incisos, parágrafos), crie uma seção com 10
     }
 
     console.log('💾 Aula CURSO COMPLETO V4 salva no banco com ID:', savedAula.id);
-
+    console.log(`📊 Atividades: ${estrutura.atividadesFinais?.matching?.length || 0} matchings, ${estrutura.atividadesFinais?.flashcards?.length || 0} flashcards, ${estrutura.atividadesFinais?.questoes?.length || 0} questões`);
     return new Response(JSON.stringify({
       ...estrutura,
       cached: false,

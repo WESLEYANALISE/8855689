@@ -29,13 +29,14 @@ export interface ConceitoMental {
 }
 
 export interface SlideContent {
-  tipo: 'texto' | 'termos' | 'explicacao' | 'atencao' | 'exemplo' | 'quickcheck' 
+  tipo: 'texto' | 'termos' | 'explicacao' | 'atencao' | 'exemplo' | 'quickcheck' | 'caso' | 'introducao'
     | 'storytelling'      // Narrativa envolvente com personagens
     | 'tabela'            // Tabela comparativa
     | 'linha_tempo'       // Evolução histórica/etapas/procedimentos
     | 'mapa_mental'       // Conceitos relacionados
     | 'dica_estudo'       // Dica de memorização
-    | 'resumo_visual';    // Resumo com pontos principais
+    | 'resumo_visual'     // Resumo com pontos principais
+    | 'resumo';           // Alias para resumo_visual
   titulo?: string;
   conteudo: string;
   icone?: string;

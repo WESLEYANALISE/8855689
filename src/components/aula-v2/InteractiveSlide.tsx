@@ -54,13 +54,16 @@ const iconMap: Record<string, any> = {
   explicacao: Lightbulb,
   atencao: AlertTriangle,
   exemplo: Briefcase,
+  caso: Briefcase,
+  introducao: BookHeart,
   quickcheck: CheckCircle2,
   storytelling: BookHeart,
   tabela: Table2,
   linha_tempo: Clock,
   mapa_mental: Network,
   dica_estudo: Sparkles,
-  resumo_visual: LayoutList
+  resumo_visual: LayoutList,
+  resumo: LayoutList
 };
 
 const colorMap: Record<string, string> = {
@@ -69,13 +72,16 @@ const colorMap: Record<string, string> = {
   explicacao: "from-amber-500 to-orange-500",
   atencao: "from-red-500 to-rose-500",
   exemplo: "from-emerald-500 to-green-500",
+  caso: "from-emerald-500 to-green-500",
+  introducao: "from-purple-500 to-pink-500",
   quickcheck: "from-violet-500 to-purple-500",
   storytelling: "from-purple-500 to-pink-500",
   tabela: "from-cyan-500 to-teal-500",
   linha_tempo: "from-blue-500 to-indigo-500",
   mapa_mental: "from-green-500 to-emerald-500",
   dica_estudo: "from-violet-500 to-fuchsia-500",
-  resumo_visual: "from-amber-500 to-yellow-500"
+  resumo_visual: "from-amber-500 to-yellow-500",
+  resumo: "from-amber-500 to-yellow-500"
 };
 
 const bgColorMap: Record<string, string> = {
@@ -84,13 +90,16 @@ const bgColorMap: Record<string, string> = {
   explicacao: "bg-amber-500/10 border-amber-500/20",
   atencao: "bg-red-500/10 border-red-500/20",
   exemplo: "bg-emerald-500/10 border-emerald-500/20",
+  caso: "bg-emerald-500/10 border-emerald-500/20",
+  introducao: "bg-purple-500/10 border-purple-500/20",
   quickcheck: "bg-violet-500/10 border-violet-500/20",
   storytelling: "bg-purple-500/10 border-purple-500/20",
   tabela: "bg-cyan-500/10 border-cyan-500/20",
   linha_tempo: "bg-blue-500/10 border-blue-500/20",
   mapa_mental: "bg-green-500/10 border-green-500/20",
   dica_estudo: "bg-violet-500/10 border-violet-500/20",
-  resumo_visual: "bg-amber-500/10 border-amber-500/20"
+  resumo_visual: "bg-amber-500/10 border-amber-500/20",
+  resumo: "bg-amber-500/10 border-amber-500/20"
 };
 
 export const InteractiveSlide = ({
@@ -156,6 +165,8 @@ export const InteractiveSlide = ({
       case 'explicacao': return 'Isso significa';
       case 'atencao': return 'Ponto de atenção';
       case 'exemplo': return slide.contexto || 'Na prática';
+      case 'caso': return slide.contexto || 'Caso prático';
+      case 'introducao': return 'Vamos começar';
       case 'quickcheck': return 'Verificação rápida';
       case 'storytelling': return 'Entenda com uma história';
       case 'tabela': return 'Quadro comparativo';
@@ -163,6 +174,7 @@ export const InteractiveSlide = ({
       case 'mapa_mental': return 'Conexões';
       case 'dica_estudo': return 'Dica de memorização';
       case 'resumo_visual': return 'Resumo';
+      case 'resumo': return 'Resumo';
       default: return '';
     }
   };
@@ -187,6 +199,7 @@ export const InteractiveSlide = ({
         );
       
       case 'exemplo':
+      case 'caso':
         // Use the new component with image for examples
         return (
           <SlideExemploComImagem
@@ -249,6 +262,7 @@ export const InteractiveSlide = ({
         );
       
       case 'resumo_visual':
+      case 'resumo':
         return (
           <SlideResumoVisual 
             pontos={slide.pontos}
