@@ -445,8 +445,14 @@ const breakLongParagraphs = (text: string): string => {
 };
 
 // Detecta e extrai blocos especiais do markdown
-const parseEnrichedContent = (content: string, imagensDiagramas?: ImagemDiagrama[], disableTermos: boolean = false): ParsedBlock[] => {
+const parseEnrichedContent = (content: unknown, imagensDiagramas?: ImagemDiagrama[], disableTermos: boolean = false): ParsedBlock[] => {
   const blocks: ParsedBlock[] = [];
+
+  // Garante que content é uma string válida
+  if (typeof content !== 'string') {
+    console.warn('parseEnrichedContent: content não é string, recebido:', typeof content);
+    return [{ type: 'markdown', content: String(content ?? '') }];
+  }
 
   // Limpar \n\n literais e barras invertidas isoladas
   let cleanedContent = content
