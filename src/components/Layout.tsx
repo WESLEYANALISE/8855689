@@ -14,6 +14,7 @@ import { ResumosSidebar } from "./ResumosSidebar";
 import { PageBreadcrumb } from "./PageBreadcrumb";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { PageTransition } from "./PageTransition";
+import PremiumWelcomeCard from "./PremiumWelcomeCard";
 
 // Lazy load AulasPlaylistSidebar since it uses useCursosCache
 const AulasPlaylistSidebar = lazy(() => import("./AulasPlaylistSidebar").then(m => ({ default: m.AulasPlaylistSidebar })));
@@ -563,6 +564,9 @@ export const Layout = ({ children }: LayoutProps) => {
         </AnimatePresence>
       </main>
       {!hideBottomNav && <MemoizedBottomNav />}
+      
+      {/* Card de upgrade Premium para usuários gratuitos */}
+      <PremiumWelcomeCard />
     </div>
   );
 };
