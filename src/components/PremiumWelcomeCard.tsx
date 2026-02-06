@@ -1,17 +1,11 @@
-import { useState, useEffect, memo } from "react";
-import { X, Crown, Star, StickyNote, Highlighter, MessageCircle, Sparkles, Zap } from "lucide-react";
+import { useState, useEffect, memo, useRef } from "react";
+import { X, Crown, Sparkles, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
-const PREMIUM_BENEFITS = [
-  { icon: Star, text: "Favoritar artigos e leis", color: "text-yellow-400" },
-  { icon: StickyNote, text: "Anotações personalizadas", color: "text-blue-400" },
-  { icon: Highlighter, text: "Grifar textos importantes", color: "text-green-400" },
-  { icon: MessageCircle, text: "Evelyn no WhatsApp 24h", color: "text-purple-400" },
-  { icon: Zap, text: "Acesso ilimitado a todo conteúdo", color: "text-amber-400" },
-];
+const YOUTUBE_VIDEO_ID = "uEaow4tNBzo";
 
 const PremiumWelcomeCard = () => {
   const navigate = useNavigate();
@@ -19,6 +13,8 @@ const PremiumWelcomeCard = () => {
   const { isPremium, loading } = useSubscription();
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     // Só mostra se: usuário logado + não premium + não viu ainda nesta sessão
@@ -50,6 +46,10 @@ const PremiumWelcomeCard = () => {
     setTimeout(() => {
       navigate('/assinatura');
     }, 200);
+  };
+
+  const handlePlayVideo = () => {
+    setIsPlaying(true);
   };
 
   if (!isVisible || loading) return null;
@@ -110,26 +110,53 @@ const PremiumWelcomeCard = () => {
             <h2 className="text-xl font-bold text-center text-foreground mb-2">
               Seja <span className="text-amber-400">Premium</span>
             </h2>
-            <p className="text-sm text-center text-muted-foreground mb-5">
+            <p className="text-sm text-center text-muted-foreground mb-4">
               Desbloqueie todas as funcionalidades e acelere seus estudos!
             </p>
 
-            {/* Lista de benefícios */}
-            <div className="space-y-2.5 mb-6">
-              {PREMIUM_BENEFITS.map((benefit, index) => {
-                const Icon = benefit.icon;
-                return (
-                  <div 
-                    key={index}
-                    className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5"
+            {/* Container do Vídeo */}
+            <div className="relative w-full aspect-[9/16] max-h-[280px] rounded-2xl overflow-hidden bg-black/50 mb-4 border border-white/10">
+              {!isPlaying ? (
+                <>
+                  {/* Thumbnail com overlay */}
+                  <img 
+                    src={`https://img.youtube.com/vi/${YOUTUBE_VIDEO_ID}/maxresdefault.jpg`}
+                    alt="Vídeo Premium"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback para thumbnail de menor qualidade
+                      e.currentTarget.src = `https://img.youtube.com/vi/${YOUTUBE_VIDEO_ID}/hqdefault.jpg`;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  
+                  {/* Botão Play */}
+                  <button
+                    onClick={handlePlayVideo}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-3 group"
                   >
-                    <div className="p-1.5 rounded-lg bg-white/5">
-                      <Icon className={`w-4 h-4 ${benefit.color}`} />
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-amber-400/40 rounded-full blur-xl group-hover:bg-amber-400/60 transition-all" />
+                      <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 group-hover:scale-110 transition-transform">
+                        <Play className="w-7 h-7 text-white fill-white ml-1" />
+                      </div>
                     </div>
-                    <span className="text-sm text-foreground/90">{benefit.text}</span>
-                  </div>
-                );
-              })}
+                    <span className="text-white font-semibold text-sm bg-black/40 px-4 py-1.5 rounded-full backdrop-blur-sm">
+                      Ver funções Premium
+                    </span>
+                  </button>
+                </>
+              ) : (
+                /* YouTube Embed */
+                <iframe
+                  ref={iframeRef}
+                  src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                  title="Funções Premium"
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
 
             {/* Preço */}
