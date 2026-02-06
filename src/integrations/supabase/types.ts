@@ -7311,6 +7311,24 @@ export type Database = {
           },
         ]
       }
+      evelyn_mensagens_processadas: {
+        Row: {
+          created_at: string
+          message_id: string
+          remote_jid: string
+        }
+        Insert: {
+          created_at?: string
+          message_id: string
+          remote_jid: string
+        }
+        Update: {
+          created_at?: string
+          message_id?: string
+          remote_jid?: string
+        }
+        Relationships: []
+      }
       evelyn_noticias_enviadas: {
         Row: {
           enviada_em: string | null
@@ -19767,6 +19785,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       limpar_cache_proposicoes_antigo: { Args: never; Returns: undefined }
+      limpar_evelyn_mensagens_processadas: { Args: never; Returns: undefined }
       limpar_noticias_antigas: {
         Args: { dias_reter?: number }
         Returns: {
