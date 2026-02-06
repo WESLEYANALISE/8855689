@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Bot, Menu, Landmark, GraduationCap, Pause, Play } from "lucide-react";
+import { Home, MessageCircle, Menu, Landmark, GraduationCap, Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AppSidebar } from "./AppSidebar";
@@ -122,7 +122,7 @@ export const BottomNav = () => {
                   : "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
             >
-              <Bot className={cn("w-6 h-6 transition-transform", isActive("/evelyn") && "scale-110")} />
+              <MessageCircle className={cn("w-6 h-6 transition-transform", isActive("/evelyn") && "scale-110")} />
               <span className="text-[10px] font-medium leading-tight text-center">Evelyn</span>
             </button>
           )}
