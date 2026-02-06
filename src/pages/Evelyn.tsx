@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Mic, FileText, BookOpen, Video, Brain, Scale, Sparkles, Check, User, ArrowRight, ExternalLink, Play, Settings, Edit, RefreshCw, Calendar, GraduationCap, Trophy } from "lucide-react";
+import { MessageCircle, Mic, FileText, BookOpen, Video, Brain, Scale, Sparkles, Check, User, ArrowRight, ExternalLink, Play, Settings, Edit, RefreshCw, Calendar, GraduationCap, Trophy, Crown, Lock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { cadastrarUsuarioEvelyn, PerfilEvelyn } from "@/lib/api/evelynApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneInput } from "@/components/PhoneInput";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
 
 const funcionalidades = [
   {
@@ -114,6 +116,8 @@ const atualizacoesEvelyn = [
 
 const Evelyn = () => {
   const { user } = useAuth();
+  const { isPremium } = useSubscription();
+  const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [perfil, setPerfil] = useState<PerfilEvelyn | null>(null);
@@ -287,14 +291,31 @@ const Evelyn = () => {
                 Tire dúvidas, analise documentos, estude com flashcards e muito mais. 
                 Tudo pelo WhatsApp, 24 horas por dia!
               </p>
-              <Button 
-                onClick={abrirWhatsApp}
-                className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-6 py-3 h-12"
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Acessar agora
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
+              
+              {isPremium ? (
+                <Button 
+                  onClick={abrirWhatsApp}
+                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-6 py-3 h-12"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Acessar agora
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => navigate('/assinatura')}
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg px-6 py-3 h-12"
+                  >
+                    <Crown className="w-5 h-5 mr-2" />
+                    Seja Premium para acessar
+                    <Lock className="w-4 h-4 ml-2" />
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Funcionalidade exclusiva para assinantes Premium
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Carrossel de Funções com Ícones */}
