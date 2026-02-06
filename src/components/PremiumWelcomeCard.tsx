@@ -5,7 +5,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
-const YOUTUBE_VIDEO_ID = "uEaow4tNBzo";
+const YOUTUBE_VIDEO_ID = "vx7xFDI_MDE";
 
 const PremiumWelcomeCard = () => {
   const navigate = useNavigate();
