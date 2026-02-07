@@ -1,64 +1,97 @@
 
-# Plano: Corrigir Respostas Duplicadas da Evelyn para Arquivos (Áudio, PDF, Imagem)
+# Plano: Otimização de Desempenho da Seção de Questões
 
-## Problema Identificado
-
-Quando um usuário envia arquivos (áudio, PDF, imagem) para a Evelyn no WhatsApp, ela responde **duas vezes**.
-
-### Causa Raiz
-
-A **Evolution API está enviando a mesma mensagem duas vezes** através de dois eventos webhook diferentes:
-
-1. Uma chamada com o `remoteJid` no formato JID normal: `5511991897603@s.whatsapp.net`
-2. Outra chamada com o `remoteJid` no formato LID: `1335751655457@lid`
-
-O sistema de deduplicação atual no webhook usa a chave `${remoteJid}:${messageId}`, mas como o `remoteJid` é **diferente** nas duas chamadas (apesar de ser a mesma mensagem), a deduplicação **não funciona**.
-
-### Evidências dos Logs
-
-```text
-14:52:01 - Processando imagem para 5511991897603@s.whatsapp.net
-14:52:10 - Mídia processada com sucesso (1ª resposta)
-14:52:11 - Processando MESMA imagem para 1335751655457@lid  
-14:52:19 - Mídia processada com sucesso (2ª resposta duplicada!)
-```
+## Objetivo
+Refatorar completamente a página de Questões (`QuestoesHub.tsx`) para máximo desempenho:
+- Remover imagem de fundo (elimina carregamento de asset pesado)
+- Remover simulados específicos: TJSP, Concursos Federais, Defensoria, e Simulado Personalizado
+- Eliminar animações CSS pesadas
+- Manter design compatível com o estilo visual do app
 
 ---
 
-## Solução Proposta
+## Mudanças Planejadas
 
-Corrigir a lógica de deduplicação para usar **apenas o `messageId`** como chave única, ignorando o `remoteJid`. Isso garantirá que a mesma mensagem (mesmo ID) não seja processada duas vezes, independentemente do formato do identificador do remetente.
+### 1. Remover Imagem de Fundo e Background Fixo
+**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
 
----
+**O que será removido:**
+- Import da imagem `questoesBackground`
+- Preload da imagem 
+- Elemento `<div className="fixed inset-0">` com a imagem
+- Overlay de gradiente sobre a imagem
 
-## Mudanças Técnicas
-
-### Arquivo: `supabase/functions/webhook-evelyn/index.ts`
-
-**Alteração na linha 64:**
-
-```text
-// ANTES (problemático):
-const dedupKey = `${remoteJid}:${messageId}`;
-
-// DEPOIS (corrigido):
-const dedupKey = messageId;
-```
-
-Também vou adicionar logs mais detalhados para facilitar o debug futuro.
+**O que será mantido:**
+- Background simples usando `bg-background` (cor sólida do tema)
 
 ---
 
-## Resumo das Mudanças
+### 2. Remover Simulados Específicos
+**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
 
-| Arquivo | Alteração |
+**Itens a serem removidos da aba "Simulados":**
+| ID | Título | Motivo |
+|----|--------|--------|
+| `tjsp` | Concursos TJSP | Solicitado pelo usuário |
+| `concursos-federais` | Concursos Federais | Solicitado pelo usuário |
+| `defensoria` | Defensoria Pública | Solicitado pelo usuário |
+| `simulado-personalizado` | Simulado Personalizado | Solicitado pelo usuário |
+
+**O que permanece:**
+- Apenas "Exames OAB" (que já existe e funciona)
+
+---
+
+### 3. Eliminar Animações Pesadas
+**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
+
+**O que será removido:**
+- Tag `<style>` com keyframes `@keyframes slideDown`
+- Propriedades inline: `animation`, `opacity: 0`, `transform: translateY(-20px)`, `willChange`
+
+**Substituição:**
+- Cards aparecem imediatamente sem animação sequencial
+- Transições leves mantidas apenas para hover (`transition-colors`, `transition-transform`)
+
+---
+
+### 4. Simplificar Design - Compatível com Home
+**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
+
+**Novo layout:**
+- Header limpo com botão voltar, ícone e contador
+- Tabs simplificadas (Tema, Artigos, Simulados)
+- Cards com borda lateral colorida (mantém identidade visual)
+- Sem backdrop-blur pesado (apenas onde necessário)
+- Scroll nativo fluido
+
+---
+
+## Resumo Técnico das Alterações
+
+| Arquivo | Alterações |
 |---------|-----------|
-| `supabase/functions/webhook-evelyn/index.ts` | Usar apenas `messageId` como chave de deduplicação |
+| `src/pages/ferramentas/QuestoesHub.tsx` | Remover background, animações e simulados desnecessários |
 
 ---
 
-## Riscos e Considerações
+## Impacto Esperado
 
-- **Baixo risco**: O `messageId` da Evolution API é único por mensagem, então não há risco de ignorar mensagens legítimas diferentes
-- **Cache em memória**: O cache atual já limpa mensagens após 10 segundos, o que é suficiente para evitar reprocessamento sem ocupar memória excessiva
-- **Compatibilidade**: A mudança é retrocompatível e não afeta outras funcionalidades
+| Métrica | Antes | Depois |
+|---------|-------|--------|
+| Asset de imagem | ~200KB carregado | 0KB (removido) |
+| Animações JS/CSS | Sequenciais com delay | Nenhuma |
+| Tempo renderização | ~500-800ms | ~50-100ms |
+| Itens na aba Simulados | 5 | 1 |
+
+---
+
+## Design Final
+
+A página terá:
+- Fundo sólido escuro (tema dark padrão do app)
+- Header sticky com navegação
+- Tabs de navegação (3 abas)
+- Lista de cards com scroll nativo
+- Transições de hover suaves (sem animações de entrada)
+- Borda lateral colorida nos cards (identidade visual mantida)
