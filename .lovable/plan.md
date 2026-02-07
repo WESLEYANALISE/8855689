@@ -1,126 +1,64 @@
 
-# Plano: Otimizar Chat da Professora para Respostas Instantâneas
+# Plano: Corrigir Respostas Duplicadas da Evelyn para Arquivos (Áudio, PDF, Imagem)
 
 ## Problema Identificado
 
-Analisando os logs e o código, identifiquei os seguintes problemas:
+Quando um usuário envia arquivos (áudio, PDF, imagem) para a Evelyn no WhatsApp, ela responde **duas vezes**.
 
-1. **Latência alta (6-14 segundos para primeira resposta)**: O Gemini API está demorando entre 10-17 segundos para enviar o primeiro chunk devido a:
-   - Prompt muito extenso exigindo respostas de 31.000-40.500 caracteres
-   - Busca no banco de dados antes de chamar a API (busca contexto, FAQs, resumos)
-   - Sistema de fallback de múltiplas chaves API
+### Causa Raiz
 
-2. **Texto pequeno durante streaming**: O código usa `text-[13px]` durante streaming (linha 834) e `text-[15px]` após concluir (linha 779), causando mudança de tamanho
+A **Evolution API está enviando a mesma mensagem duas vezes** através de dois eventos webhook diferentes:
 
-3. **Respostas muito longas**: A configuração atual exige mínimo de 5.164 palavras no modo "complete" - muito extenso para uma conversa natural
+1. Uma chamada com o `remoteJid` no formato JID normal: `5511991897603@s.whatsapp.net`
+2. Outra chamada com o `remoteJid` no formato LID: `1335751655457@lid`
+
+O sistema de deduplicação atual no webhook usa a chave `${remoteJid}:${messageId}`, mas como o `remoteJid` é **diferente** nas duas chamadas (apesar de ser a mesma mensagem), a deduplicação **não funciona**.
+
+### Evidências dos Logs
+
+```text
+14:52:01 - Processando imagem para 5511991897603@s.whatsapp.net
+14:52:10 - Mídia processada com sucesso (1ª resposta)
+14:52:11 - Processando MESMA imagem para 1335751655457@lid  
+14:52:19 - Mídia processada com sucesso (2ª resposta duplicada!)
+```
+
+---
 
 ## Solução Proposta
 
-### 1. Criar Novo Nível de Resposta: "concise" (Respostas Curtas)
-
-Adicionar um nível de resposta padrão para o chat que gera respostas de 400-800 palavras (cerca de 2.500-5.000 caracteres), mantendo qualidade mas reduzindo latência.
-
-**Arquivo**: `supabase/functions/chat-professora/prompt-templates.ts`
-```typescript
-concise: {
-  palavras: [400, 800],
-  caracteres: [2500, 5000],
-  tokens: 1500
-}
-```
-
-### 2. Otimizar Prompt para Respostas Mais Rápidas
-
-**Arquivo**: `supabase/functions/chat-professora/index.ts`
-
-- Reduzir o prompt de sistema para o modo de chat padrão (menos instruções = resposta mais rápida)
-- Usar nível "concise" como padrão no chat
-- Manter "deep" apenas quando usuário clica em "Aprofundar"
-- Remover a obrigatoriedade de quadros comparativos e componentes visuais em respostas curtas
-
-### 3. Corrigir Tamanho de Fonte Durante Streaming
-
-**Arquivo**: `src/components/chat/ChatMessageNew.tsx`
-
-Unificar o tamanho de texto para `text-[15px]` tanto durante quanto após o streaming, eliminando a mudança de tamanho.
-
-### 4. Usar Modelo Mais Rápido para Chat Interativo
-
-**Arquivo**: `supabase/functions/chat-professora/index.ts`
-
-- Usar `gemini-2.0-flash` para respostas rápidas (latência ~2-3 segundos)
-- Manter `gemini-2.5-flash` apenas para modo "deep" ou geração de aulas
-
-### 5. Paralelizar Buscas no Banco
-
-Executar buscas de contexto em paralelo com Promise.all() para reduzir tempo de setup.
+Corrigir a lógica de deduplicação para usar **apenas o `messageId`** como chave única, ignorando o `remoteJid`. Isso garantirá que a mesma mensagem (mesmo ID) não seja processada duas vezes, independentemente do formato do identificador do remetente.
 
 ---
 
-## Detalhes Técnicos
+## Mudanças Técnicas
 
-### Mudanças no Edge Function (`chat-professora/index.ts`)
+### Arquivo: `supabase/functions/webhook-evelyn/index.ts`
 
-```typescript
-// ANTES: responseLevel default era 'complete' com 5000+ palavras
-// DEPOIS: responseLevel default será 'concise' com 400-800 palavras
+**Alteração na linha 64:**
 
-// Escolher modelo baseado no nível
-const modelName = responseLevel === 'deep' 
-  ? 'gemini-2.5-flash'  // Mais poderoso para análises profundas
-  : 'gemini-2.0-flash'; // Mais rápido para respostas curtas
+```text
+// ANTES (problemático):
+const dedupKey = `${remoteJid}:${messageId}`;
 
-// Prompt simplificado para modo concise
-if (responseLevel === 'concise') {
-  systemPrompt = `Você é a Professora Jurídica.
-
-REGRAS:
-- Respostas entre 400-800 palavras
-- Vá direto ao ponto
-- Use **negrito** para termos importantes
-- Cite artigos relevantes
-- Finalize com: "Quer que eu aprofunde?"
-
-NUNCA: respostas longas ou truncadas.`;
-}
+// DEPOIS (corrigido):
+const dedupKey = messageId;
 ```
 
-### Mudanças no Frontend
-
-**`useStreamingChat.ts`**:
-```typescript
-// Usar 'concise' como padrão
-responseLevel: options.responseLevel || 'concise'
-```
-
-**`ChatMessageNew.tsx`**:
-```tsx
-// ANTES: text-[13px] durante streaming, text-[15px] após
-// DEPOIS: text-[15px] em ambos os casos
-
-<div className="text-[15px] leading-[1.7] text-foreground/90">
-  {content ? (
-    isStreaming ? (
-      <div className="streaming-markdown prose prose-sm dark:prose-invert max-w-none">
-```
+Também vou adicionar logs mais detalhados para facilitar o debug futuro.
 
 ---
 
-## Resultado Esperado
+## Resumo das Mudanças
 
-| Métrica | Antes | Depois |
-|---------|-------|--------|
-| Tempo até primeira letra | 6-14 segundos | 1-3 segundos |
-| Tamanho da resposta | 5.000+ palavras | 400-800 palavras |
-| Mudança de fonte durante streaming | Sim (13px → 15px) | Não (15px fixo) |
-| Experiência do usuário | Espera longa | Resposta quase instantânea |
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/webhook-evelyn/index.ts` | Usar apenas `messageId` como chave de deduplicação |
 
 ---
 
-## Arquivos a Modificar
+## Riscos e Considerações
 
-1. **`supabase/functions/chat-professora/prompt-templates.ts`** - Adicionar nível "concise"
-2. **`supabase/functions/chat-professora/index.ts`** - Simplificar prompt padrão, usar modelo mais rápido
-3. **`src/hooks/useStreamingChat.ts`** - Usar "concise" como padrão
-4. **`src/components/chat/ChatMessageNew.tsx`** - Corrigir tamanho de fonte durante streaming
-5. **`src/pages/ChatProfessora.tsx`** - Atualizar configuração de responseLevel
+- **Baixo risco**: O `messageId` da Evolution API é único por mensagem, então não há risco de ignorar mensagens legítimas diferentes
+- **Cache em memória**: O cache atual já limpa mensagens após 10 segundos, o que é suficiente para evitar reprocessamento sem ocupar memória excessiva
+- **Compatibilidade**: A mudança é retrocompatível e não afeta outras funcionalidades
