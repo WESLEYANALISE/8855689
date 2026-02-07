@@ -258,6 +258,30 @@ const CATEGORIAS_CONFIG: CategoriaConfig[] = [
       })},
     ]
   },
+  {
+    id: 'aulas-conceitos',
+    nome: 'Aulas Conceitos',
+    icon: 'GraduationCap',
+    iconColor: 'text-teal-500',
+    tabelas: [
+      { nome: 'conceitos_topicos', colunas: ['titulo'], formatResult: (item) => ({
+        id: item.id, titulo: item.titulo, subtitulo: `Conceitos • ${item.materia?.nome || 'Matéria'}`, imagem: item.capa_url,
+        route: `/conceitos/topico/${item.id}`
+      })}
+    ]
+  },
+  {
+    id: 'aulas-oab',
+    nome: 'Aulas OAB Trilhas',
+    icon: 'Trophy',
+    iconColor: 'text-amber-500',
+    tabelas: [
+      { nome: 'oab_trilhas_temas', colunas: ['titulo', 'area'], formatResult: (item) => ({
+        id: item.id, titulo: item.titulo, subtitulo: `OAB • ${item.area}`,
+        route: `/oab-trilhas/tema/${item.id}`
+      })}
+    ]
+  },
 ];
 
 export const useBuscaGlobal = (termo: string, enabled: boolean = true) => {
