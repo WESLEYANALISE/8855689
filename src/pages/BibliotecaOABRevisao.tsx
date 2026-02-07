@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, RefreshCw, ArrowLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, RefreshCw, ArrowLeft, ChevronRight, Crown } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { LivroCard } from "@/components/LivroCard";
@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import capaOabRevisao from "@/assets/capa-biblioteca-oab-revisao.jpg";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 interface BibliotecaItem {
   id: number;
@@ -24,8 +26,10 @@ interface BibliotecaItem {
 
 const BibliotecaOABRevisao = () => {
   const navigate = useNavigate();
+  const { isPremium, loading: loadingSubscription } = useSubscription();
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   const { data: items, isLoading } = useQuery({
@@ -169,7 +173,13 @@ const BibliotecaOABRevisao = () => {
             areasFiltradas.map(([area, data], index) => (
               <Card
                 key={area}
-                onClick={() => setSelectedArea(area)}
+                onClick={() => {
+                  if (!isPremium && !loadingSubscription) {
+                    setShowPremiumModal(true);
+                  } else {
+                    setSelectedArea(area);
+                  }
+                }}
                 className="cursor-pointer group overflow-hidden bg-secondary/40 hover:bg-secondary/60 border border-accent/20 hover:border-accent/60 transition-all duration-300"
               >
                 <div className="flex items-center gap-4 p-4">
@@ -179,6 +189,13 @@ const BibliotecaOABRevisao = () => {
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-emerald-500/20 to-green-500/20 flex items-center justify-center">
                         <RefreshCw className="w-8 h-8 text-emerald-400" />
+                      </div>
+                    )}
+                    
+                    {/* Selo Premium - visível apenas para não-assinantes */}
+                    {!isPremium && !loadingSubscription && (
+                      <div className="absolute top-1 right-1 w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 z-10">
+                        <Crown className="w-3 h-3 text-white" />
                       </div>
                     )}
                   </div>
@@ -201,6 +218,13 @@ const BibliotecaOABRevisao = () => {
             </div>
           )}
         </div>
+        
+        {/* Modal Premium */}
+        <PremiumUpgradeModal
+          open={showPremiumModal}
+          onOpenChange={setShowPremiumModal}
+          featureName="Biblioteca OAB - Revisão"
+        />
       </div>
     </div>
   );
