@@ -249,14 +249,17 @@ const Index = () => {
                         <Newspaper className="w-5 h-5 text-amber-100" />
                       </div>
                       <div>
-                        <h2 className="font-cinzel text-lg md:text-base font-bold text-amber-100">Notícias Jurídicas</h2>
+                        <h2 className="font-cinzel text-base md:text-base font-bold text-amber-100">Notícias Jurídicas</h2>
                         <p className="text-xs text-white/70">Fique atualizado</p>
                       </div>
                     </div>
-                    <Button size="sm" onClick={() => navigate('/noticias-juridicas')} className="bg-red-500/20 hover:bg-red-500/30 text-white border border-red-500/30 shadow-sm hover:shadow-md transition-all duration-300 rounded-full px-4 text-xs flex items-center gap-1.5 font-medium">
-                      Ver mais
-                      <ArrowRight className="w-3 h-3" />
-                    </Button>
+                    <button
+                      onClick={() => navigate('/noticias-juridicas')}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
+                    >
+                      <span>Ver mais</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   
                   <ScrollArea className="w-full">
