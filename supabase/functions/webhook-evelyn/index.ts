@@ -59,20 +59,20 @@ serve(async (req) => {
     const isBroadcast = remoteJid.includes('@broadcast');
     const isLid = remoteJid.endsWith('@lid');
     
-    // ==== DEDUPLICAÇÃO DE MENSAGENS ====
-    // Criar chave única: remoteJid + messageId
-    const dedupKey = `${remoteJid}:${messageId}`;
-    
-    if (processedMessages.has(dedupKey)) {
-      console.log(`[webhook-evelyn] Mensagem duplicada ignorada: ${dedupKey}`);
-      return new Response(JSON.stringify({ ok: true, duplicate: true }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-    
-    // Marcar mensagem como processada
-    processedMessages.set(dedupKey, Date.now());
-    console.log(`[webhook-evelyn] Mensagem registrada para dedup: ${dedupKey}`);
+  // ==== DEDUPLICAÇÃO DE MENSAGENS ====
+  // Usar APENAS messageId como chave única (ignora remoteJid para evitar duplicatas JID/LID)
+  const dedupKey = messageId;
+  
+  if (processedMessages.has(dedupKey)) {
+    console.log(`[webhook-evelyn] Mensagem duplicada ignorada - messageId: ${messageId}, remoteJid: ${remoteJid}`);
+    return new Response(JSON.stringify({ ok: true, duplicate: true }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
+  
+  // Marcar mensagem como processada
+  processedMessages.set(dedupKey, Date.now());
+  console.log(`[webhook-evelyn] Mensagem nova registrada - messageId: ${messageId}, remoteJid: ${remoteJid}`);
     
     console.log(`[webhook-evelyn] remoteJid: ${remoteJid}, isLid: ${isLid}`);
 
