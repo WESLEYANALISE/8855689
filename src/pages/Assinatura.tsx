@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText, Check, Gavel } from "lucide-react";
+import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -16,7 +16,6 @@ import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface PlanConfig {
   price: number;
@@ -31,34 +30,16 @@ const PLANS: Record<PlanType, PlanConfig> = {
   vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'OFERTA ESPECIAL', featured: true }
 };
 
-// Benefícios para o marquee infinito
+// Benefícios para o marquee infinito - mais compacto
 const BENEFIT_ITEMS = [
-  { icon: BookOpen, text: "+30.000 questões OAB" },
+  { icon: BookOpen, text: "+30.000 questões" },
   { icon: Bot, text: "IA Evelyn 24h" },
   { icon: Ban, text: "Sem anúncios" },
-  { icon: BadgeCheck, text: "Vade Mecum completo" },
-  { icon: Headphones, text: "Audioaulas ilimitadas" },
-  { icon: Scale, text: "Súmulas atualizadas" },
-  { icon: FileText, text: "Modelos de petições" },
+  { icon: BadgeCheck, text: "Vade Mecum" },
+  { icon: Headphones, text: "Audioaulas" },
+  { icon: Scale, text: "Súmulas" },
+  { icon: FileText, text: "Petições" },
   { icon: Sparkles, text: "Acesso vitalício" },
-];
-
-// Lista de funcionalidades para a seção abaixo do card
-const FUNCIONALIDADES = [
-  "Acesso completo e ilimitado ao app",
-  "Experiência 100% sem anúncios",
-  "Acesso antecipado a novos recursos",
-  "Sincronização em todos os dispositivos",
-  "Suporte prioritário via WhatsApp",
-  "Professora IA Evelyn disponível 24h",
-  "Chat inteligente com respostas jurídicas",
-  "Vade Mecum completo com +50 leis",
-  "Constituição Federal comentada",
-  "+30.000 questões OAB comentadas",
-  "Simulados completos estilo prova",
-  "Flashcards inteligentes",
-  "Mapas mentais",
-  "Modelos de petições profissionais",
 ];
 
 
@@ -162,85 +143,61 @@ const Assinatura = () => {
             audioBase64={audioBase64} 
           />
 
-          {/* Headline persuasivo */}
-          <div className="text-center mt-6 sm:mt-8 mb-4">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
-              Domine o Direito.<br className="sm:hidden" /> Conquiste a Aprovação.
+          {/* Headline persuasivo - mais compacto */}
+          <div className="text-center mt-4 sm:mt-6 mb-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 leading-tight">
+              Domine o Direito. Conquiste a Aprovação.
             </h1>
-            <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto">
-              Acesso completo e vitalício a todo o conteúdo que você precisa para se tornar um jurista de excelência.
+            <p className="text-zinc-400 text-xs sm:text-sm max-w-sm mx-auto">
+              Acesso vitalício a todo o conteúdo para se tornar um jurista de excelência.
             </p>
           </div>
 
-          {/* Marquee de benefícios - linha única com scroll infinito */}
-          <div className="relative overflow-hidden mb-6 py-2">
-            {/* Gradientes laterais para fade */}
-            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+          {/* Marquee de benefícios - mais discreto */}
+          <div className="relative overflow-hidden mb-4 py-1.5">
+            <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
             
             <motion.div
-              className="flex gap-4 whitespace-nowrap"
-              animate={{ x: [-1000, 0] }}
+              className="flex gap-3 whitespace-nowrap"
+              animate={{ x: [-800, 0] }}
               transition={{
                 x: {
                   repeat: Infinity,
                   repeatType: "loop",
-                  duration: 30,
+                  duration: 25,
                   ease: "linear",
                 },
               }}
             >
-              {/* Duplicar items para loop infinito suave */}
               {[...BENEFIT_ITEMS, ...BENEFIT_ITEMS, ...BENEFIT_ITEMS].map((benefit, index) => (
                 <div 
                   key={`${benefit.text}-${index}`}
-                  className="flex items-center gap-1.5 bg-zinc-900/50 border border-zinc-800/40 rounded-full px-3 py-1.5 flex-shrink-0"
+                  className="flex items-center gap-1 bg-zinc-900/40 border border-zinc-800/30 rounded-full px-2.5 py-1 flex-shrink-0"
                 >
-                  <benefit.icon className="w-3 h-3 text-amber-500" />
-                  <span className="text-zinc-400 text-xs">{benefit.text}</span>
+                  <benefit.icon className="w-2.5 h-2.5 text-amber-500" />
+                  <span className="text-zinc-500 text-[10px]">{benefit.text}</span>
                 </div>
               ))}
             </motion.div>
           </div>
 
-          {/* Card do Plano Vitalício - único plano disponível */}
-          <div className="max-w-md mx-auto px-2">
+          {/* Card do Plano Vitalício */}
+          <div className="max-w-sm mx-auto px-2">
             <PlanoCardNovo
               planKey="vitalicio"
               plan={PLANS.vitalicio}
               imagemUrl={planImages.vitalicio}
               imagemLoading={imagesLoading}
               onVerMais={() => setModalPlano('vitalicio')}
-              delay={0.3}
+              delay={0.2}
             />
           </div>
 
-          {/* Seção de Funções abaixo do card */}
-          <div className="max-w-md mx-auto px-2 mt-6">
-            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Gavel className="w-4 h-4 text-amber-500" />
-                <span className="text-sm font-medium text-white">Funções incluídas</span>
-              </div>
-              
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
-                {FUNCIONALIDADES.map((texto) => (
-                  <div
-                    key={texto}
-                    className="flex items-center gap-2 py-1"
-                  >
-                    <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
-                    <span className="text-xs text-zinc-400">{texto}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Selo de segurança */}
-          <div className="flex items-center justify-center gap-2 text-zinc-500 text-xs mt-6">
-            <div className="flex items-center gap-2 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 rounded-full px-4 py-2">
-              <Shield className="w-4 h-4 text-emerald-500" />
+          <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] mt-5">
+            <div className="flex items-center gap-1.5 bg-zinc-900/40 backdrop-blur-sm border border-zinc-800/40 rounded-full px-3 py-1.5">
+              <Shield className="w-3 h-3 text-emerald-500" />
               <span>Pagamento seguro via Mercado Pago</span>
             </div>
           </div>
