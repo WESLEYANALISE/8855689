@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { Briefcase, Scale, Shield, FileText, Building2, Gavel, Car, BadgeCheck, Users } from "lucide-react";
+import { preloadImages } from "@/hooks/useInstantCache";
 
 // Importar TODAS as imagens locais
 import advogadoCapa from '@/assets/carreira-advogado.webp';
@@ -39,8 +40,19 @@ const carreirasConfig: Record<string, CarreiraConfig> = {
 // Ordem de exibição das carreiras
 const CARREIRAS_ORDEM = ['advogado', 'juiz', 'delegado', 'promotor', 'defensor', 'procurador', 'pf', 'prf', 'pcivil', 'pmilitar'];
 
+// Lista de todas as imagens para preload
+const ALL_CAREER_IMAGES = [
+  advogadoCapa, juizCapa, delegadoCapa, promotorCapa, defensorCapa,
+  procuradorCapa, pfCapa, prfCapa, pcivilCapa, pmilitarCapa
+];
+
 const CarreirasJuridicas = () => {
   const navigate = useNavigate();
+
+  // Preload de todas as imagens no mount
+  useEffect(() => {
+    preloadImages(ALL_CAREER_IMAGES);
+  }, []);
 
   // Montar lista completa de carreiras na ordem definida
   const carreiras = CARREIRAS_ORDEM.map(carreiraId => {
@@ -58,42 +70,27 @@ const CarreirasJuridicas = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container max-w-4xl mx-auto px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Bússola de Carreira</h1>
           <p className="text-muted-foreground">Explore as profissões jurídicas</p>
-        </motion.div>
+        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {carreiras.map((carreira, index) => (
-            <motion.button
+        <div className="grid grid-cols-2 gap-4 animate-fade-in">
+          {carreiras.map((carreira) => (
+            <button
               key={carreira.id}
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ 
-                delay: index * 0.08,
-                type: "spring",
-                stiffness: 200,
-                damping: 20
-              }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
               onClick={() => navigate(`/estudo-carreira/${carreira.id}`)}
-              className="relative h-40 rounded-2xl overflow-hidden group shadow-xl"
+              className="relative h-40 rounded-2xl overflow-hidden group shadow-xl transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               {/* Background Image ou Gradient */}
               {carreira.capa ? (
-                <motion.img 
+                <img 
                   src={carreira.capa} 
                   alt={carreira.nome}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  initial={{ scale: 1.1 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.6, delay: index * 0.08 }}
-                  whileHover={{ scale: 1.1 }}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
               ) : (
                 <div className={`absolute inset-0 bg-gradient-to-br ${carreira.cor}`} />
@@ -104,16 +101,11 @@ const CarreirasJuridicas = () => {
               
               {/* Content - Título alinhado à esquerda na parte inferior */}
               <div className="relative z-10 h-full flex flex-col justify-end p-4">
-                <motion.h3 
-                  className="text-lg font-bold text-white text-left"
-                  initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: index * 0.08 + 0.2 }}
-                >
+                <h3 className="text-lg font-bold text-white text-left">
                   {carreira.nome}
-                </motion.h3>
+                </h3>
               </div>
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>
