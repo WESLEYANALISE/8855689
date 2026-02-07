@@ -1,4 +1,4 @@
-import { memo, useState, useMemo, useEffect, useRef } from "react";
+import { memo, useState, useMemo } from "react";
 import { Landmark, ArrowRight, Book, FileText, Film, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -41,26 +41,6 @@ interface Documentario {
 
 export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover }: PoliticaHomeSectionProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('livros');
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Auto-rotate tabs every 3 seconds
-  useEffect(() => {
-    const tabOrder: TabType[] = ['livros', 'artigos', 'documentarios'];
-    
-    intervalRef.current = setInterval(() => {
-      setActiveTab(current => {
-        const currentIndex = tabOrder.indexOf(current);
-        const nextIndex = (currentIndex + 1) % tabOrder.length;
-        return tabOrder[nextIndex];
-      });
-    }, 3000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
 
   // Buscar Livros
   const { data: livros = [], isLoading: loadingLivros } = useQuery({
@@ -125,22 +105,6 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
     { id: 'documentarios' as TabType, label: 'Documentários', icon: Film },
   ];
 
-  // Reset timer when user manually clicks a tab
-  const handleTabClick = (tabId: TabType) => {
-    setActiveTab(tabId);
-    // Reset the interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    const tabOrder: TabType[] = ['livros', 'artigos', 'documentarios'];
-    intervalRef.current = setInterval(() => {
-      setActiveTab(current => {
-        const currentIndex = tabOrder.indexOf(current);
-        const nextIndex = (currentIndex + 1) % tabOrder.length;
-        return tabOrder[nextIndex];
-      });
-    }, 3000);
-  };
 
   return (
     <div className="space-y-3" data-tutorial="politica-section">
@@ -178,7 +142,7 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
+                onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   "flex items-center justify-center gap-1.5 px-2 py-2 rounded-full text-[11px] font-medium transition-all whitespace-nowrap",
                   activeTab === tab.id
