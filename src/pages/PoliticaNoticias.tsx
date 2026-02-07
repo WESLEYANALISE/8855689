@@ -1,8 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Newspaper, 
@@ -10,7 +9,7 @@ import {
   RefreshCw,
   Loader2
 } from "lucide-react";
-import { useGenericCache } from "@/hooks/useGenericCache";
+import { useInstantCache } from "@/hooks/useInstantCache";
 import { format, subDays, isToday, isYesterday, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -25,6 +24,7 @@ interface NoticiaPolitica {
   fonte: string;
   espectro: string | null;
   imagem_url: string | null;
+  imagem_url_webp: string | null;
   data_publicacao: string | null;
 }
 
@@ -42,69 +42,38 @@ const PoliticaNoticias = () => {
     return dates;
   }, []);
 
-  const getDateLabel = (date: Date): string => {
+  const getDateLabel = useCallback((date: Date): string => {
     if (isToday(date)) return "Hoje";
     if (isYesterday(date)) return "Ontem";
     return format(date, "dd/MM", { locale: ptBR });
-  };
+  }, []);
 
-  const { data: noticias, isLoading, refresh } = useGenericCache<NoticiaPolitica[]>({
-    cacheKey: 'noticias-politicas',
-    fetchFn: async () => {
-      // Buscar apenas notícias processadas (com conteúdo formatado pronto)
-      const { data: cached, error } = await supabase
+  // Cache instantâneo - carrega TODAS as notícias de uma vez
+  const { data: noticias, isLoading, refresh } = useInstantCache<NoticiaPolitica[]>({
+    cacheKey: 'noticias-politicas-lista',
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('noticias_politicas_cache')
-        .select('*')
+        .select('id, titulo, descricao, url, fonte, espectro, imagem_url, imagem_url_webp, data_publicacao')
         .eq('processado', true)
         .not('data_publicacao', 'is', null)
         .order('data_publicacao', { ascending: false })
-        .limit(300);
+        .limit(500);
       
       if (error) throw error;
-      
-      if (!cached || cached.length === 0) {
-        // Buscar novas notícias e processar
-        await supabase.functions.invoke('buscar-noticias-politicas');
-        
-        // Aguardar um pouco e buscar novamente
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const { data: newData } = await supabase
-          .from('noticias_politicas_cache')
-          .select('*')
-          .eq('processado', true)
-          .not('data_publicacao', 'is', null)
-          .order('data_publicacao', { ascending: false })
-          .limit(300);
-        
-        return (newData || []) as NoticiaPolitica[];
-      }
-      
-      return cached as NoticiaPolitica[];
+      return data || [];
     },
+    cacheDuration: 15 * 60 * 1000, // 15 minutos
   });
 
   const buscarNoticiasDaData = async () => {
     setBuscandoNoticias(true);
     try {
       const dataFormatada = format(selectedDate, 'yyyy-MM-dd');
-      const result = await supabase.functions.invoke('buscar-noticias-politicas', {
+      await supabase.functions.invoke('buscar-noticias-politicas', {
         body: { dataEspecifica: dataFormatada }
       });
       
-      console.log('Resultado busca notícias:', result);
-      
-      // Forçar recarga direta do Supabase após buscar
-      const { data: novasNoticias } = await supabase
-        .from('noticias_politicas_cache')
-        .select('*')
-        .order('data_publicacao', { ascending: false })
-        .limit(300);
-      
-      console.log('Notícias após busca:', novasNoticias?.length, 'total');
-      console.log('Notícias da data:', novasNoticias?.filter(n => n.data_publicacao?.startsWith(dataFormatada)).length);
-      
-      // Forçar refresh do cache
       refresh();
       toast.success('Notícias atualizadas!');
     } catch (error) {
@@ -115,7 +84,7 @@ const PoliticaNoticias = () => {
     }
   };
 
-  // Filtrar notícias pela data selecionada
+  // Filtrar notícias pela data selecionada (rápido - client-side)
   const filteredNoticias = useMemo(() => {
     if (!noticias) return [];
     return noticias.filter(noticia => {
@@ -125,18 +94,11 @@ const PoliticaNoticias = () => {
     });
   }, [noticias, selectedDate]);
 
-  const abrirNoticia = (noticia: NoticiaPolitica) => {
-    const params = new URLSearchParams({
-      titulo: encodeURIComponent(noticia.titulo),
-      url: encodeURIComponent(noticia.url),
-      fonte: noticia.fonte,
-      ...(noticia.imagem_url && { imagem: encodeURIComponent(noticia.imagem_url) }),
-      ...(noticia.data_publicacao && { data: noticia.data_publicacao }),
-    });
-    navigate(`/politica/noticias/${noticia.id}?${params.toString()}`);
-  };
+  const abrirNoticia = useCallback((noticia: NoticiaPolitica) => {
+    navigate(`/politica/noticias/${noticia.id}`);
+  }, [navigate]);
 
-  const getFonteBadgeColor = (fonte: string) => {
+  const getFonteBadgeColor = useCallback((fonte: string) => {
     const cores: Record<string, string> = {
       'G1': 'bg-red-500/20 text-red-400',
       'Estadão': 'bg-blue-500/20 text-blue-400',
@@ -149,9 +111,9 @@ const PoliticaNoticias = () => {
       'CartaCapital': 'bg-rose-500/20 text-rose-400',
     };
     return cores[fonte] || 'bg-gray-500/20 text-gray-400';
-  };
+  }, []);
 
-  const formatDateTime = (dateString: string | null) => {
+  const formatDateTime = useCallback((dateString: string | null) => {
     if (!dateString) return '';
     try {
       const date = parseISO(dateString);
@@ -159,16 +121,11 @@ const PoliticaNoticias = () => {
     } catch {
       return '';
     }
-  };
+  }, []);
 
   return (
     <div className="px-3 py-4 max-w-4xl mx-auto pb-20">
-      <motion.div 
-        className="mb-4"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
+      <div className="mb-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-12 h-12 rounded-lg bg-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center">
             <Newspaper className="w-6 h-6 text-white" />
@@ -181,7 +138,7 @@ const PoliticaNoticias = () => {
           </div>
         </div>
 
-        {/* Menu de datas */}
+        {/* Menu de datas - sem animação */}
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-2">
             {dateOptions.map((date, index) => (
@@ -190,7 +147,7 @@ const PoliticaNoticias = () => {
                 variant={isSameDay(date, selectedDate) ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedDate(date)}
-                className={`flex-shrink-0 ${isToday(date) ? 'px-6' : ''}`}
+                className={`flex-shrink-0 transition-colors ${isToday(date) ? 'px-6' : ''}`}
               >
                 {getDateLabel(date)}
               </Button>
@@ -198,7 +155,7 @@ const PoliticaNoticias = () => {
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
-      </motion.div>
+      </div>
 
       {/* Carrossel de Resumos Disponíveis */}
       <div className="mb-4">
@@ -210,78 +167,73 @@ const PoliticaNoticias = () => {
         {filteredNoticias.length} notícia{filteredNoticias.length !== 1 ? 's' : ''} em {getDateLabel(selectedDate).toLowerCase()}
       </p>
 
-      {isLoading ? (
+      {isLoading && !noticias?.length ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent"></div>
         </div>
       ) : filteredNoticias.length > 0 ? (
         <div className="space-y-3">
-          {filteredNoticias.map((noticia, index) => (
-            <motion.div
+          {filteredNoticias.map((noticia) => (
+            <Card
               key={noticia.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03 }}
+              className="cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
+              onClick={() => abrirNoticia(noticia)}
             >
-              <Card
-                className="cursor-pointer hover:bg-muted/50 transition-all overflow-hidden"
-                onClick={() => abrirNoticia(noticia)}
-              >
-                <CardContent className="p-0">
-                  <div className="flex">
-                    {noticia.imagem_url && (
-                      <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
-                        <img 
-                          src={noticia.imagem_url} 
-                          alt={noticia.titulo}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getFonteBadgeColor(noticia.fonte)}`}>
-                            {noticia.fonte}
+              <CardContent className="p-0">
+                <div className="flex">
+                  {(noticia.imagem_url_webp || noticia.imagem_url) && (
+                    <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
+                      <img 
+                        src={noticia.imagem_url_webp || noticia.imagem_url || ''} 
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${getFonteBadgeColor(noticia.fonte)}`}>
+                          {noticia.fonte}
+                        </span>
+                        {noticia.data_publicacao && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatDateTime(noticia.data_publicacao)}
                           </span>
-                          {noticia.data_publicacao && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateTime(noticia.data_publicacao)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <h3 className="font-semibold text-sm md:text-base line-clamp-2 text-foreground">
-                          {noticia.titulo}
-                        </h3>
-                        
-                        {noticia.descricao && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                            {noticia.descricao}
-                          </p>
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-1 text-xs text-primary mt-2">
-                        <ChevronRight className="w-3 h-3" />
-                        <span>Ver notícia</span>
-                      </div>
+                      <h3 className="font-semibold text-sm md:text-base line-clamp-2 text-foreground">
+                        {noticia.titulo}
+                      </h3>
+                      
+                      {noticia.descricao && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {noticia.descricao}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-1 text-xs text-primary mt-2">
+                      <ChevronRight className="w-3 h-3" />
+                      <span>Ver notícia</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : (
         <Card className="bg-muted/30">
           <CardContent className="p-8 text-center">
             <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-semibold mb-2">Nenhuma notícia em {getDateLabel(selectedDate).toLowerCase()}</h3>
+            <h3 className="font-semibold mb-2">Nenhuma notícia encontrada para {getDateLabel(selectedDate).toLowerCase()}</h3>
             <p className="text-sm text-muted-foreground mb-4">
               {isToday(selectedDate) 
                 ? "Clique abaixo para buscar as notícias de hoje"
