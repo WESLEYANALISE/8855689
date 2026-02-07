@@ -1,199 +1,278 @@
 
-# Plano: Correção do Scroll e Destaque de Artigos no Vade Mecum
+# Plano: Redesign da Página de Assinatura como Landing Page de Vendas
 
-## Problemas Identificados
+## Visão Geral
 
-### 1. Scroll não funciona ao clicar em resultado de busca
-Quando o usuário busca "67" no Vade Mecum e clica no resultado "Constituição Federal", a página `/constituicao?artigo=67` abre, mas:
-- Não é possível rolar a página manualmente
-- O artigo 67 não é exibido em destaque na posição correta
-
-### 2. Causa Raiz
-
-O componente `ArtigoListaCompacta.tsx` tem uma **condição de corrida** no mecanismo de scroll:
-
-```typescript
-// Linha 712-745: useEffect para scroll
-useEffect(() => {
-  if (!targetArticleNumber) return;
-  
-  // Problema: busca em articlesWithNumber mas os refs podem não existir ainda
-  const targetArticle = articlesWithNumber.find(...);
-  
-  setTimeout(() => {
-    const element = articleRefs.current.get(targetArticle.id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 100); // Timeout muito curto!
-}, [targetArticleNumber, articlesWithNumber, onScrollComplete]);
-```
-
-**Problemas específicos:**
-
-1. **Timeout insuficiente (100ms)**: Os artigos são carregados via `useProgressiveArticles` em chunks progressivos. 100ms pode não ser suficiente para React renderizar os elementos e criar as refs.
-
-2. **Refs não sincronizadas**: Os `articleRefs` são populados apenas quando o elemento é renderizado (`ref={(el) => articleRefs.current.set(article.id, el)}`), mas o useEffect pode executar antes da renderização.
-
-3. **Sub-modo de visualização**: A lista de artigos só é renderizada quando `subModoConteudo === 'lista'`, mas não há verificação disso no useEffect.
-
-4. **Scroll interrompido por animações**: O componente tem um sticky header que pode interferir com o cálculo de posição do scroll.
+Transformar a página de assinatura atual em uma **landing page de vendas profissional** com:
+1. Título e subtítulo persuasivos que engajam o usuário
+2. Lista de benefícios claros na área do valor
+3. Opções de pagamento PIX e Cartão no modal de detalhes
+4. Parcelamento em até 10x com taxa do Mercado Pago
+5. Design elegante e informativo
 
 ---
 
-## Solução Proposta
+## 1. Título e Subtítulo Persuasivos
 
-### 1. Aumentar timeout e adicionar retry com verificação de elemento
+### Problema Atual
+A página mostra apenas uma frase de impacto aleatória, sem contexto de vendas direto.
 
-```typescript
-// Scroll para artigo específico com retry robusto
-useEffect(() => {
-  if (!targetArticleNumber) return;
-
-  const normalizeNumber = (num: string) => num.replace(/\D/g, '').replace(/^0+/, '');
-  const targetNormalized = normalizeNumber(targetArticleNumber);
-  
-  const targetArticle = articlesWithNumber.find(article => {
-    const articleNum = normalizeNumber(article["Número do Artigo"] || "");
-    return articleNum === targetNormalized || 
-           (article["Número do Artigo"] || "").toLowerCase().includes(targetArticleNumber.toLowerCase());
-  });
-
-  if (!targetArticle) {
-    onScrollComplete?.();
-    return;
-  }
-
-  // Destacar artigo imediatamente
-  setHighlightedArticleId(targetArticle.id);
-  
-  // Forçar modo de visualização correto
-  setSubModoConteudo('lista');
-
-  // Função de scroll com retry
-  const scrollToArticle = (retries = 0) => {
-    const element = articleRefs.current.get(targetArticle.id);
-    
-    if (element) {
-      // Usar requestAnimationFrame para garantir que o DOM está pronto
-      requestAnimationFrame(() => {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        onScrollComplete?.();
-      });
-    } else if (retries < 10) {
-      // Retry com delay progressivo (até ~2 segundos total)
-      setTimeout(() => scrollToArticle(retries + 1), 200);
-    } else {
-      // Fallback: completar mesmo sem scroll
-      console.warn('Não foi possível scrollar para artigo:', targetArticleNumber);
-      onScrollComplete?.();
-    }
-  };
-
-  // Iniciar após pequeno delay para garantir renderização inicial
-  setTimeout(() => scrollToArticle(0), 300);
-
-  // Limpar destaque após 4 segundos
-  const highlightTimer = setTimeout(() => {
-    setHighlightedArticleId(null);
-  }, 4000);
-
-  return () => clearTimeout(highlightTimer);
-}, [targetArticleNumber, articlesWithNumber, onScrollComplete]);
-```
-
-### 2. Garantir que refs existem antes de tentar scroll
-
-Adicionar verificação de que o componente está montado e os refs estão populados:
-
-```typescript
-// Adicionar estado para controlar quando refs estão prontos
-const [refsReady, setRefsReady] = useState(false);
-
-// Atualizar quando artigos são renderizados
-useEffect(() => {
-  if (articlesWithNumber.length > 0 && articleRefs.current.size > 0) {
-    setRefsReady(true);
-  }
-}, [articlesWithNumber]);
-
-// Incluir refsReady como dependência do scroll
-useEffect(() => {
-  if (!targetArticleNumber || !refsReady) return;
-  // ... resto da lógica de scroll
-}, [targetArticleNumber, articlesWithNumber, refsReady, onScrollComplete]);
-```
-
-### 3. Forçar sub-modo correto ao receber targetArticleNumber
-
-Na Constituicao.tsx, garantir que o modo de visualização está correto:
-
-```typescript
-// Auto-search based on URL parameter
-useEffect(() => {
-  const artigoParam = searchParams.get('artigo');
-  if (artigoParam) {
-    setSearchInput(artigoParam);
-    setTargetArticleNumber(artigoParam);
-    setSearchQuery(artigoParam);
-    setActiveTab('artigos'); // Garantir que está na tab correta
-  }
-}, [searchParams]);
-```
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Mudança |
-|---------|---------|
-| `src/components/ArtigoListaCompacta.tsx` | Refatorar useEffect de scroll com retry robusto e forçar subModo correto |
-| `src/pages/Constituicao.tsx` | Garantir que activeTab é 'artigos' ao receber parâmetro de artigo |
-
----
-
-## Mudanças Técnicas Detalhadas
-
-### ArtigoListaCompacta.tsx
-
-**Linha 712-745**: Substituir useEffect atual por versão robusta:
+### Solução
+Adicionar uma seção de **headline** acima do card do plano com:
 
 ```text
-Antes:
-- setTimeout de 100ms (insuficiente)
-- Não verifica se elemento realmente existe
-- Não força modo de visualização correto
-
-Depois:
-- Retry com até 10 tentativas (delay progressivo)
-- requestAnimationFrame para sincronizar com render
-- Força subModoConteudo = 'lista' antes do scroll
-- Fallback graceful se scroll não funcionar
+Título: "Domine o Direito. Conquiste a Aprovação."
+Subtítulo: "Acesso completo e vitalício a todo o conteúdo que você precisa para se tornar um jurista de excelência."
 ```
 
-### Constituicao.tsx
+Alternativas de título (persuasivos):
+- "Seu investimento mais inteligente no Direito"
+- "Tudo o que você precisa. Para sempre."
+- "A ferramenta definitiva para estudantes e advogados"
 
-**Linha 75-82**: Adicionar setActiveTab:
+---
+
+## 2. Lista de Benefícios no Card do Plano
+
+### Problema Atual
+O card mostra apenas "Acesso vitalício para sempre" - pouco persuasivo.
+
+### Solução
+Adicionar **3-4 benefícios-chave** visíveis diretamente no card:
+
+```text
+- Acesso ilimitado a todo conteúdo
+- +30.000 questões OAB comentadas
+- Professora IA Evelyn 24h
+- Sem anúncios, para sempre
+```
+
+---
+
+## 3. Opções de Pagamento: PIX + Cartão
+
+### Problema Atual
+Modal só oferece PIX, sem opção de cartão.
+
+### Solução
+Adicionar **toggle de método de pagamento** no modal:
+
+| Método | Valor | Observação |
+|--------|-------|------------|
+| PIX | R$ 89,90 | À vista, aprovação instantânea |
+| Cartão 1x | R$ 89,90 | Sem juros |
+| Cartão 10x | R$ 10,81/parcela | Total: R$ 108,09 (com juros) |
+
+### Cálculo das Parcelas
+
+Com base nas taxas do Mercado Pago (tabela "Na Hora - Até R$3 mil"):
+- Taxa para 10x: **20,24%**
+- R$ 89,90 × 1,2024 = **R$ 108,09**
+- Parcela: R$ 108,09 ÷ 10 = **R$ 10,81**
+
+---
+
+## 4. Arquivos a Modificar
+
+### 4.1 PlanoCardNovo.tsx
+- Adicionar lista de benefícios compacta (3-4 itens)
+- Mostrar opção de parcelamento no card
+- Visual mais vendedor
+
+### 4.2 PlanoDetalhesModal.tsx
+- Adicionar ToggleGroup para PIX / Cartão
+- Mostrar opções de parcelamento para cartão
+- Calcular e exibir valor com juros
+- Manter botão de cartão funcional
+
+### 4.3 Assinatura.tsx
+- Adicionar seção de headline persuasiva
+- Melhorar hierarquia visual
+- Adicionar badges de benefícios
+
+### 4.4 CheckoutCartao.tsx
+- Expandir opções de parcelamento (até 10x)
+- Mostrar valor total com juros
+- Calcular automaticamente com taxa do MP
+
+---
+
+## 5. Detalhes Técnicos
+
+### 5.1 Configuração de Parcelas
 
 ```typescript
-useEffect(() => {
-  const artigoParam = searchParams.get('artigo');
-  if (artigoParam) {
-    setSearchInput(artigoParam);
-    setTargetArticleNumber(artigoParam);
-    setSearchQuery(artigoParam);
-    setActiveTab('artigos'); // ADICIONAR ESTA LINHA
-  }
-}, [searchParams]);
+const INSTALLMENT_CONFIG = {
+  // Taxa do Mercado Pago para até R$3mil
+  rates: {
+    1: 0, // sem juros
+    2: 0.0990, // 9.90%
+    3: 0.1128, // 11.28%
+    4: 0.1264, // 12.64%
+    5: 0.1397, // 13.97%
+    6: 0.1527, // 15.27%
+    7: 0.1655, // 16.55%
+    8: 0.1781, // 17.81%
+    9: 0.1904, // 19.04%
+    10: 0.2024, // 20.24%
+  },
+  basePrice: 89.90
+};
+
+const calculateInstallment = (installments: number) => {
+  const rate = INSTALLMENT_CONFIG.rates[installments] || 0;
+  const total = INSTALLMENT_CONFIG.basePrice * (1 + rate);
+  const perInstallment = total / installments;
+  return { total, perInstallment };
+};
 ```
+
+### 5.2 Layout do Modal Atualizado
+
+```text
+[Imagem de capa horizontal]
+
+🏆 Plano Premium
+Vitalício
+R$ 89,90
+
+┌────────────────────────────────┐
+│  PIX           │    Cartão    │  ← Toggle
+└────────────────────────────────┘
+
+[Se PIX selecionado]
+• R$ 89,90 à vista
+• Aprovação instantânea
+[Botão: Pagar com PIX]
+
+[Se Cartão selecionado]
+Parcelas:
+○ 1x de R$ 89,90 (sem juros)
+○ 2x de R$ 49,39 (total: R$ 98,79)
+○ 3x de R$ 33,74 (total: R$ 101,24)
+...
+○ 10x de R$ 10,81 (total: R$ 108,09)
+
+[Botão: Pagar com Cartão]
+```
+
+### 5.3 Headlines na Página Principal
+
+```tsx
+// Entre a narração e o card do plano
+<div className="text-center mb-8">
+  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3">
+    Domine o Direito. Conquiste a Aprovação.
+  </h1>
+  <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto">
+    Acesso completo e vitalício a todo o conteúdo que você precisa.
+  </p>
+</div>
+
+// Benefícios em badges
+<div className="flex flex-wrap justify-center gap-2 mb-6">
+  <Badge>+30.000 questões OAB</Badge>
+  <Badge>Professora IA 24h</Badge>
+  <Badge>Sem anúncios</Badge>
+  <Badge>Vade Mecum completo</Badge>
+</div>
+```
+
+---
+
+## 6. Visual Final Esperado
+
+### Página de Assinatura
+
+```text
+┌─────────────────────────────────────┐
+│            [← Voltar]               │
+│                                     │
+│         [Hero Image]                │
+│                                     │
+│    "Frase de impacto narrada"       │
+│                                     │
+│ ══════════════════════════════════  │
+│                                     │
+│   Domine o Direito.                 │
+│   Conquiste a Aprovação.            │
+│                                     │
+│   Acesso completo e vitalício...    │
+│                                     │
+│   [🏆 Questões] [🤖 IA] [📚 Vade]   │
+│                                     │
+│ ┌─────────────────────────────────┐ │
+│ │  OFERTA ESPECIAL                │ │
+│ │  ⭐ RECOMENDADO                 │ │
+│ │  Vitalício                      │ │
+│ │                                 │ │
+│ │  ✓ Acesso ilimitado             │ │
+│ │  ✓ +30.000 questões             │ │
+│ │  ✓ IA 24h                       │ │
+│ │                                 │ │
+│ │  R$ 89,90 à vista               │ │
+│ │  ou 10x de R$ 10,81             │ │
+│ │                                 │ │
+│ │  [Ver mais →]                   │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│   🔒 Pagamento seguro via MP        │
+│                                     │
+│                          [WhatsApp] │
+└─────────────────────────────────────┘
+```
+
+### Modal de Detalhes
+
+```text
+┌─────────────────────────────────────┐
+│               [X]                   │
+│         [Capa Horizontal]           │
+│                                     │
+│ 🏆 Plano Premium                    │
+│ Vitalício                           │
+│ R$ 89,90                            │
+│                                     │
+│ ┌───────────────┬─────────────────┐ │
+│ │  ⚡ PIX       │   💳 Cartão     │ │
+│ └───────────────┴─────────────────┘ │
+│                                     │
+│ [Se Cartão]                         │
+│ ○ 1x R$ 89,90 (sem juros)           │
+│ ● 10x R$ 10,81 (total R$ 108,09)    │
+│                                     │
+│ [═══ Pagar com Cartão →═══]         │
+│                                     │
+│ ┌─────────────┬─────────────┐       │
+│ │  Funções    │   Sobre     │       │
+│ └─────────────┴─────────────┘       │
+│                                     │
+│ ✓ Acesso completo e ilimitado       │
+│ ✓ Experiência 100% sem anúncios     │
+│ ✓ Professora IA Evelyn 24h          │
+│ ...                                 │
+└─────────────────────────────────────┘
+```
+
+---
+
+## Resumo das Mudanças
+
+| Componente | Mudança |
+|------------|---------|
+| `Assinatura.tsx` | Adicionar headline, subtítulo e badges de benefícios |
+| `PlanoCardNovo.tsx` | Mostrar benefícios + opção de parcelamento |
+| `PlanoDetalhesModal.tsx` | Toggle PIX/Cartão + seletor de parcelas |
+| `CheckoutCartao.tsx` | Expandir para 10x com cálculo de juros |
 
 ---
 
 ## Resultado Esperado
 
-| Cenário | Antes | Depois |
+| Aspecto | Antes | Depois |
 |---------|-------|--------|
-| Busca "67" no VadeMecum → clica CF | Página abre mas não rola | Rola suavemente até Art. 67 |
-| Artigo 67 visível | Não destacado | Destacado com borda amarela por 4s |
-| Scroll manual | Bloqueado/travado | Funciona normalmente |
-| Carregamento progressivo | Falha se artigo não carregou | Aguarda com retry até artigo carregar |
+| Headline | Apenas frase aleatória | Título + subtítulo persuasivos |
+| Benefícios | Escondidos no modal | Visíveis no card principal |
+| Pagamento | Só PIX | PIX + Cartão (até 10x) |
+| Parcelamento | Não disponível | 10x de R$ 10,81 |
+| Visual | Funcional | Landing page de vendas |
