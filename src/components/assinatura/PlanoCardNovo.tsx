@@ -60,7 +60,7 @@ const PlanoCardNovo = ({
           : 'bg-gradient-to-br from-zinc-900/90 to-zinc-800/80 border border-zinc-700/50 hover:border-zinc-600'
       }`}>
         
-        {/* Imagem de fundo cobrindo todo o card - lado direito, com transparência */}
+        {/* Imagem de fundo cobrindo todo o card - lado direito, com gradiente de transparência */}
         <div className="absolute inset-0 overflow-hidden">
           {imagemLoading || !imagemUrl ? (
             <Skeleton className="absolute right-0 top-0 w-2/3 h-full bg-zinc-800/30" />
@@ -69,10 +69,10 @@ const PlanoCardNovo = ({
               <img
                 src={imagemUrl}
                 alt={`Plano ${plan.label}`}
-                className="absolute right-0 top-0 h-full w-2/3 object-cover object-top opacity-[0.08]"
+                className="absolute right-0 top-0 h-full w-3/4 object-cover object-top opacity-30"
               />
-              {/* Gradiente para suavizar a transição da imagem */}
-              <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-900/95 to-transparent" />
+              {/* Gradiente que faz a esquerda mais transparente e direita mais visível */}
+              <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900/40" />
             </>
           )}
         </div>
