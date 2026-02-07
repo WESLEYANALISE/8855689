@@ -3,16 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, Search, X } from "lucide-react";
-import { FileText, Layers } from "lucide-react";
- import { Lock, Crown } from "lucide-react";
+import { FileText, Layers, Crown } from "lucide-react";
+import { Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import bgAreasOab from "@/assets/bg-areas-oab.webp";
 import { getOptimizedImageUrl } from "@/lib/imageOptimizer";
 import { Input } from "@/components/ui/input";
- import { useFixedContentLimit } from "@/hooks/useFixedContentLimit";
- import { LockedTimelineCard } from "@/components/LockedTimelineCard";
- import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { PremiumBadge } from "@/components/PremiumBadge";
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -55,9 +55,10 @@ const preloadImages = (urls: string[]) => {
 export default function TrilhasAprovacao() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isPremium, loading: loadingSubscription } = useSubscription();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Buscar todas as matérias da OAB - CACHE INFINITO para navegação instantânea
   const { data: materias, isLoading } = useQuery({
@@ -155,8 +156,14 @@ export default function TrilhasAprovacao() {
     }
   };
 
-  // Handler para navegação - UNIFICADO (Ética vai para mesma rota)
+  // Handler para navegação - Verificar Premium antes de acessar
   const handleNavigate = (materia: { id: number; nome: string }) => {
+    // Verificar se é Premium
+    if (!isPremium) {
+      setShowPremiumModal(true);
+      return;
+    }
+    
     // Ética Profissional vai para página especial (ainda mantém legado por enquanto)
     if (materia.nome.toLowerCase().includes("ética")) {
       navigate('/oab/trilhas-etica');
@@ -184,11 +191,8 @@ export default function TrilhasAprovacao() {
     );
   }, [materias, searchTerm]);
 
-   // Aplicar limite de 9 áreas para usuários gratuitos
-   const { visibleItems, lockedItems, lockedCount } = useFixedContentLimit(
-     filteredMaterias,
-     'oab-trilhas-areas'
-   );
+  // Agora todas as áreas são mostradas, mas são Premium
+  // O usuário pode ver mas não acessar sem ser Premium
 
   // Preload das capas + PREFETCH de todas as matérias para navegação instantânea
   useEffect(() => {
@@ -342,8 +346,8 @@ export default function TrilhasAprovacao() {
               </div>
               
               <div className="space-y-6">
-                 {/* Matérias visíveis (liberadas) */}
-                 {visibleItems.map((materia, index) => {
+                 {/* Todas as matérias - Com selo Premium quando não é assinante */}
+                 {filteredMaterias.map((materia, index) => {
                   const isLeft = index % 2 === 0;
                   const aulaCount = topicosCount?.aulaCounts?.[materia.id] || 0;
                   const temCapa = !!materia.capa_url;
@@ -406,19 +410,26 @@ export default function TrilhasAprovacao() {
                                 {/* Gradiente escuro para destaque do texto */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
                                 
-                                {/* Botão Regenerar Capa */}
-                                <button
-                                  onClick={(e) => handleGerarCapa(materia.id, e)}
-                                  disabled={isGenerating}
-                                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-500/80 transition-colors z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Regenerar capa da área"
-                                >
-                                  {isGenerating ? (
-                                    <Loader2 className="w-4 h-4 text-white animate-spin" />
-                                  ) : (
-                                    <ImagePlus className="w-4 h-4 text-white" />
-                                  )}
-                                </button>
+                                {/* Selo Premium - visível apenas para não-assinantes */}
+                                {!isPremium && !loadingSubscription && (
+                                  <PremiumBadge position="top-right" size="md" />
+                                )}
+                                
+                                {/* Botão Regenerar Capa - apenas para Premium */}
+                                {isPremium && (
+                                  <button
+                                    onClick={(e) => handleGerarCapa(materia.id, e)}
+                                    disabled={isGenerating}
+                                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-500/80 transition-colors z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Regenerar capa da área"
+                                  >
+                                    {isGenerating ? (
+                                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                    ) : (
+                                      <ImagePlus className="w-4 h-4 text-white" />
+                                    )}
+                                  </button>
+                                )}
                               </>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
@@ -488,24 +499,6 @@ export default function TrilhasAprovacao() {
                     </motion.div>
                   );
                 })}
-                 
-                 {/* Matérias bloqueadas (Premium) */}
-                 {lockedItems.map((materia, index) => {
-                   const realIndex = visibleItems.length + index;
-                   const isLeft = realIndex % 2 === 0;
-                   
-                   return (
-                     <LockedTimelineCard
-                       key={materia.id}
-                       title={materia.nome}
-                       subtitle={`Área ${materia.ordem}`}
-                       imageUrl={materia.capa_url || undefined}
-                       isLeft={isLeft}
-                       index={realIndex}
-                       onClick={() => setShowPremiumModal(true)}
-                     />
-                   );
-                 })}
               </div>
             </div>
           </div>

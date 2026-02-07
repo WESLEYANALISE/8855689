@@ -15,6 +15,8 @@ import { TypingIndicator } from "@/components/simulacao/TypingIndicator";
 import { SuggestedQuestions } from "@/components/chat/SuggestedQuestions";
 import { cn } from "@/lib/utils";
 import themisFull from "@/assets/themis-full.webp";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumChatGate } from "@/components/PremiumChatGate";
 
 type ChatMode = "study" | "realcase" | "recommendation" | "psychologist" | "tcc" | "refutacao" | "aula";
 
@@ -30,6 +32,8 @@ const ChatProfessora = () => {
   const initialMode = (searchParams.get("mode") as ChatMode) || "study";
   
   const [mode, setMode] = useState<ChatMode>(initialMode);
+  const { isPremium, loading: loadingSubscription } = useSubscription();
+  const [showPremiumGate, setShowPremiumGate] = useState(false);
   
   // Verificar se a imagem já está em cache para exibição INSTANTÂNEA
   const [imageLoaded, setImageLoaded] = useState(() => {
@@ -137,6 +141,12 @@ const ChatProfessora = () => {
   };
 
   const handleSend = (message: string, files?: UploadedFile[], extractedText?: string) => {
+    // Verificar Premium antes de enviar mensagem
+    if (!isPremium && !loadingSubscription) {
+      setShowPremiumGate(true);
+      return;
+    }
+    
     const streamMode = files?.length ? 'analyze' : 'chat';
     sendMessage(message, files, extractedText, streamMode);
     setAutoScroll(true);
@@ -304,6 +314,11 @@ const ChatProfessora = () => {
         lastAssistantMessage={lastAssistantMessage}
         messageCount={assistantMessageCount}
       />
+      
+      {/* Gate Premium - mostra quando usuário tenta enviar mensagem sem ser Premium */}
+      {showPremiumGate && (
+        <PremiumChatGate onClose={() => setShowPremiumGate(false)} />
+      )}
     </div>
   );
 };

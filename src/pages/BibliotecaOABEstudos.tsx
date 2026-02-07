@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, BookOpen, ChevronRight, Book, Gavel } from "lucide-react";
+import { Loader2, Search, BookOpen, ChevronRight, Book, Gavel, Crown } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { LivroCard } from "@/components/LivroCard";
@@ -11,6 +11,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
 import capaOabEstudos from "@/assets/capa-biblioteca-oab-estudos.jpg";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 interface BibliotecaItem {
   id: number;
@@ -50,8 +52,10 @@ const getAreaColor = (area: string): string => {
 
 const BibliotecaOABEstudos = () => {
   const navigate = useNavigate();
+  const { isPremium, loading: loadingSubscription } = useSubscription();
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   // Hero image cache check
@@ -281,7 +285,13 @@ const BibliotecaOABEstudos = () => {
                       {/* Card da Área - Formato Livro */}
                       <div className="w-full">
                         <motion.button
-                          onClick={() => setSelectedArea(area)}
+                          onClick={() => {
+                            if (!isPremium && !loadingSubscription) {
+                              setShowPremiumModal(true);
+                            } else {
+                              setSelectedArea(area);
+                            }
+                          }}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className="w-full rounded-2xl overflow-hidden text-left"
@@ -319,6 +329,13 @@ const BibliotecaOABEstudos = () => {
                               <span className="text-[10px] text-white/80">livros</span>
                             </div>
                             
+                            {/* Selo Premium - visível apenas para não-assinantes */}
+                            {!isPremium && !loadingSubscription && (
+                              <div className="absolute top-2 right-2 w-7 h-7 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 z-20">
+                                <Crown className="w-4 h-4 text-white" />
+                              </div>
+                            )}
+                            
                             {/* Gradiente apenas na parte inferior para texto */}
                             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
                             
@@ -354,6 +371,13 @@ const BibliotecaOABEstudos = () => {
             </div>
           </div>
         </div>
+        
+        {/* Modal Premium */}
+        <PremiumUpgradeModal
+          open={showPremiumModal}
+          onOpenChange={setShowPremiumModal}
+          featureName="Biblioteca OAB - Estudos"
+        />
       </div>
     </div>
   );
