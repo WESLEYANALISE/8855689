@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Book, Scale, Mic, Users, Briefcase, BookOpen, ArrowRight, Languages, Library, Gavel, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { GraduationCap, Book, Scale, Mic, Users, Briefcase, BookOpen, Languages, Library, Gavel, ChevronRight } from "lucide-react";
+import { useState, useEffect, memo } from "react";
 import type { ElementType } from "react";
-import { motion } from "framer-motion";
 import heroBibliotecas from "@/assets/biblioteca-office-sunset.jpg";
 import capaLideranca from "@/assets/capa-lideranca.jpg";
 import capaForaDaToga from "@/assets/capa-fora-da-toga.jpg";
@@ -15,6 +14,7 @@ import capaOab from "@/assets/capa-biblioteca-oab.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
+import { isImagePreloaded, markImageLoaded } from "@/hooks/useInstantCache";
 
 interface BibliotecaItem {
   id: string;
@@ -119,21 +119,138 @@ const bibliotecasItems: BibliotecaItem[] = [
   }
 ];
 
+// Componente de card memoizado para performance
+const BibliotecaCard = memo(({ 
+  item, 
+  index, 
+  count, 
+  onClick 
+}: { 
+  item: BibliotecaItem; 
+  index: number; 
+  count: number; 
+  onClick: () => void;
+}) => {
+  const isLeft = index % 2 === 0;
+  const Icon = item.icon;
+  const capaUrl = item.localCapa;
+  
+  return (
+    <div
+      className={`relative flex items-center animate-fade-in ${
+        isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
+      }`}
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
+      {/* Marcador Martelo no centro */}
+      <div className="absolute left-1/2 -translate-x-1/2 z-10">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg animate-pulse"
+          style={{ 
+            background: `linear-gradient(135deg, ${item.color}, ${item.color}dd)`,
+            boxShadow: `0 4px 20px ${item.color}50`
+          }}
+        >
+          <Gavel className="w-5 h-5 text-white" />
+        </div>
+      </div>
+      
+      {/* Card da Biblioteca - Formato Livro */}
+      <div className="w-full">
+        <button
+          onClick={onClick}
+          className="w-full rounded-2xl overflow-hidden text-left transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          style={{
+            boxShadow: `0 4px 20px ${item.color}30`
+          }}
+        >
+          {/* Capa estilo livro - aspect ratio 3:4 */}
+          <div className="aspect-[3/4] w-full overflow-hidden relative group">
+            {capaUrl ? (
+              <img 
+                src={capaUrl} 
+                alt={item.title}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="sync"
+                fetchPriority="high"
+                onLoad={() => capaUrl && markImageLoaded(capaUrl)}
+              />
+            ) : (
+              <div 
+                className="w-full h-full flex items-center justify-center"
+                style={{ background: `linear-gradient(135deg, ${item.color}60, ${item.color}30)` }}
+              >
+                <Icon className="w-12 h-12" style={{ color: item.color }} />
+              </div>
+            )}
+            
+            {/* Badge de contagem - topo esquerdo */}
+            <div 
+              className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md backdrop-blur-sm"
+              style={{ backgroundColor: `${item.color}90` }}
+            >
+              <Book className="w-3 h-3 text-white" />
+              <span className="text-xs font-bold text-white">
+                {count}
+              </span>
+              <span className="text-[10px] text-white/80">livros</span>
+            </div>
+            
+            {/* Gradiente apenas na parte inferior para texto */}
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/90 to-transparent" />
+            
+            {/* Conteúdo sobre a capa */}
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              {/* Título */}
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="w-5 h-5" style={{ color: item.color }} />
+                <h3 className="font-bold text-lg text-white">
+                  {item.title}
+                </h3>
+              </div>
+              
+              {/* Botão Acessar abaixo, alinhado à direita */}
+              <div className="flex justify-end">
+                <div 
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium backdrop-blur-sm"
+                  style={{ backgroundColor: `${item.color}cc` }}
+                >
+                  <span>Acessar</span>
+                  <ChevronRight className="w-3.5 h-3.5 animate-bounceRight" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+});
+
+BibliotecaCard.displayName = 'BibliotecaCard';
+
 const Bibliotecas = () => {
   const navigate = useNavigate();
 
   // Verificar se a imagem já está em cache para exibição INSTANTÂNEA
   const [imageLoaded, setImageLoaded] = useState(() => {
+    // Verifica primeiro no cache do useInstantCache
+    if (isImagePreloaded(heroBibliotecas)) return true;
+    // Fallback: verifica se está no cache do browser
     const img = new Image();
     img.src = heroBibliotecas;
-    return img.complete;
+    return img.complete && img.naturalWidth > 0;
   });
 
   useEffect(() => {
     if (!imageLoaded) {
       const img = new Image();
       img.src = heroBibliotecas;
-      img.onload = () => setImageLoaded(true);
+      img.onload = () => {
+        markImageLoaded(heroBibliotecas);
+        setImageLoaded(true);
+      };
     }
   }, [imageLoaded]);
 
@@ -176,7 +293,7 @@ const Bibliotecas = () => {
         <img
           src={heroBibliotecas}
           alt="Bibliotecas"
-          className={`w-full h-full object-cover object-[50%_30%] transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-full object-cover object-[50%_30%] transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           loading="eager"
           fetchPriority="high"
           decoding="sync"
@@ -194,11 +311,7 @@ const Bibliotecas = () => {
         {/* Hero section */}
         <div className="pt-14 pb-4 px-4">
           <div className="max-w-lg mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-4"
-            >
+            <div className="flex items-center gap-4 animate-fade-in">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/30">
                 <Library className="w-7 h-7 text-white" />
               </div>
@@ -208,17 +321,17 @@ const Bibliotecas = () => {
                     Biblioteca Jurídica
                   </span>
                 </h1>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Completa
                 </p>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
         {/* Info Stats */}
         <div className="px-4 py-4">
-          <div className="flex items-center justify-center gap-6 text-sm text-white/80">
+          <div className="flex items-center justify-center gap-6 text-sm text-foreground/80">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-amber-400" />
               <span>{bibliotecasItems.length} coleções</span>
@@ -236,139 +349,18 @@ const Bibliotecas = () => {
             {/* Linha central da timeline */}
             <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 overflow-hidden">
               <div className="w-full h-full bg-gradient-to-b from-amber-500/80 via-amber-600/60 to-amber-700/40 rounded-full" />
-              {/* Animação de fluxo contínuo - igual OAB Trilhas */}
-              <motion.div
-                className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-white/60 via-amber-300/50 to-transparent rounded-full"
-                animate={{ y: ["-100%", "500%"] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-              />
-              <motion.div
-                className="absolute top-0 left-0 w-full h-16 bg-gradient-to-b from-amber-200/40 via-amber-400/30 to-transparent rounded-full"
-                animate={{ y: ["-100%", "600%"] }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: "linear", delay: 1 }}
-              />
             </div>
             
             <div className="space-y-6">
-              {bibliotecasItems.map((item, index) => {
-                const isLeft = index % 2 === 0;
-                const Icon = item.icon;
-                const count = contagens?.[item.key as keyof typeof contagens] || 0;
-                const capaUrl = item.localCapa;
-                
-                return (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.08 }}
-                    className={`relative flex items-center ${
-                      isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
-                    }`}
-                  >
-                    {/* Marcador Martelo no centro */}
-                    <div className="absolute left-1/2 -translate-x-1/2 z-10">
-                      <motion.div
-                        animate={{ 
-                          scale: [1, 1.15, 1],
-                          boxShadow: [
-                            "0 0 0 0 rgba(245, 158, 11, 0.4)",
-                            "0 0 0 10px rgba(245, 158, 11, 0)",
-                            "0 0 0 0 rgba(245, 158, 11, 0.4)"
-                          ]
-                        }}
-                        transition={{ 
-                          duration: 2, 
-                          repeat: Infinity,
-                          delay: index * 0.3
-                        }}
-                        className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                        style={{ 
-                          background: `linear-gradient(135deg, ${item.color}, ${item.color}dd)`,
-                          boxShadow: `0 4px 20px ${item.color}50`
-                        }}
-                      >
-                        <Gavel className="w-5 h-5 text-white" />
-                      </motion.div>
-                    </div>
-                    
-                    {/* Card da Biblioteca - Formato Livro */}
-                    <div className="w-full">
-                      <motion.button
-                        onClick={() => navigate(item.route)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full rounded-2xl overflow-hidden text-left"
-                        style={{
-                          boxShadow: `0 4px 20px ${item.color}30`
-                        }}
-                      >
-                        {/* Capa estilo livro - aspect ratio 3:4 */}
-                        <div className="aspect-[3/4] w-full overflow-hidden relative group">
-                          {capaUrl ? (
-                            <img 
-                              src={capaUrl} 
-                              alt={item.title}
-                              className="w-full h-full object-cover"
-                              loading="eager"
-                              decoding="sync"
-                            />
-                          ) : (
-                            <div 
-                              className="w-full h-full flex items-center justify-center"
-                              style={{ background: `linear-gradient(135deg, ${item.color}60, ${item.color}30)` }}
-                            >
-                              <Icon className="w-12 h-12" style={{ color: item.color }} />
-                            </div>
-                          )}
-                          
-                          {/* Badge de contagem - topo esquerdo */}
-                          <div 
-                            className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md backdrop-blur-sm"
-                            style={{ backgroundColor: `${item.color}90` }}
-                          >
-                            <Book className="w-3 h-3 text-white" />
-                            <span className="text-xs font-bold text-white">
-                              {count}
-                            </span>
-                            <span className="text-[10px] text-white/80">livros</span>
-                          </div>
-                          
-                          {/* Gradiente apenas na parte inferior para texto */}
-                          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/90 to-transparent" />
-                          
-                          {/* Conteúdo sobre a capa */}
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
-                            {/* Título */}
-                            <div className="flex items-center gap-2 mb-2">
-                              <Icon className="w-5 h-5" style={{ color: item.color }} />
-                              <h3 className="font-bold text-lg text-white">
-                                {item.title}
-                              </h3>
-                            </div>
-                            
-                            {/* Botão Acessar abaixo, alinhado à direita */}
-                            <div className="flex justify-end">
-                              <div 
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium backdrop-blur-sm"
-                                style={{ backgroundColor: `${item.color}cc` }}
-                              >
-                                <span>Acessar</span>
-                                <motion.span
-                                  animate={{ x: [0, 4, 0] }}
-                                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                                >
-                                  <ChevronRight className="w-3.5 h-3.5" />
-                                </motion.span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {bibliotecasItems.map((item, index) => (
+                <BibliotecaCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  count={contagens?.[item.key as keyof typeof contagens] || 0}
+                  onClick={() => navigate(item.route)}
+                />
+              ))}
             </div>
           </div>
         </div>

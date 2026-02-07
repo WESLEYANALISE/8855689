@@ -10,6 +10,17 @@ import heroVadeMecumPlanalto from '@/assets/hero-vademecum-planalto.webp';
 import themisFull from '@/assets/themis-full.webp';
 import heroBibliotecas from '@/assets/hero-bibliotecas-office.webp';
 
+// BIBLIOTECAS - Capas locais (preload imediato para carregamento instantâneo)
+import heroBibliotecasSunset from '@/assets/biblioteca-office-sunset.jpg';
+import capaLideranca from '@/assets/capa-lideranca.jpg';
+import capaForaDaToga from '@/assets/capa-fora-da-toga.jpg';
+import capaEstudos from '@/assets/capa-estudos-opt.webp';
+import capaClassicos from '@/assets/capa-classicos.jpg';
+import capaOratoria from '@/assets/capa-oratoria.jpg';
+import capaPesquisaCientifica from '@/assets/capa-pesquisa-cientifica.jpg';
+import capaPortugues from '@/assets/capa-portugues.jpg';
+import capaOab from '@/assets/capa-biblioteca-oab.jpg';
+
 // Cards políticos - CRÍTICAS para página Política
 import politicoEsquerda from '@/assets/politico-esquerda.png';
 import politicoCentro from '@/assets/politico-centro.png';
@@ -22,17 +33,6 @@ import oabAprovacaoHero from '@/assets/oab-aprovacao-hero.webp';
 import bgAreasOab from '@/assets/bg-areas-oab.webp';
 import oabPrimeiraFaseAprovacao from '@/assets/oab-primeira-fase-aprovacao.webp';
 
-// SECUNDÁRIAS - Outras páginas (preload quando ocioso)
-import heroCursos from '@/assets/hero-cursos.webp';
-import heroFlashcards from '@/assets/hero-flashcards.webp';
-import heroMapaMental from '@/assets/hero-mapamental.webp';
-import heroVideoaulas from '@/assets/hero-videoaulas.webp';
-import heroNoticias from '@/assets/hero-noticias.webp';
-import heroJuriflix from '@/assets/hero-juriflix.webp';
-import heroSumulas from '@/assets/hero-sumulas.webp';
-import advogadoDiscursando from '@/assets/advogado-discursando-vertical.webp';
-import senadoBg from '@/assets/senado-bg.webp';
-
 // Imagens SUPER críticas - preload via <link rel="preload">
 const SUPER_CRITICAL_IMAGES = [
   heroBannerThemisAdvogado,
@@ -41,6 +41,16 @@ const SUPER_CRITICAL_IMAGES = [
   heroVadeMecumPlanalto,
   themisFull,
   heroBibliotecas,
+  // BIBLIOTECAS - Background + 8 capas (preload prioritário)
+  heroBibliotecasSunset,
+  capaLideranca,
+  capaForaDaToga,
+  capaEstudos,
+  capaClassicos,
+  capaOratoria,
+  capaPesquisaCientifica,
+  capaPortugues,
+  capaOab,
   // Cards políticos - preload prioritário
   politicoEsquerda,
   politicoCentro,
@@ -60,6 +70,17 @@ import imgOab from '@/assets/categoria-oab.png';
 import imgEscritorios from '@/assets/categoria-escritorios.png';
 import imgMuseus from '@/assets/categoria-museus.png';
 import imgTodos from '@/assets/categoria-todos.png';
+
+// SECUNDÁRIAS - Outras páginas (preload quando ocioso)
+import heroCursos from '@/assets/hero-cursos.webp';
+import heroFlashcards from '@/assets/hero-flashcards.webp';
+import heroMapaMental from '@/assets/hero-mapamental.webp';
+import heroVideoaulas from '@/assets/hero-videoaulas.webp';
+import heroNoticias from '@/assets/hero-noticias.webp';
+import heroJuriflix from '@/assets/hero-juriflix.webp';
+import heroSumulas from '@/assets/hero-sumulas.webp';
+import advogadoDiscursando from '@/assets/advogado-discursando-vertical.webp';
+import senadoBg from '@/assets/senado-bg.webp';
 
 // Imagens secundárias - preload quando browser estiver ocioso
 const SECONDARY_IMAGES = [
