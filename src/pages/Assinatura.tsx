@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText, Check, Gavel, GraduationCap, Target, Briefcase } from "lucide-react";
+import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText, Check, Gavel, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +17,6 @@ import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface PlanConfig {
   price: number;
@@ -58,32 +57,8 @@ const FUNCIONALIDADES = [
   "Mapas mentais",
   "Modelos de petições profissionais",
 ];
-
-// Conteúdo persuasivo "Sobre" para cada perfil
-const conteudoSobre = {
-  estudante: {
-    icon: GraduationCap,
-    titulo: "Para Estudantes",
-    descricao: "Transforme sua jornada acadêmica.",
-    cor: "blue"
-  },
-  concurseiro: {
-    icon: Target,
-    titulo: "Para Concurseiros",
-    descricao: "Maximize sua performance.",
-    cor: "purple"
-  },
-  advogado: {
-    icon: Briefcase,
-    titulo: "Para Advogados",
-    descricao: "Agilize sua rotina profissional.",
-    cor: "emerald"
-  }
-};
-
-
 const Assinatura = () => {
-  const [contentTab, setContentTab] = useState<"funcoes" | "sobre">("funcoes");
+  const [contentTab, setContentTab] = useState<"sobre" | "funcoes">("sobre");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
@@ -242,21 +217,14 @@ const Assinatura = () => {
             </div>
           </div>
 
-          {/* Toggle Funções / Sobre */}
+          {/* Toggle Sobre / Funções */}
           <div className="max-w-sm mx-auto px-2">
             <ToggleGroup 
               type="single" 
               value={contentTab} 
-              onValueChange={(value) => value && setContentTab(value as "funcoes" | "sobre")}
+              onValueChange={(value) => value && setContentTab(value as "sobre" | "funcoes")}
               className="w-full bg-zinc-900/60 rounded-xl p-1 mb-3"
             >
-              <ToggleGroupItem 
-                value="funcoes" 
-                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
-              >
-                <Gavel className="w-3.5 h-3.5 mr-1.5" />
-                Funções
-              </ToggleGroupItem>
               <ToggleGroupItem 
                 value="sobre" 
                 className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
@@ -264,19 +232,85 @@ const Assinatura = () => {
                 <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 Sobre
               </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="funcoes" 
+                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
+              >
+                <Gavel className="w-3.5 h-3.5 mr-1.5" />
+                Funções
+              </ToggleGroupItem>
             </ToggleGroup>
 
             <AnimatePresence mode="wait">
-              {contentTab === "funcoes" ? (
+              {contentTab === "sobre" ? (
                 <motion.div
-                  key="funcoes"
+                  key="sobre"
                   initial={{ opacity: 0, x: -40 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 40 }}
                   transition={{ duration: 0.25 }}
+                  className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-4"
+                >
+                  <p className="text-sm text-zinc-200 mb-4 leading-relaxed">
+                    O <strong className="text-amber-400">Direito Premium</strong> é sua plataforma completa para dominar o universo jurídico. Tenha acesso a:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-white">IA Evelyn 24h</h4>
+                        <p className="text-[11px] text-zinc-400">Sua professora particular disponível a qualquer hora para tirar dúvidas.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <Scale className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-white">Vade Mecum Completo</h4>
+                        <p className="text-[11px] text-zinc-400">+50 leis atualizadas, Constituição comentada e súmulas dos tribunais.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <Target className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-white">Trilhas OAB & Aprender</h4>
+                        <p className="text-[11px] text-zinc-400">Roteiros de estudo organizados para sua aprovação na OAB e concursos.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="w-4 h-4 text-purple-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-white">Biblioteca Jurídica</h4>
+                        <p className="text-[11px] text-zinc-400">Livros, flashcards, mapas mentais, audioaulas e modelos de petições.</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-[11px] text-amber-400/80 text-center mt-4 font-medium">
+                    Pague uma vez, acesso para sempre. 💼
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="funcoes"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  transition={{ duration: 0.25 }}
                   className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-3"
                 >
-                  <div className="space-y-1.5 max-h-44 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                     {FUNCIONALIDADES.map((texto) => (
                       <div
                         key={texto}
@@ -287,44 +321,6 @@ const Assinatura = () => {
                       </div>
                     ))}
                   </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="sobre"
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 }}
-                  transition={{ duration: 0.25 }}
-                  className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-3"
-                >
-                  <p className="text-xs text-zinc-300 mb-3 text-center">
-                    O <strong className="text-amber-400">Direito Premium</strong> é a ferramenta definitiva para quem leva o Direito a sério.
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {Object.entries(conteudoSobre).map(([key, perfil]) => {
-                      const IconComponent = perfil.icon;
-                      return (
-                        <div 
-                          key={key}
-                          className={`p-2.5 rounded-lg text-center border ${
-                            perfil.cor === 'blue' ? 'bg-blue-500/10 border-blue-500/20' :
-                            perfil.cor === 'purple' ? 'bg-purple-500/10 border-purple-500/20' :
-                            'bg-emerald-500/10 border-emerald-500/20'
-                          }`}
-                        >
-                          <IconComponent className={`w-5 h-5 mx-auto mb-1 ${
-                            perfil.cor === 'blue' ? 'text-blue-400' :
-                            perfil.cor === 'purple' ? 'text-purple-400' :
-                            'text-emerald-400'
-                          }`} />
-                          <span className="text-[10px] text-zinc-300 font-medium block">{perfil.titulo}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[10px] text-zinc-500 text-center mt-3">
-                    Invista em você. O retorno vem em conhecimento e resultados.
-                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
