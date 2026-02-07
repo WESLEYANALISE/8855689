@@ -33,22 +33,30 @@ const NoticiasJuridicas = () => {
   const [termoBusca, setTermoBusca] = useState<string>('');
   const [error, setError] = useState<Error | null>(null);
 
-  // Cache instantâneo para notícias jurídicas - busca direta do Supabase (mais rápido que edge function)
+  // Cache instantâneo para notícias jurídicas - busca direta do Supabase
   const { data: noticiasJuridicasRaw, isFetching: isRefreshingJuridicas, refresh: refreshJuridicas } = useInstantCache<Noticia[]>({
-    cacheKey: 'noticias-juridicas-instant-v2',
+    cacheKey: 'noticias-juridicas-all-v3',
     queryFn: async () => {
-      // Buscar últimos 7 dias
-      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      // Buscar últimos 14 dias para garantir que todas as datas apareçam
+      const quatorzeDiasAtras = new Date();
+      quatorzeDiasAtras.setDate(quatorzeDiasAtras.getDate() - 14);
+      const dataInicio = quatorzeDiasAtras.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      console.log('[NoticiasJuridicas] Buscando desde:', dataInicio);
       
       const { data, error } = await supabase
         .from('noticias_juridicas_cache')
         .select('id, titulo, link, imagem, imagem_webp, fonte, categoria, data_publicacao, created_at, analise_ia, relevancia')
-        .gte('data_publicacao', seteDiasAtras)
+        .gte('data_publicacao', dataInicio)
         .order('data_publicacao', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(300);
+        .limit(500);
       
-      if (error) throw error;
+      if (error) {
+        console.error('[NoticiasJuridicas] Erro:', error);
+        throw error;
+      }
+      
+      console.log('[NoticiasJuridicas] Total encontrado:', data?.length || 0);
       
       // Mapear para formato esperado
       return (data || []).map((noticia) => ({
@@ -63,9 +71,7 @@ const NoticiasJuridicas = () => {
         relevancia: noticia.relevancia || 50,
       }));
     },
-    cacheDuration: 2 * 60 * 1000, // 2 minutos - cache mais curto para dados frescos
-    preloadImages: true,
-    imageExtractor: (noticias) => (noticias || []).map((n: Noticia) => n.capa).filter(Boolean),
+    cacheDuration: 1 * 60 * 1000, // 1 minuto - cache curto
   });
   
   // Garantir que nunca é null
@@ -96,23 +102,30 @@ const NoticiasJuridicas = () => {
 
   // Cache instantâneo para notícias de concursos
   const { data: noticiasConcursosData, isFetching: isRefreshingConcursos, refresh: refreshConcursos } = useInstantCache<any[]>({
-    cacheKey: 'noticias-concursos-instant-v2',
+    cacheKey: 'noticias-concursos-all-v3',
     queryFn: async () => {
-      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const quatorzeDiasAtras = new Date();
+      quatorzeDiasAtras.setDate(quatorzeDiasAtras.getDate() - 14);
+      const dataInicio = quatorzeDiasAtras.toISOString().split('T')[0];
+      
+      console.log('[NoticiasConcursos] Buscando desde:', dataInicio);
       
       const { data, error } = await supabase
         .from('noticias_concursos_cache')
         .select('id, titulo, link, imagem, imagem_webp, fonte, categoria, data_publicacao, created_at, analise_ia, conteudo_formatado')
-        .gte('data_publicacao', seteDiasAtras)
+        .gte('data_publicacao', dataInicio)
         .order('data_publicacao', { ascending: false })
-        .limit(100);
+        .limit(300);
       
-      if (error) throw error;
+      if (error) {
+        console.error('[NoticiasConcursos] Erro:', error);
+        throw error;
+      }
+      
+      console.log('[NoticiasConcursos] Total encontrado:', data?.length || 0);
       return data || [];
     },
-    cacheDuration: 2 * 60 * 1000,
-    preloadImages: true,
-    imageExtractor: (noticias) => (noticias || []).map((n: any) => n.imagem_webp || n.imagem).filter(Boolean),
+    cacheDuration: 1 * 60 * 1000,
   });
 
   const noticiasConcursosRaw = noticiasConcursosData || [];
