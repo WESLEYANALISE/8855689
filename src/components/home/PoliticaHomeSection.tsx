@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from "react";
+import { memo, useState, useMemo, useEffect, useRef } from "react";
 import { Landmark, ArrowRight, Book, FileText, Film, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -41,6 +41,26 @@ interface Documentario {
 
 export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover }: PoliticaHomeSectionProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('livros');
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-rotate tabs every 3 seconds
+  useEffect(() => {
+    const tabOrder: TabType[] = ['livros', 'artigos', 'documentarios'];
+    
+    intervalRef.current = setInterval(() => {
+      setActiveTab(current => {
+        const currentIndex = tabOrder.indexOf(current);
+        const nextIndex = (currentIndex + 1) % tabOrder.length;
+        return tabOrder[nextIndex];
+      });
+    }, 3000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   // Buscar Livros
   const { data: livros = [], isLoading: loadingLivros } = useQuery({
@@ -102,8 +122,25 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
   const tabs = [
     { id: 'livros' as TabType, label: 'Livros', icon: Book },
     { id: 'artigos' as TabType, label: 'Artigos', icon: FileText },
-    { id: 'documentarios' as TabType, label: 'Docs', icon: Film },
+    { id: 'documentarios' as TabType, label: 'Documentários', icon: Film },
   ];
+
+  // Reset timer when user manually clicks a tab
+  const handleTabClick = (tabId: TabType) => {
+    setActiveTab(tabId);
+    // Reset the interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    const tabOrder: TabType[] = ['livros', 'artigos', 'documentarios'];
+    intervalRef.current = setInterval(() => {
+      setActiveTab(current => {
+        const currentIndex = tabOrder.indexOf(current);
+        const nextIndex = (currentIndex + 1) % tabOrder.length;
+        return tabOrder[nextIndex];
+      });
+    }, 3000);
+  };
 
   return (
     <div className="space-y-3" data-tutorial="politica-section">
@@ -135,21 +172,21 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
 
       {/* Container com gradiente */}
       <div className="bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-red-800/30">
-        {/* Menu de Alternância - Responsivo */}
+        {/* Menu de Alternância - Botões de mesmo tamanho */}
         <div className="flex items-center justify-center mb-4">
-          <div className="inline-flex items-center gap-0.5 bg-black/30 rounded-full p-1 overflow-x-auto max-w-full">
+          <div className="grid grid-cols-3 gap-1 bg-black/30 rounded-full p-1 w-full max-w-sm">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabClick(tab.id)}
                 className={cn(
-                  "flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap flex-shrink-0",
+                  "flex items-center justify-center gap-1.5 px-2 py-2 rounded-full text-[11px] font-medium transition-all whitespace-nowrap",
                   activeTab === tab.id
                     ? "bg-white text-red-900 shadow-md"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 )}
               >
-                <tab.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <tab.icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
               </button>
             ))}
