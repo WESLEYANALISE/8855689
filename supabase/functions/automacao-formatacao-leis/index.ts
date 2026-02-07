@@ -31,7 +31,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log("🚀 Iniciando automação de formatação de leis...");
+    // Permitir limite customizado via body
+    let limite = 25; // Padrão aumentado de 10 para 25
+    try {
+      const body = await req.json();
+      if (body.limite && typeof body.limite === 'number' && body.limite > 0) {
+        limite = Math.min(body.limite, 50); // Máximo de 50
+      }
+    } catch {
+      // Sem body = usar limite padrão
+    }
+
+    console.log(`🚀 Iniciando automação de formatação de leis (limite: ${limite})...`);
 
     // Buscar leis pendentes ordenadas por data (mais recente primeiro)
     const { data: leis, error: leisError } = await supabase
@@ -40,7 +51,7 @@ serve(async (req) => {
       .eq("status", "pendente")
       .order("data_dou", { ascending: false, nullsFirst: false })
       .order("ordem_dou", { ascending: true, nullsFirst: false })
-      .limit(10); // Processar 10 por vez para não sobrecarregar
+      .limit(limite);
 
     if (leisError) {
       console.error("Erro ao buscar leis:", leisError);
