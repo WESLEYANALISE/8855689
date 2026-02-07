@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import oabAprovacaoHero from "@/assets/oab-aprovacao-hero.webp";
-import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
+// Imagens críticas servidas de /public para preload instantâneo
+const oabAprovacaoHero = "/oab-aprovacao-hero.webp";
+const themisEstudosDesktop = "/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
