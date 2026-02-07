@@ -527,8 +527,9 @@ import Perfil from "./pages/Perfil";
 import Assinatura from "./pages/Assinatura";
 import TelaHub from "./pages/TelaHub";
 
-// ============= CONFIGURAÇÃO OTIMIZADA DE CACHE =============
-// Performance: staleTime alto reduz re-fetches, gcTime mantém dados em memória
+// ============= CONFIGURAÇÃO AGRESSIVA DE CACHE =============
+// Performance: staleTime 30min reduz re-fetches, gcTime 2h mantém dados em memória
+// Padrão stale-while-revalidate: mostra cache imediatamente, atualiza em background
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -536,8 +537,8 @@ const queryClient = new QueryClient({
       refetchOnMount: false,
       refetchOnReconnect: false,
       retry: 1,
-      staleTime: 1000 * 60 * 5, // 5 minutos - dados considerados frescos
-      gcTime: 1000 * 60 * 30,   // 30 minutos - tempo no garbage collector
+      staleTime: 1000 * 60 * 30,      // 30 minutos - dados considerados frescos
+      gcTime: 1000 * 60 * 60 * 2,     // 2 horas - tempo no garbage collector
     },
     mutations: {
       retry: 1,
