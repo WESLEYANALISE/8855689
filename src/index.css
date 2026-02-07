@@ -86,7 +86,15 @@
   100% { width: 100%; }
 }
 
-/* Utility classes for animations */
+/* Marquee infinite scroll animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
 .animate-icon-shimmer { animation: icon-shimmer 2s linear infinite; }
 .animate-wave-pulse { animation: wave-pulse 3s ease-in-out infinite; }
 .animate-wave-shimmer {
