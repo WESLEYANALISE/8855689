@@ -831,7 +831,8 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                 </Tabs>
               ) : (
                 // Durante streaming: renderização com Markdown em tempo real - SEM animação para evitar flickering
-                <div className="text-[13px] leading-[1.7] text-foreground/90">
+                // CORREÇÃO: Usar text-[15px] igual ao modo finalizado para evitar mudança de tamanho
+                <div className="text-[15px] leading-[1.7] text-foreground/90">
                   {content ? (
                     isStreaming ? (
                       // Durante streaming: Markdown em tempo real SEM animação de opacidade no container

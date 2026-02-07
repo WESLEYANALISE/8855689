@@ -24,7 +24,8 @@ type ChatMode = "study" | "realcase" | "recommendation" | "psychologist" | "tcc"
 
 interface UseStreamingChatOptions {
   mode: ChatMode;
-  responseLevel: 'basic' | 'complete' | 'deep';
+  // OTIMIZAÇÃO: Adicionado 'concise' para respostas rápidas
+  responseLevel: 'concise' | 'basic' | 'complete' | 'deep';
   linguagemMode: 'descomplicado' | 'tecnico';
 }
 

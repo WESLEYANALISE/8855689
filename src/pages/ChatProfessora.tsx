@@ -45,7 +45,8 @@ const ChatProfessora = () => {
       img.onload = () => setImageLoaded(true);
     }
   }, [imageLoaded]);
-  const [responseLevel] = useState<'basic' | 'complete' | 'deep'>('complete');
+  // OTIMIZAÇÃO: Usar 'concise' como padrão para respostas mais rápidas
+  const [responseLevel] = useState<'concise' | 'basic' | 'complete' | 'deep'>('concise');
   const [linguagemMode] = useState<'descomplicado' | 'tecnico'>('tecnico');
   
   const scrollRef = useRef<HTMLDivElement>(null);

@@ -1,8 +1,15 @@
 // ========== TABELA DE EXTENSÃO POR MODO E NÍVEL (DECLARAR PRIMEIRO) ==========
 // ATUALIZAÇÃO: Aumentado em 35% para respostas mais completas
 // Removido modo descomplicado - apenas técnico agora
+// NOVO: Adicionado nível "concise" para respostas rápidas no chat
 export const EXTENSAO_CONFIG: any = {
   tecnico: {
+    // NOVO: Nível concise para respostas rápidas (padrão no chat)
+    concise: {
+      palavras: [400, 800],
+      caracteres: [2500, 5000],
+      tokens: 1500
+    },
     basic: { 
       palavras: [810, 1148], // +35%
       caracteres: [5164, 7007], // +35%
