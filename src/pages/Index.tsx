@@ -25,6 +25,8 @@ import BlogInicianteCarousel from "@/components/BlogInicianteCarousel";
 import BussolaCarreiraCarousel from "@/components/BussolaCarreiraCarousel";
 import { OabCarreiraBlogList } from "@/components/oab/OabCarreiraBlogList";
 import { EmAltaSection } from "@/components/EmAltaSection";
+import { CarreirasSection } from "@/components/CarreirasSection";
+import { ResenhaHojeSection } from "@/components/ResenhaHojeSection";
 import { DesktopTrilhasAprender } from "@/components/desktop/DesktopTrilhasAprender";
 import { DesktopTrilhasOAB } from "@/components/desktop/DesktopTrilhasOAB";
 import { DesktopHomeDestaque } from "@/components/desktop/DesktopHomeDestaque";
@@ -274,10 +276,11 @@ const Index = () => {
                 {/* Em Alta - Design Premium com Abas */}
                 <EmAltaSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
 
-                {/* Boletins Informativos com menu de alternância */}
-                <div data-tutorial="boletins">
-                  <ResumosDisponiveisCarousel tipo="ambos" showTabs={true} />
-                </div>
+                {/* Resenha Diária - Leis mais recentes */}
+                <ResenhaHojeSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
+
+                {/* Carreiras Jurídicas */}
+                <CarreirasSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
               </>
             )}
           </>
