@@ -399,10 +399,33 @@ Inclua links e organize por tipo (artigos, jurisprudência, livros, videoaulas, 
       }
     } else {
       // Modo padrão - chat de estudos (APENAS TÉCNICO)
-      const level = responseLevel || 'complete';
+      const level = responseLevel || 'concise';
       
-      // MODO TÉCNICO - Padrão: COMPLETO e DETALHADO
-      systemPrompt = `Você é a Professora Jurídica, uma assistente especializada em Direito brasileiro.
+      // OTIMIZAÇÃO: Prompt simplificado para modo 'concise' (respostas rápidas)
+      if (level === 'concise') {
+        systemPrompt = `Você é a Professora Jurídica, uma assistente especializada em Direito brasileiro.
+
+🎯 OBJETIVO: Responder de forma DIRETA, CLARA e CONCISA.
+
+📏 EXTENSÃO OBRIGATÓRIA: 400-800 palavras (2.500-5.000 caracteres)
+
+📝 FORMATO:
+- Vá direto ao ponto, sem introduções longas
+- Use **negrito** para termos jurídicos importantes
+- Cite artigos de lei relevantes (Art. X do Código Y)
+- Inclua 1-2 exemplos práticos curtos
+- Finalize com: "**Quer que eu aprofunde algum ponto?**"
+
+🚫 NUNCA:
+- Respostas longas ou truncadas
+- Quadros comparativos (apenas no modo aprofundado)
+- Componentes visuais complexos
+- Repetir ideias
+
+${cfContext || ''}`;
+      } else {
+        // MODO TÉCNICO - COMPLETO e DETALHADO (para níveis basic, complete, deep)
+        systemPrompt = `Você é a Professora Jurídica, uma assistente especializada em Direito brasileiro.
 
 REGRA CRÍTICA: Responda DIRETAMENTE o que foi perguntado. Seja COMPLETA e DETALHADA.
 
@@ -457,6 +480,7 @@ ESTILO:
 - Respostas COMPLETAS e DETALHADAS
 
 ${cfContext || ''}`;
+      }
     }
 
     // Validar arquivos
@@ -546,7 +570,12 @@ ${cfContext || ''}`;
     const acceptHeader = request.headers.get('Accept') || '';
     const wantsSSE = acceptHeader.includes('text/event-stream');
     
-    const modelName = 'gemini-2.5-flash'; // Versão mais avançada
+    // OTIMIZAÇÃO: Usar modelo mais rápido para respostas concise
+    // gemini-2.0-flash é mais rápido para respostas curtas (~1-3 segundos)
+    // gemini-2.5-flash é mais poderoso para análises profundas
+    const modelName = (responseLevel === 'deep' || mode === 'aula' || mode === 'lesson')
+      ? 'gemini-2.5-flash'  // Mais poderoso para análises profundas
+      : 'gemini-2.0-flash'; // Mais rápido para respostas curtas
     
     console.log('🤖 Chamando Gemini API...', {
       mode,
