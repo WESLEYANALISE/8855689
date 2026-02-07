@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, ArrowLeft, MessageCircle } from "lucide-react";
+import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
@@ -15,6 +15,7 @@ import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface PlanConfig {
   price: number;
@@ -28,6 +29,14 @@ interface PlanConfig {
 const PLANS: Record<PlanType, PlanConfig> = {
   vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'OFERTA ESPECIAL', featured: true }
 };
+
+// Benefícios em destaque para badges
+const BENEFIT_BADGES = [
+  { icon: BookOpen, text: "+30.000 questões OAB" },
+  { icon: Bot, text: "IA Evelyn 24h" },
+  { icon: Sparkles, text: "Sem anúncios" },
+  { icon: BadgeCheck, text: "Vade Mecum completo" },
+];
 
 
 const Assinatura = () => {
@@ -130,8 +139,32 @@ const Assinatura = () => {
             audioBase64={audioBase64} 
           />
 
+          {/* Headline persuasivo */}
+          <div className="text-center mt-6 sm:mt-8 mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
+              Domine o Direito.<br className="sm:hidden" /> Conquiste a Aprovação.
+            </h1>
+            <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto">
+              Acesso completo e vitalício a todo o conteúdo que você precisa para se tornar um jurista de excelência.
+            </p>
+          </div>
+
+          {/* Badges de benefícios */}
+          <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-lg mx-auto">
+            {BENEFIT_BADGES.map((benefit) => (
+              <Badge 
+                key={benefit.text}
+                variant="secondary" 
+                className="bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
+              >
+                <benefit.icon className="w-3.5 h-3.5 text-amber-500" />
+                {benefit.text}
+              </Badge>
+            ))}
+          </div>
+
           {/* Card do Plano Vitalício - único plano disponível */}
-          <div className="max-w-md mx-auto mt-6 sm:mt-8 px-2">
+          <div className="max-w-md mx-auto px-2">
             <PlanoCardNovo
               planKey="vitalicio"
               plan={PLANS.vitalicio}

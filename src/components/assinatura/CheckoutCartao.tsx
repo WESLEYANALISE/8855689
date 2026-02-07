@@ -15,6 +15,7 @@ interface CheckoutCartaoProps {
   planLabel: string;
   userEmail: string;
   userId: string;
+  defaultInstallments?: number;
   onSuccess: () => void;
   onError: (error: string) => void;
   onCancel: () => void;
@@ -31,7 +32,8 @@ export function CheckoutCartao({
   planType, 
   planLabel,
   userEmail, 
-  userId, 
+  userId,
+  defaultInstallments = 1,
   onSuccess, 
   onError,
   onCancel 
@@ -43,7 +45,7 @@ export function CheckoutCartao({
   const [securityCode, setSecurityCode] = useState('');
   const [email, setEmail] = useState(userEmail);
   const [cpf, setCpf] = useState('');
-  const [installments, setInstallments] = useState(1);
+  const [installments, setInstallments] = useState(defaultInstallments);
   const [cardBrand, setCardBrand] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -238,15 +240,42 @@ export function CheckoutCartao({
     }
   };
 
-  // Calcular parcelas disponíveis
+  // Taxas do Mercado Pago "Na Hora" até R$3mil
+  const INSTALLMENT_RATES: Record<number, number> = {
+    1: 0,
+    2: 0.0990,
+    3: 0.1128,
+    4: 0.1264,
+    5: 0.1397,
+    6: 0.1527,
+    7: 0.1655,
+    8: 0.1781,
+    9: 0.1904,
+    10: 0.2024,
+  };
+
+  // Calcular parcelas disponíveis (até 10x com juros)
   const getInstallmentOptions = () => {
-    const options = [{ value: 1, label: `1x de R$ ${amount.toFixed(2)} (sem juros)` }];
+    const options = [];
     
-    if (amount >= 50) {
-      options.push({ value: 2, label: `2x de R$ ${(amount / 2).toFixed(2)} (sem juros)` });
-    }
-    if (amount >= 90) {
-      options.push({ value: 3, label: `3x de R$ ${(amount / 3).toFixed(2)} (sem juros)` });
+    for (let i = 1; i <= 10; i++) {
+      const rate = INSTALLMENT_RATES[i] || 0;
+      const totalWithInterest = amount * (1 + rate);
+      const installmentValue = totalWithInterest / i;
+      
+      if (i === 1) {
+        options.push({ 
+          value: 1, 
+          label: `1x de R$ ${amount.toFixed(2).replace('.', ',')} (sem juros)`,
+          total: amount
+        });
+      } else {
+        options.push({ 
+          value: i, 
+          label: `${i}x de R$ ${installmentValue.toFixed(2).replace('.', ',')} (total: R$ ${totalWithInterest.toFixed(2).replace('.', ',')})`,
+          total: totalWithInterest
+        });
+      }
     }
     
     return options;
@@ -370,22 +399,20 @@ export function CheckoutCartao({
         {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
       </div>
 
-      {/* Parcelas */}
-      {getInstallmentOptions().length > 1 && (
-        <div>
-          <label className="text-sm text-zinc-400 mb-1 block">Parcelas</label>
-          <select 
-            value={installments}
-            onChange={(e) => setInstallments(Number(e.target.value))}
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-md p-3 text-white"
-            disabled={loading}
-          >
-            {getInstallmentOptions().map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+      {/* Info de parcelas (já selecionadas) */}
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-zinc-300">Pagamento em</span>
+          <span className="text-amber-400 font-semibold">
+            {installments}x de R$ {(amount / installments).toFixed(2).replace('.', ',')}
+          </span>
         </div>
-      )}
+        {installments > 1 && (
+          <p className="text-xs text-zinc-500 mt-1">
+            Total: R$ {amount.toFixed(2).replace('.', ',')}
+          </p>
+        )}
+      </div>
 
       {/* Selo de segurança */}
       <div className="flex items-center gap-2 text-xs text-zinc-500 bg-zinc-900/50 rounded-lg p-3">
