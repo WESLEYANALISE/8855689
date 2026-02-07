@@ -97,7 +97,7 @@ export const NoticiasJuridicasCarousel: React.FC = () => {
               <div
                 key={noticia.id}
                 onClick={() => navigate(`/noticias-juridicas/${noticia.id}`)}
-                className="flex-shrink-0 w-[200px] cursor-pointer group"
+                className="flex-shrink-0 w-[170px] cursor-pointer group"
               >
                 <div className="bg-secondary/30 rounded-xl overflow-hidden transition-all hover:bg-secondary/50 hover:scale-[1.02]">
                   {/* Imagem */}
