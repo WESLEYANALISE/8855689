@@ -78,6 +78,7 @@ const Constituicao = () => {
       setSearchInput(artigoParam);
       setTargetArticleNumber(artigoParam);
       setSearchQuery(artigoParam);
+      setActiveTab('artigos'); // Garantir que está na tab correta
     }
   }, [searchParams]);
 
