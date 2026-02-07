@@ -229,14 +229,14 @@ const Assinatura = () => {
             >
               <ToggleGroupItem 
                 value="sobre" 
-                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
+                className="flex-1 data-[state=on]:bg-amber-500/30 data-[state=on]:text-amber-400 data-[state=on]:border data-[state=on]:border-amber-500/40 rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 Sobre
               </ToggleGroupItem>
               <ToggleGroupItem 
                 value="funcoes" 
-                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
+                className="flex-1 data-[state=on]:bg-amber-500/30 data-[state=on]:text-amber-400 data-[state=on]:border data-[state=on]:border-amber-500/40 rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
               >
                 <Gavel className="w-3.5 h-3.5 mr-1.5" />
                 Funções

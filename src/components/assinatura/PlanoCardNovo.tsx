@@ -1,4 +1,4 @@
-import { Check, Sparkles, ChevronRight } from "lucide-react";
+import { Check, Sparkles, ChevronRight, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
@@ -138,14 +138,24 @@ const PlanoCardNovo = ({
           {/* Botão */}
           <Button 
             onClick={onVerMais}
-            className={`w-full rounded-xl transition-all duration-300 text-sm font-semibold h-12 ${
+            className={`w-full rounded-xl transition-all duration-300 text-sm font-semibold h-12 group ${
               isFeatured 
                 ? 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black shadow-lg shadow-amber-500/25'
                 : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600'
             }`}
           >
-            Ver mais detalhes
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <span>Ver mais detalhes</span>
+            <motion.span
+              className="ml-2 inline-flex"
+              animate={{ x: [0, 4, 0] }}
+              transition={{ 
+                duration: 1, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+            >
+              <ArrowRight className="w-4 h-4" />
+            </motion.span>
           </Button>
         </div>
       </div>
