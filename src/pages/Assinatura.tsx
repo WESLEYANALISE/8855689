@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText } from "lucide-react";
+import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText, Check, Gavel, GraduationCap, Target, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -16,6 +16,8 @@ import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface PlanConfig {
   price: number;
@@ -42,8 +44,46 @@ const BENEFIT_ITEMS = [
   { icon: Sparkles, text: "Acesso vitalício" },
 ];
 
+// Lista de funcionalidades
+const FUNCIONALIDADES = [
+  "Acesso completo e ilimitado ao app",
+  "Experiência 100% sem anúncios",
+  "Acesso antecipado a novos recursos",
+  "Sincronização em todos os dispositivos",
+  "Suporte prioritário via WhatsApp",
+  "Professora IA Evelyn disponível 24h",
+  "Vade Mecum completo com +50 leis",
+  "+30.000 questões OAB comentadas",
+  "Flashcards inteligentes",
+  "Mapas mentais",
+  "Modelos de petições profissionais",
+];
+
+// Conteúdo persuasivo "Sobre" para cada perfil
+const conteudoSobre = {
+  estudante: {
+    icon: GraduationCap,
+    titulo: "Para Estudantes",
+    descricao: "Transforme sua jornada acadêmica.",
+    cor: "blue"
+  },
+  concurseiro: {
+    icon: Target,
+    titulo: "Para Concurseiros",
+    descricao: "Maximize sua performance.",
+    cor: "purple"
+  },
+  advogado: {
+    icon: Briefcase,
+    titulo: "Para Advogados",
+    descricao: "Agilize sua rotina profissional.",
+    cor: "emerald"
+  }
+};
+
 
 const Assinatura = () => {
+  const [contentTab, setContentTab] = useState<"funcoes" | "sobre">("funcoes");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
@@ -195,11 +235,99 @@ const Assinatura = () => {
           </div>
 
           {/* Selo de segurança */}
-          <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] mt-5">
+          <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] mt-5 mb-4">
             <div className="flex items-center gap-1.5 bg-zinc-900/40 backdrop-blur-sm border border-zinc-800/40 rounded-full px-3 py-1.5">
               <Shield className="w-3 h-3 text-emerald-500" />
               <span>Pagamento seguro via Mercado Pago</span>
             </div>
+          </div>
+
+          {/* Toggle Funções / Sobre */}
+          <div className="max-w-sm mx-auto px-2">
+            <ToggleGroup 
+              type="single" 
+              value={contentTab} 
+              onValueChange={(value) => value && setContentTab(value as "funcoes" | "sobre")}
+              className="w-full bg-zinc-900/60 rounded-xl p-1 mb-3"
+            >
+              <ToggleGroupItem 
+                value="funcoes" 
+                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
+              >
+                <Gavel className="w-3.5 h-3.5 mr-1.5" />
+                Funções
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="sobre" 
+                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2 text-xs font-medium transition-all text-zinc-400"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                Sobre
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <AnimatePresence mode="wait">
+              {contentTab === "funcoes" ? (
+                <motion.div
+                  key="funcoes"
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 40 }}
+                  transition={{ duration: 0.25 }}
+                  className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-3"
+                >
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                    {FUNCIONALIDADES.map((texto) => (
+                      <div
+                        key={texto}
+                        className="flex items-center gap-2 py-0.5"
+                      >
+                        <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+                        <span className="text-xs text-zinc-400">{texto}</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="sobre"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 }}
+                  transition={{ duration: 0.25 }}
+                  className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-3"
+                >
+                  <p className="text-xs text-zinc-300 mb-3 text-center">
+                    O <strong className="text-amber-400">Direito Premium</strong> é a ferramenta definitiva para quem leva o Direito a sério.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(conteudoSobre).map(([key, perfil]) => {
+                      const IconComponent = perfil.icon;
+                      return (
+                        <div 
+                          key={key}
+                          className={`p-2.5 rounded-lg text-center border ${
+                            perfil.cor === 'blue' ? 'bg-blue-500/10 border-blue-500/20' :
+                            perfil.cor === 'purple' ? 'bg-purple-500/10 border-purple-500/20' :
+                            'bg-emerald-500/10 border-emerald-500/20'
+                          }`}
+                        >
+                          <IconComponent className={`w-5 h-5 mx-auto mb-1 ${
+                            perfil.cor === 'blue' ? 'text-blue-400' :
+                            perfil.cor === 'purple' ? 'text-purple-400' :
+                            'text-emerald-400'
+                          }`} />
+                          <span className="text-[10px] text-zinc-300 font-medium block">{perfil.titulo}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-zinc-500 text-center mt-3">
+                    Invista em você. O retorno vem em conhecimento e resultados.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
