@@ -20,6 +20,7 @@ import NoticiaCarouselCard from "@/components/NoticiaCarouselCard";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { CarreirasJuridicasCarousel } from "@/components/CarreirasJuridicasCarousel";
 import ResumosDisponiveisCarousel from "@/components/ResumosDisponiveisCarousel";
+import { NoticiasJuridicasCarousel } from "@/components/NoticiasJuridicasCarousel";
 
 import BlogInicianteCarousel from "@/components/BlogInicianteCarousel";
 import BussolaCarreiraCarousel from "@/components/BussolaCarreiraCarousel";
@@ -270,6 +271,9 @@ const Index = () => {
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
                 </div>
+
+                {/* Notícias Jurídicas Carousel - antes do Em Alta */}
+                <NoticiasJuridicasCarousel />
 
                 {/* Em Alta - Design Premium com Abas */}
                 <EmAltaSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
