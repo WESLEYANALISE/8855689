@@ -74,7 +74,9 @@ export const CarreirasSection = memo(({ isDesktop, navigate, handleLinkHover }: 
                 src={item.image} 
                 alt={item.title}
                 className="w-full h-full object-cover"
-                loading="lazy"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
               />
               
               {/* Overlay gradiente */}

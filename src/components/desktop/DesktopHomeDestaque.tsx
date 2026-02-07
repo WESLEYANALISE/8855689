@@ -312,7 +312,9 @@ export const DesktopHomeDestaque = () => {
                     src={item.image} 
                     alt={item.title}
                     className="w-full h-full object-cover"
-                    loading="lazy"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-2">

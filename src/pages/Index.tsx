@@ -35,8 +35,23 @@ import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { WelcomeAudioPlayer } from "@/components/WelcomeAudioPlayer";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { preloadImages } from "@/hooks/useInstantCache";
+
+// Imagens de carreiras para preload
+import carreiraAdvogado from "@/assets/carreira-advogado.webp";
+import carreiraJuiz from "@/assets/carreira-juiz.webp";
+import carreiraDelegado from "@/assets/carreira-delegado.webp";
+import carreiraPromotor from "@/assets/carreira-promotor.webp";
+import carreiraPrf from "@/assets/carreira-prf.webp";
+import carreiraPf from "@/assets/pf-004-opt.webp";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
+
+// Lista de imagens de carreiras para preload
+const CARREIRAS_IMAGES = [
+  carreiraAdvogado, carreiraJuiz, carreiraDelegado,
+  carreiraPromotor, carreiraPrf, carreiraPf
+];
 
 const HERO_IMAGES = [
   '/hero-banner-themis-advogado-v2.webp',
@@ -66,6 +81,11 @@ const Index = () => {
     // Notificar o DesktopTopNav
     window.dispatchEvent(new CustomEvent('desktop-nav-tab-change', { detail: { tab } }));
   };
+
+  // Preload das imagens de carreiras assim que o app monta
+  useEffect(() => {
+    preloadImages(CARREIRAS_IMAGES);
+  }, []);
 
   // Atualizar tab quando URL mudar
   useEffect(() => {
