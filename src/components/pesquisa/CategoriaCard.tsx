@@ -6,12 +6,12 @@ import { CategoriaResultado } from "@/hooks/useBuscaGlobal";
 import { ResultadoPreview } from "./ResultadoPreview";
 import { 
   Scale, PlayCircle, GraduationCap, Layers, BookOpen, Newspaper, 
-  BookA, Brain, Film, Headphones, Target, Scroll, Gavel, FileText 
+  BookA, Brain, Film, Headphones, Target, Scroll, Gavel, FileText, Trophy 
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   Scale, PlayCircle, GraduationCap, Layers, BookOpen, Newspaper,
-  BookA, Brain, Film, Headphones, Target, Scroll, Gavel, FileText
+  BookA, Brain, Film, Headphones, Target, Scroll, Gavel, FileText, Trophy
 };
 
 interface CategoriaCardProps {

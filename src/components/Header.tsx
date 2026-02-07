@@ -155,7 +155,7 @@ const getHierarchicalDestination = (pathname: string, search: string): string =>
   if (pathname === "/advogado") return "/";
   if (pathname.startsWith("/dicionario/")) return "/dicionario";
   if (pathname === "/dicionario") return "/ferramentas";
-  if (pathname === "/pesquisar") return "/ferramentas";
+  if (pathname === "/pesquisar") return "/";
   if (pathname === "/ferramentas/questoes/resolver") return "/ferramentas/questoes/temas";
   if (pathname === "/ferramentas/questoes/temas") return "/ferramentas/questoes";
   if (pathname === "/ferramentas/questoes") return "/";
