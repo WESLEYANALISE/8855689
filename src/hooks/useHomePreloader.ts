@@ -36,7 +36,7 @@ interface PreloadConfig {
 }
 
 const PRELOAD_CONFIGS: PreloadConfig[] = [
-  // Notícias políticas (prioridade máxima - aparecem na home/política)
+  // Prioridade 1: Notícias (aparecem na home)
   {
     cacheKey: 'noticias-politicas-instant',
     table: 'noticias_politicas_cache',
@@ -45,7 +45,16 @@ const PRELOAD_CONFIGS: PreloadConfig[] = [
     orderBy: { column: 'data_publicacao', ascending: false },
     imageColumns: ['imagem_url_webp', 'imagem_url'],
   },
-  // Capas das bibliotecas (carrossel principal)
+  {
+    cacheKey: 'noticias-juridicas-home',
+    table: 'noticias_juridicas_cache',
+    select: 'id,titulo,fonte,imagem,imagem_webp,data_publicacao,link',
+    limit: 10,
+    orderBy: { column: 'data_publicacao', ascending: false },
+    imageColumns: ['imagem_webp', 'imagem'],
+  },
+  
+  // Prioridade 2: Capas das bibliotecas (carrossel principal)
   {
     cacheKey: 'capas-biblioteca-v2',
     table: 'CAPA-BIBILIOTECA',
@@ -53,49 +62,45 @@ const PRELOAD_CONFIGS: PreloadConfig[] = [
     limit: 15,
     imageColumns: ['capa'],
   },
-  // Resumos diários - carrossel de boletins (prioridade alta - dados completos com slides)
+  
+  // Prioridade 3: Resumos diários - carrossel de boletins
   {
     cacheKey: 'resumos-diarios-carousel',
     table: 'resumos_diarios',
     select: 'id,data,total_noticias,slides,tipo',
     limit: 30,
     orderBy: { column: 'data', ascending: false },
-    // Imagens são extraídas dos slides via função especial
   },
-  // Leis push 2025 (resenha diária)
+  
+  // Prioridade 4: Leis push 2025 (resenha diária)
   {
     cacheKey: 'leis-push-2025-home',
     table: 'leis_push_2025',
     select: 'id,numero_lei,ementa,data_publicacao,tipo_ato',
-    limit: 10,
+    limit: 15,
     orderBy: { column: 'data_publicacao', ascending: false },
   },
-  // Cursos
+  
+  // Prioridade 5: Cursos
   {
     cacheKey: 'cursos-home-v2',
     table: 'CURSOS-APP',
-    select: 'id,tema,"capa-aula","descricao-aula"',
-    limit: 12,
+    select: 'id,tema,"capa-aula","descricao-aula",area,ordem',
+    limit: 50,
+    orderBy: { column: 'ordem', ascending: true },
     imageColumns: ['capa-aula'],
   },
-  // Notícias jurídicas (carrossel Em Alta)
-  {
-    cacheKey: 'noticias-juridicas-home',
-    table: 'noticias_juridicas_cache',
-    select: 'id,titulo,fonte,imagem,imagem_webp,data_publicacao,link',
-    limit: 8,
-    orderBy: { column: 'data_publicacao', ascending: false },
-    imageColumns: ['imagem_webp', 'imagem'],
-  },
-  // Carreiras jurídicas
+  
+  // Prioridade 6: Carreiras jurídicas
   {
     cacheKey: 'carreiras-capas-home',
     table: 'carreiras_capas',
     select: 'id,carreira,url_capa',
-    limit: 10,
+    limit: 15,
     imageColumns: ['url_capa'],
   },
-  // Blogger jurídico - TODAS as capas para carregamento instantâneo
+  
+  // Prioridade 7: Blogger jurídico - TODAS as capas
   {
     cacheKey: 'blogger-juridico-home',
     table: 'BLOGGER_JURIDICO',
@@ -104,16 +109,18 @@ const PRELOAD_CONFIGS: PreloadConfig[] = [
     orderBy: { column: 'ordem', ascending: true },
     imageColumns: ['url_capa', 'imagem_wikipedia'],
   },
-  // Documentários jurídicos (JuriFlix)
+  
+  // Prioridade 8: Documentários jurídicos (JuriFlix)
   {
     cacheKey: 'documentarios-juridicos-cache',
     table: 'documentarios_juridicos',
-    select: 'id,video_id,titulo,descricao,thumbnail,capa_webp,duracao,publicado_em,canal_nome,transcricao,transcricao_texto,visualizacoes,categoria',
+    select: 'id,video_id,titulo,descricao,thumbnail,capa_webp,duracao,publicado_em,canal_nome,categoria',
     limit: 50,
     orderBy: { column: 'publicado_em', ascending: false },
     imageColumns: ['capa_webp', 'thumbnail'],
   },
-  // Biblioteca Política (livros para estudos políticos)
+  
+  // Prioridade 9: Biblioteca Política
   {
     cacheKey: 'biblioteca-politica-all',
     table: 'BIBLIOTECA-POLITICA',
@@ -121,6 +128,85 @@ const PRELOAD_CONFIGS: PreloadConfig[] = [
     limit: 50,
     orderBy: { column: 'id', ascending: true },
     imageColumns: ['imagem'],
+  },
+  
+  // ============= NOVAS TABELAS PARA CACHE AGRESSIVO =============
+  
+  // Prioridade 10: Súmulas vinculantes (Vade Mecum)
+  {
+    cacheKey: 'sumulas-vinculantes-all',
+    table: 'SUMULAS-VINCULANTES',
+    select: 'id,"Número","Conteúdo",Tema',
+    limit: 100,
+    orderBy: { column: 'id', ascending: true },
+  },
+  
+  // Prioridade 11: Audioaulas
+  {
+    cacheKey: 'audioaulas-all',
+    table: 'AUDIO-AULA',
+    select: 'id,titulo,area,tema,sequencia,imagem_miniatura,url_audio',
+    limit: 100,
+    orderBy: { column: 'sequencia', ascending: true },
+    imageColumns: ['imagem_miniatura'],
+  },
+  
+  // Prioridade 12: Flashcards áreas
+  {
+    cacheKey: 'flashcards-areas-cache',
+    table: 'flashcards_areas',
+    select: 'id,area,icone,cor,ordem',
+    limit: 30,
+    orderBy: { column: 'ordem', ascending: true },
+  },
+  
+  // Prioridade 13: Bibliotecas de estudo
+  {
+    cacheKey: 'biblioteca-estudos-all',
+    table: 'BIBLIOTECA-ESTUDOS',
+    select: 'id,Tema,"Capa-livro",Área,url_capa_gerada',
+    limit: 60,
+    orderBy: { column: 'id', ascending: true },
+    imageColumns: ['Capa-livro', 'url_capa_gerada'],
+  },
+  
+  // Prioridade 14: Biblioteca OAB
+  {
+    cacheKey: 'biblioteca-oab-all',
+    table: 'BIBILIOTECA-OAB',
+    select: 'id,Tema,"Capa-livro",Área',
+    limit: 50,
+    orderBy: { column: 'id', ascending: true },
+    imageColumns: ['Capa-livro'],
+  },
+  
+  // Prioridade 15: Biblioteca Clássicos
+  {
+    cacheKey: 'biblioteca-classicos-all',
+    table: 'BIBLIOTECA-CLASSICOS',
+    select: 'id,livro,imagem,area,autor,sobre',
+    limit: 50,
+    orderBy: { column: 'id', ascending: true },
+    imageColumns: ['imagem'],
+  },
+  
+  // Prioridade 16: Aulas interativas
+  {
+    cacheKey: 'aulas-interativas-all',
+    table: 'aulas_interativas',
+    select: 'id,titulo,area,tema,descricao',
+    limit: 50,
+    orderBy: { column: 'created_at', ascending: false },
+  },
+  
+  // Prioridade 17: Blogger político
+  {
+    cacheKey: 'blogger-politico-all',
+    table: 'blogger_politico',
+    select: 'id,titulo,categoria,url_capa,descricao_curta,conteudo_gerado',
+    limit: 50,
+    orderBy: { column: 'id', ascending: false },
+    imageColumns: ['url_capa'],
   },
 ];
 
@@ -319,8 +405,8 @@ async function runPreload() {
     const slidesImages = await extractSlidesImages();
     allImageUrls.push(...slidesImages);
 
-    // 7. Pré-carregar imagens do Supabase (aumentado para 150 para incluir todas as capas do blogger)
-    const uniqueUrls = [...new Set(allImageUrls)].slice(0, 150);
+    // 7. Pré-carregar imagens do Supabase (aumentado para 250 para cache agressivo)
+    const uniqueUrls = [...new Set(allImageUrls)].slice(0, 250);
     if (uniqueUrls.length > 0) {
       await preloadImages(uniqueUrls);
     }

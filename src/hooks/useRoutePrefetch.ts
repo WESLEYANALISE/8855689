@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getFromUnifiedCache, saveToUnifiedCache } from './useUnifiedCache';
 
-// Mapa de dados para prefetch - COLUNAS VERIFICADAS NO SCHEMA REAL - 24/12/2024
+// Mapa de dados para prefetch - COLUNAS VERIFICADAS NO SCHEMA REAL - 07/02/2025
+// Expandido com mais rotas para cache agressivo
 const ROUTE_DATA_PREFETCH: Record<string, { 
   queryKey: string; 
   table: string; 
@@ -22,39 +23,98 @@ const ROUTE_DATA_PREFETCH: Record<string, {
   '/cursos': { 
     queryKey: 'cursos', 
     table: 'CURSOS-APP', 
-    select: 'id,tema,ordem,"capa-aula","descricao-aula"', 
-    limit: 30,
+    select: 'id,tema,ordem,"capa-aula","descricao-aula",area,conteudo', 
+    limit: 50,
     order: 'ordem'
   },
   '/blogger-juridico': { 
     queryKey: 'blogger_juridico', 
     table: 'BLOGGER_JURIDICO', 
-    select: 'id,titulo,categoria,url_capa,descricao_curta,ordem', 
-    limit: 20,
+    select: 'id,titulo,categoria,url_capa,descricao_curta,ordem,conteudo_gerado', 
+    limit: 50,
     order: 'ordem'
   },
   '/audioaulas': { 
     queryKey: 'audioaulas', 
     table: 'AUDIO-AULA', 
-    select: 'id,titulo,area,tema,sequencia,imagem_miniatura', 
-    limit: 30,
+    select: 'id,titulo,area,tema,sequencia,imagem_miniatura,url_audio', 
+    limit: 50,
     order: 'sequencia'
   },
   '/politica': { 
     queryKey: 'noticias_politicas', 
     table: 'blogger_politico', 
-    select: 'id,titulo,categoria,url_capa,descricao_curta', 
+    select: 'id,titulo,categoria,url_capa,descricao_curta,conteudo_gerado', 
+    limit: 50,
+    order: 'id'
+  },
+  // NOVAS ROTAS - Vade Mecum e Legislação
+  '/vade-mecum': {
+    queryKey: 'vade_mecum_codigos',
+    table: 'codigos_disponiveis',
+    select: 'id,nome,sigla,descricao,icone',
+    limit: 50,
+    order: 'nome'
+  },
+  '/sumulas': {
+    queryKey: 'sumulas_vinculantes',
+    table: 'SUMULAS-VINCULANTES',
+    select: 'id,"Número","Conteúdo",Tema',
+    limit: 100,
+    order: 'id'
+  },
+  // Câmara dos Deputados
+  '/camara-deputados': {
+    queryKey: 'deputados_lista',
+    table: 'deputados_cache',
+    select: 'id,nome,partido,uf,foto,email',
+    limit: 100,
+    order: 'nome'
+  },
+  '/camara-votacoes': {
+    queryKey: 'votacoes_camara',
+    table: 'votacoes_cache',
+    select: 'id,descricao,data,aprovacao,resultado',
+    limit: 50,
+    order: 'data'
+  },
+  // Bibliotecas
+  '/bibliotecas': {
+    queryKey: 'capas_biblioteca',
+    table: 'CAPA-BIBILIOTECA',
+    select: 'id,Biblioteca,capa',
+    limit: 20,
+    order: 'id'
+  },
+  // Flashcards
+  '/flashcards': {
+    queryKey: 'flashcards_areas',
+    table: 'flashcards_areas',
+    select: 'id,area,icone,cor',
     limit: 30,
+    order: 'ordem'
+  },
+  // Carreiras
+  '/carreiras': {
+    queryKey: 'carreiras_capas',
+    table: 'carreiras_capas',
+    select: 'id,carreira,url_capa,descricao',
+    limit: 20,
     order: 'id'
   },
 };
 
 // Mapa de contexto - quais dados prefetch baseado na rota atual
+// Expandido para prefetch mais agressivo baseado em navegação provável
 const CONTEXTUAL_DATA_PREFETCH: Record<string, string[]> = {
-  '/': ['/noticias-juridicas', '/cursos', '/blogger-juridico', '/politica'],
-  '/bibliotecas': ['/cursos'],
-  '/cursos': ['/cursos'],
-  '/politica': ['/politica'],
+  '/': ['/noticias-juridicas', '/cursos', '/blogger-juridico', '/politica', '/bibliotecas', '/carreiras'],
+  '/bibliotecas': ['/cursos', '/blogger-juridico'],
+  '/cursos': ['/cursos', '/audioaulas'],
+  '/politica': ['/politica', '/camara-deputados', '/camara-votacoes'],
+  '/vade-mecum': ['/vade-mecum', '/sumulas', '/cursos'],
+  '/flashcards': ['/flashcards', '/cursos'],
+  '/camara-deputados': ['/camara-deputados', '/camara-votacoes'],
+  '/estudos': ['/cursos', '/audioaulas', '/flashcards'],
 };
 
 /**
