@@ -1,7 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-// Imagens críticas servidas de /public para preload instantâneo
-const oabAprovacaoHero = "/oab-aprovacao-hero.webp";
-const themisEstudosDesktop = "/themis-estudos-desktop.webp";
+import oabAprovacaoHero from "@/assets/oab-aprovacao-hero.webp";
+import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,7 +20,6 @@ import NoticiaCarouselCard from "@/components/NoticiaCarouselCard";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { CarreirasJuridicasCarousel } from "@/components/CarreirasJuridicasCarousel";
 import ResumosDisponiveisCarousel from "@/components/ResumosDisponiveisCarousel";
-import { NoticiasJuridicasCarousel } from "@/components/NoticiasJuridicasCarousel";
 
 import BlogInicianteCarousel from "@/components/BlogInicianteCarousel";
 import BussolaCarreiraCarousel from "@/components/BussolaCarreiraCarousel";
@@ -241,11 +239,40 @@ const Index = () => {
               <DesktopHomeDestaque />
             ) : (
               <>
+                {/* Notícias em Destaque - apenas mobile/tablet */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-500/20 rounded-xl">
+                        <Newspaper className="w-5 h-5 text-amber-100" />
+                      </div>
+                      <div>
+                        <h2 className="font-cinzel text-lg md:text-base font-bold text-amber-100">Notícias Jurídicas</h2>
+                        <p className="text-xs text-white/70">Fique atualizado</p>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => navigate('/noticias-juridicas')} className="bg-red-500/20 hover:bg-red-500/30 text-white border border-red-500/30 shadow-sm hover:shadow-md transition-all duration-300 rounded-full px-4 text-xs flex items-center gap-1.5 font-medium">
+                      Ver mais
+                      <ArrowRight className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  
+                  <ScrollArea className="w-full">
+                    <div className="flex gap-3 pb-4 touch-pan-x">
+                      {featuredNews.slice(0, 6).map((noticia, index) => (
+                        <NoticiaCarouselCard 
+                          key={noticia.id} 
+                          noticia={noticia} 
+                          priority={index < 3}
+                        />
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+
                 {/* Em Alta - Design Premium com Abas */}
                 <EmAltaSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
-
-                {/* Notícias Jurídicas Carousel - após Em Alta */}
-                <NoticiasJuridicasCarousel />
 
                 {/* Boletins Informativos com menu de alternância */}
                 <div data-tutorial="boletins">
