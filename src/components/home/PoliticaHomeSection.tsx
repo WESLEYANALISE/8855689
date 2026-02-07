@@ -135,23 +135,25 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
 
       {/* Container com gradiente */}
       <div className="bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-red-800/30">
-        {/* Menu de Alternância */}
-        <div className="flex items-center justify-center gap-1 mb-4 bg-black/20 rounded-full p-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all",
-                activeTab === tab.id
-                  ? "bg-white text-red-900"
-                  : "text-white/70 hover:text-white hover:bg-white/10"
-              )}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          ))}
+        {/* Menu de Alternância - Responsivo */}
+        <div className="flex items-center justify-center mb-4">
+          <div className="inline-flex items-center gap-0.5 bg-black/30 rounded-full p-1 overflow-x-auto max-w-full">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap flex-shrink-0",
+                  activeTab === tab.id
+                    ? "bg-white text-red-900 shadow-md"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <tab.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Conteúdo em Carrossel */}
@@ -277,16 +279,6 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
           </ScrollArea>
         )}
 
-        {/* Contador */}
-        {!isLoading && (
-          <div className="flex justify-center mt-3">
-            <span className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">
-              {activeTab === 'livros' && `${livros.length} livros`}
-              {activeTab === 'artigos' && `${artigos.length} artigos`}
-              {activeTab === 'documentarios' && `${documentarios.length} documentários`}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
