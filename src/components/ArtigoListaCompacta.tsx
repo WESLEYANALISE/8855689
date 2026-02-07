@@ -708,7 +708,7 @@ export const ArtigoListaCompacta = ({
   // Detectar capítulos
   const capitulos = useMemo(() => detectarCapitulos(articles), [articles]);
 
-  // Scroll para artigo específico
+  // Scroll para artigo específico com retry robusto
   useEffect(() => {
     if (!targetArticleNumber) return;
 
@@ -726,22 +726,41 @@ export const ArtigoListaCompacta = ({
       return;
     }
 
-    // Destacar artigo
+    // Destacar artigo imediatamente
     setHighlightedArticleId(targetArticle.id);
     
-    // Scroll para o artigo
-    setTimeout(() => {
-      const element = articleRefs.current.get(targetArticle.id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      onScrollComplete?.();
+    // Forçar modo de visualização lista
+    setModoVisualizacao('artigos');
 
-      // Remover destaque após 4 segundos
-      setTimeout(() => {
-        setHighlightedArticleId(null);
-      }, 4000);
-    }, 100);
+    // Função de scroll com retry progressivo
+    const scrollToArticle = (retries = 0) => {
+      const element = articleRefs.current.get(targetArticle.id);
+      
+      if (element) {
+        // Usar requestAnimationFrame para garantir que o DOM está pronto
+        requestAnimationFrame(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          onScrollComplete?.();
+        });
+      } else if (retries < 15) {
+        // Retry com delay progressivo (até ~3 segundos total)
+        setTimeout(() => scrollToArticle(retries + 1), 200);
+      } else {
+        // Fallback: completar mesmo sem scroll
+        console.warn('Não foi possível scrollar para artigo:', targetArticleNumber);
+        onScrollComplete?.();
+      }
+    };
+
+    // Iniciar após delay para garantir renderização inicial
+    setTimeout(() => scrollToArticle(0), 300);
+
+    // Limpar destaque após 4 segundos
+    const highlightTimer = setTimeout(() => {
+      setHighlightedArticleId(null);
+    }, 4000);
+
+    return () => clearTimeout(highlightTimer);
   }, [targetArticleNumber, articlesWithNumber, onScrollComplete]);
 
   // Detectar scroll past article 7
