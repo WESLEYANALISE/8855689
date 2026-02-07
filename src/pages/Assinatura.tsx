@@ -168,33 +168,35 @@ const Assinatura = () => {
             </p>
           </div>
 
-          {/* Marquee de benefícios - mais discreto */}
+          {/* Marquee de benefícios - scroll infinito */}
           <div className="relative overflow-hidden mb-4 py-1.5">
-            <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
             
-            <motion.div
-              className="flex gap-3 whitespace-nowrap"
-              animate={{ x: [-800, 0] }}
-              transition={{
-                x: {
-                  repeat: Infinity,
-                  repeatType: "loop",
-                  duration: 25,
-                  ease: "linear",
-                },
-              }}
-            >
-              {[...BENEFIT_ITEMS, ...BENEFIT_ITEMS, ...BENEFIT_ITEMS].map((benefit, index) => (
-                <div 
-                  key={`${benefit.text}-${index}`}
-                  className="flex items-center gap-1 bg-zinc-900/40 border border-zinc-800/30 rounded-full px-2.5 py-1 flex-shrink-0"
-                >
-                  <benefit.icon className="w-2.5 h-2.5 text-amber-500" />
-                  <span className="text-zinc-500 text-[10px]">{benefit.text}</span>
-                </div>
-              ))}
-            </motion.div>
+            <div className="flex animate-marquee">
+              <div className="flex gap-3 shrink-0 pr-3">
+                {BENEFIT_ITEMS.map((benefit, index) => (
+                  <div 
+                    key={`a-${index}`}
+                    className="flex items-center gap-1.5 bg-zinc-900/50 border border-zinc-800/40 rounded-full px-3 py-1.5 shrink-0"
+                  >
+                    <benefit.icon className="w-3 h-3 text-amber-500" />
+                    <span className="text-zinc-400 text-[11px]">{benefit.text}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 shrink-0 pr-3">
+                {BENEFIT_ITEMS.map((benefit, index) => (
+                  <div 
+                    key={`b-${index}`}
+                    className="flex items-center gap-1.5 bg-zinc-900/50 border border-zinc-800/40 rounded-full px-3 py-1.5 shrink-0"
+                  >
+                    <benefit.icon className="w-3 h-3 text-amber-500" />
+                    <span className="text-zinc-400 text-[11px]">{benefit.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Card do Plano Vitalício */}
