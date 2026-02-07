@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText } from "lucide-react";
+import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText, Check, Gavel } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -16,6 +16,7 @@ import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface PlanConfig {
   price: number;
@@ -40,6 +41,24 @@ const BENEFIT_ITEMS = [
   { icon: Scale, text: "Súmulas atualizadas" },
   { icon: FileText, text: "Modelos de petições" },
   { icon: Sparkles, text: "Acesso vitalício" },
+];
+
+// Lista de funcionalidades para a seção abaixo do card
+const FUNCIONALIDADES = [
+  "Acesso completo e ilimitado ao app",
+  "Experiência 100% sem anúncios",
+  "Acesso antecipado a novos recursos",
+  "Sincronização em todos os dispositivos",
+  "Suporte prioritário via WhatsApp",
+  "Professora IA Evelyn disponível 24h",
+  "Chat inteligente com respostas jurídicas",
+  "Vade Mecum completo com +50 leis",
+  "Constituição Federal comentada",
+  "+30.000 questões OAB comentadas",
+  "Simulados completos estilo prova",
+  "Flashcards inteligentes",
+  "Mapas mentais",
+  "Modelos de petições profissionais",
 ];
 
 
@@ -196,8 +215,30 @@ const Assinatura = () => {
             />
           </div>
 
+          {/* Seção de Funções abaixo do card */}
+          <div className="max-w-md mx-auto px-2 mt-6">
+            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Gavel className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-white">Funções incluídas</span>
+              </div>
+              
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+                {FUNCIONALIDADES.map((texto) => (
+                  <div
+                    key={texto}
+                    className="flex items-center gap-2 py-1"
+                  >
+                    <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+                    <span className="text-xs text-zinc-400">{texto}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Selo de segurança */}
-          <div className="flex items-center justify-center gap-2 text-zinc-500 text-xs mt-10">
+          <div className="flex items-center justify-center gap-2 text-zinc-500 text-xs mt-6">
             <div className="flex items-center gap-2 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 rounded-full px-4 py-2">
               <Shield className="w-4 h-4 text-emerald-500" />
               <span>Pagamento seguro via Mercado Pago</span>
