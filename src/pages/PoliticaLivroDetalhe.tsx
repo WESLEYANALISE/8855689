@@ -5,12 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Book, BookOpen, Monitor, Download, Crown } from 'lucide-react';
+import { ArrowLeft, Book, BookOpen, Monitor, Download, Crown, Lock } from 'lucide-react';
 import { buscarDetalhesLivro } from '@/lib/googleBooksApi';
 import PDFViewerModal from '@/components/PDFViewerModal';
 import PDFReaderModeSelector from '@/components/PDFReaderModeSelector';
 import { toast } from 'sonner';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { PremiumUpgradeModal } from '@/components/PremiumUpgradeModal';
 
 export default function PoliticaLivroDetalhe() {
   const { livroId } = useParams<{ livroId: string }>();
@@ -25,6 +26,7 @@ export default function PoliticaLivroDetalhe() {
   // Estados para leitura
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [showPDF, setShowPDF] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'vertical'>('normal');
 
   // Buscar dados do livro na nova tabela BIBLIOTECA-POLITICA
@@ -148,17 +150,28 @@ export default function PoliticaLivroDetalhe() {
           )}
         </div>
 
-        {/* Botão Ler Agora */}
+        {/* Botão Ler Agora - Premium Only */}
         <div className="flex justify-center mb-6">
           {temLinkLeitura && (
-            <Button
-              onClick={() => setShowModeSelector(true)}
-              size="lg"
-              className="shadow-lg hover:shadow-accent/50 transition-all"
-            >
-              <BookOpen className="w-5 h-5 mr-2" />
-              Ler agora
-            </Button>
+            isPremium ? (
+              <Button
+                onClick={() => setShowModeSelector(true)}
+                size="lg"
+                className="shadow-lg hover:shadow-accent/50 transition-all"
+              >
+                <BookOpen className="w-5 h-5 mr-2" />
+                Ler agora
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setShowPremiumModal(true)}
+                size="lg"
+                className="shadow-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+              >
+                <Lock className="w-5 h-5 mr-2" />
+                Desbloquear Leitura
+              </Button>
+            )
           )}
         </div>
 
@@ -277,6 +290,13 @@ export default function PoliticaLivroDetalhe() {
           viewMode={viewMode}
         />
       )}
+
+      {/* Modal Premium */}
+      <PremiumUpgradeModal
+        open={showPremiumModal}
+        onOpenChange={setShowPremiumModal}
+        featureName="Leitura de livros de política"
+      />
     </div>
   );
 }
