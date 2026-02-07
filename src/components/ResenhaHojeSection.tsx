@@ -1,8 +1,8 @@
-import { memo, useCallback } from "react";
-import { ScrollText, ArrowRight, Loader2, Scale, FileText, AlertCircle } from "lucide-react";
+import { memo, useCallback, useState, useMemo, useEffect } from "react";
+import { ScrollText, ArrowRight, Loader2, Scale, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, subDays, isToday, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -17,35 +17,72 @@ interface LeiRecente {
   numero_lei: string;
   tipo_ato: string | null;
   ementa: string | null;
-  data_dou: string | null;
+  data_publicacao: string | null;
+  texto_formatado: string | null;
+  pendente?: boolean;
+  fonte?: 'resenha_diaria' | 'leis_push_2025';
 }
 
-// Mapeamento de cores por tipo de ato
-const tipoAtoCores: Record<string, string> = {
-  'Lei': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  'Decreto': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  'Lei Complementar': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  'Medida Provisória': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  'Resolução': 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-};
-
 export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }: ResenhaHojeSectionProps) => {
-  // Buscar leis mais recentes de hoje ou últimos dias
-  const { data: leisRecentes, isLoading, error } = useQuery({
-    queryKey: ['resenha-hoje'],
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  // Gerar últimos 7 dias
+  const lastDays = useMemo(() => 
+    Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)),
+    []
+  );
+
+  // Buscar dias que têm leis
+  const { data: diasComLeis = [], isLoading: loadingDias } = useQuery({
+    queryKey: ['resenha-dias-home'],
     queryFn: async () => {
-      // Buscar as 10 leis mais recentes com texto_formatado
+      const { data: leisPushData } = await supabase
+        .from('leis_push_2025')
+        .select('data_publicacao')
+        .not('texto_formatado', 'is', null)
+        .not('data_publicacao', 'is', null);
+
+      const todasDatas = (leisPushData || []).map((d: any) => d.data_publicacao);
+      return [...new Set(todasDatas.filter(Boolean))] as string[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Encontrar o último dia com leis e selecionar automaticamente
+  useEffect(() => {
+    if (!loadingDias && diasComLeis.length > 0 && !selectedDate) {
+      for (const day of lastDays) {
+        if (diasComLeis.includes(format(day, 'yyyy-MM-dd'))) {
+          setSelectedDate(day);
+          break;
+        }
+      }
+    } else if (!loadingDias && diasComLeis.length === 0 && !selectedDate) {
+      setSelectedDate(new Date());
+    }
+  }, [loadingDias, diasComLeis, lastDays, selectedDate]);
+
+  // Buscar leis da data selecionada
+  const { data: leisDoDia = [], isLoading: loadingLeis } = useQuery({
+    queryKey: ['resenha-leis-home', selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null],
+    queryFn: async () => {
+      if (!selectedDate) return [];
+      
+      const dataFormatada = format(selectedDate, 'yyyy-MM-dd');
+      
       const { data, error } = await supabase
         .from('leis_push_2025')
-        .select('id, numero_lei, tipo_ato, ementa, data_dou')
+        .select('id, numero_lei, tipo_ato, ementa, data_publicacao, texto_formatado')
+        .eq('data_publicacao', dataFormatada)
         .not('texto_formatado', 'is', null)
-        .order('data_dou', { ascending: false })
+        .order('ordem_dou', { ascending: true })
         .limit(10);
       
       if (error) throw error;
       return (data || []) as LeiRecente[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    enabled: !!selectedDate,
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleNavigate = useCallback((route: string) => {
@@ -53,22 +90,21 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
   }, [navigate]);
 
   const handleLeiClick = useCallback((lei: LeiRecente) => {
-    navigate(`/vade-mecum/resenha/${lei.id}`);
+    navigate(`/vade-mecum/resenha/push-${lei.id}`);
   }, [navigate]);
 
-  const getTipoAtoColor = (tipoAto: string | null) => {
-    if (!tipoAto) return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-    return tipoAtoCores[tipoAto] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+  const diaTemLeis = (day: Date): boolean => {
+    return diasComLeis.includes(format(day, 'yyyy-MM-dd'));
   };
 
-  const getTipoAtoIcon = (tipoAto: string | null) => {
-    if (tipoAto === 'Lei' || tipoAto === 'Lei Complementar') return Scale;
-    return FileText;
+  const formatWeekday = (date: Date) => {
+    if (isToday(date)) return 'Hoje';
+    return format(date, "EEE", { locale: ptBR });
   };
 
   return (
     <div className="space-y-3" data-tutorial="resenha-diaria">
-      {/* Header FORA do container */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-orange-500/20 rounded-xl">
@@ -79,12 +115,11 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
               Resenha Diária
             </h3>
             <p className="text-white/70 text-xs">
-              Últimas leis atualizadas
+              Atualizações do Diário Oficial
             </p>
           </div>
         </div>
         
-        {/* Botão Ver tudo */}
         <button
           onClick={() => handleNavigate('/vade-mecum/resenha-diaria')}
           onMouseEnter={() => handleLinkHover('/vade-mecum/resenha-diaria')}
@@ -95,61 +130,111 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
         </button>
       </div>
 
-      {/* Container laranja */}
-      <div className="bg-gradient-to-br from-orange-950 via-orange-900 to-orange-950/95 rounded-3xl p-4 md:p-4 relative overflow-hidden shadow-2xl border border-orange-800/30">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-orange-300" />
+      {/* Container */}
+      <div className="bg-gradient-to-br from-orange-950 via-orange-900 to-orange-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-orange-800/30">
+        {/* Navegação de Dias - Calendário horizontal */}
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+          {loadingDias ? (
+            <div className="flex items-center justify-center w-full py-2">
+              <Loader2 className="w-4 h-4 animate-spin text-orange-300" />
+            </div>
+          ) : (
+            lastDays.map((day) => {
+              const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+              const temLeis = diaTemLeis(day);
+              
+              return (
+                <button
+                  key={day.toISOString()}
+                  onClick={() => setSelectedDate(day)}
+                  className={`flex flex-col items-center min-w-[52px] h-[60px] px-2 py-1.5 rounded-xl transition-all relative ${
+                    isSelected 
+                      ? 'bg-white text-orange-900' 
+                      : temLeis
+                        ? 'bg-white/15 text-white/90 hover:bg-white/20'
+                        : 'bg-white/5 text-white/40 hover:bg-white/10'
+                  }`}
+                >
+                  <span className={`text-[9px] uppercase font-medium ${
+                    isSelected 
+                      ? 'text-orange-600' 
+                      : temLeis 
+                        ? 'text-white/60' 
+                        : 'text-white/30'
+                  }`}>
+                    {formatWeekday(day)}
+                  </span>
+                  <span className={`text-base font-bold ${!temLeis && !isSelected ? 'opacity-50' : ''}`}>
+                    {format(day, 'd')}
+                  </span>
+                  <span className={`text-[9px] uppercase ${
+                    isSelected 
+                      ? 'text-orange-600' 
+                      : temLeis 
+                        ? 'text-white/50' 
+                        : 'text-white/25'
+                  }`}>
+                    {format(day, 'MMM', { locale: ptBR })}
+                  </span>
+                  
+                  {/* Indicador de que tem leis */}
+                  {temLeis && !isSelected && (
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full" />
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Lista de Leis */}
+        {loadingLeis ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 animate-spin text-orange-300" />
           </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-8 text-orange-300/70">
-            <AlertCircle className="w-8 h-8 mb-2" />
-            <p className="text-sm">Erro ao carregar leis</p>
-          </div>
-        ) : !leisRecentes || leisRecentes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-orange-300/70">
-            <ScrollText className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">Nenhuma lei disponível</p>
+        ) : leisDoDia.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-orange-300/60">
+            <ScrollText className="w-8 h-8 mb-2 opacity-40" />
+            <p className="text-xs text-center">
+              {selectedDate && isToday(selectedDate) 
+                ? 'Sem publicações hoje' 
+                : 'Sem publicações neste dia'}
+            </p>
           </div>
         ) : (
-          <ScrollArea className="w-full">
-            <div className={`flex gap-3 pb-2 ${isDesktop ? '' : 'touch-pan-x'}`}>
-              {leisRecentes.map((lei) => {
-                const Icon = getTipoAtoIcon(lei.tipo_ato);
-                return (
-                  <button
-                    key={lei.id}
-                    onClick={() => handleLeiClick(lei)}
-                    className={`flex-shrink-0 bg-white/10 rounded-xl p-3 text-left transition-all duration-150 hover:bg-white/15 border border-white/10 hover:border-orange-400/30 overflow-hidden relative group ${isDesktop ? 'w-[200px]' : 'w-[180px]'}`}
-                  >
-                    {/* Badge tipo de ato */}
-                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border mb-2 ${getTipoAtoColor(lei.tipo_ato)}`}>
-                      <Icon className="w-3 h-3" />
-                      <span>{lei.tipo_ato || 'Ato'}</span>
-                    </div>
-                    
-                    {/* Número da lei */}
-                    <h4 className="font-semibold text-white text-sm mb-1 line-clamp-1 group-hover:text-orange-200 transition-colors">
+          <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+            {leisDoDia.map((lei) => (
+              <button
+                key={lei.id}
+                onClick={() => handleLeiClick(lei)}
+                className="w-full bg-white/10 hover:bg-white/15 rounded-xl p-3 text-left transition-all group border border-white/5 hover:border-orange-400/30"
+              >
+                <div className="flex items-start gap-3">
+                  <Scale className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white text-sm group-hover:text-orange-200 transition-colors">
                       {lei.numero_lei}
                     </h4>
-                    
-                    {/* Ementa resumida */}
-                    <p className="text-white/60 text-[11px] leading-snug line-clamp-3">
-                      {lei.ementa || 'Sem descrição'}
-                    </p>
-                    
-                    {/* Data */}
-                    {lei.data_dou && (
-                      <p className="text-orange-300/60 text-[10px] mt-2">
-                        {format(new Date(lei.data_dou), "dd MMM yyyy", { locale: ptBR })}
+                    {lei.ementa && (
+                      <p className="text-white/60 text-[11px] leading-snug line-clamp-2 mt-0.5">
+                        {lei.ementa}
                       </p>
                     )}
-                  </button>
-                );
-              })}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-orange-300 flex-shrink-0 mt-0.5" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Contador de leis */}
+        {!loadingLeis && leisDoDia.length > 0 && (
+          <div className="flex justify-center mt-3">
+            <span className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">
+              {leisDoDia.length} {leisDoDia.length === 1 ? 'lei' : 'leis'} {selectedDate && isToday(selectedDate) ? 'hoje' : 'neste dia'}
+            </span>
+          </div>
         )}
       </div>
     </div>
