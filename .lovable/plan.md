@@ -1,278 +1,126 @@
 
-# Plano: Redesign da Página de Assinatura como Landing Page de Vendas
+# Plano: Otimizar Chat da Professora para Respostas Instantâneas
 
-## Visão Geral
+## Problema Identificado
 
-Transformar a página de assinatura atual em uma **landing page de vendas profissional** com:
-1. Título e subtítulo persuasivos que engajam o usuário
-2. Lista de benefícios claros na área do valor
-3. Opções de pagamento PIX e Cartão no modal de detalhes
-4. Parcelamento em até 10x com taxa do Mercado Pago
-5. Design elegante e informativo
+Analisando os logs e o código, identifiquei os seguintes problemas:
 
----
+1. **Latência alta (6-14 segundos para primeira resposta)**: O Gemini API está demorando entre 10-17 segundos para enviar o primeiro chunk devido a:
+   - Prompt muito extenso exigindo respostas de 31.000-40.500 caracteres
+   - Busca no banco de dados antes de chamar a API (busca contexto, FAQs, resumos)
+   - Sistema de fallback de múltiplas chaves API
 
-## 1. Título e Subtítulo Persuasivos
+2. **Texto pequeno durante streaming**: O código usa `text-[13px]` durante streaming (linha 834) e `text-[15px]` após concluir (linha 779), causando mudança de tamanho
 
-### Problema Atual
-A página mostra apenas uma frase de impacto aleatória, sem contexto de vendas direto.
+3. **Respostas muito longas**: A configuração atual exige mínimo de 5.164 palavras no modo "complete" - muito extenso para uma conversa natural
 
-### Solução
-Adicionar uma seção de **headline** acima do card do plano com:
+## Solução Proposta
 
-```text
-Título: "Domine o Direito. Conquiste a Aprovação."
-Subtítulo: "Acesso completo e vitalício a todo o conteúdo que você precisa para se tornar um jurista de excelência."
+### 1. Criar Novo Nível de Resposta: "concise" (Respostas Curtas)
+
+Adicionar um nível de resposta padrão para o chat que gera respostas de 400-800 palavras (cerca de 2.500-5.000 caracteres), mantendo qualidade mas reduzindo latência.
+
+**Arquivo**: `supabase/functions/chat-professora/prompt-templates.ts`
+```typescript
+concise: {
+  palavras: [400, 800],
+  caracteres: [2500, 5000],
+  tokens: 1500
+}
 ```
 
-Alternativas de título (persuasivos):
-- "Seu investimento mais inteligente no Direito"
-- "Tudo o que você precisa. Para sempre."
-- "A ferramenta definitiva para estudantes e advogados"
+### 2. Otimizar Prompt para Respostas Mais Rápidas
+
+**Arquivo**: `supabase/functions/chat-professora/index.ts`
+
+- Reduzir o prompt de sistema para o modo de chat padrão (menos instruções = resposta mais rápida)
+- Usar nível "concise" como padrão no chat
+- Manter "deep" apenas quando usuário clica em "Aprofundar"
+- Remover a obrigatoriedade de quadros comparativos e componentes visuais em respostas curtas
+
+### 3. Corrigir Tamanho de Fonte Durante Streaming
+
+**Arquivo**: `src/components/chat/ChatMessageNew.tsx`
+
+Unificar o tamanho de texto para `text-[15px]` tanto durante quanto após o streaming, eliminando a mudança de tamanho.
+
+### 4. Usar Modelo Mais Rápido para Chat Interativo
+
+**Arquivo**: `supabase/functions/chat-professora/index.ts`
+
+- Usar `gemini-2.0-flash` para respostas rápidas (latência ~2-3 segundos)
+- Manter `gemini-2.5-flash` apenas para modo "deep" ou geração de aulas
+
+### 5. Paralelizar Buscas no Banco
+
+Executar buscas de contexto em paralelo com Promise.all() para reduzir tempo de setup.
 
 ---
 
-## 2. Lista de Benefícios no Card do Plano
+## Detalhes Técnicos
 
-### Problema Atual
-O card mostra apenas "Acesso vitalício para sempre" - pouco persuasivo.
-
-### Solução
-Adicionar **3-4 benefícios-chave** visíveis diretamente no card:
-
-```text
-- Acesso ilimitado a todo conteúdo
-- +30.000 questões OAB comentadas
-- Professora IA Evelyn 24h
-- Sem anúncios, para sempre
-```
-
----
-
-## 3. Opções de Pagamento: PIX + Cartão
-
-### Problema Atual
-Modal só oferece PIX, sem opção de cartão.
-
-### Solução
-Adicionar **toggle de método de pagamento** no modal:
-
-| Método | Valor | Observação |
-|--------|-------|------------|
-| PIX | R$ 89,90 | À vista, aprovação instantânea |
-| Cartão 1x | R$ 89,90 | Sem juros |
-| Cartão 10x | R$ 10,81/parcela | Total: R$ 108,09 (com juros) |
-
-### Cálculo das Parcelas
-
-Com base nas taxas do Mercado Pago (tabela "Na Hora - Até R$3 mil"):
-- Taxa para 10x: **20,24%**
-- R$ 89,90 × 1,2024 = **R$ 108,09**
-- Parcela: R$ 108,09 ÷ 10 = **R$ 10,81**
-
----
-
-## 4. Arquivos a Modificar
-
-### 4.1 PlanoCardNovo.tsx
-- Adicionar lista de benefícios compacta (3-4 itens)
-- Mostrar opção de parcelamento no card
-- Visual mais vendedor
-
-### 4.2 PlanoDetalhesModal.tsx
-- Adicionar ToggleGroup para PIX / Cartão
-- Mostrar opções de parcelamento para cartão
-- Calcular e exibir valor com juros
-- Manter botão de cartão funcional
-
-### 4.3 Assinatura.tsx
-- Adicionar seção de headline persuasiva
-- Melhorar hierarquia visual
-- Adicionar badges de benefícios
-
-### 4.4 CheckoutCartao.tsx
-- Expandir opções de parcelamento (até 10x)
-- Mostrar valor total com juros
-- Calcular automaticamente com taxa do MP
-
----
-
-## 5. Detalhes Técnicos
-
-### 5.1 Configuração de Parcelas
+### Mudanças no Edge Function (`chat-professora/index.ts`)
 
 ```typescript
-const INSTALLMENT_CONFIG = {
-  // Taxa do Mercado Pago para até R$3mil
-  rates: {
-    1: 0, // sem juros
-    2: 0.0990, // 9.90%
-    3: 0.1128, // 11.28%
-    4: 0.1264, // 12.64%
-    5: 0.1397, // 13.97%
-    6: 0.1527, // 15.27%
-    7: 0.1655, // 16.55%
-    8: 0.1781, // 17.81%
-    9: 0.1904, // 19.04%
-    10: 0.2024, // 20.24%
-  },
-  basePrice: 89.90
-};
+// ANTES: responseLevel default era 'complete' com 5000+ palavras
+// DEPOIS: responseLevel default será 'concise' com 400-800 palavras
 
-const calculateInstallment = (installments: number) => {
-  const rate = INSTALLMENT_CONFIG.rates[installments] || 0;
-  const total = INSTALLMENT_CONFIG.basePrice * (1 + rate);
-  const perInstallment = total / installments;
-  return { total, perInstallment };
-};
+// Escolher modelo baseado no nível
+const modelName = responseLevel === 'deep' 
+  ? 'gemini-2.5-flash'  // Mais poderoso para análises profundas
+  : 'gemini-2.0-flash'; // Mais rápido para respostas curtas
+
+// Prompt simplificado para modo concise
+if (responseLevel === 'concise') {
+  systemPrompt = `Você é a Professora Jurídica.
+
+REGRAS:
+- Respostas entre 400-800 palavras
+- Vá direto ao ponto
+- Use **negrito** para termos importantes
+- Cite artigos relevantes
+- Finalize com: "Quer que eu aprofunde?"
+
+NUNCA: respostas longas ou truncadas.`;
+}
 ```
 
-### 5.2 Layout do Modal Atualizado
+### Mudanças no Frontend
 
-```text
-[Imagem de capa horizontal]
-
-🏆 Plano Premium
-Vitalício
-R$ 89,90
-
-┌────────────────────────────────┐
-│  PIX           │    Cartão    │  ← Toggle
-└────────────────────────────────┘
-
-[Se PIX selecionado]
-• R$ 89,90 à vista
-• Aprovação instantânea
-[Botão: Pagar com PIX]
-
-[Se Cartão selecionado]
-Parcelas:
-○ 1x de R$ 89,90 (sem juros)
-○ 2x de R$ 49,39 (total: R$ 98,79)
-○ 3x de R$ 33,74 (total: R$ 101,24)
-...
-○ 10x de R$ 10,81 (total: R$ 108,09)
-
-[Botão: Pagar com Cartão]
+**`useStreamingChat.ts`**:
+```typescript
+// Usar 'concise' como padrão
+responseLevel: options.responseLevel || 'concise'
 ```
 
-### 5.3 Headlines na Página Principal
-
+**`ChatMessageNew.tsx`**:
 ```tsx
-// Entre a narração e o card do plano
-<div className="text-center mb-8">
-  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3">
-    Domine o Direito. Conquiste a Aprovação.
-  </h1>
-  <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto">
-    Acesso completo e vitalício a todo o conteúdo que você precisa.
-  </p>
-</div>
+// ANTES: text-[13px] durante streaming, text-[15px] após
+// DEPOIS: text-[15px] em ambos os casos
 
-// Benefícios em badges
-<div className="flex flex-wrap justify-center gap-2 mb-6">
-  <Badge>+30.000 questões OAB</Badge>
-  <Badge>Professora IA 24h</Badge>
-  <Badge>Sem anúncios</Badge>
-  <Badge>Vade Mecum completo</Badge>
-</div>
+<div className="text-[15px] leading-[1.7] text-foreground/90">
+  {content ? (
+    isStreaming ? (
+      <div className="streaming-markdown prose prose-sm dark:prose-invert max-w-none">
 ```
-
----
-
-## 6. Visual Final Esperado
-
-### Página de Assinatura
-
-```text
-┌─────────────────────────────────────┐
-│            [← Voltar]               │
-│                                     │
-│         [Hero Image]                │
-│                                     │
-│    "Frase de impacto narrada"       │
-│                                     │
-│ ══════════════════════════════════  │
-│                                     │
-│   Domine o Direito.                 │
-│   Conquiste a Aprovação.            │
-│                                     │
-│   Acesso completo e vitalício...    │
-│                                     │
-│   [🏆 Questões] [🤖 IA] [📚 Vade]   │
-│                                     │
-│ ┌─────────────────────────────────┐ │
-│ │  OFERTA ESPECIAL                │ │
-│ │  ⭐ RECOMENDADO                 │ │
-│ │  Vitalício                      │ │
-│ │                                 │ │
-│ │  ✓ Acesso ilimitado             │ │
-│ │  ✓ +30.000 questões             │ │
-│ │  ✓ IA 24h                       │ │
-│ │                                 │ │
-│ │  R$ 89,90 à vista               │ │
-│ │  ou 10x de R$ 10,81             │ │
-│ │                                 │ │
-│ │  [Ver mais →]                   │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│   🔒 Pagamento seguro via MP        │
-│                                     │
-│                          [WhatsApp] │
-└─────────────────────────────────────┘
-```
-
-### Modal de Detalhes
-
-```text
-┌─────────────────────────────────────┐
-│               [X]                   │
-│         [Capa Horizontal]           │
-│                                     │
-│ 🏆 Plano Premium                    │
-│ Vitalício                           │
-│ R$ 89,90                            │
-│                                     │
-│ ┌───────────────┬─────────────────┐ │
-│ │  ⚡ PIX       │   💳 Cartão     │ │
-│ └───────────────┴─────────────────┘ │
-│                                     │
-│ [Se Cartão]                         │
-│ ○ 1x R$ 89,90 (sem juros)           │
-│ ● 10x R$ 10,81 (total R$ 108,09)    │
-│                                     │
-│ [═══ Pagar com Cartão →═══]         │
-│                                     │
-│ ┌─────────────┬─────────────┐       │
-│ │  Funções    │   Sobre     │       │
-│ └─────────────┴─────────────┘       │
-│                                     │
-│ ✓ Acesso completo e ilimitado       │
-│ ✓ Experiência 100% sem anúncios     │
-│ ✓ Professora IA Evelyn 24h          │
-│ ...                                 │
-└─────────────────────────────────────┘
-```
-
----
-
-## Resumo das Mudanças
-
-| Componente | Mudança |
-|------------|---------|
-| `Assinatura.tsx` | Adicionar headline, subtítulo e badges de benefícios |
-| `PlanoCardNovo.tsx` | Mostrar benefícios + opção de parcelamento |
-| `PlanoDetalhesModal.tsx` | Toggle PIX/Cartão + seletor de parcelas |
-| `CheckoutCartao.tsx` | Expandir para 10x com cálculo de juros |
 
 ---
 
 ## Resultado Esperado
 
-| Aspecto | Antes | Depois |
+| Métrica | Antes | Depois |
 |---------|-------|--------|
-| Headline | Apenas frase aleatória | Título + subtítulo persuasivos |
-| Benefícios | Escondidos no modal | Visíveis no card principal |
-| Pagamento | Só PIX | PIX + Cartão (até 10x) |
-| Parcelamento | Não disponível | 10x de R$ 10,81 |
-| Visual | Funcional | Landing page de vendas |
+| Tempo até primeira letra | 6-14 segundos | 1-3 segundos |
+| Tamanho da resposta | 5.000+ palavras | 400-800 palavras |
+| Mudança de fonte durante streaming | Sim (13px → 15px) | Não (15px fixo) |
+| Experiência do usuário | Espera longa | Resposta quase instantânea |
+
+---
+
+## Arquivos a Modificar
+
+1. **`supabase/functions/chat-professora/prompt-templates.ts`** - Adicionar nível "concise"
+2. **`supabase/functions/chat-professora/index.ts`** - Simplificar prompt padrão, usar modelo mais rápido
+3. **`src/hooks/useStreamingChat.ts`** - Usar "concise" como padrão
+4. **`src/components/chat/ChatMessageNew.tsx`** - Corrigir tamanho de fonte durante streaming
+5. **`src/pages/ChatProfessora.tsx`** - Atualizar configuração de responseLevel
