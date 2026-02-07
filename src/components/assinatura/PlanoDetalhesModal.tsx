@@ -153,6 +153,20 @@ const conteudoSobre = {
   }
 };
 
+// Taxas do Mercado Pago "Na Hora" até R$3mil
+const INSTALLMENT_RATES: Record<number, number> = {
+  1: 0,
+  2: 0.0990,
+  3: 0.1128,
+  4: 0.1264,
+  5: 0.1397,
+  6: 0.1527,
+  7: 0.1655,
+  8: 0.1781,
+  9: 0.1904,
+  10: 0.2024,
+};
+
 const PlanoDetalhesModal = ({ 
   open, 
   onOpenChange, 
@@ -174,20 +188,28 @@ const PlanoDetalhesModal = ({
   // Aba de conteúdo: funções ou sobre
   const [contentTab, setContentTab] = useState<"funcoes" | "sobre">("funcoes");
 
-  // Vitalício = sempre PIX
-  const paymentMethod = "pix" as const;
+  // Método de pagamento: pix ou cartao
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao">("pix");
   const [showCardModal, setShowCardModal] = useState(false);
+  const [selectedInstallments, setSelectedInstallments] = useState(10);
 
   // Usar capa estática diretamente
   const staticCover = plano ? CAPAS_HORIZONTAIS_ESTATICAS[plano] : null;
 
-  // Sempre texto "Pagar" para Vitalício
-  const actionText = "Pagar";
+  // Calcular valor da parcela
+  const calculateInstallment = (installments: number) => {
+    const rate = INSTALLMENT_RATES[installments] || 0;
+    const total = (planConfig?.price || 89.90) * (1 + rate);
+    const perInstallment = total / installments;
+    return { total, perInstallment };
+  };
 
   // Reset ao fechar
   useEffect(() => {
     if (open && plano) {
       setContentTab("funcoes");
+      setPaymentMethod("pix");
+      setSelectedInstallments(10);
       // Track modal open
       trackPlanClick(plano, "open_modal");
     }
@@ -198,9 +220,14 @@ const PlanoDetalhesModal = ({
 
   const handlePaymentClick = () => {
     if (plano) {
-      trackPlanClick(plano, "select_pix");
+      if (paymentMethod === "pix") {
+        trackPlanClick(plano, "select_pix");
+        onPagar();
+      } else {
+        trackPlanClick(plano, "select_card");
+        setShowCardModal(true);
+      }
     }
-    onPagar();
   };
 
   const handleCardSuccess = () => {
@@ -273,11 +300,84 @@ const PlanoDetalhesModal = ({
             </div>
           )}
 
-          {/* Só PIX - informativo */}
-          <div className="mb-4 flex items-center justify-center gap-2 bg-zinc-900/80 border border-zinc-700 rounded-xl py-2.5">
-            <Zap className="w-4 h-4 text-amber-500" />
-            <span className="text-zinc-300 text-sm font-medium">Pagamento via PIX</span>
-          </div>
+          {/* Toggle PIX / Cartão */}
+          <ToggleGroup 
+            type="single" 
+            value={paymentMethod} 
+            onValueChange={(value) => value && setPaymentMethod(value as "pix" | "cartao")}
+            className="w-full bg-zinc-900/80 rounded-xl p-1 mb-4"
+          >
+            <ToggleGroupItem 
+              value="pix" 
+              className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2.5 text-sm font-medium transition-all text-zinc-400"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              PIX
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="cartao" 
+              className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2.5 text-sm font-medium transition-all text-zinc-400"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Cartão
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          {/* Informações de pagamento baseado no método */}
+          <AnimatePresence mode="wait">
+            {paymentMethod === "pix" ? (
+              <motion.div
+                key="pix-info"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl"
+              >
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-1">
+                  <Zap className="w-4 h-4" />
+                  R$ {planConfig.price.toFixed(2).replace('.', ',')} à vista
+                </div>
+                <p className="text-zinc-400 text-xs">Aprovação instantânea • Melhor preço</p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="card-info"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4"
+              >
+                {/* Seletor de parcelas */}
+                <div className="bg-zinc-900/80 border border-zinc-700 rounded-xl p-3 space-y-2">
+                  <p className="text-zinc-400 text-xs font-medium mb-2">Escolha as parcelas:</p>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                      const { total, perInstallment } = calculateInstallment(num);
+                      const isSelected = selectedInstallments === num;
+                      return (
+                        <button
+                          key={num}
+                          onClick={() => setSelectedInstallments(num)}
+                          className={`w-full flex items-center justify-between p-2 rounded-lg text-sm transition-all ${
+                            isSelected 
+                              ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400' 
+                              : 'bg-zinc-800/50 border border-transparent text-zinc-300 hover:bg-zinc-800'
+                          }`}
+                        >
+                          <span className="font-medium">
+                            {num}x de R$ {perInstallment.toFixed(2).replace('.', ',')}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {num === 1 ? '(sem juros)' : `(total: R$ ${total.toFixed(2).replace('.', ',')})`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Botão de pagamento principal - premium design */}
           <div className="h-14">
@@ -290,7 +390,7 @@ const PlanoDetalhesModal = ({
                   <Loader2 className="w-5 h-5 text-black" />
                 </motion.div>
                 <span className="text-black font-bold text-base">
-                  Gerando PIX...
+                  {paymentMethod === "pix" ? "Gerando PIX..." : "Processando..."}
                 </span>
               </div>
             ) : (
@@ -299,7 +399,17 @@ const PlanoDetalhesModal = ({
                 className="w-full h-full rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:via-amber-300 hover:to-yellow-400 text-black font-bold text-base shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-400/30 transition-all duration-300 group relative overflow-hidden"
               >
                 <span className="flex items-center justify-center">
-                  {actionText} com PIX
+                  {paymentMethod === "pix" ? (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Pagar com PIX
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pagar com Cartão
+                    </>
+                  )}
                 </span>
                 <motion.div
                   className="absolute right-4"
@@ -454,12 +564,13 @@ const PlanoDetalhesModal = ({
         <CheckoutCartaoModal
           open={showCardModal}
           onOpenChange={setShowCardModal}
-          amount={planConfig.price}
+          amount={calculateInstallment(selectedInstallments).total}
           planType={plano}
           planLabel={planConfig.label}
           userEmail={userEmail}
           userId={userId}
           onSuccess={handleCardSuccess}
+          installments={selectedInstallments}
         />
       )}
     </Dialog>
