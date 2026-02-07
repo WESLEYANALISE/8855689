@@ -105,15 +105,17 @@ export const PageHero = ({
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4">
         <div className="flex items-center gap-3">
-          {/* Back Button - Always show the black rounded style */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => backPath ? navigate(backPath) : navigate(-1)}
-            className="shrink-0 bg-black/80 backdrop-blur-sm hover:bg-black border border-white/20 rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </Button>
+          {/* Back Button - Only show when showBackButton is true */}
+          {showBackButton && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => backPath ? navigate(backPath) : navigate(-1)}
+              className="shrink-0 bg-black/80 backdrop-blur-sm hover:bg-black border border-white/20 rounded-full"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </Button>
+          )}
 
           {/* Icon */}
           <div className={`inline-flex items-center justify-center p-2 rounded-xl bg-gradient-to-br ${iconGradient} shrink-0`}>
