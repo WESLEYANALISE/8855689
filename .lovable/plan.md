@@ -1,97 +1,139 @@
 
-# Plano: Otimização de Desempenho da Seção de Questões
+# Plano: Melhorar Busca Global + Corrigir Botão Voltar
 
 ## Objetivo
-Refatorar completamente a página de Questões (`QuestoesHub.tsx`) para máximo desempenho:
-- Remover imagem de fundo (elimina carregamento de asset pesado)
-- Remover simulados específicos: TJSP, Concursos Federais, Defensoria, e Simulado Personalizado
-- Eliminar animações CSS pesadas
-- Manter design compatível com o estilo visual do app
+1. **Expandir a busca global** para incluir aulas de Conceitos e OAB Trilhas
+2. **Corrigir o botão voltar** para ir para o início do app (`/`) em vez de `/ferramentas`
 
 ---
 
-## Mudanças Planejadas
+## Problema Atual
 
-### 1. Remover Imagem de Fundo e Background Fixo
-**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
+### Busca Global
+A busca atual (`useBuscaGlobal.ts`) não inclui:
+- **Aulas de Conceitos** (tabela `conceitos_topicos`)
+- **Aulas OAB Trilhas** (tabela `oab_trilhas_temas`)
 
-**O que será removido:**
-- Import da imagem `questoesBackground`
-- Preload da imagem 
-- Elemento `<div className="fixed inset-0">` com a imagem
-- Overlay de gradiente sobre a imagem
-
-**O que será mantido:**
-- Background simples usando `bg-background` (cor sólida do tema)
-
----
-
-### 2. Remover Simulados Específicos
-**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
-
-**Itens a serem removidos da aba "Simulados":**
-| ID | Título | Motivo |
-|----|--------|--------|
-| `tjsp` | Concursos TJSP | Solicitado pelo usuário |
-| `concursos-federais` | Concursos Federais | Solicitado pelo usuário |
-| `defensoria` | Defensoria Pública | Solicitado pelo usuário |
-| `simulado-personalizado` | Simulado Personalizado | Solicitado pelo usuário |
-
-**O que permanece:**
-- Apenas "Exames OAB" (que já existe e funciona)
+### Botão Voltar
+No `Header.tsx` linha 158, a rota `/pesquisar` está configurada para voltar para `/ferramentas`:
+```typescript
+if (pathname === "/pesquisar") return "/ferramentas";
+```
 
 ---
 
-### 3. Eliminar Animações Pesadas
-**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
+## Solução Proposta
 
-**O que será removido:**
-- Tag `<style>` com keyframes `@keyframes slideDown`
-- Propriedades inline: `animation`, `opacity: 0`, `transform: translateY(-20px)`, `willChange`
+### 1. Adicionar Categorias de Aulas à Busca Global
 
-**Substituição:**
-- Cards aparecem imediatamente sem animação sequencial
-- Transições leves mantidas apenas para hover (`transition-colors`, `transition-transform`)
+**Arquivo:** `src/hooks/useBuscaGlobal.ts`
+
+**Novas categorias a adicionar:**
+
+| Categoria | Tabela | Campos Buscáveis | Rota |
+|-----------|--------|------------------|------|
+| Aulas Conceitos | `conceitos_topicos` | `titulo` | `/conceitos/topico/{id}` |
+| Aulas OAB Trilhas | `oab_trilhas_temas` | `titulo`, `area` | `/oab-trilhas/tema/{id}` |
+
+**Exemplo de resultado:**
+- "Pessoas Jurídicas: Conceituação e Constituição" → Conceitos
+- "Conflito aparente de normas" → OAB Trilhas (Direito Penal)
+
+### 2. Corrigir Rota do Botão Voltar
+
+**Arquivo:** `src/components/Header.tsx`
+
+**Alteração:**
+```typescript
+// ANTES
+if (pathname === "/pesquisar") return "/ferramentas";
+
+// DEPOIS  
+if (pathname === "/pesquisar") return "/";
+```
 
 ---
 
-### 4. Simplificar Design - Compatível com Home
-**Arquivo:** `src/pages/ferramentas/QuestoesHub.tsx`
+## Mudanças Técnicas
 
-**Novo layout:**
-- Header limpo com botão voltar, ícone e contador
-- Tabs simplificadas (Tema, Artigos, Simulados)
-- Cards com borda lateral colorida (mantém identidade visual)
-- Sem backdrop-blur pesado (apenas onde necessário)
-- Scroll nativo fluido
+### Arquivo 1: `src/hooks/useBuscaGlobal.ts`
+
+**Adicionar 2 novas categorias ao array `CATEGORIAS_CONFIG`:**
+
+```typescript
+{
+  id: 'aulas-conceitos',
+  nome: 'Aulas Conceitos',
+  icon: 'GraduationCap',
+  iconColor: 'text-teal-500',
+  tabelas: [
+    { 
+      nome: 'conceitos_topicos', 
+      colunas: ['titulo'], 
+      formatResult: (item) => ({
+        id: item.id, 
+        titulo: item.titulo, 
+        subtitulo: `Conceitos • ${item.materia?.nome || 'Matéria'}`,
+        imagem: item.capa_url,
+        route: `/conceitos/topico/${item.id}`
+      })
+    }
+  ]
+},
+{
+  id: 'aulas-oab',
+  nome: 'Aulas OAB Trilhas',
+  icon: 'Trophy',
+  iconColor: 'text-amber-500',
+  tabelas: [
+    { 
+      nome: 'oab_trilhas_temas', 
+      colunas: ['titulo', 'area'], 
+      formatResult: (item) => ({
+        id: item.id, 
+        titulo: item.titulo, 
+        subtitulo: `OAB • ${item.area}`,
+        route: `/oab-trilhas/tema/${item.id}`
+      })
+    }
+  ]
+}
+```
+
+### Arquivo 2: `src/components/Header.tsx`
+
+**Alteração na linha 158:**
+- De: `if (pathname === "/pesquisar") return "/ferramentas";`
+- Para: `if (pathname === "/pesquisar") return "/";`
+
+### Arquivo 3: `src/components/pesquisa/CategoriaCard.tsx`
+
+**Adicionar ícone Trophy ao mapa de ícones:**
+```typescript
+import { ..., Trophy } from "lucide-react";
+
+const iconMap: Record<string, React.ComponentType<any>> = {
+  ..., Trophy
+};
+```
 
 ---
 
-## Resumo Técnico das Alterações
+## Resumo das Alterações
 
-| Arquivo | Alterações |
+| Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/ferramentas/QuestoesHub.tsx` | Remover background, animações e simulados desnecessários |
+| `src/hooks/useBuscaGlobal.ts` | Adicionar categorias "Aulas Conceitos" e "Aulas OAB Trilhas" |
+| `src/components/Header.tsx` | Alterar rota de voltar de `/ferramentas` para `/` |
+| `src/components/pesquisa/CategoriaCard.tsx` | Adicionar ícone Trophy |
 
 ---
 
 ## Impacto Esperado
 
-| Métrica | Antes | Depois |
-|---------|-------|--------|
-| Asset de imagem | ~200KB carregado | 0KB (removido) |
-| Animações JS/CSS | Sequenciais com delay | Nenhuma |
-| Tempo renderização | ~500-800ms | ~50-100ms |
-| Itens na aba Simulados | 5 | 1 |
-
----
-
-## Design Final
-
-A página terá:
-- Fundo sólido escuro (tema dark padrão do app)
-- Header sticky com navegação
-- Tabs de navegação (3 abas)
-- Lista de cards com scroll nativo
-- Transições de hover suaves (sem animações de entrada)
-- Borda lateral colorida nos cards (identidade visual mantida)
+| Antes | Depois |
+|-------|--------|
+| Busca em 14 categorias | Busca em 16 categorias |
+| Não encontra aulas de Conceitos | Encontra aulas por título |
+| Não encontra aulas OAB Trilhas | Encontra aulas por título/área |
+| Botão volta para Ferramentas | Botão volta para Home |
