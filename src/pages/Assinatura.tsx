@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck } from "lucide-react";
+import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -15,7 +16,6 @@ import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface PlanConfig {
   price: number;
@@ -30,12 +30,16 @@ const PLANS: Record<PlanType, PlanConfig> = {
   vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'OFERTA ESPECIAL', featured: true }
 };
 
-// Benefícios em destaque para badges
-const BENEFIT_BADGES = [
+// Benefícios para o marquee infinito
+const BENEFIT_ITEMS = [
   { icon: BookOpen, text: "+30.000 questões OAB" },
   { icon: Bot, text: "IA Evelyn 24h" },
-  { icon: Sparkles, text: "Sem anúncios" },
+  { icon: Ban, text: "Sem anúncios" },
   { icon: BadgeCheck, text: "Vade Mecum completo" },
+  { icon: Headphones, text: "Audioaulas ilimitadas" },
+  { icon: Scale, text: "Súmulas atualizadas" },
+  { icon: FileText, text: "Modelos de petições" },
+  { icon: Sparkles, text: "Acesso vitalício" },
 ];
 
 
@@ -140,7 +144,7 @@ const Assinatura = () => {
           />
 
           {/* Headline persuasivo */}
-          <div className="text-center mt-6 sm:mt-8 mb-6">
+          <div className="text-center mt-6 sm:mt-8 mb-4">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
               Domine o Direito.<br className="sm:hidden" /> Conquiste a Aprovação.
             </h1>
@@ -149,18 +153,35 @@ const Assinatura = () => {
             </p>
           </div>
 
-          {/* Badges de benefícios */}
-          <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-lg mx-auto">
-            {BENEFIT_BADGES.map((benefit) => (
-              <Badge 
-                key={benefit.text}
-                variant="secondary" 
-                className="bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
-              >
-                <benefit.icon className="w-3.5 h-3.5 text-amber-500" />
-                {benefit.text}
-              </Badge>
-            ))}
+          {/* Marquee de benefícios - linha única com scroll infinito */}
+          <div className="relative overflow-hidden mb-6 py-3">
+            {/* Gradientes laterais para fade */}
+            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+            
+            <motion.div
+              className="flex gap-6 whitespace-nowrap"
+              animate={{ x: [0, -1200] }}
+              transition={{
+                x: {
+                  repeat: Infinity,
+                  repeatType: "loop",
+                  duration: 25,
+                  ease: "linear",
+                },
+              }}
+            >
+              {/* Duplicar items para loop infinito suave */}
+              {[...BENEFIT_ITEMS, ...BENEFIT_ITEMS, ...BENEFIT_ITEMS].map((benefit, index) => (
+                <div 
+                  key={`${benefit.text}-${index}`}
+                  className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/50 rounded-full px-4 py-2 flex-shrink-0"
+                >
+                  <benefit.icon className="w-4 h-4 text-amber-500" />
+                  <span className="text-zinc-300 text-sm font-medium">{benefit.text}</span>
+                </div>
+              ))}
+            </motion.div>
           </div>
 
           {/* Card do Plano Vitalício - único plano disponível */}
