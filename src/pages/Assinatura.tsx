@@ -154,19 +154,19 @@ const Assinatura = () => {
           </div>
 
           {/* Marquee de benefícios - linha única com scroll infinito */}
-          <div className="relative overflow-hidden mb-6 py-3">
+          <div className="relative overflow-hidden mb-6 py-2">
             {/* Gradientes laterais para fade */}
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
             
             <motion.div
-              className="flex gap-6 whitespace-nowrap"
-              animate={{ x: [0, -1200] }}
+              className="flex gap-4 whitespace-nowrap"
+              animate={{ x: [-1000, 0] }}
               transition={{
                 x: {
                   repeat: Infinity,
                   repeatType: "loop",
-                  duration: 25,
+                  duration: 30,
                   ease: "linear",
                 },
               }}
@@ -175,10 +175,10 @@ const Assinatura = () => {
               {[...BENEFIT_ITEMS, ...BENEFIT_ITEMS, ...BENEFIT_ITEMS].map((benefit, index) => (
                 <div 
                   key={`${benefit.text}-${index}`}
-                  className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/50 rounded-full px-4 py-2 flex-shrink-0"
+                  className="flex items-center gap-1.5 bg-zinc-900/50 border border-zinc-800/40 rounded-full px-3 py-1.5 flex-shrink-0"
                 >
-                  <benefit.icon className="w-4 h-4 text-amber-500" />
-                  <span className="text-zinc-300 text-sm font-medium">{benefit.text}</span>
+                  <benefit.icon className="w-3 h-3 text-amber-500" />
+                  <span className="text-zinc-400 text-xs">{benefit.text}</span>
                 </div>
               ))}
             </motion.div>
