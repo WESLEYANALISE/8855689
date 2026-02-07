@@ -107,11 +107,11 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-orange-500/20 rounded-xl">
-            <ScrollText className="w-5 h-5 text-orange-300" />
+          <div className="p-2 bg-amber-500/20 rounded-xl">
+            <ScrollText className="w-5 h-5 text-amber-100" />
           </div>
           <div>
-            <h3 className="font-playfair text-xl md:text-lg font-bold text-orange-200 tracking-tight">
+            <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">
               Resenha Diária
             </h3>
             <p className="text-white/70 text-xs">
@@ -123,20 +123,20 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
         <button
           onClick={() => handleNavigate('/vade-mecum/resenha-diaria')}
           onMouseEnter={() => handleLinkHover('/vade-mecum/resenha-diaria')}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-orange-500/20 text-orange-200 hover:bg-orange-500/30"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
         >
           <span>Ver tudo</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Container */}
-      <div className="bg-gradient-to-br from-orange-950 via-orange-900 to-orange-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-orange-800/30">
+      {/* Container - mesma estética do Em Alta */}
+      <div className="bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-red-800/30">
         {/* Navegação de Dias - Calendário horizontal */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
           {loadingDias ? (
             <div className="flex items-center justify-center w-full py-2">
-              <Loader2 className="w-4 h-4 animate-spin text-orange-300" />
+              <Loader2 className="w-4 h-4 animate-spin text-amber-100" />
             </div>
           ) : (
             lastDays.map((day) => {
@@ -149,7 +149,7 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
                   onClick={() => setSelectedDate(day)}
                   className={`flex flex-col items-center min-w-[52px] h-[60px] px-2 py-1.5 rounded-xl transition-all relative ${
                     isSelected 
-                      ? 'bg-white text-orange-900' 
+                      ? 'bg-white text-red-900' 
                       : temLeis
                         ? 'bg-white/15 text-white/90 hover:bg-white/20'
                         : 'bg-white/5 text-white/40 hover:bg-white/10'
@@ -157,7 +157,7 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
                 >
                   <span className={`text-[9px] uppercase font-medium ${
                     isSelected 
-                      ? 'text-orange-600' 
+                      ? 'text-red-600' 
                       : temLeis 
                         ? 'text-white/60' 
                         : 'text-white/30'
@@ -169,7 +169,7 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
                   </span>
                   <span className={`text-[9px] uppercase ${
                     isSelected 
-                      ? 'text-orange-600' 
+                      ? 'text-red-600' 
                       : temLeis 
                         ? 'text-white/50' 
                         : 'text-white/25'
@@ -179,7 +179,7 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
                   
                   {/* Indicador de que tem leis */}
                   {temLeis && !isSelected && (
-                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full" />
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full" />
                   )}
                 </button>
               );
@@ -190,10 +190,10 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
         {/* Lista de Leis */}
         {loadingLeis ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-5 h-5 animate-spin text-orange-300" />
+            <Loader2 className="w-5 h-5 animate-spin text-amber-100" />
           </div>
         ) : leisDoDia.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-orange-300/60">
+          <div className="flex flex-col items-center justify-center py-6 text-amber-100/60">
             <ScrollText className="w-8 h-8 mb-2 opacity-40" />
             <p className="text-xs text-center">
               {selectedDate && isToday(selectedDate) 
@@ -207,12 +207,12 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
               <button
                 key={lei.id}
                 onClick={() => handleLeiClick(lei)}
-                className="w-full bg-white/10 hover:bg-white/15 rounded-xl p-3 text-left transition-all group border border-white/5 hover:border-orange-400/30"
+                className="w-full bg-white/10 hover:bg-white/15 rounded-xl p-3 text-left transition-all group border border-white/5 hover:border-amber-400/30"
               >
                 <div className="flex items-start gap-3">
-                  <Scale className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                  <Scale className="w-4 h-4 text-amber-100 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white text-sm group-hover:text-orange-200 transition-colors">
+                    <h4 className="font-semibold text-white text-sm group-hover:text-amber-100 transition-colors">
                       {lei.numero_lei}
                     </h4>
                     {lei.ementa && (
@@ -221,7 +221,7 @@ export const ResenhaHojeSection = memo(({ isDesktop, navigate, handleLinkHover }
                       </p>
                     )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-orange-300 flex-shrink-0 mt-0.5" />
+                  <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-amber-100 flex-shrink-0 mt-0.5" />
                 </div>
               </button>
             ))}

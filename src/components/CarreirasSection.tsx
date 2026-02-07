@@ -35,11 +35,11 @@ export const CarreirasSection = memo(({ isDesktop, navigate, handleLinkHover }: 
       {/* Header FORA do container */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/20 rounded-xl">
-            <Briefcase className="w-5 h-5 text-blue-300" />
+          <div className="p-2 bg-amber-500/20 rounded-xl">
+            <Briefcase className="w-5 h-5 text-amber-100" />
           </div>
           <div>
-            <h3 className="font-playfair text-xl md:text-lg font-bold text-blue-200 tracking-tight">
+            <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">
               Carreiras
             </h3>
             <p className="text-white/70 text-xs">
@@ -52,15 +52,15 @@ export const CarreirasSection = memo(({ isDesktop, navigate, handleLinkHover }: 
         <button
           onClick={() => handleNavigate('/carreiras-juridicas')}
           onMouseEnter={() => handleLinkHover('/carreiras-juridicas')}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-blue-500/20 text-blue-200 hover:bg-blue-500/30"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
         >
           <span>Ver mais</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Container azul */}
-      <div className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950/95 rounded-3xl p-4 md:p-4 relative overflow-hidden shadow-2xl border border-blue-800/30">
+      {/* Container - mesma estética do Em Alta */}
+      <div className="bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-3xl p-4 md:p-4 relative overflow-hidden shadow-2xl border border-red-800/30">
         {/* Grid de Cards de Carreiras com imagens */}
         <div className={`grid gap-3 relative z-10 ${isDesktop ? 'grid-cols-6' : 'grid-cols-2'}`}>
           {itensCarreiras.map((item) => (
