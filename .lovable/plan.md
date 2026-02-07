@@ -1,139 +1,105 @@
 
-# Plano: Melhorar Busca Global + Corrigir Botão Voltar
+# Plano: Carregamento Instantâneo das Bibliotecas
 
-## Objetivo
-1. **Expandir a busca global** para incluir aulas de Conceitos e OAB Trilhas
-2. **Corrigir o botão voltar** para ir para o início do app (`/`) em vez de `/ferramentas`
+## Problema Identificado
 
----
+A página `/bibliotecas` utiliza:
+1. **Imagem de fundo pesada**: `biblioteca-office-sunset.jpg` (214KB - formato JPG)
+2. **8 capas de bibliotecas** em formato JPG não otimizado:
+   - `capa-lideranca.jpg` (159KB)
+   - `capa-fora-da-toga.jpg` (49KB)
+   - `capa-classicos.jpg` (69KB)
+   - `capa-oratoria.jpg` (159KB)
+   - `capa-pesquisa-cientifica.jpg` (243KB)
+   - `capa-portugues.jpg` (189KB)
+   - `capa-biblioteca-oab.jpg` (36KB)
+   - `capa-estudos-opt.webp` (49KB - já otimizada)
 
-## Problema Atual
-
-### Busca Global
-A busca atual (`useBuscaGlobal.ts`) não inclui:
-- **Aulas de Conceitos** (tabela `conceitos_topicos`)
-- **Aulas OAB Trilhas** (tabela `oab_trilhas_temas`)
-
-### Botão Voltar
-No `Header.tsx` linha 158, a rota `/pesquisar` está configurada para voltar para `/ferramentas`:
-```typescript
-if (pathname === "/pesquisar") return "/ferramentas";
-```
+**Total: ~1.2MB de imagens** que não estão sendo pré-carregadas no início do app.
 
 ---
 
 ## Solução Proposta
 
-### 1. Adicionar Categorias de Aulas à Busca Global
+### 1. Adicionar Todas as Capas ao GlobalImagePreloader
 
-**Arquivo:** `src/hooks/useBuscaGlobal.ts`
+**Arquivo:** `src/components/GlobalImagePreloader.tsx`
 
-**Novas categorias a adicionar:**
+Adicionar as imagens das bibliotecas ao array `SUPER_CRITICAL_IMAGES` para que sejam pré-carregadas via `<link rel="preload">` assim que o app iniciar:
 
-| Categoria | Tabela | Campos Buscáveis | Rota |
-|-----------|--------|------------------|------|
-| Aulas Conceitos | `conceitos_topicos` | `titulo` | `/conceitos/topico/{id}` |
-| Aulas OAB Trilhas | `oab_trilhas_temas` | `titulo`, `area` | `/oab-trilhas/tema/{id}` |
-
-**Exemplo de resultado:**
-- "Pessoas Jurídicas: Conceituação e Constituição" → Conceitos
-- "Conflito aparente de normas" → OAB Trilhas (Direito Penal)
-
-### 2. Corrigir Rota do Botão Voltar
-
-**Arquivo:** `src/components/Header.tsx`
-
-**Alteração:**
 ```typescript
-// ANTES
-if (pathname === "/pesquisar") return "/ferramentas";
-
-// DEPOIS  
-if (pathname === "/pesquisar") return "/";
+// Importar capas das bibliotecas
+import heroBibliotecas from '@/assets/biblioteca-office-sunset.jpg';
+import capaLideranca from '@/assets/capa-lideranca.jpg';
+import capaForaDaToga from '@/assets/capa-fora-da-toga.jpg';
+import capaEstudos from '@/assets/capa-estudos-opt.webp';
+import capaClassicos from '@/assets/capa-classicos.jpg';
+import capaOratoria from '@/assets/capa-oratoria.jpg';
+import capaPesquisaCientifica from '@/assets/capa-pesquisa-cientifica.jpg';
+import capaPortugues from '@/assets/capa-portugues.jpg';
+import capaOab from '@/assets/capa-biblioteca-oab.jpg';
 ```
+
+### 2. Otimizar Página de Bibliotecas
+
+**Arquivo:** `src/pages/Bibliotecas.tsx`
+
+- Remover animações de Framer Motion pesadas
+- Usar detecção de cache instantâneo para mostrar imagens sem delay
+- Configurar `loading="eager"`, `fetchPriority="high"` e `decoding="sync"` nas imagens críticas
 
 ---
 
-## Mudanças Técnicas
-
-### Arquivo 1: `src/hooks/useBuscaGlobal.ts`
-
-**Adicionar 2 novas categorias ao array `CATEGORIAS_CONFIG`:**
-
-```typescript
-{
-  id: 'aulas-conceitos',
-  nome: 'Aulas Conceitos',
-  icon: 'GraduationCap',
-  iconColor: 'text-teal-500',
-  tabelas: [
-    { 
-      nome: 'conceitos_topicos', 
-      colunas: ['titulo'], 
-      formatResult: (item) => ({
-        id: item.id, 
-        titulo: item.titulo, 
-        subtitulo: `Conceitos • ${item.materia?.nome || 'Matéria'}`,
-        imagem: item.capa_url,
-        route: `/conceitos/topico/${item.id}`
-      })
-    }
-  ]
-},
-{
-  id: 'aulas-oab',
-  nome: 'Aulas OAB Trilhas',
-  icon: 'Trophy',
-  iconColor: 'text-amber-500',
-  tabelas: [
-    { 
-      nome: 'oab_trilhas_temas', 
-      colunas: ['titulo', 'area'], 
-      formatResult: (item) => ({
-        id: item.id, 
-        titulo: item.titulo, 
-        subtitulo: `OAB • ${item.area}`,
-        route: `/oab-trilhas/tema/${item.id}`
-      })
-    }
-  ]
-}
-```
-
-### Arquivo 2: `src/components/Header.tsx`
-
-**Alteração na linha 158:**
-- De: `if (pathname === "/pesquisar") return "/ferramentas";`
-- Para: `if (pathname === "/pesquisar") return "/";`
-
-### Arquivo 3: `src/components/pesquisa/CategoriaCard.tsx`
-
-**Adicionar ícone Trophy ao mapa de ícones:**
-```typescript
-import { ..., Trophy } from "lucide-react";
-
-const iconMap: Record<string, React.ComponentType<any>> = {
-  ..., Trophy
-};
-```
-
----
-
-## Resumo das Alterações
+## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/hooks/useBuscaGlobal.ts` | Adicionar categorias "Aulas Conceitos" e "Aulas OAB Trilhas" |
-| `src/components/Header.tsx` | Alterar rota de voltar de `/ferramentas` para `/` |
-| `src/components/pesquisa/CategoriaCard.tsx` | Adicionar ícone Trophy |
+| `src/components/GlobalImagePreloader.tsx` | Adicionar 8 capas de biblioteca ao preload |
+| `src/pages/Bibliotecas.tsx` | Remover animações pesadas, usar preload instantâneo |
 
 ---
 
 ## Impacto Esperado
 
-| Antes | Depois |
-|-------|--------|
-| Busca em 14 categorias | Busca em 16 categorias |
-| Não encontra aulas de Conceitos | Encontra aulas por título |
-| Não encontra aulas OAB Trilhas | Encontra aulas por título/área |
-| Botão volta para Ferramentas | Botão volta para Home |
+| Métrica | Antes | Depois |
+|---------|-------|--------|
+| Tempo de carregamento | ~2-3s | <100ms (cache) |
+| Imagens pré-carregadas | 0/9 | 9/9 |
+| Animações sequenciais | 8 delays | Nenhum |
+| Flash branco | Visível | Eliminado |
+
+---
+
+## Seção Técnica
+
+### Fluxo de Preload
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  App Inicia                                                      │
+│  └── GlobalImagePreloader monta                                  │
+│       └── insertPreloadLinks() executa                          │
+│            └── <link rel="preload"> criados no <head>           │
+│                 └── Browser baixa imagens em paralelo (alta     │
+│                      prioridade)                                 │
+│                                                                  │
+│  Usuário Navega para /bibliotecas                               │
+│  └── Imagens já em cache do browser                             │
+│       └── img.complete = true                                    │
+│            └── Estado inicia como loaded                        │
+│                 └── ZERO delay de renderização                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Verificação de Cache Instantâneo
+
+O código usa verificação síncrona no `useState` inicial:
+```typescript
+const [imageLoaded, setImageLoaded] = useState(() => {
+  const img = new Image();
+  img.src = heroBibliotecas;
+  return img.complete; // Retorna true se já em cache
+});
+```
+
+Quando a imagem já foi pré-carregada pelo GlobalImagePreloader, `img.complete` retorna `true` imediatamente, eliminando qualquer loading.
