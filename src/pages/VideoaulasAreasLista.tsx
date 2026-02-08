@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, Search, Footprints } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Play, Search, Footprints, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import videoaulasBackground from "@/assets/videoaulas-oab-background.jpg";
 import { AREAS_PLAYLISTS, AreaPlaylist } from "@/data/videoaulasAreasPlaylists";
+import { supabase } from "@/integrations/supabase/client";
 
 // Função para simplificar nome da área (remove "Direito" do início)
 const simplifyAreaName = (areaName: string): string => {
@@ -17,24 +19,83 @@ const simplifyAreaName = (areaName: string): string => {
   return areaName;
 };
 
-// Função para obter thumbnail do YouTube
-const getYouTubeThumbnail = (playlistId: string): string | null => {
-  // Playlists começam com PL, então não temos thumbnail direta
-  // Para vídeos únicos, podemos usar a thumbnail
-  if (!playlistId.startsWith('PL')) {
-    return `https://img.youtube.com/vi/${playlistId}/mqdefault.jpg`;
-  }
-  return null;
-};
+interface AreaWithStats {
+  nome: string;
+  playlistId: string;
+  playlistUrl: string;
+  thumbnail: string | null;
+  count: number;
+}
 
 const VideoaulasAreasLista = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Buscar estatísticas de vídeos por área (do banco de dados)
+  const { data: areasWithStats, isLoading } = useQuery({
+    queryKey: ["videoaulas-areas-stats"],
+    queryFn: async () => {
+      // Buscar todos os vídeos para obter thumbnails e contagens por área
+      const { data, error } = await supabase
+        .from("VIDEO AULAS-NOVO" as any)
+        .select("area, thumb, link")
+        .order("titulo", { ascending: true });
+      
+      if (error) throw error;
+
+      // Mapear as áreas das playlists com dados do banco
+      const areaStatsMap: Record<string, { thumbnail: string | null; count: number }> = {};
+      
+      (data || []).forEach((video: any) => {
+        const areaName = video.area?.trim();
+        if (!areaName) return;
+        
+        // Encontrar a área correspondente nas playlists
+        const matchingPlaylist = AREAS_PLAYLISTS.find(
+          p => p.nome.toLowerCase() === areaName.toLowerCase()
+        );
+        
+        if (matchingPlaylist) {
+          if (!areaStatsMap[matchingPlaylist.nome]) {
+            areaStatsMap[matchingPlaylist.nome] = {
+              thumbnail: video.thumb || null,
+              count: 0
+            };
+          }
+          areaStatsMap[matchingPlaylist.nome].count++;
+          // Usar a primeira thumbnail encontrada
+          if (!areaStatsMap[matchingPlaylist.nome].thumbnail && video.thumb) {
+            areaStatsMap[matchingPlaylist.nome].thumbnail = video.thumb;
+          }
+        }
+      });
+
+      // Combinar com as playlists definidas
+      return AREAS_PLAYLISTS.map(playlist => ({
+        ...playlist,
+        thumbnail: areaStatsMap[playlist.nome]?.thumbnail || null,
+        count: areaStatsMap[playlist.nome]?.count || 0
+      }));
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
   // Filtrar pelo termo de pesquisa
-  const filteredAreas = AREAS_PLAYLISTS.filter((area) =>
-    area.nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAreas = useMemo(() => {
+    const areas = areasWithStats || AREAS_PLAYLISTS.map(p => ({ ...p, thumbnail: null, count: 0 }));
+    if (!searchTerm.trim()) return areas;
+    return areas.filter((area) =>
+      area.nome.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [areasWithStats, searchTerm]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
@@ -95,7 +156,6 @@ const VideoaulasAreasLista = () => {
           <div className="space-y-6">
             {filteredAreas?.map((area, index) => {
               const isLeft = index % 2 === 0;
-              const thumbnail = getYouTubeThumbnail(area.playlistId);
               const displayName = simplifyAreaName(area.nome);
 
               return (
@@ -117,15 +177,15 @@ const VideoaulasAreasLista = () => {
                       >
                         {/* Thumbnail */}
                         <div className="relative aspect-video bg-neutral-800">
-                          {thumbnail ? (
+                          {area.thumbnail ? (
                             <img
-                              src={thumbnail}
+                              src={area.thumbnail}
                               alt={area.nome}
                               className="w-full h-full object-cover"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/40 to-background">
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/40 to-neutral-900">
                               <Play className="w-8 h-8 text-red-400/50" />
                             </div>
                           )}
@@ -137,9 +197,9 @@ const VideoaulasAreasLista = () => {
                             </div>
                           </div>
                           
-                          {/* Badge playlist */}
+                          {/* Badge de quantidade */}
                           <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded">
-                            Playlist
+                            {area.count > 0 ? `${area.count} aulas` : 'Playlist'}
                           </div>
                         </div>
 
@@ -186,15 +246,15 @@ const VideoaulasAreasLista = () => {
                       >
                         {/* Thumbnail */}
                         <div className="relative aspect-video bg-neutral-800">
-                          {thumbnail ? (
+                          {area.thumbnail ? (
                             <img
-                              src={thumbnail}
+                              src={area.thumbnail}
                               alt={area.nome}
                               className="w-full h-full object-cover"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/40 to-background">
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/40 to-neutral-900">
                               <Play className="w-8 h-8 text-red-400/50" />
                             </div>
                           )}
@@ -206,9 +266,9 @@ const VideoaulasAreasLista = () => {
                             </div>
                           </div>
                           
-                          {/* Badge playlist */}
+                          {/* Badge de quantidade */}
                           <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded">
-                            Playlist
+                            {area.count > 0 ? `${area.count} aulas` : 'Playlist'}
                           </div>
                         </div>
 
@@ -247,15 +307,6 @@ const VideoaulasAreasLista = () => {
             <div className="text-center py-12">
               <p className="text-white/60">
                 Nenhuma área encontrada para "{searchTerm}"
-              </p>
-            </div>
-          )}
-
-          {/* Mensagem se vazio */}
-          {filteredAreas?.length === 0 && !searchTerm && (
-            <div className="text-center py-12">
-              <p className="text-white/60">
-                Nenhuma área disponível
               </p>
             </div>
           )}

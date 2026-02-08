@@ -1,250 +1,444 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Video, ArrowLeft, Search, Loader2, Play, Clock, ExternalLink } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import HeroBackground from "@/components/HeroBackground";
-import heroVideoaulas from "@/assets/hero-videoaulas.webp";
-import BackButton from "@/components/BackButton";
-import { AREAS_PLAYLISTS } from "@/data/videoaulasAreasPlaylists";
 import { supabase } from "@/integrations/supabase/client";
+import { Video, ArrowLeft, Loader2, Search, Play, History, Clock, X, ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { AREAS_PLAYLISTS } from "@/data/videoaulasAreasPlaylists";
 
-interface VideoItem {
-  id: string;
-  videoId: string;
+interface VideoaulaArea {
+  id: number;
   titulo: string;
-  thumbnail: string;
-  duracao?: string;
+  area: string;
+  link: string;
+  thumb: string | null;
+  tempo: string | null;
 }
 
-// Função para extrair ID do vídeo de uma URL do YouTube
+type MainTabType = "videos" | "historico";
+
+interface HistoricoVideo {
+  id: string;
+  video_id: string;
+  titulo: string;
+  thumbnail: string | null;
+  assistido_em: string;
+  progresso_segundos: number;
+  duracao_total?: number;
+  rota: string;
+}
+
+// Extrai ID do vídeo do YouTube
 const extractVideoId = (url: string): string => {
   const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
   return match ? match[1] : '';
 };
 
-const VideoCard = ({ video, index, areaNome }: { video: VideoItem; index: number; areaNome: string }) => {
-  const navigate = useNavigate();
-  const [imageLoaded, setImageLoaded] = useState(false);
-  
-  const handleClick = () => {
-    // Navegar para o player com o vídeo específico
-    navigate(`/videoaulas/player?link=https://www.youtube.com/watch?v=${video.videoId}&area=${encodeURIComponent(areaNome)}`);
-  };
-
-  return (
-    <Card
-      onClick={handleClick}
-      className="cursor-pointer hover:scale-[1.02] hover:shadow-2xl transition-all border border-accent/20 hover:border-red-500/50 bg-card group shadow-xl overflow-hidden"
-    >
-      <div className="relative aspect-video bg-secondary overflow-hidden">
-        <div 
-          className={cn(
-            "absolute inset-0 skeleton-shimmer transition-opacity duration-300",
-            imageLoaded ? "opacity-0" : "opacity-100"
-          )}
-        />
-        
-        <img
-          src={video.thumbnail}
-          alt={video.titulo}
-          loading={index < 6 ? "eager" : "lazy"}
-          className={cn(
-            "w-full h-full object-cover transition-all duration-300 group-hover:scale-105",
-            imageLoaded ? "opacity-100" : "opacity-0"
-          )}
-          onLoad={() => setImageLoaded(true)}
-        />
-        
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/50 transition-colors">
-          {video.duracao && (
-            <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {video.duracao}
-            </div>
-          )}
-        </div>
-        
-        {/* Play button */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-red-600 rounded-full p-3 shadow-lg">
-            <Play className="w-6 h-6 text-white" />
-          </div>
-        </div>
-      </div>
-      
-      <CardContent className="p-3">
-        <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-red-400 transition-colors">
-          {video.titulo}
-        </h3>
-      </CardContent>
-    </Card>
-  );
+// Função para simplificar nome da área
+const simplifyAreaName = (areaName: string): string => {
+  const prefixesToRemove = ['Direito ', 'Legislação '];
+  for (const prefix of prefixesToRemove) {
+    if (areaName.startsWith(prefix)) {
+      return areaName.replace(prefix, '');
+    }
+  }
+  return areaName;
 };
 
 const VideoaulasAreaVideos = () => {
   const navigate = useNavigate();
-  const { area } = useParams<{ area: string }>();
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  const decodedArea = decodeURIComponent(area || '');
-  
-  // Encontrar a playlist correspondente à área
+  const { area } = useParams();
+  const decodedArea = decodeURIComponent(area || "");
+  const [search, setSearch] = useState("");
+  const [mainTab, setMainTab] = useState<MainTabType>("videos");
+
+  // Encontrar playlist correspondente
   const areaPlaylist = AREAS_PLAYLISTS.find(
     p => p.nome.toLowerCase() === decodedArea.toLowerCase()
   );
 
-  // Buscar vídeos da playlist (via edge function ou diretamente do banco)
-  const { data: videos, isLoading, error } = useQuery({
-    queryKey: ['videoaulas-area-videos', areaPlaylist?.playlistId],
+  const { data: videoaulas, isLoading } = useQuery({
+    queryKey: ["videoaulas-area-videos", decodedArea],
     queryFn: async () => {
-      if (!areaPlaylist) return [];
+      const { data, error } = await supabase
+        .from("VIDEO AULAS-NOVO" as any)
+        .select("id, titulo, area, link, thumb, tempo")
+        .ilike("area", `%${decodedArea}%`)
+        .order("titulo", { ascending: true });
       
-      // Primeiro, tentar buscar do banco de dados (se já foram indexados)
-      const { data: dbVideos, error: dbError } = await supabase
-        .from('VIDEO AULAS-NOVO' as any)
-        .select('*')
-        .ilike('area', `%${decodedArea}%`)
-        .order('titulo', { ascending: true });
-      
-      if (dbVideos && dbVideos.length > 0) {
-        return dbVideos.map((v: any) => ({
-          id: v.id?.toString() || extractVideoId(v.link),
-          videoId: extractVideoId(v.link),
-          titulo: v.titulo || 'Sem título',
-          thumbnail: v.thumb || `https://img.youtube.com/vi/${extractVideoId(v.link)}/mqdefault.jpg`,
-          duracao: v.tempo
-        }));
-      }
-      
-      // Se não encontrar no banco, usar os dados da playlist via API do YouTube
-      // Por agora, retornar array vazio e mostrar link externo
-      return [];
+      if (error) throw error;
+      return data as unknown as VideoaulaArea[];
     },
-    staleTime: 1000 * 60 * 30, // 30 minutos de cache
-    enabled: !!areaPlaylist
+    enabled: !!decodedArea,
   });
 
-  const filteredVideos = (videos || []).filter((video: VideoItem) =>
-    video.titulo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Buscar histórico de vídeos assistidos
+  const { data: historico, isLoading: loadingHistorico } = useQuery({
+    queryKey: ['videoaulas-areas-historico', decodedArea],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-  if (!areaPlaylist) {
-    return (
-      <div className="px-3 py-4 max-w-4xl mx-auto">
-        <BackButton to="/videoaulas/areas" className="mb-4" />
-        <div className="text-center py-12">
-          <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-bold mb-2">Área não encontrada</h2>
-          <p className="text-muted-foreground mb-4">
-            A área "{decodedArea}" não foi encontrada.
-          </p>
-          <Button onClick={() => navigate('/videoaulas/areas')}>
-            Voltar para Áreas
-          </Button>
-        </div>
-      </div>
+      const { data, error } = await supabase
+        .from('videoaulas_progresso')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('tabela', 'VIDEO AULAS-NOVO')
+        .order('updated_at', { ascending: false })
+        .limit(30);
+
+      if (error) {
+        console.error('Erro ao buscar histórico:', error);
+        return [];
+      }
+
+      const historicoFormatado: HistoricoVideo[] = [];
+
+      for (const item of data || []) {
+        // Buscar detalhes do vídeo
+        const videoInfo = videoaulas?.find(v => String(v.id) === item.registro_id);
+        
+        if (videoInfo) {
+          const videoId = extractVideoId(videoInfo.link);
+          historicoFormatado.push({
+            id: item.id,
+            video_id: videoId,
+            titulo: videoInfo.titulo,
+            thumbnail: videoInfo.thumb || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+            assistido_em: item.updated_at,
+            progresso_segundos: item.tempo_atual || 0,
+            duracao_total: item.duracao_total || undefined,
+            rota: `/videoaulas/areas/${encodeURIComponent(decodedArea)}/${videoInfo.id}`
+          });
+        }
+      }
+
+      return historicoFormatado;
+    },
+    enabled: mainTab === 'historico' && !!videoaulas,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const filteredVideos = useMemo(() => {
+    if (!videoaulas) return [];
+    if (!search.trim()) return videoaulas;
+    return videoaulas.filter(v =>
+      v.titulo.toLowerCase().includes(search.toLowerCase())
     );
-  }
+  }, [videoaulas, search]);
+
+  const totalVideos = videoaulas?.length || 0;
+
+  // Formatar tempo
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Formatar data relativa
+  const formatRelativeDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `Há ${diffMins} min`;
+    if (diffHours < 24) return `Há ${diffHours}h`;
+    if (diffDays < 7) return `Há ${diffDays} dias`;
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  };
 
   return (
-    <div className="px-3 py-4 max-w-4xl mx-auto relative min-h-screen">
-      <HeroBackground imageSrc={heroVideoaulas} height="50vh" />
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-lg mx-auto px-4 py-3">
+          <button 
+            onClick={() => navigate('/videoaulas/areas')}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+        </div>
+      </div>
       
-      <div className="relative z-10">
-        {/* Botão Voltar */}
-        <BackButton to="/videoaulas/areas" className="mb-4" />
-        
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-600 shadow-lg shadow-red-500/50">
-              <Video className="w-6 h-6 text-white" />
+      {/* Header da Área */}
+      <div className="pt-4 pb-4 px-4">
+        <div className="max-w-lg mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                  ÁREAS DO DIREITO
+                </span>
+                <h1 className="text-lg font-bold mt-1">{simplifyAreaName(decodedArea)}</h1>
+                <p className="text-xs text-muted-foreground">{totalVideos} aulas disponíveis</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl md:text-2xl font-bold">{decodedArea}</h1>
-              <p className="text-sm text-muted-foreground">
-                {isLoading ? 'Carregando...' : `${filteredVideos.length} vídeos disponíveis`}
-              </p>
+
+            {/* Link para playlist externa */}
+            {areaPlaylist && (
+              <a
+                href={areaPlaylist.playlistUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs text-red-400 hover:text-red-300 transition-colors mb-4"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Abrir playlist no YouTube
+              </a>
+            )}
+            
+            {/* Barra de pesquisa */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Pesquisar aula..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 pr-10 bg-secondary/50"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+
+            {/* Tabs Vídeos / Histórico */}
+            <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTabType)} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-neutral-900/80 border border-red-700/30 p-1 h-11">
+                <TabsTrigger 
+                  value="videos"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-700 data-[state=active]:to-red-800 data-[state=active]:text-white text-muted-foreground gap-2"
+                >
+                  <Video className="w-4 h-4" />
+                  Vídeos
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="historico"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-700 data-[state=active]:to-red-800 data-[state=active]:text-white text-muted-foreground gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  Histórico
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Content based on tab */}
+      {mainTab === "videos" && (
+        <div className="px-4 pb-24">
+          <div className="max-w-lg mx-auto">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+              <Video className="w-4 h-4" />
+              Lista de Aulas
+            </h2>
+            
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+              </div>
+            ) : filteredVideos.length > 0 ? (
+              <div className="space-y-2">
+                {filteredVideos.map((video, index) => (
+                  <VideoListItem
+                    key={video.id}
+                    video={video}
+                    index={index}
+                    area={decodedArea}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>{search ? "Nenhuma aula encontrada" : "Nenhuma videoaula indexada ainda"}</p>
+                {areaPlaylist && !search && (
+                  <a
+                    href={areaPlaylist.playlistUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Assistir no YouTube
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Histórico Tab */}
+      {mainTab === "historico" && (
+        <div className="px-4 pb-24">
+          <div className="max-w-lg mx-auto">
+            {loadingHistorico ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+              </div>
+            ) : !historico || historico.length === 0 ? (
+              <div className="text-center py-12">
+                <History className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-muted-foreground text-lg font-medium mb-2">Nenhum vídeo assistido</p>
+                <p className="text-muted-foreground/70 text-sm">Os vídeos que você assistir aparecerão aqui</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[calc(100vh-320px)]">
+                <div className="space-y-3 pb-8">
+                  {historico.map((video) => (
+                    <motion.button
+                      key={video.id}
+                      onClick={() => navigate(video.rota)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="w-full bg-neutral-900/80 hover:bg-neutral-800/90 border border-white/5 hover:border-red-500/30 rounded-xl p-2.5 flex gap-3 items-start transition-all group"
+                    >
+                      {/* Thumbnail com progresso */}
+                      <div className="shrink-0 relative w-28 aspect-video rounded-lg overflow-hidden bg-neutral-800">
+                        <img 
+                          src={video.thumbnail || ''} 
+                          alt={video.titulo}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {/* Play icon overlay */}
+                        <div className="absolute inset-0 bg-black/15 flex items-center justify-center group-hover:bg-black/25 transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-red-600/70 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-red-600/90 transition-all">
+                            <Play className="w-3 h-3 text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
+                        {/* Barra de progresso */}
+                        {video.duracao_total && video.duracao_total > 0 && (
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
+                            <div 
+                              className="h-full bg-red-600"
+                              style={{ width: `${Math.min((video.progresso_segundos / video.duracao_total) * 100, 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Conteúdo */}
+                      <div className="flex-1 text-left min-w-0 py-0.5">
+                        <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-red-400 transition-colors leading-snug">
+                          {video.titulo}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatRelativeDate(video.assistido_em)}</span>
+                          {video.progresso_segundos > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>{formatTime(video.progresso_segundos)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Componente de item da lista
+const VideoListItem = ({ 
+  video, 
+  index, 
+  area,
+}: { 
+  video: VideoaulaArea; 
+  index: number; 
+  area: string;
+}) => {
+  const navigate = useNavigate();
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const videoId = extractVideoId(video.link);
+  const thumbnail = video.thumb || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.02 }}
+      onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(area)}/${video.id}`)}
+      className="w-full text-left border rounded-xl transition-all overflow-hidden bg-neutral-800/90 hover:bg-neutral-700/90 border-neutral-700/50 hover:border-red-500/30"
+    >
+      <div className="flex items-center">
+        {/* Thumbnail */}
+        <div className="relative w-24 h-16 flex-shrink-0 bg-neutral-800 rounded-l-xl overflow-hidden">
+          <>
+            <div className={cn(
+              "absolute inset-0 bg-neutral-700 animate-pulse transition-opacity",
+              imageLoaded ? "opacity-0" : "opacity-100"
+            )} />
+            <img 
+              src={thumbnail} 
+              alt={video.titulo}
+              className={cn(
+                "w-full h-full object-cover transition-opacity",
+                imageLoaded ? "opacity-100" : "opacity-0"
+              )}
+              loading="lazy"
+              onLoad={() => setImageLoaded(true)}
+            />
+          </>
+          
+          {/* Play overlay */}
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-red-600/80 flex items-center justify-center">
+              <Play className="w-4 h-4 text-white ml-0.5" fill="white" />
             </div>
           </div>
           
-          {/* Link direto para playlist */}
-          <a
-            href={areaPlaylist.playlistUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors mt-2"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Abrir playlist no YouTube
-          </a>
+          {/* Número */}
+          <div className="absolute bottom-0 left-0 bg-red-600/90 text-white text-xs font-bold px-2 py-0.5 rounded-tr-lg">
+            {String(index + 1).padStart(2, '0')}
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl mb-6">
-          <Search className="w-5 h-5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar vídeo..."
-            className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-red-400" />
-          </div>
-        )}
-
-        {/* Grid de vídeos */}
-        {!isLoading && filteredVideos.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredVideos.map((video: VideoItem, index: number) => (
-              <VideoCard 
-                key={video.id} 
-                video={video} 
-                index={index}
-                areaNome={decodedArea}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Sem vídeos no banco - mostrar opção de acessar playlist */}
-        {!isLoading && filteredVideos.length === 0 && (
-          <div className="text-center py-12">
-            <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-lg font-semibold mb-2">Playlist disponível no YouTube</h2>
-            <p className="text-muted-foreground mb-6">
-              Os vídeos desta área ainda não foram indexados. 
-              Você pode assistir diretamente no YouTube.
+        {/* Info */}
+        <div className="flex-1 py-2 px-3 min-w-0">
+          <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+            {video.titulo}
+          </h3>
+          {video.tempo && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {video.tempo}
             </p>
-            <Button
-              onClick={() => window.open(areaPlaylist.playlistUrl, '_blank')}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Assistir no YouTube
-            </Button>
-          </div>
-        )}
-
-        {/* Busca sem resultados */}
-        {!isLoading && searchTerm && filteredVideos.length === 0 && videos && videos.length > 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum vídeo encontrado para "{searchTerm}"</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </motion.button>
   );
 };
 
