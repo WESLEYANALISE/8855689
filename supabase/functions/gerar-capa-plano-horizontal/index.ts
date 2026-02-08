@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const PROMPTS: Record<string, string> = {
   mensal: "Professional legal scene in horizontal 16:9 format, young ambitious law student in modern law office, warm amber lighting, elegant wooden desk with legal books, confident posture, cinematic composition, ultra realistic, 8K quality, warm golden tones",
-  trimestral: "Professional legal scene in horizontal 16:9 format, experienced lawyer in sophisticated law firm, amber and gold ambient lighting, impressive legal library background, confident stance, cinematic wide shot, ultra realistic, 8K quality, warm golden tones",
+  anual: "Professional legal scene in horizontal 16:9 format, experienced lawyer in sophisticated law firm, amber and gold ambient lighting, impressive legal library background, confident stance, cinematic wide shot, ultra realistic, 8K quality, warm golden tones",
   vitalicio: "Professional legal scene in horizontal 16:9 format, distinguished senior judge or senior partner in prestigious courtroom or law chamber, dramatic amber lighting, majestic wooden interior, powerful presence, cinematic masterpiece, ultra realistic, 8K quality, warm golden tones",
 };
 

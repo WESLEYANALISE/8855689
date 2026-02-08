@@ -22,11 +22,15 @@ interface PlanoCardNovoProps {
   delay?: number;
 }
 
-// Cálculo de parcela com taxa do Mercado Pago (10x = 20.24%)
+// Taxas do Mercado Pago "Na Hora" até R$3mil para parcelamento
 const INSTALLMENT_RATE_10X = 0.2024;
-const BASE_PRICE = 89.90;
-const TOTAL_WITH_INTEREST = BASE_PRICE * (1 + INSTALLMENT_RATE_10X);
-const INSTALLMENT_VALUE = TOTAL_WITH_INTEREST / 10;
+
+// Função para calcular parcela
+const calculateInstallment = (price: number, installments: number) => {
+  const rate = installments > 1 ? INSTALLMENT_RATE_10X : 0;
+  const total = price * (1 + rate);
+  return total / installments;
+};
 
 const PlanoCardNovo = ({ 
   planKey, 
@@ -37,6 +41,10 @@ const PlanoCardNovo = ({
   delay = 0 
 }: PlanoCardNovoProps) => {
   const isFeatured = plan.featured;
+  const isMensal = planKey === 'mensal';
+  
+  // Calcular parcela para planos que permitem parcelamento
+  const installmentValue = isMensal ? null : calculateInstallment(plan.price, 10);
 
   return (
     <motion.div 
@@ -106,7 +114,9 @@ const PlanoCardNovo = ({
               {plan.label}
             </h3>
             <p className="text-zinc-400 text-xs sm:text-sm">
-              Acesso vitalício para sempre
+              {planKey === 'mensal' && 'Renovação mensal'}
+              {planKey === 'anual' && 'Acesso por 1 ano completo'}
+              {planKey === 'vitalicio' && 'Acesso vitalício para sempre'}
             </p>
           </div>
 
@@ -126,13 +136,24 @@ const PlanoCardNovo = ({
               }`}>
                 {plan.price.toFixed(2).replace('.', ',')}
               </span>
-              <span className="text-zinc-500 text-sm">à vista</span>
+              <span className="text-zinc-500 text-sm">
+                {isMensal ? '/mês' : 'à vista'}
+              </span>
             </div>
             
-            {/* Opção de parcelamento */}
-            <p className="text-zinc-400 text-xs">
-              ou <span className="text-amber-400 font-semibold">10x de R$ {INSTALLMENT_VALUE.toFixed(2).replace('.', ',')}</span> no cartão
-            </p>
+            {/* Opção de parcelamento - só para anual e vitalício */}
+            {!isMensal && installmentValue && (
+              <p className="text-zinc-400 text-xs">
+                ou <span className="text-amber-400 font-semibold">10x de R$ {installmentValue.toFixed(2).replace('.', ',')}</span> no cartão
+              </p>
+            )}
+            
+            {/* Texto para mensal */}
+            {isMensal && (
+              <p className="text-zinc-400 text-xs">
+                Apenas cartão de crédito
+              </p>
+            )}
           </div>
 
           {/* Botão */}

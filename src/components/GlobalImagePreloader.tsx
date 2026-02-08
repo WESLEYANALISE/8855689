@@ -112,7 +112,7 @@ const insertPreloadLinks = () => {
     link.rel = 'preload';
     link.as = 'image';
     link.href = src;
-    link.fetchPriority = 'high';
+    (link as any).fetchPriority = 'high';
     document.head.appendChild(link);
   });
 };

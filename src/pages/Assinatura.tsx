@@ -25,10 +25,13 @@ interface PlanConfig {
   badge: string | null;
   featured?: boolean;
   savings?: string;
+  pixEnabled?: boolean;
 }
 
 const PLANS: Record<PlanType, PlanConfig> = {
-  vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'OFERTA ESPECIAL', featured: true }
+  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false },
+  anual: { price: 69.90, label: 'Anual', days: 365, badge: 'MAIS ESCOLHIDO', featured: true, pixEnabled: true, savings: 'R$ 145,98/ano' },
+  vitalicio: { price: 119.90, label: 'Vitalício', days: 36500, badge: 'MELHOR CUSTO-BENEFÍCIO', pixEnabled: true }
 };
 
 // Benefícios para o marquee infinito - mais compacto
@@ -164,7 +167,7 @@ const Assinatura = () => {
               Domine o Direito. Conquiste a Aprovação.
             </h1>
             <p className="text-zinc-400 text-xs sm:text-sm max-w-sm mx-auto">
-              Acesso vitalício a todo o conteúdo para se tornar um jurista de excelência.
+              Escolha o plano ideal para se tornar um jurista de excelência.
             </p>
           </div>
 
@@ -199,15 +202,36 @@ const Assinatura = () => {
             </div>
           </div>
 
-          {/* Card do Plano Vitalício */}
-          <div className="max-w-sm mx-auto px-2">
+          {/* Cards dos Planos - 3 planos */}
+          <div className="max-w-md mx-auto px-2 space-y-4">
+            {/* Plano Mensal */}
+            <PlanoCardNovo
+              planKey="mensal"
+              plan={PLANS.mensal}
+              imagemUrl={planImages.mensal}
+              imagemLoading={imagesLoading}
+              onVerMais={() => setModalPlano('mensal')}
+              delay={0.1}
+            />
+            
+            {/* Plano Anual - Destaque */}
+            <PlanoCardNovo
+              planKey="anual"
+              plan={PLANS.anual}
+              imagemUrl={planImages.anual}
+              imagemLoading={imagesLoading}
+              onVerMais={() => setModalPlano('anual')}
+              delay={0.2}
+            />
+            
+            {/* Plano Vitalício */}
             <PlanoCardNovo
               planKey="vitalicio"
               plan={PLANS.vitalicio}
               imagemUrl={planImages.vitalicio}
               imagemLoading={imagesLoading}
               onVerMais={() => setModalPlano('vitalicio')}
-              delay={0.2}
+              delay={0.3}
             />
           </div>
 

@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 const PLANS: Record<string, { amount: number; days: number; description: string }> = {
-  mensal: { amount: 15.90, days: 30, description: 'Direito Premium - Mensal' },
-  vitalicio: { amount: 89.90, days: 36500, description: 'Direito Premium - Vitalício' }
+  mensal: { amount: 17.99, days: 30, description: 'Direito Premium - Mensal' },
+  anual: { amount: 69.90, days: 365, description: 'Direito Premium - Anual' },
+  vitalicio: { amount: 119.90, days: 36500, description: 'Direito Premium - Vitalício' }
 };
 
 serve(async (req) => {
