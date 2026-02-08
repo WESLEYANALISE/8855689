@@ -263,9 +263,8 @@ export default function Perfil() {
 
         {/* Tabs */}
         <Tabs defaultValue="perfil" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="perfil">Perfil</TabsTrigger>
-            <TabsTrigger value="localizacao">Local</TabsTrigger>
             <TabsTrigger value="plano">Plano</TabsTrigger>
             <TabsTrigger value="suporte">Suporte</TabsTrigger>
           </TabsList>
@@ -420,10 +419,6 @@ export default function Perfil() {
             </Button>
           </TabsContent>
 
-          {/* Localização Tab */}
-          <TabsContent value="localizacao">
-            <PerfilLocalizacaoTab />
-          </TabsContent>
 
           {/* Plano Tab */}
           <TabsContent value="plano">
