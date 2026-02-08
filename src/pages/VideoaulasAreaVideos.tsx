@@ -224,18 +224,6 @@ const VideoaulasAreaVideos = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-3">
-          <button 
-            onClick={() => navigate('/videoaulas/areas')}
-            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Voltar</span>
-          </button>
-        </div>
-      </div>
       
       {/* Header da Área */}
       <div className="pt-4 pb-4 px-4">
@@ -245,9 +233,14 @@ const VideoaulasAreaVideos = () => {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
-                <Video className="w-6 h-6 text-white" />
-              </div>
+              {/* Botão voltar */}
+              <button
+                onClick={() => navigate('/videoaulas/areas')}
+                className="w-10 h-10 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5 text-red-400" />
+              </button>
+              
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
                   ÁREAS DO DIREITO
