@@ -12,8 +12,12 @@ import type { PlanType } from "@/hooks/use-mercadopago-pix";
 
 // Imagens horizontais estáticas importadas localmente (pré-carregadas)
 import assinaturaVitalicioHorizontal from "@/assets/assinatura-vitalicio-horizontal.webp";
+import assinaturaMensalHorizontal from "@/assets/assinatura-mensal-horizontal.webp";
+import assinaturaAnualHorizontal from "@/assets/assinatura-trimestral-horizontal.webp"; // Reutilizar para anual
 
 const CAPAS_HORIZONTAIS_ESTATICAS: Record<PlanType, string> = {
+  mensal: assinaturaMensalHorizontal,
+  anual: assinaturaAnualHorizontal,
   vitalicio: assinaturaVitalicioHorizontal,
 };
 
@@ -188,10 +192,13 @@ const PlanoDetalhesModal = ({
   // Aba de conteúdo: funções ou sobre
   const [contentTab, setContentTab] = useState<"funcoes" | "sobre">("funcoes");
 
-  // Método de pagamento: pix ou cartao
-  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao">("pix");
+  // Plano mensal só aceita cartão
+  const showPixOption = plano !== 'mensal';
+  
+  // Método de pagamento: pix ou cartao (mensal força cartão)
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao">(showPixOption ? "pix" : "cartao");
   const [showCardModal, setShowCardModal] = useState(false);
-  const [selectedInstallments, setSelectedInstallments] = useState(10);
+  const [selectedInstallments, setSelectedInstallments] = useState(plano === 'mensal' ? 1 : 10);
 
   // Usar capa estática diretamente
   const staticCover = plano ? CAPAS_HORIZONTAIS_ESTATICAS[plano] : null;
@@ -204,12 +211,14 @@ const PlanoDetalhesModal = ({
     return { total, perInstallment };
   };
 
-  // Reset ao fechar
+  // Reset ao fechar e configurar método de pagamento baseado no plano
   useEffect(() => {
     if (open && plano) {
       setContentTab("funcoes");
-      setPaymentMethod("pix");
-      setSelectedInstallments(10);
+      // Mensal só aceita cartão
+      const canUsePix = plano !== 'mensal';
+      setPaymentMethod(canUsePix ? "pix" : "cartao");
+      setSelectedInstallments(plano === 'mensal' ? 1 : 10);
       // Track modal open
       trackPlanClick(plano, "open_modal");
     }
@@ -300,28 +309,35 @@ const PlanoDetalhesModal = ({
             </div>
           )}
 
-          {/* Toggle PIX / Cartão */}
-          <ToggleGroup 
-            type="single" 
-            value={paymentMethod} 
-            onValueChange={(value) => value && setPaymentMethod(value as "pix" | "cartao")}
-            className="w-full bg-zinc-900/80 rounded-xl p-1 mb-4"
-          >
-            <ToggleGroupItem 
-              value="pix" 
-              className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2.5 text-sm font-medium transition-all text-zinc-400"
+          {/* Toggle PIX / Cartão - só mostra se PIX disponível */}
+          {showPixOption ? (
+            <ToggleGroup 
+              type="single" 
+              value={paymentMethod} 
+              onValueChange={(value) => value && setPaymentMethod(value as "pix" | "cartao")}
+              className="w-full bg-zinc-900/80 rounded-xl p-1 mb-4"
             >
-              <Zap className="w-4 h-4 mr-2" />
-              PIX
-            </ToggleGroupItem>
-            <ToggleGroupItem 
-              value="cartao" 
-              className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2.5 text-sm font-medium transition-all text-zinc-400"
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              Cartão
-            </ToggleGroupItem>
-          </ToggleGroup>
+              <ToggleGroupItem 
+                value="pix" 
+                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2.5 text-sm font-medium transition-all text-zinc-400"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                PIX
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="cartao" 
+                className="flex-1 data-[state=on]:bg-amber-500 data-[state=on]:text-black rounded-lg py-2.5 text-sm font-medium transition-all text-zinc-400"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Cartão
+              </ToggleGroupItem>
+            </ToggleGroup>
+          ) : (
+            <div className="w-full bg-zinc-900/80 rounded-xl p-3 mb-4 flex items-center justify-center gap-2 text-zinc-300">
+              <CreditCard className="w-4 h-4" />
+              <span className="text-sm font-medium">Pagamento via Cartão</span>
+            </div>
+          )}
 
           {/* Informações de pagamento baseado no método */}
           <AnimatePresence mode="wait">

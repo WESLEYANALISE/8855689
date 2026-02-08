@@ -6,9 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Configuração dos planos - apenas vitalício
+// Configuração dos planos - PIX só para anual e vitalício (mensal é só cartão)
 const PLANS = {
-  vitalicio: { amount: 89.90, days: 36500, description: 'Direito Premium - Vitalício' }
+  anual: { amount: 69.90, days: 365, description: 'Direito Premium - Anual' },
+  vitalicio: { amount: 119.90, days: 36500, description: 'Direito Premium - Vitalício' }
 };
 
 serve(async (req) => {
@@ -30,9 +31,17 @@ serve(async (req) => {
       );
     }
 
+    // Validar plano - PIX não disponível para mensal
+    if (planType === 'mensal') {
+      return new Response(
+        JSON.stringify({ error: 'PIX não disponível para plano mensal. Use cartão de crédito.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!planType || !PLANS[planType as keyof typeof PLANS]) {
       return new Response(
-        JSON.stringify({ error: 'planType deve ser mensal ou vitalicio' }),
+        JSON.stringify({ error: 'planType deve ser anual ou vitalicio' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

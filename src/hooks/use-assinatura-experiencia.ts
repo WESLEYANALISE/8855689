@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { PlanType } from "@/hooks/use-mercadopago-pix";
 import heroImage from "@/assets/assinatura-hero.webp";
 import vitalicioImage from "@/assets/assinatura-vitalicio-novo.png";
+import mensalImage from "@/assets/assinatura-mensal-horizontal.webp";
+import anualImage from "@/assets/assinatura-trimestral-horizontal.webp"; // Reutilizando para anual
 
 interface AssinaturaExperiencia {
   heroImage: string | null;
@@ -38,8 +40,10 @@ export function useAssinaturaExperiencia(): AssinaturaExperiencia {
   // Hero image importada localmente (nova imagem gerada)
   const [heroImg] = useState<string | null>(heroImage);
   
-  // Imagens dos planos do storage
+  // Imagens dos planos do storage - agora com 3 planos
   const [planImages] = useState<Record<PlanType, string | null>>({
+    mensal: mensalImage,
+    anual: anualImage,
     vitalicio: vitalicioImage
   });
   
