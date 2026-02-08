@@ -17,15 +17,19 @@ const PremiumWelcomeCard = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // Só mostra se: usuário logado + não premium + não viu ainda nesta sessão
+    // Só mostra se: usuário logado + não premium + viu menos de 2 vezes
     if (loading) return;
     
-    const hasSeenCard = sessionStorage.getItem('premiumWelcomeCardSeen');
+    const viewCountKey = 'premiumWelcomeCardViewCount';
+    const viewCount = parseInt(localStorage.getItem(viewCountKey) || '0', 10);
     
-    if (user && !isPremium && !hasSeenCard) {
+    // Só mostra nas 2 primeiras vezes
+    if (user && !isPremium && viewCount < 2) {
       // Delay pequeno para não aparecer instantaneamente
       const timer = setTimeout(() => {
         setIsVisible(true);
+        // Incrementa contador ao mostrar
+        localStorage.setItem(viewCountKey, String(viewCount + 1));
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -33,7 +37,6 @@ const PremiumWelcomeCard = () => {
 
   const handleClose = (reason: 'later' | 'testing') => {
     setIsClosing(true);
-    sessionStorage.setItem('premiumWelcomeCardSeen', 'true');
     
     setTimeout(() => {
       setIsVisible(false);
@@ -41,7 +44,7 @@ const PremiumWelcomeCard = () => {
   };
 
   const handleSubscribe = () => {
-    sessionStorage.setItem('premiumWelcomeCardSeen', 'true');
+    setIsClosing(true);
     setIsClosing(true);
     setTimeout(() => {
       navigate('/assinatura');
