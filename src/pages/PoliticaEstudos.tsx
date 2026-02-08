@@ -92,10 +92,7 @@ export default function PoliticaEstudos() {
             <div className={`w-8 h-8 rounded-lg ${config.bgColor}/20 flex items-center justify-center`}>
               <OrientacaoIcon className={`w-4 h-4 ${config.color}`} />
             </div>
-            <div>
-              <h1 className="font-semibold text-base">Estudos: {config.label}</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">{config.descricao}</p>
-            </div>
+            <h1 className="font-semibold text-base">Estudos: {config.label}</h1>
           </div>
         </div>
 
