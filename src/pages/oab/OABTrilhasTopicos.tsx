@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOABAutoGeneration } from "@/hooks/useOABAutoGeneration";
 
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
+
 const SCROLL_KEY_MATERIA = "oab-trilhas-scroll-materia";
 const SCROLL_KEY_TOPICOS = "oab-trilhas-scroll-topicos";
 
@@ -21,6 +23,7 @@ const OABTrilhasTopicos = () => {
   const parsedTopicoId = topicoId ? parseInt(topicoId) : null;
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   // Restaurar posição do scroll ao voltar
   useEffect(() => {
@@ -439,8 +442,8 @@ const OABTrilhasTopicos = () => {
         </div>
       </div>
 
-      {/* Botão flutuante para reprocessar PDF - some apenas na "versão nova" */}
-      {subtemas && subtemas.length > 0 && !allSubtemasAreNewVersion && (
+      {/* Botão flutuante para reprocessar PDF - apenas para admin e na versão legada */}
+      {isAdmin && subtemas && subtemas.length > 0 && !allSubtemasAreNewVersion && (
         <div className="fixed bottom-20 right-4">
           <Button
             variant="outline"

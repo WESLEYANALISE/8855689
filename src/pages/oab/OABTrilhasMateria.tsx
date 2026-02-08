@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
  import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 const SCROLL_KEY_PREFIX = "oab-trilhas-scroll-materia";
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 const OABTrilhasMateria = () => {
   const { materiaId } = useParams<{ materiaId: string }>();
@@ -31,8 +32,9 @@ const OABTrilhasMateria = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const parsedMateriaId = materiaId ? parseInt(materiaId) : null;
-   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Restaurar posição do scroll ao voltar
   useEffect(() => {
@@ -507,8 +509,8 @@ const OABTrilhasMateria = () => {
           </div>
          ) : null}
         
-        {/* Botão de reprocessar PDF no canto (quando já tem matérias) */}
-        {materias && materias.length > 0 && (
+        {/* Botão de reprocessar PDF no canto - apenas para admin */}
+        {isAdmin && materias && materias.length > 0 && (
           <div className="fixed bottom-20 right-4">
             <Button
               variant="outline"

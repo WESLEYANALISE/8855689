@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Layers, ImageIcon, FileText, RefreshCw, CheckCircle, ChevronRight } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Layers, ImageIcon, FileText, RefreshCw, CheckCircle, ChevronRight, Crown, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { PdfProcessorModal } from "@/components/conceitos/PdfProcessorModal";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,23 @@ import { ConceitosProgressBadge } from "@/components/conceitos/ConceitosProgress
 import { TopicoProgressoDetalhado } from "@/components/conceitos/TopicoProgressoDetalhado";
 import { useConceitosAutoGeneration } from "@/hooks/useConceitosAutoGeneration";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
+// Matéria gratuita: "História do Direito"
+const FREE_MATERIA_NAMES = ["história do direito", "historia do direito"];
 
 const ConceitosMateria = () => {
   const { id } = useParams<{ id: string }>();
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const parsedMateriaId = id ? parseInt(id) : null;
   const { user } = useAuth();
+  const { isPremium } = useSubscription();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   // Buscar matéria
   const { data: materia, isLoading: loadingMateria } = useQuery({
@@ -141,6 +150,23 @@ const ConceitosMateria = () => {
   // Capa de fallback: usar capa da matéria ou gradiente
   const fallbackCapa = materia?.capa_url;
 
+  // Verificar se a matéria é gratuita (História do Direito)
+  const isFreeMateria = materia?.nome 
+    ? FREE_MATERIA_NAMES.includes(materia.nome.toLowerCase().trim())
+    : false;
+  
+  // Determinar se os tópicos são acessíveis
+  const canAccessTopics = isPremium || isFreeMateria;
+
+  // Handler para clique no tópico
+  const handleTopicoClick = (topicoId: number) => {
+    if (canAccessTopics) {
+      navigate(`/conceitos/topico/${topicoId}`);
+    } else {
+      setShowPremiumModal(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0d0d14]">
       {/* Header */}
@@ -259,7 +285,7 @@ const ConceitosMateria = () => {
                   initial={{ opacity: 0.9, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
-                  onClick={() => navigate(`/conceitos/topico/${topico.id}`)}
+                  onClick={() => handleTopicoClick(topico.id)}
                   className={`w-full text-left bg-neutral-800 rounded-xl border overflow-hidden transition-all group ${
                     topico.status === "gerando"
                       ? "border-amber-500/50 bg-amber-900/20"
@@ -294,6 +320,13 @@ const ConceitosMateria = () => {
                           <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
                         </div>
                       )}
+                      
+                      {/* Badge Premium se não for gratuito e usuário não é premium */}
+                      {!canAccessTopics && (
+                        <div className="absolute top-1 right-1 p-1 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg">
+                          <Crown className="w-3 h-3 text-white" />
+                        </div>
+                      )}
                     </div>
                     
                     {/* Conteúdo */}
@@ -312,8 +345,10 @@ const ConceitosMateria = () => {
                           }
                         </h3>
                         
-                        {/* Ícone de conclusão ou badge de status */}
-                        {leituraCompleta ? (
+                        {/* Ícone de conclusão, crown premium ou badge de status */}
+                        {!canAccessTopics ? (
+                          <Lock className="w-5 h-5 flex-shrink-0 text-amber-400" />
+                        ) : leituraCompleta ? (
                           <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-400" />
                         ) : topicoStatus.status === "erro" ? (
                           <ConceitosProgressBadge
@@ -332,8 +367,8 @@ const ConceitosMateria = () => {
                         )}
                       </div>
                       
-                      {/* Barra de progresso do tópico */}
-                      {topico.status === "concluido" && hasConteudo && (
+                      {/* Barra de progresso do tópico - só mostra se pode acessar */}
+                      {canAccessTopics && topico.status === "concluido" && hasConteudo && (
                         <div className="mt-1">
                           {/* Barra de progresso geral combinada */}
                           <Progress 
@@ -347,6 +382,16 @@ const ConceitosMateria = () => {
                             progressoFlashcards={progressoFlashcards}
                             progressoQuestoes={progressoQuestoes}
                           />
+                        </div>
+                      )}
+                      
+                      {/* Indicador Premium na barra de progresso */}
+                      {!canAccessTopics && (
+                        <div className="mt-1">
+                          <span className="text-[10px] text-amber-400 flex items-center gap-1">
+                            <Crown className="w-3 h-3" />
+                            Conteúdo Premium
+                          </span>
                         </div>
                       )}
                     </div>
@@ -371,8 +416,8 @@ const ConceitosMateria = () => {
         </div>
       </div>
       
-      {/* Botão de reprocessar PDF */}
-      {topicos && topicos.length > 0 && (
+      {/* Botão de reprocessar PDF - apenas para admin */}
+      {isAdmin && topicos && topicos.length > 0 && (
         <div className="fixed bottom-20 right-4">
           <Button
             variant="outline"
@@ -399,6 +444,13 @@ const ConceitosMateria = () => {
           }}
         />
       )}
+      
+      {/* Modal Premium */}
+      <PremiumUpgradeModal
+        open={showPremiumModal}
+        onOpenChange={setShowPremiumModal}
+        featureName="Este conteúdo"
+      />
     </div>
   );
 };
