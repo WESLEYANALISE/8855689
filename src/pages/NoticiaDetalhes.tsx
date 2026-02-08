@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { ExternalLink, Loader2, FileText, Globe, Sparkles, BookOpen, ArrowLeft } from "lucide-react";
+import { ExternalLink, Loader2, FileText, Globe, Sparkles, BookOpen, ArrowLeft, Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -50,6 +51,7 @@ type SubMenuAnalise = 'executivo' | 'facil' | 'termos';
 const NoticiaDetalhes = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isPremium, loading: loadingSubscription } = useSubscription();
   const noticia = location.state?.noticia as Noticia;
   
   const [visualizacaoAtiva, setVisualizacaoAtiva] = useState<VisualizacaoAtiva>('formatada');
@@ -463,83 +465,110 @@ const NoticiaDetalhes = () => {
                     </button>
                   </div>
 
-                  {subMenuAnalise === 'executivo' && (
-                    <div className="space-y-5">
-                      <div className="space-y-3">
-                        <h2 className="text-base sm:text-lg font-bold text-primary flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Resumo Executivo
-                        </h2>
-                        <div className="text-foreground text-sm sm:text-base leading-relaxed space-y-4">
-                          {(analise.resumoExecutivo || 'Resumo não disponível.')
-                            .split(/\n\n|\n/)
-                            .filter((p: string) => p.trim())
-                            .map((paragrafo: string, idx: number) => (
-                              <p key={idx}>{paragrafo.trim()}</p>
-                            ))}
-                        </div>
+                  {/* Gate Premium para Análise */}
+                  {!isPremium && !loadingSubscription ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                      <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <Lock className="w-8 h-8 text-amber-500" />
                       </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
+                          <Crown className="w-5 h-5 text-amber-500" />
+                          Análise Premium
+                        </h3>
+                        <p className="text-sm text-muted-foreground max-w-xs">
+                          A análise jurídica detalhada com IA é exclusiva para assinantes Premium.
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={() => navigate('/assinatura')}
+                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white gap-2"
+                      >
+                        <Crown className="w-4 h-4" />
+                        Seja Premium
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {subMenuAnalise === 'executivo' && (
+                        <div className="space-y-5">
+                          <div className="space-y-3">
+                            <h2 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2">
+                              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+                              Resumo Executivo
+                            </h2>
+                            <div className="text-foreground text-base sm:text-lg leading-relaxed space-y-4">
+                              {(analise.resumoExecutivo || 'Resumo não disponível.')
+                                .split(/\n\n|\n/)
+                                .filter((p: string) => p.trim())
+                                .map((paragrafo: string, idx: number) => (
+                                  <p key={idx}>{paragrafo.trim()}</p>
+                                ))}
+                            </div>
+                          </div>
 
-                      {analise.pontosPrincipais && analise.pontosPrincipais.length > 0 && (
-                        <div className="space-y-3">
-                          <h3 className="text-sm sm:text-base font-bold text-primary">Pontos Principais</h3>
-                          <ul className="space-y-2">
-                            {analise.pontosPrincipais.map((ponto, idx) => (
-                              <li key={idx} className="flex items-start gap-2 text-foreground text-sm sm:text-base">
-                                <span className="text-primary mt-0.5">•</span>
-                                <span>{ponto}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {analise.pontosPrincipais && analise.pontosPrincipais.length > 0 && (
+                            <div className="space-y-3">
+                              <h3 className="text-base sm:text-lg font-bold text-primary">Pontos Principais</h3>
+                              <ul className="space-y-2">
+                                {analise.pontosPrincipais.map((ponto, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-foreground text-base sm:text-lg">
+                                    <span className="text-primary mt-0.5">•</span>
+                                    <span>{ponto}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {analise.impactoJuridico && (
+                            <div className="space-y-3">
+                              <h3 className="text-base sm:text-lg font-bold text-primary">Impacto Jurídico</h3>
+                              <div className="text-foreground text-base sm:text-lg leading-relaxed bg-muted/50 p-4 rounded-lg space-y-3">
+                                {analise.impactoJuridico
+                                  .split(/\n\n|\n/)
+                                  .filter((p: string) => p.trim())
+                                  .map((paragrafo: string, idx: number) => (
+                                    <p key={idx}>{paragrafo.trim()}</p>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {analise.impactoJuridico && (
-                        <div className="space-y-3">
-                          <h3 className="text-sm sm:text-base font-bold text-primary">Impacto Jurídico</h3>
-                          <div className="text-foreground text-sm sm:text-base leading-relaxed bg-muted/50 p-4 rounded-lg space-y-3">
-                            {analise.impactoJuridico
+                      {subMenuAnalise === 'facil' && (
+                        <div className="space-y-4">
+                          <h2 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+                            Entenda de Forma Simples
+                          </h2>
+                          <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-4">
+                            {(analise.resumoFacil || 'Explicação simplificada não disponível.')
                               .split(/\n\n|\n/)
                               .filter((p: string) => p.trim())
                               .map((paragrafo: string, idx: number) => (
-                                <p key={idx}>{paragrafo.trim()}</p>
+                                <p key={idx} className="text-foreground text-base sm:text-lg leading-relaxed">{paragrafo.trim()}</p>
                               ))}
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {subMenuAnalise === 'facil' && (
-                    <div className="space-y-4">
-                      <h2 className="text-base sm:text-lg font-bold text-primary flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-                        Entenda de Forma Simples
-                      </h2>
-                      <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-4">
-                        {(analise.resumoFacil || 'Explicação simplificada não disponível.')
-                          .split(/\n\n|\n/)
-                          .filter((p: string) => p.trim())
-                          .map((paragrafo: string, idx: number) => (
-                            <p key={idx} className="text-foreground text-sm sm:text-base leading-relaxed">{paragrafo.trim()}</p>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {subMenuAnalise === 'termos' && (
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-primary mb-4 flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
-                        Termos Jurídicos
-                      </h2>
-                      {renderTermos(termos)}
-                    </div>
+                      {subMenuAnalise === 'termos' && (
+                        <div>
+                          <h2 className="text-lg sm:text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+                            Termos Jurídicos
+                          </h2>
+                          {renderTermos(termos)}
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Análise não disponível</p>
+                  <p className="text-sm text-muted-foreground">Análise não disponível</p>
                   <Button variant="outline" size="sm" onClick={() => setVisualizacaoAtiva('original')}>
                     Ver original
                   </Button>
