@@ -6,7 +6,6 @@ import { ArrowLeft, FileText, Book, Users, ArrowRight, Scale, Film, Sparkles } f
 import { PoliticaBlogOrientacao, PoliticaLivros, PoliticaSeguir, PoliticaDocumentarios } from '@/components/politica';
 import { OrientacaoPolitica } from '@/hooks/usePoliticaPreferencias';
 import { motion } from 'framer-motion';
-
 const getOrientacaoConfig = (orientacao: string) => {
   switch (orientacao) {
     case 'esquerda':
@@ -19,7 +18,7 @@ const getOrientacaoConfig = (orientacao: string) => {
         topGradient: 'from-red-950/60 via-red-950/30 to-transparent',
         lineColor: 'bg-red-500',
         cardGradient: 'from-red-500/20 to-red-900/40',
-        glowColor: 'shadow-red-500/30',
+        glowColor: 'shadow-red-500/30'
       };
     case 'centro':
       return {
@@ -31,7 +30,7 @@ const getOrientacaoConfig = (orientacao: string) => {
         topGradient: 'from-yellow-950/60 via-yellow-950/30 to-transparent',
         lineColor: 'bg-yellow-500',
         cardGradient: 'from-yellow-500/20 to-yellow-900/40',
-        glowColor: 'shadow-yellow-500/30',
+        glowColor: 'shadow-yellow-500/30'
       };
     case 'direita':
       return {
@@ -43,7 +42,7 @@ const getOrientacaoConfig = (orientacao: string) => {
         topGradient: 'from-blue-950/60 via-blue-950/30 to-transparent',
         lineColor: 'bg-blue-500',
         cardGradient: 'from-blue-500/20 to-blue-900/40',
-        glowColor: 'shadow-blue-500/30',
+        glowColor: 'shadow-blue-500/30'
       };
     default:
       return {
@@ -55,55 +54,46 @@ const getOrientacaoConfig = (orientacao: string) => {
         topGradient: 'from-neutral-800 to-transparent',
         lineColor: 'bg-neutral-500',
         cardGradient: 'from-neutral-500/20 to-neutral-900/40',
-        glowColor: 'shadow-neutral-500/30',
+        glowColor: 'shadow-neutral-500/30'
       };
   }
 };
-
 export default function PoliticaEstudos() {
-  const { orientacao } = useParams<{ orientacao: string }>();
+  const {
+    orientacao
+  } = useParams<{
+    orientacao: string;
+  }>();
   const navigate = useNavigate();
   const config = getOrientacaoConfig(orientacao || '');
   const OrientacaoIcon = config.icon;
   const orientacaoCast = orientacao as OrientacaoPolitica;
-
-  return (
-    <div className="min-h-screen bg-neutral-900 pb-20 relative">
+  return <div className="min-h-screen bg-neutral-900 pb-20 relative">
       {/* Degradê colorido no topo */}
       <div className={`absolute inset-x-0 top-0 h-64 bg-gradient-to-b ${config.topGradient} pointer-events-none`} />
       
       {/* Header premium */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10"
-      >
+      <motion.div initial={{
+      opacity: 0,
+      y: -20
+    }} animate={{
+      opacity: 1,
+      y: 0
+    }} className="relative z-10">
         {/* Top bar */}
-        <div className="sticky top-0 z-20 flex items-center gap-3 p-4 bg-neutral-900/80 backdrop-blur-xl border-b border-white/5">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/politica')}
-            className="hover:bg-white/10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg ${config.bgColor}/20 flex items-center justify-center`}>
-              <OrientacaoIcon className={`w-4 h-4 ${config.color}`} />
-            </div>
-            <h1 className="font-semibold text-base">Estudos: {config.label}</h1>
-          </div>
-        </div>
+        
 
         {/* Hero compacto */}
         <div className="px-4 pt-6 pb-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${config.cardGradient} border border-white/10 p-5 shadow-xl ${config.glowColor}`}
-          >
+          <motion.div initial={{
+          opacity: 0,
+          scale: 0.95
+        }} animate={{
+          opacity: 1,
+          scale: 1
+        }} transition={{
+          delay: 0.1
+        }} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${config.cardGradient} border border-white/10 p-5 shadow-xl ${config.glowColor}`}>
             {/* Decoração */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full" />
             <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5 blur-2xl" />
@@ -129,31 +119,19 @@ export default function PoliticaEstudos() {
       <div className="px-4 pt-2 relative z-10">
         <Tabs defaultValue="artigos" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6 bg-neutral-800/80 backdrop-blur-sm h-14 p-1 rounded-xl border border-white/5">
-            <TabsTrigger 
-              value="artigos" 
-              className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all"
-            >
+            <TabsTrigger value="artigos" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all">
               <FileText className="w-4 h-4" />
               <span className="text-[10px] sm:text-xs font-medium">Artigos</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="documentarios" 
-              className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all"
-            >
+            <TabsTrigger value="documentarios" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all">
               <Film className="w-4 h-4" />
               <span className="text-[10px] sm:text-xs font-medium">Docs</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="livros" 
-              className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all"
-            >
+            <TabsTrigger value="livros" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all">
               <Book className="w-4 h-4" />
               <span className="text-[10px] sm:text-xs font-medium">Livros</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="seguir" 
-              className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all"
-            >
+            <TabsTrigger value="seguir" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 h-full rounded-lg data-[state=active]:bg-white/10 data-[state=active]:shadow-lg transition-all">
               <Users className="w-4 h-4" />
               <span className="text-[10px] sm:text-xs font-medium">Seguir</span>
             </TabsTrigger>
@@ -176,6 +154,5 @@ export default function PoliticaEstudos() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 }
