@@ -64,8 +64,8 @@ export const AREAS_PLAYLISTS: AreaPlaylist[] = [
   },
   {
     nome: "Direito do Consumidor",
-    playlistUrl: "https://youtube.com/playlist?list=PL8vXuI6zmpdh6ZArA4hyd1EEFon9iXtPS",
-    playlistId: "PL8vXuI6zmpdh6ZArA4hyd1EEFon9iXtPS"
+    playlistUrl: "https://youtube.com/playlist?list=PL8vXuI6zmpdh6ZArA4hyd1EEF6b9iXtPS",
+    playlistId: "PL8vXuI6zmpdh6ZArA4hyd1EEF6b9iXtPS"
   },
   {
     nome: "Direito Ambiental",
