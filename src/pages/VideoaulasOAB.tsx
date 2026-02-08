@@ -29,17 +29,17 @@ const VideoaulasOAB = () => {
   const { data: areas, isLoading } = useQuery({
     queryKey: ["videoaulas-oab-areas"],
     queryFn: async () => {
-      // Buscar APENAS vídeos da OAB ou Segunda Fase
+      // Buscar vídeos da OAB 2ª Fase (categoria "2° Fase OAB" ou áreas com "2ª Fase")
       const { data, error } = await supabase
-        .from("VIDEO AULAS-NOVO")
+        .from("VIDEO AULAS-NOVO" as any)
         .select("area, thumb")
-        .or('categoria.eq.OAB,area.ilike.%2ª Fase%,area.ilike.%Segunda Fase%,area.ilike.%segunda fase%');
+        .or('categoria.eq.2° Fase OAB,categoria.ilike.%Fase OAB%,area.ilike.%2ª Fase%,area.ilike.%Segunda Fase%');
 
       if (error) throw error;
 
       const areaMap = new Map<string, AreaData>();
 
-      data?.forEach((item) => {
+      (data as any[] || []).forEach((item: any) => {
         if (!item.area) return;
 
         if (!areaMap.has(item.area)) {
