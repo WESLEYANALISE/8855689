@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Video, ArrowLeft, Loader2, Search, Play, History, Clock, X, ExternalLink, Youtube, AlertCircle } from "lucide-react";
+import { Video, ArrowLeft, Loader2, Search, Play, History, Clock, X, Youtube, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,8 +57,23 @@ const simplifyAreaName = (areaName: string): string => {
   return areaName;
 };
 
-// Função para limpar título do vídeo (remover "Kultivi", "CURSO GRATUITO COMPLETO", etc)
+// Função para limpar título do vídeo e extrair o nome real da aula
+// Formato típico: "Direito Constitucional | Kultivi - Poder Constituinte | CURSO GRATUITO COMPLETO"
+// Resultado desejado: "Poder Constituinte"
 const cleanVideoTitle = (titulo: string): string => {
+  // Tentar extrair o tema da aula após "Kultivi - " e antes de " | " ou fim
+  const kultiviMatch = titulo.match(/Kultivi\s*-\s*([^|]+)/i);
+  if (kultiviMatch) {
+    return kultiviMatch[1].trim().replace(/CURSO\s*GRATUITO\s*COMPLETO/gi, '').trim();
+  }
+  
+  // Tentar pegar o conteúdo após " - " se não tiver Kultivi
+  const dashMatch = titulo.match(/\s+-\s+(.+?)(?:\s*\||\s*$)/);
+  if (dashMatch) {
+    return dashMatch[1].replace(/CURSO\s*GRATUITO\s*COMPLETO/gi, '').trim();
+  }
+  
+  // Fallback: remover padrões comuns
   return titulo
     .replace(/\s*\|\s*Kultivi.*$/i, '')
     .replace(/\s*-\s*Kultivi.*$/i, '')
@@ -262,18 +277,6 @@ const VideoaulasAreaVideos = () => {
               </div>
             </div>
 
-            {/* Link para playlist externa */}
-            {areaPlaylist && (
-              <a
-                href={areaPlaylist.playlistUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs text-red-400 hover:text-red-300 transition-colors mb-4"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Abrir playlist no YouTube
-              </a>
-            )}
             
             {/* Barra de pesquisa */}
             <div className="relative mb-4">
@@ -348,17 +351,12 @@ const VideoaulasAreaVideos = () => {
                 <p className="text-xs text-muted-foreground/70 mb-4">
                   {youtubeError instanceof Error ? youtubeError.message : "Tente novamente mais tarde"}
                 </p>
-                {areaPlaylist && (
-                  <a
-                    href={areaPlaylist.playlistUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Abrir no YouTube
-                  </a>
-                )}
+                <button
+                  onClick={() => window.location.reload()}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Tentar novamente
+                </button>
               </div>
             ) : filteredVideos.length > 0 ? (
               <div className="space-y-2">
@@ -375,17 +373,6 @@ const VideoaulasAreaVideos = () => {
               <div className="text-center py-12 text-muted-foreground">
                 <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>{search ? "Nenhuma aula encontrada" : "Nenhuma videoaula disponível"}</p>
-                {areaPlaylist && !search && (
-                  <a
-                    href={areaPlaylist.playlistUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Assistir no YouTube
-                  </a>
-                )}
               </div>
             )}
           </div>
