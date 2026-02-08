@@ -2,17 +2,15 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Video, Loader2, Sparkles, BookOpen, HelpCircle, Play, Clock, Youtube } from "lucide-react";
+import { ArrowLeft, Video, Loader2, Sparkles, BookOpen, HelpCircle, Play, Clock, Youtube, Layers, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import ReactCardFlip from "react-card-flip";
 import VideoProgressBar from "@/components/videoaulas/VideoProgressBar";
-import ContinueWatchingModal from "@/components/videoaulas/ContinueWatchingModal";
+import VideoaulaFlashcards from "@/components/videoaulas/VideoaulaFlashcards";
+import VideoaulaQuestoes from "@/components/videoaulas/VideoaulaQuestoes";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { AREAS_PLAYLISTS } from "@/data/videoaulasAreasPlaylists";
 
@@ -561,100 +559,157 @@ const VideoaulasAreaVideoView = () => {
       <div className="px-4 pb-24">
         <div className="max-w-lg mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3 mb-4 bg-neutral-800/80">
-              <TabsTrigger value="sobre" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-                <BookOpen className="w-4 h-4" />
+            <TabsList className="grid w-full grid-cols-3 bg-neutral-900/80 border border-white/5">
+              <TabsTrigger value="sobre" className="gap-1.5 text-xs data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400">
+                <BookOpen className="w-3.5 h-3.5" />
                 Sobre
               </TabsTrigger>
-              <TabsTrigger value="flashcards" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-                <Sparkles className="w-4 h-4" />
+              <TabsTrigger value="flashcards" className="gap-1.5 text-xs data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400">
+                <Layers className="w-3.5 h-3.5" />
                 Flashcards
               </TabsTrigger>
-              <TabsTrigger value="questoes" className="gap-2 data-[state=active]:bg-red-600/20 data-[state=active]:text-red-400">
-                <HelpCircle className="w-4 h-4" />
+              <TabsTrigger value="questoes" className="gap-1.5 text-xs data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400">
+                <ListChecks className="w-3.5 h-3.5" />
                 Questões
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="sobre">
-              {video.sobre_aula ? (
-                <div className="bg-card rounded-xl p-5 border border-border">
-                  <div className="prose prose-sm prose-invert max-w-none 
-                    prose-headings:text-red-400 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
-                    prose-p:text-gray-300 prose-p:leading-relaxed
-                    prose-strong:text-white
-                    prose-li:text-gray-300 prose-li:marker:text-red-400
-                    prose-ul:space-y-1 prose-ol:space-y-1
-                  ">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{video.sobre_aula}</ReactMarkdown>
+            <TabsContent value="sobre" className="mt-4">
+              <div className="bg-neutral-900/80 border border-white/5 rounded-xl p-4 space-y-4">
+                {video.sobre_aula ? (
+                  <>
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-red-500" />
+                      Sobre esta aula
+                    </h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                      {video.sobre_aula}
+                    </p>
+                  </>
+                ) : !video.isLocal ? (
+                  <div className="text-center py-6">
+                    <Youtube className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
+                    <h3 className="font-medium mb-2">Vídeo do YouTube</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Este vídeo é reproduzido diretamente do YouTube.
+                    </p>
+                    {(video as any).description && (
+                      <div className="text-left bg-neutral-800/50 rounded-lg p-3 mt-4">
+                        <p className="text-xs text-muted-foreground font-medium mb-1">Descrição:</p>
+                        <p className="text-sm text-foreground/80 line-clamp-6">
+                          {(video as any).description}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ) : !video.isLocal ? (
-                <div className="bg-card rounded-xl p-5 border border-border text-center">
-                  <Youtube className="w-12 h-12 mx-auto text-red-500/50 mb-3" />
-                  <h3 className="font-medium mb-2">Vídeo do YouTube</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Este vídeo é reproduzido diretamente do YouTube.
-                  </p>
-                  {(video as any).description && (
-                    <div className="text-left bg-neutral-800/50 rounded-lg p-3 mt-4">
-                      <p className="text-xs text-muted-foreground font-medium mb-1">Descrição:</p>
-                      <p className="text-sm text-foreground/80 line-clamp-6">
-                        {(video as any).description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <EmptyContent 
-                  title="Resumo não gerado" 
-                  description="Clique no botão abaixo para gerar o resumo desta aula com IA"
-                  onGenerate={() => generateMutation.mutate()}
-                  isGenerating={generateMutation.isPending}
-                />
-              )}
+                ) : (
+                  <div className="text-center py-6">
+                    <Sparkles className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      O conteúdo desta aula ainda não foi gerado pela IA.
+                    </p>
+                    <Button 
+                      onClick={() => generateMutation.mutate()}
+                      disabled={generateMutation.isPending}
+                      className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                    >
+                      {generateMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Gerando conteúdo...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Gerar análise da aula
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
-            <TabsContent value="flashcards">
-              {video.flashcards && video.flashcards.length > 0 ? (
-                <FlashcardsView flashcards={video.flashcards} />
-              ) : !video.isLocal ? (
-                <div className="bg-card rounded-xl p-5 border border-border text-center">
-                  <Sparkles className="w-12 h-12 mx-auto text-amber-500/50 mb-3" />
-                  <h3 className="font-medium mb-2">Flashcards não disponíveis</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Flashcards não estão disponíveis para vídeos do YouTube externos.
-                  </p>
-                </div>
-              ) : (
-                <EmptyContent 
-                  title="Flashcards não gerados" 
-                  description="Clique no botão abaixo para gerar flashcards desta aula"
-                  onGenerate={() => generateMutation.mutate()}
-                  isGenerating={generateMutation.isPending}
-                />
-              )}
+            <TabsContent value="flashcards" className="mt-4">
+              <div className="bg-neutral-900/80 border border-white/5 rounded-xl p-4">
+                {video.flashcards && video.flashcards.length > 0 ? (
+                  <VideoaulaFlashcards flashcards={video.flashcards} />
+                ) : !video.isLocal ? (
+                  <div className="text-center py-6">
+                    <Layers className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
+                    <h3 className="font-medium mb-2">Flashcards não disponíveis</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Flashcards não estão disponíveis para vídeos externos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Layers className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Os flashcards ainda não foram gerados para esta aula.
+                    </p>
+                    <Button 
+                      onClick={() => generateMutation.mutate()}
+                      disabled={generateMutation.isPending}
+                      className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                    >
+                      {generateMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Gerando flashcards...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Gerar flashcards
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
-            <TabsContent value="questoes">
-              {video.questoes && video.questoes.length > 0 ? (
-                <QuestoesView questoes={video.questoes} />
-              ) : !video.isLocal ? (
-                <div className="bg-card rounded-xl p-5 border border-border text-center">
-                  <HelpCircle className="w-12 h-12 mx-auto text-blue-500/50 mb-3" />
-                  <h3 className="font-medium mb-2">Questões não disponíveis</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Questões não estão disponíveis para vídeos do YouTube externos.
-                  </p>
-                </div>
-              ) : (
-                <EmptyContent 
-                  title="Questões não geradas" 
-                  description="Clique no botão abaixo para gerar questões desta aula"
-                  onGenerate={() => generateMutation.mutate()}
-                  isGenerating={generateMutation.isPending}
-                />
-              )}
+            <TabsContent value="questoes" className="mt-4">
+              <div className="bg-neutral-900/80 border border-white/5 rounded-xl p-4">
+                {video.questoes && video.questoes.length > 0 ? (
+                  <VideoaulaQuestoes questoes={video.questoes} />
+                ) : !video.isLocal ? (
+                  <div className="text-center py-6">
+                    <ListChecks className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
+                    <h3 className="font-medium mb-2">Questões não disponíveis</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Questões não estão disponíveis para vídeos externos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <ListChecks className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      As questões ainda não foram geradas para esta aula.
+                    </p>
+                    {!video.sobre_aula && (
+                      <Button 
+                        onClick={() => generateMutation.mutate()}
+                        disabled={generateMutation.isPending}
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                      >
+                        {generateMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Gerando conteúdo...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Gerar questões
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
@@ -695,189 +750,6 @@ const VideoaulasAreaVideoView = () => {
           </Button>
         </div>
       </div>
-    </div>
-  );
-};
-
-// Componente para estado vazio
-const EmptyContent = ({ 
-  title, 
-  description, 
-  onGenerate, 
-  isGenerating 
-}: { 
-  title: string; 
-  description: string; 
-  onGenerate: () => void; 
-  isGenerating: boolean;
-}) => (
-  <div className="bg-card rounded-xl p-6 border border-border text-center">
-    <Sparkles className="w-10 h-10 mx-auto text-muted-foreground/30 mb-4" />
-    <h3 className="font-semibold mb-2">{title}</h3>
-    <p className="text-sm text-muted-foreground mb-4">{description}</p>
-    <Button 
-      onClick={onGenerate} 
-      disabled={isGenerating}
-      className="bg-red-600 hover:bg-red-700"
-    >
-      {isGenerating ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          Gerando...
-        </>
-      ) : (
-        <>
-          <Sparkles className="w-4 h-4 mr-2" />
-          Gerar com IA
-        </>
-      )}
-    </Button>
-  </div>
-);
-
-// Componente de Flashcards
-const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  const current = flashcards[currentIndex];
-
-  // Auto-flip após 1.5s se não estiver virado
-  useEffect(() => {
-    if (!isFlipped && current) {
-      const timer = setTimeout(() => {
-        setIsFlipped(true);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [currentIndex, isFlipped, current]);
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center mb-2">
-        <span className="text-sm text-muted-foreground">
-          {currentIndex + 1} de {flashcards.length}
-        </span>
-      </div>
-
-      <ReactCardFlip isFlipped={isFlipped} flipDirection="horizontal">
-        <div
-          onClick={() => setIsFlipped(true)}
-          className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl p-6 min-h-[200px] flex items-center justify-center cursor-pointer shadow-lg"
-        >
-          <p className="text-white text-center text-lg font-medium">
-            {current?.pergunta || current?.frente}
-          </p>
-        </div>
-
-        <div
-          onClick={() => setIsFlipped(false)}
-          className="bg-card rounded-xl p-6 min-h-[200px] flex items-center justify-center cursor-pointer border border-border shadow-lg"
-        >
-          <p className="text-foreground text-center">
-            {current?.resposta || current?.verso}
-          </p>
-        </div>
-      </ReactCardFlip>
-
-      <div className="flex justify-between gap-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            setIsFlipped(false);
-            setCurrentIndex(Math.max(0, currentIndex - 1));
-          }}
-          disabled={currentIndex === 0}
-        >
-          Anterior
-        </Button>
-        <Button
-          onClick={() => {
-            setIsFlipped(false);
-            setCurrentIndex(Math.min(flashcards.length - 1, currentIndex + 1));
-          }}
-          disabled={currentIndex === flashcards.length - 1}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          Próximo
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-// Componente de Questões
-const QuestoesView = ({ questoes }: { questoes: any[] }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState(false);
-
-  const current = questoes[currentIndex];
-  const alternatives = current?.alternativas || [];
-  const correctAnswer = current?.resposta_correta || current?.correta;
-
-  const handleSelectAnswer = (alt: string) => {
-    if (showResult) return;
-    setSelectedAnswer(alt);
-    setShowResult(true);
-  };
-
-  const handleNext = () => {
-    setSelectedAnswer(null);
-    setShowResult(false);
-    setCurrentIndex(Math.min(questoes.length - 1, currentIndex + 1));
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center mb-2">
-        <span className="text-sm text-muted-foreground">
-          Questão {currentIndex + 1} de {questoes.length}
-        </span>
-      </div>
-
-      <div className="bg-card rounded-xl p-5 border border-border">
-        <p className="font-medium mb-4">{current?.enunciado || current?.pergunta}</p>
-
-        <div className="space-y-2">
-          {alternatives.map((alt: any, idx: number) => {
-            const letter = String.fromCharCode(65 + idx);
-            const altText = typeof alt === 'string' ? alt : alt?.texto || alt?.alternativa;
-            const isCorrect = letter === correctAnswer || altText === correctAnswer;
-            const isSelected = selectedAnswer === letter;
-
-            return (
-              <button
-                key={idx}
-                onClick={() => handleSelectAnswer(letter)}
-                className={cn(
-                  "w-full text-left p-3 rounded-lg border transition-all",
-                  showResult && isCorrect
-                    ? "bg-green-500/20 border-green-500"
-                    : showResult && isSelected && !isCorrect
-                      ? "bg-red-500/20 border-red-500"
-                      : isSelected
-                        ? "bg-red-500/20 border-red-500"
-                        : "bg-secondary/50 border-transparent hover:border-red-500/30"
-                )}
-              >
-                <span className="font-medium mr-2">{letter})</span>
-                {altText}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {showResult && (
-        <Button
-          onClick={handleNext}
-          disabled={currentIndex === questoes.length - 1}
-          className="w-full bg-red-600 hover:bg-red-700"
-        >
-          {currentIndex === questoes.length - 1 ? "Finalizar" : "Próxima Questão"}
-        </Button>
-      )}
     </div>
   );
 };
