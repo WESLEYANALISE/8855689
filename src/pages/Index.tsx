@@ -472,34 +472,6 @@ const Index = () => {
                   <div className="w-1/2" />
                 </div>
 
-                {/* Card Ferramentas - Direita */}
-                <div className="relative flex items-center">
-                  <div className="w-1/2" />
-                  {/* Ícone de pegada no centro com pulso */}
-                  <div 
-                    className="absolute left-1/2 transform -translate-x-1/2 z-10"
-                    style={{ animation: 'footprintPulse 2s ease-in-out infinite 2.1s' }}
-                  >
-                    <div className="bg-amber-600 rounded-full p-2 shadow-lg ring-4 ring-background relative">
-                      <div className="absolute inset-0 bg-amber-500 rounded-full animate-ping opacity-30" style={{ animationDelay: '2.1s' }} />
-                      <Footprints className="w-4 h-4 text-white relative z-10" />
-                    </div>
-                  </div>
-                  <div className="w-1/2 pl-6">
-                    <button
-                      onClick={() => navigate('/advogado')}
-                      className="w-full h-[100px] bg-gradient-to-br from-amber-950 via-amber-900 to-amber-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-amber-800/30 flex items-center gap-3"
-                    >
-                      <div className="bg-white/15 rounded-xl p-2.5">
-                        <Wrench className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-white">Recursos</h3>
-                        <p className="text-xs text-white/70 mt-1">Petições e modelos</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           )}
