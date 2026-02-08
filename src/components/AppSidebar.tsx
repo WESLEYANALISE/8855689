@@ -39,7 +39,8 @@ import {
   Mail,
   Clock,
   Settings,
-  Route
+  Route,
+  Activity
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -434,6 +435,21 @@ export const AppSidebar = ({ onClose }: AppSidebarProps = {}) => {
               >
                 <Route className="w-5 h-5 md:w-4 md:h-4" />
                 <span className="text-sm md:text-xs">Trilhas OAB</span>
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/admin/controle");
+                  onClose?.();
+                }}
+                className={cn(
+                  "w-full flex items-center gap-2.5 md:gap-2 px-2.5 md:px-2 py-2.5 md:py-2 rounded-md transition-colors text-left",
+                  location.pathname === "/admin/controle"
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "text-foreground hover:bg-secondary"
+                )}
+              >
+                <Activity className="w-5 h-5 md:w-4 md:h-4" />
+                <span className="text-sm md:text-xs">Controle</span>
               </button>
             </div>
           )}
