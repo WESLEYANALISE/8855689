@@ -2,23 +2,26 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BookOpen, Footprints, GraduationCap, Loader2, ImagePlus, Scale } from "lucide-react";
- import { Lock, Crown } from "lucide-react";
+import { ArrowLeft, BookOpen, Footprints, GraduationCap, Loader2, ImagePlus, Scale, Crown, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import themisBackground from "@/assets/themis-estudos-background.webp";
 import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
- import { useFixedContentLimit } from "@/hooks/useFixedContentLimit";
- import { LockedTimelineCard } from "@/components/LockedTimelineCard";
- import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { LockedTimelineCard } from "@/components/LockedTimelineCard";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+
+// Matéria gratuita: "História do Direito"
+const FREE_MATERIA_NAMES = ["história do direito", "historia do direito"];
 
 const ConceitosTrilhante = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
-   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const { isPremium } = useSubscription();
 
   // Buscar todas as matérias do Trilhante
   const { data: materias, isLoading } = useQuery({
@@ -119,11 +122,15 @@ const ConceitosTrilhante = () => {
   const totalMaterias = materias?.length || 0;
   const totalTopicos = Object.values(topicosCount || {}).reduce((a, b) => a + b, 0);
 
-   // Aplicar limite de 9 matérias para usuários gratuitos
-   const { visibleItems, lockedItems, lockedCount } = useFixedContentLimit(
-     materias,
-     'conceitos-materias'
-   );
+  // Separar matérias gratuitas e premium
+  const isMateriaFree = (nome: string) => FREE_MATERIA_NAMES.includes(nome.toLowerCase().trim());
+  
+  const freeMaterias = materias?.filter(m => isMateriaFree(m.nome)) || [];
+  const premiumMaterias = materias?.filter(m => !isMateriaFree(m.nome)) || [];
+  
+  // Se o usuário é premium, todas são visíveis
+  const visibleItems = isPremium ? materias || [] : freeMaterias;
+  const lockedItems = isPremium ? [] : premiumMaterias;
 
   if (isLoading) {
     return (
