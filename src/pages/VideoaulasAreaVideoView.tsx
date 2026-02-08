@@ -1,8 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Video, Loader2, Sparkles, BookOpen, HelpCircle, Play, Clock } from "lucide-react";
+import { ArrowLeft, Video, Loader2, Sparkles, BookOpen, HelpCircle, Play, Clock, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
@@ -14,6 +14,7 @@ import ReactCardFlip from "react-card-flip";
 import VideoProgressBar from "@/components/videoaulas/VideoProgressBar";
 import ContinueWatchingModal from "@/components/videoaulas/ContinueWatchingModal";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
+import { AREAS_PLAYLISTS } from "@/data/videoaulasAreasPlaylists";
 
 interface VideoaulaArea {
   id: number;
@@ -25,6 +26,14 @@ interface VideoaulaArea {
   sobre_aula?: string | null;
   flashcards?: any[] | null;
   questoes?: any[] | null;
+}
+
+interface YouTubeVideo {
+  videoId: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  publishedAt: string;
 }
 
 // Extrai ID do vídeo do YouTube
@@ -44,11 +53,18 @@ const simplifyAreaName = (areaName: string): string => {
   return areaName;
 };
 
+// Verifica se é um ID numérico (local) ou string (YouTube)
+const isNumericId = (id: string): boolean => {
+  return /^\d+$/.test(id);
+};
+
 const VideoaulasAreaVideoView = () => {
   const navigate = useNavigate();
   const { area, id } = useParams();
   const decodedArea = decodeURIComponent(area || "");
-  const videoId = parseInt(id || "0");
+  const rawId = id || "";
+  const isLocalVideo = isNumericId(rawId);
+  const videoNumericId = isLocalVideo ? parseInt(rawId) : 0;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sobre");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -58,39 +74,139 @@ const VideoaulasAreaVideoView = () => {
   const playerRef = useRef<any>(null);
   const seekToTimeRef = useRef<number | null>(null);
 
-  // Buscar vídeo atual
-  const { data: video, isLoading } = useQuery({
-    queryKey: ["videoaula-area-view", videoId],
+  // Encontrar playlist correspondente
+  const areaPlaylist = AREAS_PLAYLISTS.find(
+    p => p.nome.toLowerCase() === decodedArea.toLowerCase()
+  );
+
+  // Buscar vídeo local (se for ID numérico)
+  const { data: localVideo, isLoading: isLoadingLocal } = useQuery({
+    queryKey: ["videoaula-area-view", videoNumericId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("VIDEO AULAS-NOVO" as any)
         .select("*")
-        .eq("id", videoId)
+        .eq("id", videoNumericId)
         .single();
       
       if (error) throw error;
       return data as unknown as VideoaulaArea;
     },
-    enabled: !!videoId,
+    enabled: isLocalVideo && !!videoNumericId,
   });
+
+  // Buscar vídeos do YouTube para encontrar o vídeo atual (se for videoId do YouTube)
+  const { data: youtubeVideos, isLoading: isLoadingYoutube } = useQuery({
+    queryKey: ["youtube-playlist-videos", areaPlaylist?.playlistId],
+    queryFn: async () => {
+      if (!areaPlaylist) throw new Error("Playlist não encontrada");
+      
+      const { data, error } = await supabase.functions.invoke('buscar-videos-playlist', {
+        body: { playlistLink: areaPlaylist.playlistUrl }
+      });
+      
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      return data.videos as YouTubeVideo[];
+    },
+    enabled: !isLocalVideo && !!areaPlaylist,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Encontrar vídeo do YouTube atual
+  const youtubeVideo = useMemo(() => {
+    if (isLocalVideo || !youtubeVideos) return null;
+    return youtubeVideos.find(v => v.videoId === rawId);
+  }, [isLocalVideo, youtubeVideos, rawId]);
+
+  // Dados unificados do vídeo
+  const video = useMemo(() => {
+    if (isLocalVideo && localVideo) {
+      return {
+        id: String(localVideo.id),
+        titulo: localVideo.titulo,
+        thumb: localVideo.thumb,
+        tempo: localVideo.tempo,
+        youtubeVideoId: extractVideoId(localVideo.link),
+        sobre_aula: localVideo.sobre_aula,
+        flashcards: localVideo.flashcards,
+        questoes: localVideo.questoes,
+        isLocal: true,
+      };
+    }
+    
+    if (!isLocalVideo && youtubeVideo) {
+      return {
+        id: youtubeVideo.videoId,
+        titulo: youtubeVideo.title,
+        thumb: youtubeVideo.thumbnail,
+        tempo: null,
+        youtubeVideoId: youtubeVideo.videoId,
+        sobre_aula: null,
+        flashcards: null,
+        questoes: null,
+        isLocal: false,
+        description: youtubeVideo.description,
+      };
+    }
+    
+    // Fallback para vídeo do YouTube sem dados da API (usando apenas o ID da URL)
+    if (!isLocalVideo && rawId) {
+      return {
+        id: rawId,
+        titulo: `Vídeo - ${simplifyAreaName(decodedArea)}`,
+        thumb: `https://img.youtube.com/vi/${rawId}/maxresdefault.jpg`,
+        tempo: null,
+        youtubeVideoId: rawId,
+        sobre_aula: null,
+        flashcards: null,
+        questoes: null,
+        isLocal: false,
+      };
+    }
+    
+    return null;
+  }, [isLocalVideo, localVideo, youtubeVideo, rawId, decodedArea]);
+
+  const isLoading = isLocalVideo ? isLoadingLocal : (isLoadingYoutube && !video);
 
   // Buscar lista para navegação
   const { data: allVideos } = useQuery({
-    queryKey: ["videoaulas-area-nav", decodedArea],
+    queryKey: ["videoaulas-area-nav-unified", decodedArea, areaPlaylist?.playlistId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Tentar buscar locais primeiro
+      const { data: localData } = await supabase
         .from("VIDEO AULAS-NOVO" as any)
         .select("id, titulo, thumb, link")
         .ilike("area", `%${decodedArea}%`)
         .order("titulo", { ascending: true });
       
-      if (error) throw error;
-      return data as unknown as { id: number; titulo: string; thumb: string | null; link: string }[];
+      if (localData && localData.length > 0) {
+        return (localData as any[]).map((v: any) => ({
+          id: String(v.id),
+          titulo: v.titulo,
+          thumb: v.thumb,
+          videoId: extractVideoId(v.link),
+          isLocal: true,
+        }));
+      }
+      
+      // Se não tiver locais, usar os do YouTube já carregados
+      if (youtubeVideos) {
+        return youtubeVideos.map(v => ({
+          id: v.videoId,
+          titulo: v.title,
+          thumb: v.thumbnail,
+          videoId: v.videoId,
+          isLocal: false,
+        }));
+      }
+      
+      return [];
     },
     enabled: !!decodedArea,
   });
-
-  const youtubeVideoId = video ? extractVideoId(video.link) : "";
 
   // Hook de progresso
   const {
@@ -102,13 +218,13 @@ const VideoaulasAreaVideoView = () => {
     stopAutoSave,
   } = useVideoProgress({
     tabela: "VIDEO AULAS-NOVO",
-    registroId: String(videoId),
-    videoId: youtubeVideoId,
+    registroId: video?.isLocal ? video.id : `yt_${video?.youtubeVideoId}`,
+    videoId: video?.youtubeVideoId || "",
     enabled: !!video,
   });
 
   // Navegação
-  const currentIndex = allVideos?.findIndex(v => v.id === videoId) ?? -1;
+  const currentIndex = allVideos?.findIndex(v => v.id === (video?.id || "")) ?? -1;
   const prevVideo = currentIndex > 0 ? allVideos?.[currentIndex - 1] : null;
   const nextVideo = currentIndex < (allVideos?.length || 0) - 1 ? allVideos?.[currentIndex + 1] : null;
 
@@ -214,16 +330,17 @@ const VideoaulasAreaVideoView = () => {
     setDuration(0);
     seekToTimeRef.current = null;
     playerRef.current = null;
-  }, [videoId]);
+  }, [rawId]);
 
-  // Mutation para gerar conteúdo
+  // Mutation para gerar conteúdo (apenas para vídeos locais)
   const generateMutation = useMutation({
     mutationFn: async () => {
       if (!video) throw new Error("Vídeo não encontrado");
+      if (!video.isLocal) throw new Error("Geração de conteúdo disponível apenas para vídeos indexados");
       
       const { data, error } = await supabase.functions.invoke("processar-videoaula-oab", {
         body: {
-          videoId: youtubeVideoId,
+          videoId: video.youtubeVideoId,
           titulo: video.titulo,
           tabela: "VIDEO AULAS-NOVO",
           id: video.id,
@@ -235,7 +352,7 @@ const VideoaulasAreaVideoView = () => {
     },
     onSuccess: () => {
       toast.success("Conteúdo gerado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["videoaula-area-view", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["videoaula-area-view", videoNumericId] });
     },
     onError: (error) => {
       console.error("Erro ao gerar conteúdo:", error);
@@ -327,7 +444,7 @@ const VideoaulasAreaVideoView = () => {
               <iframe
                 ref={iframeRef}
                 id="youtube-player"
-                src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&autoplay=1&enablejsapi=1&origin=${window.location.origin}`}
+                src={`https://www.youtube.com/embed/${video.youtubeVideoId}?rel=0&autoplay=1&enablejsapi=1&origin=${window.location.origin}`}
                 title={video.titulo}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -340,11 +457,11 @@ const VideoaulasAreaVideoView = () => {
               >
                 {/* Thumbnail */}
                 <img
-                  src={video.thumb || `https://img.youtube.com/vi/${youtubeVideoId}/maxresdefault.jpg`}
+                  src={video.thumb || `https://img.youtube.com/vi/${video.youtubeVideoId}/maxresdefault.jpg`}
                   alt={video.titulo}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`;
+                    e.currentTarget.src = `https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg`;
                   }}
                 />
                 {/* Overlay escuro */}
@@ -355,6 +472,13 @@ const VideoaulasAreaVideoView = () => {
                     <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                   </div>
                 </div>
+                {/* Badge YouTube para vídeos externos */}
+                {!video.isLocal && (
+                  <div className="absolute top-2 right-2 bg-red-600/90 px-2 py-1 rounded text-xs text-white font-medium flex items-center gap-1">
+                    <Youtube className="w-3 h-3" />
+                    YouTube
+                  </div>
+                )}
               </button>
             )}
           </div>
@@ -402,6 +526,22 @@ const VideoaulasAreaVideoView = () => {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{video.sobre_aula}</ReactMarkdown>
                   </div>
                 </div>
+              ) : !video.isLocal ? (
+                <div className="bg-card rounded-xl p-5 border border-border text-center">
+                  <Youtube className="w-12 h-12 mx-auto text-red-500/50 mb-3" />
+                  <h3 className="font-medium mb-2">Vídeo do YouTube</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Este vídeo é reproduzido diretamente do YouTube.
+                  </p>
+                  {(video as any).description && (
+                    <div className="text-left bg-neutral-800/50 rounded-lg p-3 mt-4">
+                      <p className="text-xs text-muted-foreground font-medium mb-1">Descrição:</p>
+                      <p className="text-sm text-foreground/80 line-clamp-6">
+                        {(video as any).description}
+                      </p>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <EmptyContent 
                   title="Resumo não gerado" 
@@ -415,6 +555,14 @@ const VideoaulasAreaVideoView = () => {
             <TabsContent value="flashcards">
               {video.flashcards && video.flashcards.length > 0 ? (
                 <FlashcardsView flashcards={video.flashcards} />
+              ) : !video.isLocal ? (
+                <div className="bg-card rounded-xl p-5 border border-border text-center">
+                  <Sparkles className="w-12 h-12 mx-auto text-amber-500/50 mb-3" />
+                  <h3 className="font-medium mb-2">Flashcards não disponíveis</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Flashcards não estão disponíveis para vídeos do YouTube externos.
+                  </p>
+                </div>
               ) : (
                 <EmptyContent 
                   title="Flashcards não gerados" 
@@ -428,6 +576,14 @@ const VideoaulasAreaVideoView = () => {
             <TabsContent value="questoes">
               {video.questoes && video.questoes.length > 0 ? (
                 <QuestoesView questoes={video.questoes} />
+              ) : !video.isLocal ? (
+                <div className="bg-card rounded-xl p-5 border border-border text-center">
+                  <HelpCircle className="w-12 h-12 mx-auto text-blue-500/50 mb-3" />
+                  <h3 className="font-medium mb-2">Questões não disponíveis</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Questões não estão disponíveis para vídeos do YouTube externos.
+                  </p>
+                </div>
               ) : (
                 <EmptyContent 
                   title="Questões não geradas" 
@@ -450,30 +606,33 @@ const VideoaulasAreaVideoView = () => {
           </h2>
           <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
             {allVideos?.map((v: any, index: number) => {
-              const vVideoId = extractVideoId(v.link);
+              const isCurrentVideo = v.id === video?.id;
               return (
                 <button
                   key={v.id}
                   onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}/${v.id}`)}
                   className={cn(
                     "w-full text-left p-3 rounded-xl transition-all text-sm flex items-center gap-3",
-                    v.id === videoId
+                    isCurrentVideo
                       ? "bg-red-600/20 border border-red-500/40"
                       : "bg-neutral-800/50 hover:bg-neutral-700/50 border border-transparent"
                   )}
                 >
                   <span className={cn(
                     "text-xs font-mono",
-                    v.id === videoId ? "text-red-400" : "text-muted-foreground"
+                    isCurrentVideo ? "text-red-400" : "text-muted-foreground"
                   )}>
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className={cn(
                     "flex-1 line-clamp-1",
-                    v.id === videoId ? "text-red-400 font-medium" : "text-foreground"
+                    isCurrentVideo ? "text-red-400 font-medium" : "text-foreground"
                   )}>
                     {v.titulo}
                   </span>
+                  {!v.isLocal && (
+                    <Youtube className="w-3 h-3 text-red-500 flex-shrink-0" />
+                  )}
                 </button>
               );
             })}

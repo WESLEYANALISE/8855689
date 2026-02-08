@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Video, ArrowLeft, Loader2, Search, Play, History, Clock, X, ExternalLink } from "lucide-react";
+import { Video, ArrowLeft, Loader2, Search, Play, History, Clock, X, ExternalLink, Youtube, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,14 @@ interface VideoaulaArea {
   link: string;
   thumb: string | null;
   tempo: string | null;
+}
+
+interface YouTubeVideo {
+  videoId: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  publishedAt: string;
 }
 
 type MainTabType = "videos" | "historico";
@@ -61,7 +69,8 @@ const VideoaulasAreaVideos = () => {
     p => p.nome.toLowerCase() === decodedArea.toLowerCase()
   );
 
-  const { data: videoaulas, isLoading } = useQuery({
+  // Primeiro buscar da tabela local
+  const { data: videoaulas, isLoading: isLoadingLocal } = useQuery({
     queryKey: ["videoaulas-area-videos", decodedArea],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -75,6 +84,30 @@ const VideoaulasAreaVideos = () => {
     },
     enabled: !!decodedArea,
   });
+
+  // Se não tiver vídeos locais, buscar do YouTube via edge function
+  const { data: youtubeVideos, isLoading: isLoadingYoutube, error: youtubeError } = useQuery({
+    queryKey: ["youtube-playlist-videos", areaPlaylist?.playlistId],
+    queryFn: async () => {
+      if (!areaPlaylist) throw new Error("Playlist não encontrada");
+      
+      console.log("Buscando vídeos da playlist:", areaPlaylist.playlistUrl);
+      
+      const { data, error } = await supabase.functions.invoke('buscar-videos-playlist', {
+        body: { playlistLink: areaPlaylist.playlistUrl }
+      });
+      
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      return data.videos as YouTubeVideo[];
+    },
+    enabled: !!areaPlaylist && (!videoaulas || videoaulas.length === 0) && !isLoadingLocal,
+    retry: 2,
+    staleTime: 1000 * 60 * 30, // 30 minutos
+  });
+
+  const isLoading = isLoadingLocal || ((!videoaulas || videoaulas.length === 0) && isLoadingYoutube);
 
   // Buscar histórico de vídeos assistidos
   const { data: historico, isLoading: loadingHistorico } = useQuery({
@@ -123,15 +156,45 @@ const VideoaulasAreaVideos = () => {
     staleTime: 1000 * 60 * 2,
   });
 
+  // Combinar vídeos locais e do YouTube
+  const allVideos = useMemo(() => {
+    if (videoaulas && videoaulas.length > 0) {
+      return videoaulas.map(v => ({
+        id: String(v.id),
+        isLocal: true,
+        titulo: v.titulo,
+        thumb: v.thumb,
+        tempo: v.tempo,
+        link: v.link,
+        videoId: extractVideoId(v.link),
+      }));
+    }
+    
+    if (youtubeVideos && youtubeVideos.length > 0) {
+      return youtubeVideos.map(v => ({
+        id: v.videoId,
+        isLocal: false,
+        titulo: v.title,
+        thumb: v.thumbnail,
+        tempo: null,
+        link: `https://www.youtube.com/watch?v=${v.videoId}`,
+        videoId: v.videoId,
+        description: v.description,
+      }));
+    }
+    
+    return [];
+  }, [videoaulas, youtubeVideos]);
+
   const filteredVideos = useMemo(() => {
-    if (!videoaulas) return [];
-    if (!search.trim()) return videoaulas;
-    return videoaulas.filter(v =>
+    if (!allVideos.length) return [];
+    if (!search.trim()) return allVideos;
+    return allVideos.filter(v =>
       v.titulo.toLowerCase().includes(search.toLowerCase())
     );
-  }, [videoaulas, search]);
+  }, [allVideos, search]);
 
-  const totalVideos = videoaulas?.length || 0;
+  const totalVideos = allVideos.length;
 
   // Formatar tempo
   const formatTime = (seconds: number) => {
@@ -251,18 +314,47 @@ const VideoaulasAreaVideos = () => {
         <div className="px-4 pb-24">
           <div className="max-w-lg mx-auto">
             <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <Video className="w-4 h-4" />
-              Lista de Aulas
+              {youtubeVideos && youtubeVideos.length > 0 && (!videoaulas || videoaulas.length === 0) ? (
+                <>
+                  <Youtube className="w-4 h-4 text-red-500" />
+                  Vídeos do YouTube
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4" />
+                  Lista de Aulas
+                </>
+              )}
             </h2>
             
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+                <p className="text-sm text-muted-foreground">Carregando vídeos...</p>
+              </div>
+            ) : youtubeError ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-amber-500/50" />
+                <p className="mb-2">Erro ao carregar vídeos do YouTube</p>
+                <p className="text-xs text-muted-foreground/70 mb-4">
+                  {youtubeError instanceof Error ? youtubeError.message : "Tente novamente mais tarde"}
+                </p>
+                {areaPlaylist && (
+                  <a
+                    href={areaPlaylist.playlistUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Abrir no YouTube
+                  </a>
+                )}
               </div>
             ) : filteredVideos.length > 0 ? (
               <div className="space-y-2">
                 {filteredVideos.map((video, index) => (
-                  <VideoListItem
+                  <VideoListItemUnified
                     key={video.id}
                     video={video}
                     index={index}
@@ -273,7 +365,7 @@ const VideoaulasAreaVideos = () => {
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>{search ? "Nenhuma aula encontrada" : "Nenhuma videoaula indexada ainda"}</p>
+                <p>{search ? "Nenhuma aula encontrada" : "Nenhuma videoaula disponível"}</p>
                 {areaPlaylist && !search && (
                   <a
                     href={areaPlaylist.playlistUrl}
@@ -369,48 +461,62 @@ const VideoaulasAreaVideos = () => {
   );
 };
 
-// Componente de item da lista
-const VideoListItem = ({ 
+// Componente unificado para lista de vídeos (locais ou YouTube)
+interface UnifiedVideo {
+  id: string;
+  isLocal: boolean;
+  titulo: string;
+  thumb: string | null;
+  tempo: string | null;
+  link: string;
+  videoId: string;
+  description?: string;
+}
+
+const VideoListItemUnified = ({ 
   video, 
   index, 
   area,
 }: { 
-  video: VideoaulaArea; 
+  video: UnifiedVideo; 
   index: number; 
   area: string;
 }) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
-  const videoId = extractVideoId(video.link);
-  const thumbnail = video.thumb || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  const thumbnail = video.thumb || `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
+
+  const handleClick = () => {
+    // Se for local, usa o ID numérico, senão usa o videoId do YouTube
+    const routeId = video.isLocal ? video.id : video.videoId;
+    navigate(`/videoaulas/areas/${encodeURIComponent(area)}/${routeId}`);
+  };
 
   return (
     <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.02 }}
-      onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(area)}/${video.id}`)}
+      onClick={handleClick}
       className="w-full text-left border rounded-xl transition-all overflow-hidden bg-neutral-800/90 hover:bg-neutral-700/90 border-neutral-700/50 hover:border-red-500/30"
     >
       <div className="flex items-center">
         {/* Thumbnail */}
         <div className="relative w-24 h-16 flex-shrink-0 bg-neutral-800 rounded-l-xl overflow-hidden">
-          <>
-            <div className={cn(
-              "absolute inset-0 bg-neutral-700 animate-pulse transition-opacity",
-              imageLoaded ? "opacity-0" : "opacity-100"
-            )} />
-            <img 
-              src={thumbnail} 
-              alt={video.titulo}
-              className={cn(
-                "w-full h-full object-cover transition-opacity",
-                imageLoaded ? "opacity-100" : "opacity-0"
-              )}
-              loading="lazy"
-              onLoad={() => setImageLoaded(true)}
-            />
-          </>
+          <div className={cn(
+            "absolute inset-0 bg-neutral-700 animate-pulse transition-opacity",
+            imageLoaded ? "opacity-0" : "opacity-100"
+          )} />
+          <img 
+            src={thumbnail} 
+            alt={video.titulo}
+            className={cn(
+              "w-full h-full object-cover transition-opacity",
+              imageLoaded ? "opacity-100" : "opacity-0"
+            )}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+          />
           
           {/* Play overlay */}
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -423,6 +529,13 @@ const VideoListItem = ({
           <div className="absolute bottom-0 left-0 bg-red-600/90 text-white text-xs font-bold px-2 py-0.5 rounded-tr-lg">
             {String(index + 1).padStart(2, '0')}
           </div>
+          
+          {/* Badge YouTube */}
+          {!video.isLocal && (
+            <div className="absolute top-0.5 right-0.5 bg-red-600/90 px-1 py-0.5 rounded text-[9px] text-white font-medium flex items-center gap-0.5">
+              <Youtube className="w-2.5 h-2.5" />
+            </div>
+          )}
         </div>
 
         {/* Info */}
