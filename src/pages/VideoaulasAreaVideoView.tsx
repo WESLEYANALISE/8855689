@@ -370,28 +370,18 @@ const VideoaulasAreaVideoView = () => {
     }
   }, [video?.id]);
 
-  // Auto-gerar conteúdo se não tiver sido gerado
-  useEffect(() => {
-    if (video && video.isLocal && !video.sobre_aula && !generateMutation.isPending && !generateMutation.isSuccess) {
-      // Delay para não sobrecarregar
-      const timer = setTimeout(() => {
-        generateMutation.mutate();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [video?.id, video?.isLocal, video?.sobre_aula]);
-
   // Mutation para gerar conteúdo (apenas para vídeos locais)
   const generateMutation = useMutation({
     mutationFn: async () => {
       if (!video) throw new Error("Vídeo não encontrado");
       if (!video.isLocal) throw new Error("Geração de conteúdo disponível apenas para vídeos indexados");
       
+      // Usar a tabela correta para videoaulas de áreas do direito
       const { data, error } = await supabase.functions.invoke("processar-videoaula-oab", {
         body: {
           videoId: video.youtubeVideoId,
           titulo: video.titulo,
-          tabela: "VIDEO AULAS-NOVO",
+          tabela: "videoaulas_areas_direito",
           id: video.id,
         },
       });
@@ -401,13 +391,39 @@ const VideoaulasAreaVideoView = () => {
     },
     onSuccess: () => {
       toast.success("Conteúdo gerado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["videoaula-area-view", videoNumericId] });
+      queryClient.invalidateQueries({ queryKey: ["videoaula-area-view", rawId, decodedArea] });
     },
     onError: (error) => {
       console.error("Erro ao gerar conteúdo:", error);
       toast.error("Erro ao gerar conteúdo. Tente novamente.");
     },
   });
+
+  // Ref para controlar se já iniciou geração automática
+  const autoGenerationStarted = useRef(false);
+
+  // Auto-gerar conteúdo se não tiver sido gerado (apenas uma vez)
+  useEffect(() => {
+    if (
+      video && 
+      video.isLocal && 
+      !video.sobre_aula && 
+      !generateMutation.isPending && 
+      !autoGenerationStarted.current
+    ) {
+      autoGenerationStarted.current = true;
+      // Delay para não sobrecarregar
+      const timer = setTimeout(() => {
+        generateMutation.mutate();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [video?.id, video?.isLocal, video?.sobre_aula, generateMutation.isPending]);
+
+  // Resetar flag quando muda de vídeo
+  useEffect(() => {
+    autoGenerationStarted.current = false;
+  }, [rawId]);
 
   if (isLoading) {
     return (
