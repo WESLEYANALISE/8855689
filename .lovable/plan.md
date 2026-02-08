@@ -1,119 +1,124 @@
 
-# Plano: Integração com API do YouTube para Áreas do Direito
+# Plano: Otimização da Seção de Questões para Carregamento Instantâneo
 
-## Resumo do Problema
-A seção "Áreas do Direito" nas Videoaulas não está exibindo os vídeos porque:
-- A página busca vídeos de uma tabela local do banco de dados (`VIDEO AULAS-NOVO`)
-- Mas as playlists são externas do YouTube e não estão indexadas localmente
-- Já existe uma função pronta (`buscar-videos-playlist`) que busca vídeos diretamente do YouTube
+## Problema Identificado
+
+Baseado nas imagens e análise do código, foram identificados os seguintes problemas:
+
+1. **Botão de voltar global duplicado**: A página de Questões mostra o breadcrumb global ("VOLTAR - Início") que conflita com o header próprio da página
+2. **Página recarregando ao clicar em áreas**: Quando o usuário navega entre áreas, a página faz um reload visual (tela preta) em vez de transição instantânea
+3. **Animações pesadas**: Cards com animações CSS causam lentidão na renderização inicial
+4. **Cache não otimizado**: O hook `useQuestoesTemas` precisa buscar dados do Supabase mesmo quando cache existe
 
 ## Solução Proposta
-Modificar a página para buscar os vídeos diretamente da API do YouTube usando a função existente quando não houver registros locais.
 
----
+### 1. Remover Breadcrumb Global da Seção de Questões
 
-## Alterações Necessárias
+Adicionar as rotas de questões na lista `hideBreadcrumb` do Layout para ocultar o botão de voltar duplicado.
 
-### 1. Modificar `src/pages/VideoaulasAreaVideos.tsx`
-**Objetivo**: Integrar com a edge function para buscar vídeos do YouTube
-
-**Mudanças**:
-- Primeiro tenta buscar da tabela local (`VIDEO AULAS-NOVO`)
-- Se não encontrar resultados, chama `buscar-videos-playlist` passando a URL da playlist
-- Formata os dados retornados da API do YouTube para exibição
-- Adiciona estados de loading e erro específicos para a busca no YouTube
+**Arquivo**: `src/components/Layout.tsx`
 
 ```text
-Fluxo de dados:
-┌─────────────────────────┐
-│  Página carrega         │
-└───────────┬─────────────┘
-            ▼
-┌─────────────────────────┐
-│ Busca na tabela local   │
-│ (VIDEO AULAS-NOVO)      │
-└───────────┬─────────────┘
-            ▼
-      ┌─────────────┐
-      │ Tem vídeos? │
-      └──────┬──────┘
-       Sim   │   Não
-        ▼    │    ▼
-  ┌─────────┐│┌──────────────────┐
-  │ Exibir  │││ Buscar da API    │
-  │ lista   │││ YouTube via      │
-  │ local   │││ buscar-videos-   │
-  └─────────┘││ playlist         │
-             │└────────┬─────────┘
-             │         ▼
-             │   ┌───────────────┐
-             │   │ Exibir vídeos │
-             │   │ do YouTube    │
-             └───┴───────────────┘
+hideBreadcrumb incluirá:
+- /ferramentas/questoes
+- /ferramentas/questoes/temas
+- /ferramentas/questoes/resolver
 ```
 
-### 2. Modificar `src/pages/VideoaulasAreaVideoView.tsx`
-**Objetivo**: Suportar reprodução de vídeos vindos do YouTube (não cadastrados localmente)
+### 2. Simplificar Design dos Cards para Carregamento Mais Leve
 
-**Mudanças**:
-- Detectar se o ID é numérico (local) ou string (YouTube videoId)
-- Se for do YouTube, buscar dados mínimos (título, thumbnail) sem depender da tabela
-- Adaptar a lógica de exibição para funcionar com dados do YouTube
-- Desabilitar geração de conteúdo IA para vídeos não cadastrados (ou criar fluxo para isso)
+**Arquivo**: `src/pages/ferramentas/QuestoesHub.tsx`
 
-### 3. Atualizar rotas em `src/App.tsx`
-**Objetivo**: Suportar parâmetros dinâmicos para vídeos do YouTube
+Mudanças:
+- Remover animações de entrada `animate-fade-in` com delay
+- Usar transições CSS leves em vez de transformações pesadas
+- Simplificar estrutura visual dos cards
+- Remover `hover:scale` e `hover:shadow-xl` que causam repaint
 
-**Mudanças**:
-- Alterar a rota para aceitar tanto IDs numéricos quanto videoIds do YouTube
-- Exemplo: `/videoaulas/areas/:area/:id` onde `id` pode ser um número ou um videoId do YouTube
+**Arquivo**: `src/pages/ferramentas/QuestoesTemas.tsx`
 
----
+Mudanças similares:
+- Remover `animate-fade-in` com delays sequenciais
+- Remover `hover:scale[1.02]` e `hover:shadow-xl`
+- Simplificar estrutura para renderização mais rápida
+
+### 3. Otimizar Cache para Navegação Instantânea
+
+**Arquivo**: `src/hooks/useQuestoesTemas.ts`
+
+Melhorias no hook:
+- Usar `staleTime: Infinity` para evitar refetch desnecessário
+- Garantir que dados do cache são mostrados imediatamente
+- Desabilitar `refetchOnMount` e `refetchOnWindowFocus`
+
+**Arquivo**: `src/hooks/useQuestoesAreasCache.ts`
+
+Ajustes:
+- Garantir que o loading nunca aparece se há cache
+- Cache persistente via IndexedDB com revalidação em background
+
+### 4. Estrutura Simplificada dos Cards
+
+**Antes** (pesado):
+```jsx
+<Card
+  className="cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all border-l-4 bg-gradient-to-r from-card to-card/80 group overflow-hidden animate-fade-in"
+  style={{ 
+    borderLeftColor: primaryColor,
+    animationDelay: `${index * 50}ms`,
+    animationFillMode: 'backwards'
+  }}
+>
+```
+
+**Depois** (leve):
+```jsx
+<Card
+  className="cursor-pointer transition-colors border-l-4 bg-card group"
+  style={{ borderLeftColor: primaryColor }}
+>
+```
+
+## Arquivos a Modificar
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/Layout.tsx` | Adicionar rotas de questões ao `hideBreadcrumb` |
+| `src/pages/ferramentas/QuestoesHub.tsx` | Remover animações, simplificar cards |
+| `src/pages/ferramentas/QuestoesTemas.tsx` | Remover animações, otimizar renderização |
+| `src/hooks/useQuestoesTemas.ts` | Otimizar configurações de cache |
+
+## Benefícios Esperados
+
+- Navegação instantânea entre áreas e temas (sem tela preta)
+- Carregamento visual imediato usando dados do cache
+- Interface mais fluida sem animações pesadas
+- Remoção da duplicação do botão de voltar
 
 ## Detalhes Técnicos
 
-### Interface para vídeos do YouTube
-```typescript
-interface YouTubeVideo {
-  videoId: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  publishedAt: string;
-}
+### Estratégia de Cache
+
+```text
+Fluxo de Navegação:
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  QuestoesHub │ ──→ │ QuestoesTemas│ ──→ │  Resolver   │
+└─────────────┘     └─────────────┘     └─────────────┘
+       ↓                   ↓
+   Cache áreas        Cache temas
+   (IndexedDB)        (IndexedDB)
+       ↓                   ↓
+   Mostra dados       Mostra dados
+   instantâneo        instantâneo
+       ↓                   ↓
+   Revalida em        Revalida em
+   background         background
 ```
 
-### Query para buscar da API do YouTube
-```typescript
-const { data: youtubeVideos } = useQuery({
-  queryKey: ["youtube-playlist-videos", areaPlaylist?.playlistId],
-  queryFn: async () => {
-    const { data, error } = await supabase.functions.invoke(
-      'buscar-videos-playlist',
-      { body: { playlistLink: areaPlaylist.playlistUrl } }
-    );
-    if (error) throw error;
-    return data.videos as YouTubeVideo[];
-  },
-  enabled: !!areaPlaylist && (!videoaulas || videoaulas.length === 0),
-});
-```
+### Performance CSS
 
-### Chaves de API
-A edge function `buscar-videos-playlist` já usa as chaves `GEMINI_KEY_1`, `GEMINI_KEY_2`, `GEMINI_KEY_3` que funcionam para a YouTube Data API. Estas chaves já estão configuradas no projeto.
-
----
-
-## Arquivos a Modificar
-1. **`src/pages/VideoaulasAreaVideos.tsx`** - Adicionar busca na API do YouTube
-2. **`src/pages/VideoaulasAreaVideoView.tsx`** - Suportar reprodução de vídeos do YouTube
-3. **`src/data/videoaulasAreasPlaylists.ts`** - (nenhuma alteração necessária)
-4. **`src/App.tsx`** - Possível ajuste de rota
-
----
-
-## Resultado Esperado
-- Ao entrar em qualquer área (ex: "Direito Administrativo"), a lista de vídeos aparecerá automaticamente
-- Cada vídeo mostrará: thumbnail, título, descrição resumida
-- Ao clicar, o vídeo será reproduzido normalmente
-- A experiência será idêntica às videoaulas da OAB 1ª Fase
+Substituições de classes:
+- `hover:scale-[1.02]` → Removido (causa layout shift)
+- `hover:shadow-xl` → `hover:bg-muted/50` (apenas cor)
+- `animate-fade-in` com delay → Removido (causa stagger lento)
+- `transition-all` → `transition-colors` (mais específico)
