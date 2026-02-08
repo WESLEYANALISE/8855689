@@ -14,6 +14,7 @@ import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import GlobalAudioPlayer from "./components/GlobalAudioPlayer";
 import AmbientSoundPlayer from "./components/AmbientSoundPlayer";
 import { GlobalImagePreloader } from "./components/GlobalImagePreloader";
+import { PageTracker } from "./components/PageTracker";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // Auth pages
@@ -139,6 +140,7 @@ import AdminExtracaoPeticoes from "./pages/Admin/AdminExtracaoPeticoes";
 import PostsJuridicosAdmin from "./pages/Admin/PostsJuridicosAdmin";
 import GeracaoCentral from "./pages/Admin/GeracaoCentral";
 import AdminAssinaturas from "./pages/Admin/AdminAssinaturas";
+import AdminControle from "./pages/Admin/AdminControle";
 import AdminCapasBiblioteca from "./pages/AdminCapasBiblioteca";
 import NovasLeis from "./pages/NovasLeis";
 import PrimeirosPassos from "./pages/PrimeirosPassos";
@@ -578,6 +580,7 @@ const App = () => {
           <BrowserRouter>
             <TutorialProvider>
             <ScrollToTop />
+            <PageTracker />
             <GlobalImagePreloader />
             
             {/* Auth routes - outside Layout for full-screen experience */}
@@ -1062,6 +1065,7 @@ const App = () => {
               <Route path="/admin/boletins" element={<AdminBoletins />} />
               <Route path="/admin/evelyn-metricas" element={<EvelynMetricas />} />
               <Route path="/admin/importar-instagram" element={<ImportarInstagram />} />
+              <Route path="/admin/controle" element={<AdminControle />} />
               <Route path="/posts-juridicos" element={<PostsJuridicos />} />
               <Route path="/cancelar-push" element={<CancelarPush />} />
               <Route path="/tutoriais" element={<TutoriaisHub />} />

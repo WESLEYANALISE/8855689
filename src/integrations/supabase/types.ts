@@ -14325,6 +14325,39 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          created_at: string | null
+          device: string | null
+          id: string
+          page_path: string
+          page_title: string | null
+          referrer: string | null
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device?: string | null
+          id?: string
+          page_path: string
+          page_title?: string | null
+          referrer?: string | null
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device?: string | null
+          id?: string
+          page_path?: string
+          page_title?: string | null
+          referrer?: string | null
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       PEC_VADEMECUM: {
         Row: {
           areas_direito: string[] | null
