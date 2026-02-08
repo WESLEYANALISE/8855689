@@ -151,7 +151,7 @@ const QuestoesTemas = () => {
               Nenhum tema encontrado
             </div>
           ) : (
-            filteredTemas.map((item, index) => (
+            filteredTemas.map((item) => (
               <Card
                 key={item.tema}
                 onClick={() => {
@@ -161,16 +161,12 @@ const QuestoesTemas = () => {
                     navegarParaTema(item.tema);
                   }
                 }}
-                className={`cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all border-l-4 bg-gradient-to-r from-card to-card/80 group overflow-hidden animate-fade-in ${
+                className={`cursor-pointer transition-colors border-l-4 bg-card group hover:bg-accent/10 ${
                   modo === "selecionar" && temasSelecionados.includes(item.tema) 
                     ? "ring-2 ring-emerald-500" 
                     : ""
                 }`}
-                style={{ 
-                  borderLeftColor: primaryColor,
-                  animationDelay: `${index * 50}ms`,
-                  animationFillMode: 'backwards'
-                }}
+                style={{ borderLeftColor: primaryColor }}
               >
                 <CardContent className="p-4 flex items-center gap-4 min-h-[72px]">
                   <div className="bg-emerald-500/10 rounded-full p-3 shrink-0">
