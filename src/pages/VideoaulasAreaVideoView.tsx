@@ -53,6 +53,18 @@ const simplifyAreaName = (areaName: string): string => {
   return areaName;
 };
 
+// Função para limpar título do vídeo (remover "Kultivi", "CURSO GRATUITO COMPLETO", etc)
+const cleanVideoTitle = (titulo: string): string => {
+  return titulo
+    .replace(/\s*\|\s*Kultivi.*$/i, '')
+    .replace(/\s*-\s*Kultivi.*$/i, '')
+    .replace(/CURSO\s*GRATUITO\s*COMPLETO/gi, '')
+    .replace(/CURSO\s*GRATUITO/gi, '')
+    .replace(/\s*\|\s*$/g, '')
+    .replace(/\s*-\s*$/g, '')
+    .trim();
+};
+
 // Verifica se é um ID numérico (local) ou string (YouTube)
 const isNumericId = (id: string): boolean => {
   return /^\d+$/.test(id);
@@ -341,12 +353,33 @@ const VideoaulasAreaVideoView = () => {
 
   // Reset quando muda de vídeo
   useEffect(() => {
-    setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
     seekToTimeRef.current = null;
     playerRef.current = null;
   }, [rawId]);
+
+  // Auto-play quando entrar na página
+  useEffect(() => {
+    if (video && !isPlaying) {
+      // Pequeno delay para o componente renderizar
+      const timer = setTimeout(() => {
+        handlePlayClick(progress?.tempo_atual);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [video?.id]);
+
+  // Auto-gerar conteúdo se não tiver sido gerado
+  useEffect(() => {
+    if (video && video.isLocal && !video.sobre_aula && !generateMutation.isPending && !generateMutation.isSuccess) {
+      // Delay para não sobrecarregar
+      const timer = setTimeout(() => {
+        generateMutation.mutate();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [video?.id, video?.isLocal, video?.sobre_aula]);
 
   // Mutation para gerar conteúdo (apenas para vídeos locais)
   const generateMutation = useMutation({
@@ -403,29 +436,7 @@ const VideoaulasAreaVideoView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5 pb-20">
-      {/* Modal Continuar de Onde Parou */}
-      <ContinueWatchingModal
-        isOpen={showContinueModal && !isPlaying}
-        onClose={dismissContinueModal}
-        onContinue={handleContinue}
-        onStartOver={handleStartOver}
-        savedTime={progress?.tempo_atual || 0}
-        percentage={progress?.percentual || 0}
-      />
-
-      {/* Header com Voltar */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-3">
-          <button 
-            onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}`)}
-            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Voltar</span>
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-red-500/5 pb-24">
 
       {/* Header do Vídeo */}
       <div className="pt-4 pb-2 px-4">
@@ -435,11 +446,16 @@ const VideoaulasAreaVideoView = () => {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-500/60 flex items-center justify-center shadow-lg flex-shrink-0">
-                <Video className="w-5 h-5 text-white" />
-              </div>
+              {/* Botão voltar */}
+              <button
+                onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}`)}
+                className="w-10 h-10 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5 text-red-400" />
+              </button>
+              
               <div className="flex-1 min-w-0">
-                <h1 className="text-base font-bold leading-snug">{video.titulo}</h1>
+                <h1 className="text-base font-bold leading-snug">{cleanVideoTitle(video.titulo)}</h1>
                 {video.tempo && (
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
@@ -613,46 +629,39 @@ const VideoaulasAreaVideoView = () => {
         </div>
       </div>
 
-      {/* Lista de Aulas (Mini Sidebar) */}
-      <div className="px-4 pb-24">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+      {/* Navegação Próxima/Anterior */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border z-40">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!prevVideo}
+            onClick={() => prevVideo && navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}/${prevVideo.id}`)}
+            className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="truncate text-xs">Anterior</span>
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}`)}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <Video className="w-4 h-4" />
-            Outras Aulas
-          </h2>
-          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-            {allVideos?.map((v: any, index: number) => {
-              const isCurrentVideo = v.id === video?.id;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}/${v.id}`)}
-                  className={cn(
-                    "w-full text-left p-3 rounded-xl transition-all text-sm flex items-center gap-3",
-                    isCurrentVideo
-                      ? "bg-red-600/20 border border-red-500/40"
-                      : "bg-neutral-800/50 hover:bg-neutral-700/50 border border-transparent"
-                  )}
-                >
-                  <span className={cn(
-                    "text-xs font-mono",
-                    isCurrentVideo ? "text-red-400" : "text-muted-foreground"
-                  )}>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className={cn(
-                    "flex-1 line-clamp-1",
-                    isCurrentVideo ? "text-red-400 font-medium" : "text-foreground"
-                  )}>
-                    {v.titulo}
-                  </span>
-                  {!v.isLocal && (
-                    <Youtube className="w-3 h-3 text-red-500 flex-shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!nextVideo}
+            onClick={() => nextVideo && navigate(`/videoaulas/areas/${encodeURIComponent(decodedArea)}/${nextVideo.id}`)}
+            className="flex-1 justify-end gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <span className="truncate text-xs">Próxima</span>
+            <ArrowLeft className="w-4 h-4 rotate-180" />
+          </Button>
         </div>
       </div>
     </div>
@@ -701,6 +710,16 @@ const FlashcardsView = ({ flashcards }: { flashcards: any[] }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const current = flashcards[currentIndex];
+
+  // Auto-flip após 1.5s se não estiver virado
+  useEffect(() => {
+    if (!isFlipped && current) {
+      const timer = setTimeout(() => {
+        setIsFlipped(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, isFlipped, current]);
 
   return (
     <div className="space-y-4">
