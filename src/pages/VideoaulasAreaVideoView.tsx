@@ -13,6 +13,7 @@ import VideoaulaFlashcards from "@/components/videoaulas/VideoaulaFlashcards";
 import VideoaulaQuestoes from "@/components/videoaulas/VideoaulaQuestoes";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { AREAS_PLAYLISTS } from "@/data/videoaulasAreasPlaylists";
+import ReactMarkdown from "react-markdown";
 
 interface VideoaulaArea {
   id: number;
@@ -577,15 +578,37 @@ const VideoaulasAreaVideoView = () => {
             <TabsContent value="sobre" className="mt-4">
               <div className="bg-neutral-900/80 border border-white/5 rounded-xl p-4 space-y-4">
                 {video.sobre_aula ? (
-                  <>
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-red-500" />
-                      Sobre esta aula
-                    </h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                  <div className="prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown
+                      components={{
+                        h2: ({ children }) => (
+                          <h2 className="text-base font-semibold text-foreground mt-4 mb-2 flex items-center gap-2">
+                            {children}
+                          </h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className="text-sm font-medium text-foreground mt-3 mb-1.5">{children}</h3>
+                        ),
+                        p: ({ children }) => (
+                          <p className="text-sm text-muted-foreground leading-relaxed mb-3">{children}</p>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="text-sm text-muted-foreground space-y-1.5 mb-3 ml-1">{children}</ul>
+                        ),
+                        li: ({ children }) => (
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary mt-1">•</span>
+                            <span>{children}</span>
+                          </li>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className="font-semibold text-foreground">{children}</strong>
+                        ),
+                      }}
+                    >
                       {video.sobre_aula}
-                    </p>
-                  </>
+                    </ReactMarkdown>
+                  </div>
                 ) : !video.isLocal ? (
                   <div className="text-center py-6">
                     <Youtube className="w-10 h-10 text-red-500/50 mx-auto mb-3" />
