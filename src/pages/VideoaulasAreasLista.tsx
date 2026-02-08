@@ -31,15 +31,15 @@ const VideoaulasAreasLista = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Buscar estatísticas de vídeos por área (do banco de dados)
+  // Buscar estatísticas de vídeos por área (da tabela videoaulas_areas_direito)
   const { data: areasWithStats, isLoading } = useQuery({
     queryKey: ["videoaulas-areas-stats"],
     queryFn: async () => {
-      // Buscar todos os vídeos para obter thumbnails e contagens por área
+      // Buscar todos os vídeos da tabela correta para obter thumbnails e contagens por área
       const { data, error } = await supabase
-        .from("VIDEO AULAS-NOVO" as any)
-        .select("area, thumb, link")
-        .order("titulo", { ascending: true });
+        .from("videoaulas_areas_direito")
+        .select("area, thumb, video_id, ordem")
+        .order("ordem", { ascending: true });
       
       if (error) throw error;
 
@@ -50,24 +50,16 @@ const VideoaulasAreasLista = () => {
         const areaName = video.area?.trim();
         if (!areaName) return;
         
-        // Encontrar a área correspondente nas playlists
-        const matchingPlaylist = AREAS_PLAYLISTS.find(
-          p => p.nome.toLowerCase() === areaName.toLowerCase()
-        );
-        
-        if (matchingPlaylist) {
-          if (!areaStatsMap[matchingPlaylist.nome]) {
-            areaStatsMap[matchingPlaylist.nome] = {
-              thumbnail: video.thumb || null,
-              count: 0
-            };
-          }
-          areaStatsMap[matchingPlaylist.nome].count++;
-          // Usar a primeira thumbnail encontrada
-          if (!areaStatsMap[matchingPlaylist.nome].thumbnail && video.thumb) {
-            areaStatsMap[matchingPlaylist.nome].thumbnail = video.thumb;
-          }
+        if (!areaStatsMap[areaName]) {
+          // Usar thumbnail do YouTube baseado no video_id
+          const thumbnail = video.thumb || 
+            (video.video_id ? `https://img.youtube.com/vi/${video.video_id}/mqdefault.jpg` : null);
+          areaStatsMap[areaName] = {
+            thumbnail,
+            count: 0
+          };
         }
+        areaStatsMap[areaName].count++;
       });
 
       // Combinar com as playlists definidas
