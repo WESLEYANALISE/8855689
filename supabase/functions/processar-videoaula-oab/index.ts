@@ -418,15 +418,24 @@ serve(async (req) => {
     const questoes = await generateQuestoes(videoaula.titulo, transcricao, fase);
     console.log("Questions generated:", questoes.length);
 
-    // Save to database
+    // Save to database - only include fields that exist in the table
+    // videoaulas_areas_direito doesn't have 'transcricao' column
+    const updateData: Record<string, any> = {
+      sobre_aula: sobreAula,
+      flashcards,
+      questoes,
+    };
+    
+    // Only add transcricao for tables that have it
+    if (targetTabela === "VIDEO AULAS-NOVO" || targetTabela.includes("VIDEO AULAS")) {
+      updateData.transcricao = transcricao;
+    }
+    
+    console.log(`Updating table ${targetTabela} with fields:`, Object.keys(updateData));
+
     const { error: updateError } = await supabase
       .from(targetTabela)
-      .update({
-        transcricao,
-        sobre_aula: sobreAula,
-        flashcards,
-        questoes,
-      })
+      .update(updateData)
       .eq("id", targetId);
 
     if (updateError) {
