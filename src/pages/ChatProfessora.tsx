@@ -133,6 +133,11 @@ const ChatProfessora = () => {
 
   const handleModeChange = (newMode: ChatMode) => {
     if (newMode === 'aula') {
+      // Verificar Premium antes de criar aula
+      if (!isPremium && !loadingSubscription) {
+        setShowPremiumGate(true);
+        return;
+      }
       navigate('/aula-interativa');
       return;
     }
@@ -141,12 +146,7 @@ const ChatProfessora = () => {
   };
 
   const handleSend = (message: string, files?: UploadedFile[], extractedText?: string) => {
-    // Verificar Premium antes de enviar mensagem
-    if (!isPremium && !loadingSubscription) {
-      setShowPremiumGate(true);
-      return;
-    }
-    
+    // Usuários gratuitos podem usar o chat normalmente (sem arquivos)
     const streamMode = files?.length ? 'analyze' : 'chat';
     sendMessage(message, files, extractedText, streamMode);
     setAutoScroll(true);

@@ -36,8 +36,8 @@ export const PremiumChatGate = ({ onClose }: PremiumChatGateProps) => {
           </div>
           
           <p className="text-gray-400 text-sm mb-6">
-            O Chat com a Professora é exclusivo para assinantes Premium. 
-            Tenha acesso ilimitado a todas as funcionalidades!
+            Esta funcionalidade é exclusiva para assinantes Premium. 
+            Tenha acesso a todos os recursos avançados!
           </p>
 
           {/* Benefícios */}

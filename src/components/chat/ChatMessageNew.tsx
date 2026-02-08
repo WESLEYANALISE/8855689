@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { Brain, User, BookOpen, X, HelpCircle, Layers, ChevronDown, Loader2, Copy, Check, Sparkles, GraduationCap, Lightbulb, MessageCircle, FileText, BookMarked, ExternalLink, Scale } from "lucide-react";
+import { Brain, User, BookOpen, X, HelpCircle, Layers, ChevronDown, Loader2, Copy, Check, Sparkles, GraduationCap, Lightbulb, MessageCircle, FileText, BookMarked, ExternalLink, Scale, Crown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { FlashcardViewer } from "@/components/FlashcardViewer";
@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { QuadroComparativoVisual, extrairTabelaDoMarkdown } from "@/components/oab/QuadroComparativoVisual";
 import { ArtigoPopover } from "@/components/conceitos/ArtigoPopover";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 // Regex para detectar referências a artigos de lei
 const ARTIGO_REGEX = /\b(Art\.?\s*\d+[º°]?(?:[-–]\w+)?(?:\s*,?\s*(?:§|§§|parágrafo|parágrafos?)\s*(?:único|\d+)[º°]?)?(?:\s*,?\s*(?:inciso|incisos?)\s+[IVXLCDM]+(?:\s+e\s+[IVXLCDM]+)?)?(?:\s*,?\s*(?:alínea|alíneas?)\s*["']?[a-z]["']?)?(?:\s+do\s+(?:CP|CC|CPC|CPP|CDC|CLT|CF|ECA|CTN|CTB))?)\b/gi;
@@ -116,6 +117,7 @@ interface Flashcard {
 export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStreaming, onTopicClick }: ChatMessageProps) => {
   const isUser = role === "user";
   const navigate = useNavigate();
+  const { isPremium } = useSubscription();
   const [activeTab, setActiveTab] = useState<"tecnico" | "termos">("tecnico");
   const [selectedTerm, setSelectedTerm] = useState<{ termo: string; definicao: string } | null>(null);
   const [termDeepening, setTermDeepening] = useState<string | null>(null);
@@ -202,14 +204,32 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
     }
   };
 
+  // Função helper para verificar acesso premium
+  const checkPremiumAccess = (featureName: string): boolean => {
+    if (!isPremium) {
+      toast.error(`${featureName} é exclusivo Premium`, {
+        description: 'Assine para ter acesso a todas as funcionalidades!',
+        action: {
+          label: 'Ver planos',
+          onClick: () => navigate('/assinatura')
+        },
+        duration: 5000
+      });
+      return false;
+    }
+    return true;
+  };
+
   // Funções de ação
   const handleAprofundar = () => {
+    if (!checkPremiumAccess('Aprofundar')) return;
     if (onTopicClick) {
       onTopicClick(`Aprofunde mais sobre: ${content.substring(0, 200)}`);
     }
   };
 
   const handleGerarQuestoes = async () => {
+    if (!checkPremiumAccess('Questões')) return;
     setLoadingQuestoes(true);
     try {
       const { data, error } = await supabase.functions.invoke('gerar-questoes-chat', {
@@ -236,6 +256,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
   };
 
   const handleGerarFlashcards = async () => {
+    if (!checkPremiumAccess('Flashcards')) return;
     setLoadingFlashcards(true);
     try {
       const { data, error } = await supabase.functions.invoke('gerar-flashcards', {
@@ -292,6 +313,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
 
   // Gerar Aula com progresso (usando streaming)
   const handleGerarAula = async () => {
+    if (!checkPremiumAccess('Gerar Aula')) return;
     setLoadingAula(true);
     setShowAulaModal(true);
     setAulaProgresso(5);
@@ -372,6 +394,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
 
   // Gerar Exemplo (mostra no chat imediatamente via streaming)
   const handleGerarExemplo = async () => {
+    if (!checkPremiumAccess('Exemplo')) return;
     setLoadingExemplo(true);
     
     try {
@@ -931,10 +954,11 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                       variant="default"
                       size="sm"
                       onClick={handleAprofundar}
-                      className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                      className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-medium relative"
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
                       Aprofundar
+                      {!isPremium && <Crown className="w-3 h-3 text-amber-400 absolute top-1 right-1" />}
                     </Button>
                     
                     {/* Questões */}
@@ -943,7 +967,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                       size="sm"
                       onClick={handleGerarQuestoes}
                       disabled={loadingQuestoes}
-                      className="h-9 text-xs gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-0"
+                      className="h-9 text-xs gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-0 relative"
                     >
                       {loadingQuestoes ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -951,6 +975,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                         <HelpCircle className="w-3.5 h-3.5" />
                       )}
                       Questões
+                      {!isPremium && <Crown className="w-3 h-3 text-amber-400 absolute top-1 right-1" />}
                     </Button>
                     
                     {/* Flashcards */}
@@ -959,7 +984,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                       size="sm"
                       onClick={handleGerarFlashcards}
                       disabled={loadingFlashcards}
-                      className="h-9 text-xs gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-0"
+                      className="h-9 text-xs gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-0 relative"
                     >
                       {loadingFlashcards ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -967,6 +992,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                         <Layers className="w-3.5 h-3.5" />
                       )}
                       Flashcards
+                      {!isPremium && <Crown className="w-3 h-3 text-amber-400 absolute top-1 right-1" />}
                     </Button>
                     
                     {/* Aula - Novo */}
@@ -975,7 +1001,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                       size="sm"
                       onClick={handleGerarAula}
                       disabled={loadingAula}
-                      className="h-9 text-xs gap-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border-0"
+                      className="h-9 text-xs gap-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 border-0 relative"
                     >
                       {loadingAula ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -983,6 +1009,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                         <GraduationCap className="w-3.5 h-3.5" />
                       )}
                       Aula
+                      {!isPremium && <Crown className="w-3 h-3 text-amber-400 absolute top-1 right-1" />}
                     </Button>
                     
                     {/* Exemplo - Novo */}
@@ -991,7 +1018,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                       size="sm"
                       onClick={handleGerarExemplo}
                       disabled={loadingExemplo}
-                      className="h-9 text-xs gap-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border-0"
+                      className="h-9 text-xs gap-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border-0 relative"
                     >
                       {loadingExemplo ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -999,6 +1026,7 @@ export const ChatMessageNew = memo(({ role, content, termos: propTermos, isStrea
                         <BookMarked className="w-3.5 h-3.5" />
                       )}
                       Exemplo
+                      {!isPremium && <Crown className="w-3 h-3 text-amber-400 absolute top-1 right-1" />}
                     </Button>
                     
                     {/* PDF ABNT - Novo */}

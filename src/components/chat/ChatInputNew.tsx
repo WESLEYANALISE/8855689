@@ -1,9 +1,12 @@
 import { useState, useRef, KeyboardEvent } from "react";
-import { Send, Paperclip, Image, FileText, X, Loader2 } from "lucide-react";
+import { Send, Paperclip, Image, FileText, X, Loader2, Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { UploadedFile } from "@/hooks/useStreamingChat";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ChatInputProps {
   onSend: (message: string, files?: UploadedFile[], extractedText?: string) => void;
@@ -22,6 +25,8 @@ export const ChatInputNew = ({
   onFilesChange,
   onExtractPdf
 }: ChatInputProps) => {
+  const { isPremium } = useSubscription();
+  const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
@@ -44,9 +49,31 @@ export const ChatInputNew = ({
     }
   };
 
+  // Verificação premium para anexos
+  const handleAttachClick = (type: 'image' | 'pdf') => {
+    if (!isPremium) {
+      toast.error(`Enviar ${type === 'image' ? 'imagens' : 'PDFs'} é exclusivo Premium`, {
+        description: 'Assine para enviar arquivos e usar recursos avançados!',
+        action: {
+          label: 'Ver planos',
+          onClick: () => navigate('/assinatura')
+        },
+        duration: 5000
+      });
+      setShowAttachMenu(false);
+      return;
+    }
+    
+    if (type === 'image') {
+      imageInputRef.current?.click();
+    } else {
+      pdfInputRef.current?.click();
+    }
+    setShowAttachMenu(false);
+  };
+
   const handleFileSelect = async (file: File, type: 'image' | 'pdf') => {
     setIsProcessingFile(true);
-    setShowAttachMenu(false);
     
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -125,20 +152,26 @@ export const ChatInputNew = ({
           </Button>
 
           {showAttachMenu && (
-            <div className="absolute bottom-14 left-0 bg-neutral-800 border border-white/10 rounded-lg shadow-lg p-2 min-w-40 z-50">
+            <div className="absolute bottom-14 left-0 bg-neutral-800 border border-white/10 rounded-lg shadow-lg p-2 min-w-48 z-50">
               <button
-                onClick={() => imageInputRef.current?.click()}
-                className="flex items-center gap-2 w-full px-3 py-2 hover:bg-white/10 rounded-md text-sm text-white/80"
+                onClick={() => handleAttachClick('image')}
+                className="flex items-center justify-between gap-2 w-full px-3 py-2 hover:bg-white/10 rounded-md text-sm text-white/80"
               >
-                <Image className="w-4 h-4 text-blue-400" />
-                Imagem
+                <span className="flex items-center gap-2">
+                  <Image className="w-4 h-4 text-blue-400" />
+                  Imagem
+                </span>
+                {!isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
               </button>
               <button
-                onClick={() => pdfInputRef.current?.click()}
-                className="flex items-center gap-2 w-full px-3 py-2 hover:bg-white/10 rounded-md text-sm text-white/80"
+                onClick={() => handleAttachClick('pdf')}
+                className="flex items-center justify-between gap-2 w-full px-3 py-2 hover:bg-white/10 rounded-md text-sm text-white/80"
               >
-                <FileText className="w-4 h-4 text-red-400" />
-                PDF
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-red-400" />
+                  PDF
+                </span>
+                {!isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
               </button>
             </div>
           )}
