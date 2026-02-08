@@ -315,6 +315,8 @@ import AudioaulasCategoriaPage from "./pages/AudioaulasCategoriaPage";
 import AudioaulasCategoria from "./pages/AudioaulasCategoria";
 import AudioaulasTema from "./pages/AudioaulasTema";
 import VideoaulasAreas from "./pages/VideoaulasAreas";
+import VideoaulasAreasLista from "./pages/VideoaulasAreasLista";
+import VideoaulasAreaVideos from "./pages/VideoaulasAreaVideos";
 import VideoaulasOAB from "./pages/VideoaulasOAB";
 import VideoaulasOABArea from "./pages/VideoaulasOABArea";
 import VideoaulasOABView from "./pages/VideoaulasOABView";
@@ -913,7 +915,8 @@ const App = () => {
               <Route path="/videoaulas/faculdade" element={<VideoaulasFaculdade />} />
               <Route path="/videoaulas/faculdade/:area" element={<VideoaulasFaculdadeArea />} />
               <Route path="/videoaulas/faculdade/:area/:videoId" element={<VideoaulaFaculdadeView />} />
-              <Route path="/videoaulas/areas" element={<VideoaulasAreas />} />
+              <Route path="/videoaulas/areas" element={<VideoaulasAreasLista />} />
+              <Route path="/videoaulas/areas/:area" element={<VideoaulasAreaVideos />} />
               <Route path="/videoaulas/area/:area" element={<VideoaulasArea />} />
               <Route path="/videoaulas/:area" element={<VideoaulasPlaylists />} />
               <Route path="/videoaulas/player" element={<VideoaulasPlayer />} />
