@@ -874,9 +874,9 @@ const App = () => {
               <Route path="/oab/carreira" element={<OabCarreira />} />
               <Route path="/admin/trilhas-oab" element={<AdminTrilhasOAB />} />
               <Route path="/videoaulas-oab" element={<VideoaulasOAB />} />
+              <Route path="/videoaulas/oab" element={<Navigate to="/videoaulas-oab" replace />} />
               <Route path="/videoaulas/oab/:area" element={<VideoaulasOABArea />} />
               <Route path="/videoaulas/oab/:area/:id" element={<VideoaulasOABView />} />
-              <Route path="/videoaulas-oab-1fase" element={<VideoaulasOABPrimeiraFase />} />
               <Route path="/videoaulas/oab-1fase/:area" element={<VideoaulasOABAreaPrimeiraFase />} />
               <Route path="/videoaulas/oab-1fase/:area/:id" element={<VideoaulasOABViewPrimeiraFase />} />
               <Route path="/simulados" element={<SimuladosHub />} />
