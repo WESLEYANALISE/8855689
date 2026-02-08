@@ -65,7 +65,7 @@ const VideoaulasHub = () => {
     { id: "conceitos", title: "Videoaulas para Iniciantes", icon: BookOpen, route: "/videoaulas/iniciante" },
     { id: "areas", title: "Áreas do Direito", icon: Scale, route: "/videoaulas/areas" },
     { id: "oab-primeira", title: "OAB 1ª Fase", icon: Scale, route: "/videoaulas-oab-1fase" },
-    { id: "oab-segunda", title: "OAB 2ª Fase", icon: FileText, route: "/videoaulas/oab" },
+    { id: "oab-segunda", title: "OAB 2ª Fase", icon: FileText, route: "/videoaulas-oab" },
   ], []);
 
   const categoriasDocumentarios = useMemo(() => [
