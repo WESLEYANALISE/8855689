@@ -116,6 +116,7 @@ const HIDE_HEADER_PREFIXES = [
   "/novas-leis",
   "/videoaulas/iniciante",
   "/videoaulas/faculdade",
+  "/videoaulas/areas/",
   "/oab/trilhas-aprovacao",
   "/oab/trilhas-etica",
   "/oab/primeira-fase",
