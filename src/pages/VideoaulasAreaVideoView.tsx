@@ -53,8 +53,23 @@ const simplifyAreaName = (areaName: string): string => {
   return areaName;
 };
 
-// Função para limpar título do vídeo (remover "Kultivi", "CURSO GRATUITO COMPLETO", etc)
+// Função para limpar título do vídeo e extrair o nome real da aula
+// Formato típico: "Direito Constitucional | Kultivi - Poder Constituinte | CURSO GRATUITO COMPLETO"
+// Resultado desejado: "Poder Constituinte"
 const cleanVideoTitle = (titulo: string): string => {
+  // Tentar extrair o tema da aula após "Kultivi - " e antes de " | " ou fim
+  const kultiviMatch = titulo.match(/Kultivi\s*-\s*([^|]+)/i);
+  if (kultiviMatch) {
+    return kultiviMatch[1].trim().replace(/CURSO\s*GRATUITO\s*COMPLETO/gi, '').trim();
+  }
+  
+  // Tentar pegar o conteúdo após " - " se não tiver Kultivi
+  const dashMatch = titulo.match(/\s+-\s+(.+?)(?:\s*\||\s*$)/);
+  if (dashMatch) {
+    return dashMatch[1].replace(/CURSO\s*GRATUITO\s*COMPLETO/gi, '').trim();
+  }
+  
+  // Fallback: remover padrões comuns
   return titulo
     .replace(/\s*\|\s*Kultivi.*$/i, '')
     .replace(/\s*-\s*Kultivi.*$/i, '')
