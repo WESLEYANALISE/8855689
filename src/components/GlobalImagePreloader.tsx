@@ -14,7 +14,7 @@ import heroBibliotecas from '@/assets/hero-bibliotecas-office.webp';
 import heroBibliotecasSunset from '@/assets/biblioteca-office-sunset.jpg';
 import capaLideranca from '@/assets/capa-lideranca.jpg';
 import capaForaDaToga from '@/assets/capa-fora-da-toga.jpg';
-import capaEstudos from '@/assets/capa-estudos-opt.webp';
+import capaEstudos from '@/assets/sala-aula-direito.webp';
 import capaClassicos from '@/assets/capa-classicos.jpg';
 import capaOratoria from '@/assets/capa-oratoria.jpg';
 import capaPesquisaCientifica from '@/assets/capa-pesquisa-cientifica.jpg';
