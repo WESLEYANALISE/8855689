@@ -79,20 +79,33 @@ const VideoaulasAreaVideoView = () => {
     p => p.nome.toLowerCase() === decodedArea.toLowerCase()
   );
 
-  // Buscar vídeo local (se for ID numérico)
+  // Buscar vídeo da tabela videoaulas_areas_direito (por ID numérico ou video_id)
   const { data: localVideo, isLoading: isLoadingLocal } = useQuery({
-    queryKey: ["videoaula-area-view", videoNumericId],
+    queryKey: ["videoaula-area-view", rawId, decodedArea],
     queryFn: async () => {
+      // Primeiro tenta buscar por ID numérico
+      if (isLocalVideo) {
+        const { data, error } = await supabase
+          .from("videoaulas_areas_direito")
+          .select("*")
+          .eq("id", videoNumericId)
+          .single();
+        
+        if (!error && data) return data;
+      }
+      
+      // Se não encontrou, tenta buscar por video_id (YouTube ID)
       const { data, error } = await supabase
-        .from("VIDEO AULAS-NOVO" as any)
+        .from("videoaulas_areas_direito")
         .select("*")
-        .eq("id", videoNumericId)
+        .eq("video_id", rawId)
+        .eq("area", decodedArea)
         .single();
       
       if (error) throw error;
-      return data as unknown as VideoaulaArea;
+      return data;
     },
-    enabled: isLocalVideo && !!videoNumericId,
+    enabled: !!rawId && !!decodedArea,
   });
 
   // Buscar vídeos do YouTube para encontrar o vídeo atual (se for videoId do YouTube)
@@ -114,29 +127,32 @@ const VideoaulasAreaVideoView = () => {
     staleTime: 1000 * 60 * 30,
   });
 
-  // Encontrar vídeo do YouTube atual
+  // Encontrar vídeo do YouTube atual (fallback se não tiver no banco)
   const youtubeVideo = useMemo(() => {
-    if (isLocalVideo || !youtubeVideos) return null;
+    if (localVideo || !youtubeVideos) return null;
     return youtubeVideos.find(v => v.videoId === rawId);
-  }, [isLocalVideo, youtubeVideos, rawId]);
+  }, [localVideo, youtubeVideos, rawId]);
 
   // Dados unificados do vídeo
   const video = useMemo(() => {
-    if (isLocalVideo && localVideo) {
+    // Prioridade: dados da tabela videoaulas_areas_direito
+    if (localVideo) {
       return {
         id: String(localVideo.id),
         titulo: localVideo.titulo,
         thumb: localVideo.thumb,
-        tempo: localVideo.tempo,
-        youtubeVideoId: extractVideoId(localVideo.link),
+        tempo: null,
+        youtubeVideoId: localVideo.video_id,
         sobre_aula: localVideo.sobre_aula,
         flashcards: localVideo.flashcards,
         questoes: localVideo.questoes,
         isLocal: true,
+        description: localVideo.descricao,
       };
     }
     
-    if (!isLocalVideo && youtubeVideo) {
+    // Fallback: dados do YouTube API
+    if (youtubeVideo) {
       return {
         id: youtubeVideo.videoId,
         titulo: youtubeVideo.title,
@@ -151,8 +167,8 @@ const VideoaulasAreaVideoView = () => {
       };
     }
     
-    // Fallback para vídeo do YouTube sem dados da API (usando apenas o ID da URL)
-    if (!isLocalVideo && rawId) {
+    // Último fallback: vídeo do YouTube sem dados da API (usando apenas o ID da URL)
+    if (rawId) {
       return {
         id: rawId,
         titulo: `Vídeo - ${simplifyAreaName(decodedArea)}`,
@@ -167,9 +183,9 @@ const VideoaulasAreaVideoView = () => {
     }
     
     return null;
-  }, [isLocalVideo, localVideo, youtubeVideo, rawId, decodedArea]);
+  }, [localVideo, youtubeVideo, rawId, decodedArea]);
 
-  const isLoading = isLocalVideo ? isLoadingLocal : (isLoadingYoutube && !video);
+  const isLoading = isLoadingLocal || (isLoadingYoutube && !video);
 
   // Buscar lista para navegação
   const { data: allVideos } = useQuery({

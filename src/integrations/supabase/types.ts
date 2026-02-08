@@ -19283,6 +19283,60 @@ export type Database = {
         }
         Relationships: []
       }
+      videoaulas_areas_direito: {
+        Row: {
+          area: string
+          created_at: string | null
+          descricao: string | null
+          duracao_segundos: number | null
+          flashcards: Json | null
+          id: number
+          ordem: number | null
+          playlist_id: string | null
+          publicado_em: string | null
+          questoes: Json | null
+          sobre_aula: string | null
+          thumb: string | null
+          titulo: string
+          updated_at: string | null
+          video_id: string
+        }
+        Insert: {
+          area: string
+          created_at?: string | null
+          descricao?: string | null
+          duracao_segundos?: number | null
+          flashcards?: Json | null
+          id?: number
+          ordem?: number | null
+          playlist_id?: string | null
+          publicado_em?: string | null
+          questoes?: Json | null
+          sobre_aula?: string | null
+          thumb?: string | null
+          titulo: string
+          updated_at?: string | null
+          video_id: string
+        }
+        Update: {
+          area?: string
+          created_at?: string | null
+          descricao?: string | null
+          duracao_segundos?: number | null
+          flashcards?: Json | null
+          id?: number
+          ordem?: number | null
+          playlist_id?: string | null
+          publicado_em?: string | null
+          questoes?: Json | null
+          sobre_aula?: string | null
+          thumb?: string | null
+          titulo?: string
+          updated_at?: string | null
+          video_id?: string
+        }
+        Relationships: []
+      }
       videoaulas_iniciante: {
         Row: {
           created_at: string

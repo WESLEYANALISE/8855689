@@ -69,29 +69,29 @@ const VideoaulasAreaVideos = () => {
     p => p.nome.toLowerCase() === decodedArea.toLowerCase()
   );
 
-  // Primeiro buscar da tabela local
-  const { data: videoaulas, isLoading: isLoadingLocal } = useQuery({
-    queryKey: ["videoaulas-area-videos", decodedArea],
+  // Buscar vídeos da tabela videoaulas_areas_direito
+  const { data: videoaulas, isLoading: isLoadingLocal, error: loadError } = useQuery({
+    queryKey: ["videoaulas-areas-direito", decodedArea],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("VIDEO AULAS-NOVO" as any)
-        .select("id, titulo, area, link, thumb, tempo")
-        .ilike("area", `%${decodedArea}%`)
-        .order("titulo", { ascending: true });
+        .from("videoaulas_areas_direito")
+        .select("id, video_id, titulo, descricao, area, thumb, ordem, sobre_aula, flashcards, questoes")
+        .eq("area", decodedArea)
+        .order("ordem", { ascending: true });
       
       if (error) throw error;
-      return data as unknown as VideoaulaArea[];
+      return data || [];
     },
     enabled: !!decodedArea,
   });
 
-  // Se não tiver vídeos locais, buscar do YouTube via edge function
+  // Se não tiver vídeos locais, buscar do YouTube via edge function (fallback)
   const { data: youtubeVideos, isLoading: isLoadingYoutube, error: youtubeError } = useQuery({
     queryKey: ["youtube-playlist-videos", areaPlaylist?.playlistId],
     queryFn: async () => {
       if (!areaPlaylist) throw new Error("Playlist não encontrada");
       
-      console.log("Buscando vídeos da playlist:", areaPlaylist.playlistUrl);
+      console.log("Buscando vídeos da playlist (fallback):", areaPlaylist.playlistUrl);
       
       const { data, error } = await supabase.functions.invoke('buscar-videos-playlist', {
         body: { playlistLink: areaPlaylist.playlistUrl }
@@ -109,67 +109,24 @@ const VideoaulasAreaVideos = () => {
 
   const isLoading = isLoadingLocal || ((!videoaulas || videoaulas.length === 0) && isLoadingYoutube);
 
-  // Buscar histórico de vídeos assistidos
-  const { data: historico, isLoading: loadingHistorico } = useQuery({
-    queryKey: ['videoaulas-areas-historico', decodedArea],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from('videoaulas_progresso')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('tabela', 'VIDEO AULAS-NOVO')
-        .order('updated_at', { ascending: false })
-        .limit(30);
-
-      if (error) {
-        console.error('Erro ao buscar histórico:', error);
-        return [];
-      }
-
-      const historicoFormatado: HistoricoVideo[] = [];
-
-      for (const item of data || []) {
-        // Buscar detalhes do vídeo
-        const videoInfo = videoaulas?.find(v => String(v.id) === item.registro_id);
-        
-        if (videoInfo) {
-          const videoId = extractVideoId(videoInfo.link);
-          historicoFormatado.push({
-            id: item.id,
-            video_id: videoId,
-            titulo: videoInfo.titulo,
-            thumbnail: videoInfo.thumb || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-            assistido_em: item.updated_at,
-            progresso_segundos: item.tempo_atual || 0,
-            duracao_total: item.duracao_total || undefined,
-            rota: `/videoaulas/areas/${encodeURIComponent(decodedArea)}/${videoInfo.id}`
-          });
-        }
-      }
-
-      return historicoFormatado;
-    },
-    enabled: mainTab === 'historico' && !!videoaulas,
-    staleTime: 1000 * 60 * 2,
-  });
-
   // Combinar vídeos locais e do YouTube
   const allVideos = useMemo(() => {
+    // Prioridade: tabela videoaulas_areas_direito
     if (videoaulas && videoaulas.length > 0) {
-      return videoaulas.map(v => ({
+      return videoaulas.map((v: any) => ({
         id: String(v.id),
         isLocal: true,
         titulo: v.titulo,
         thumb: v.thumb,
-        tempo: v.tempo,
-        link: v.link,
-        videoId: extractVideoId(v.link),
+        tempo: null,
+        link: `https://www.youtube.com/watch?v=${v.video_id}`,
+        videoId: v.video_id,
+        description: v.descricao,
+        hasContent: !!(v.sobre_aula || v.flashcards || v.questoes),
       }));
     }
     
+    // Fallback: YouTube API
     if (youtubeVideos && youtubeVideos.length > 0) {
       return youtubeVideos.map(v => ({
         id: v.videoId,
@@ -180,6 +137,7 @@ const VideoaulasAreaVideos = () => {
         link: `https://www.youtube.com/watch?v=${v.videoId}`,
         videoId: v.videoId,
         description: v.description,
+        hasContent: false,
       }));
     }
     
@@ -195,6 +153,52 @@ const VideoaulasAreaVideos = () => {
   }, [allVideos, search]);
 
   const totalVideos = allVideos.length;
+
+  // Buscar histórico de vídeos assistidos
+  const { data: historico, isLoading: loadingHistorico } = useQuery({
+    queryKey: ['videoaulas-areas-historico', decodedArea, allVideos.length],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('videoaulas_progresso')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('tabela', 'videoaulas_areas_direito')
+        .order('updated_at', { ascending: false })
+        .limit(30);
+
+      if (error) {
+        console.error('Erro ao buscar histórico:', error);
+        return [];
+      }
+
+      const historicoFormatado: HistoricoVideo[] = [];
+
+      for (const item of data || []) {
+        // Buscar detalhes do vídeo usando video_id
+        const videoInfo = allVideos.find(v => v.id === item.registro_id || v.videoId === item.registro_id);
+        
+        if (videoInfo) {
+          historicoFormatado.push({
+            id: item.id,
+            video_id: videoInfo.videoId,
+            titulo: videoInfo.titulo,
+            thumbnail: videoInfo.thumb || `https://img.youtube.com/vi/${videoInfo.videoId}/mqdefault.jpg`,
+            assistido_em: item.updated_at,
+            progresso_segundos: item.tempo_atual || 0,
+            duracao_total: item.duracao_total || undefined,
+            rota: `/videoaulas/areas/${encodeURIComponent(decodedArea)}/${videoInfo.id}`
+          });
+        }
+      }
+
+      return historicoFormatado;
+    },
+    enabled: mainTab === 'historico' && allVideos.length > 0,
+    staleTime: 1000 * 60 * 2,
+  });
 
   // Formatar tempo
   const formatTime = (seconds: number) => {
