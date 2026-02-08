@@ -57,6 +57,18 @@ const simplifyAreaName = (areaName: string): string => {
   return areaName;
 };
 
+// Função para limpar título do vídeo (remover "Kultivi", "CURSO GRATUITO COMPLETO", etc)
+const cleanVideoTitle = (titulo: string): string => {
+  return titulo
+    .replace(/\s*\|\s*Kultivi.*$/i, '')
+    .replace(/\s*-\s*Kultivi.*$/i, '')
+    .replace(/CURSO\s*GRATUITO\s*COMPLETO/gi, '')
+    .replace(/CURSO\s*GRATUITO/gi, '')
+    .replace(/\s*\|\s*$/g, '')
+    .replace(/\s*-\s*$/g, '')
+    .trim();
+};
+
 const VideoaulasAreaVideos = () => {
   const navigate = useNavigate();
   const { area } = useParams();
@@ -538,14 +550,8 @@ const VideoListItemUnified = ({
         {/* Info */}
         <div className="flex-1 py-2 px-3 min-w-0">
           <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
-            {video.titulo}
+            {cleanVideoTitle(video.titulo)}
           </h3>
-          {video.tempo && (
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {video.tempo}
-            </p>
-          )}
         </div>
       </div>
     </motion.button>
