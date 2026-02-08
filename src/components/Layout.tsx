@@ -434,7 +434,10 @@ export const Layout = ({ children }: LayoutProps) => {
     location.pathname.startsWith('/videoaulas-player') ||
     location.pathname.startsWith('/novas-leis') ||
     location.pathname.startsWith('/politica/artigo') ||
-    location.pathname.startsWith('/politica/estudos'),
+    location.pathname.startsWith('/politica/estudos') ||
+    location.pathname === '/ferramentas/questoes' ||
+    location.pathname === '/ferramentas/questoes/temas' ||
+    location.pathname.startsWith('/ferramentas/questoes/resolver'),
   [location.pathname]);
 
   // Estado para ocultar sidebars via eventos (home page tabs expandidas)
