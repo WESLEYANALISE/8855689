@@ -8,12 +8,10 @@ const categoriasVadeMecum = [
   { id: "constituicao", title: "Constituição Federal", icon: Landmark, route: "/codigos/constituicao", color: "from-amber-500 to-amber-700", bgColor: "bg-amber-500" },
   { id: "codigos", title: "Códigos", icon: Scale, route: "/codigos", color: "from-blue-500 to-blue-700", bgColor: "bg-blue-500" },
   { id: "estatutos", title: "Estatutos", icon: Users, route: "/estatutos", color: "from-emerald-500 to-emerald-700", bgColor: "bg-emerald-500" },
-  { id: "legislacao-penal", title: "Legislação Penal", icon: Gavel, route: "/legislacao-penal-especial", color: "from-red-500 to-red-700", bgColor: "bg-red-500" },
   { id: "sumulas", title: "Súmulas", icon: BookText, route: "/sumulas", color: "from-purple-500 to-purple-700", bgColor: "bg-purple-500" },
   { id: "previdenciario", title: "Previdenciário", icon: HandCoins, route: "/previdenciario", color: "from-orange-500 to-orange-700", bgColor: "bg-orange-500" },
   { id: "leis-ordinarias", title: "Leis Ordinárias", icon: FileText, route: "/leis-ordinarias", color: "from-cyan-500 to-cyan-700", bgColor: "bg-cyan-500" },
   { id: "pec", title: "PEC", icon: FilePlus, route: "/vade-mecum/legislacao", color: "from-indigo-500 to-indigo-700", bgColor: "bg-indigo-500" },
-  { id: "novas-leis", title: "Novas Leis", icon: Scroll, route: "/novas-leis", color: "from-lime-500 to-lime-700", bgColor: "bg-lime-500" },
 ];
 
 export const MobileLeisHome = memo(() => {
