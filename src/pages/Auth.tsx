@@ -379,7 +379,7 @@ const Auth: React.FC = () => {
               className="w-16 h-16 mb-2 rounded-xl"
             />
             <h1 className="text-2xl font-bold text-foreground font-playfair">Direito Premium</h1>
-            <p className="text-sm text-muted-foreground mt-1">Direito descomplicado</p>
+            <p className="text-sm text-muted-foreground mt-1">Tudo do Direito em um só lugar</p>
           </motion.div>
         )}
 
