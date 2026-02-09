@@ -59,7 +59,7 @@ const HERO_IMAGES = [
   '/hero-banner-tribunal.webp'
 ];
 
-type MainTab = 'destaque' | 'iniciante' | 'oab';
+type MainTab = 'ferramentas' | 'iniciante' | 'oab';
 type FaculdadeSubTab = 'estudos' | 'ferramentas';
 
 const Index = () => {
@@ -70,9 +70,9 @@ const Index = () => {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
   
-  // Ler tab da URL para navegação de volta
+  // Ler tab da URL para navegação de volta (default agora é 'iniciante' / Aprender)
   const tabFromUrl = searchParams.get('tab') as MainTab | null;
-  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'destaque');
+  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'iniciante');
   const [faculdadeSubTab, setFaculdadeSubTab] = useState<FaculdadeSubTab>('estudos');
 
   // Função para mudar tab e notificar o header
@@ -89,7 +89,7 @@ const Index = () => {
 
   // Atualizar tab quando URL mudar
   useEffect(() => {
-    if (tabFromUrl && ['destaque', 'iniciante', 'oab'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['ferramentas', 'iniciante', 'oab'].includes(tabFromUrl)) {
       changeMainTab(tabFromUrl);
     }
   }, [tabFromUrl]);
@@ -98,7 +98,7 @@ const Index = () => {
   useEffect(() => {
     const handleHeaderClick = (e: CustomEvent<{ tab: string }>) => {
       const tab = e.detail.tab as MainTab;
-      if (['destaque', 'iniciante', 'oab'].includes(tab)) {
+      if (['ferramentas', 'iniciante', 'oab'].includes(tab)) {
         setMainTab(tab);
       }
     };
@@ -107,11 +107,11 @@ const Index = () => {
     return () => window.removeEventListener('header-nav-tab-click' as any, handleHeaderClick);
   }, []);
 
-  // Esconder menu de rodapé quando não estiver em "Destaque"
+  // Esconder menu de rodapé quando não estiver em "Ferramentas"
   useEffect(() => {
     const bottomNav = document.querySelector('[data-bottom-nav]');
     if (bottomNav) {
-      (bottomNav as HTMLElement).style.display = mainTab === 'destaque' ? '' : 'none';
+      (bottomNav as HTMLElement).style.display = mainTab === 'ferramentas' ? '' : 'none';
     }
     return () => {
       if (bottomNav) {
@@ -122,7 +122,7 @@ const Index = () => {
 
   // Controlar visibilidade das sidebars no desktop (ocultar quando em abas expandidas)
   useEffect(() => {
-    if (isDesktop && mainTab !== 'destaque') {
+    if (isDesktop && mainTab !== 'ferramentas') {
       window.dispatchEvent(new CustomEvent('hide-desktop-sidebars'));
     } else {
       window.dispatchEvent(new CustomEvent('show-desktop-sidebars'));
@@ -246,15 +246,16 @@ const Index = () => {
         </div>
 
         {/* Menu de Alternância Principal - Apenas mobile (desktop não tem abas) */}
-        <div className={`flex gap-1.5 md:hidden mb-6 relative z-20 ${mainTab !== 'destaque' ? 'bg-background/95 backdrop-blur-sm -mx-2 px-2 py-2 rounded-xl' : ''}`}>
-          <TabButton tab="destaque" icon={Flame} label="Destaque" />
+        {/* Ordem: Aprender (esquerda), Ferramentas (centro), OAB (direita) */}
+        <div className={`flex gap-1.5 md:hidden mb-6 relative z-20 ${mainTab !== 'ferramentas' ? 'bg-background/95 backdrop-blur-sm -mx-2 px-2 py-2 rounded-xl' : ''}`}>
           <TabButton tab="iniciante" icon={GraduationCap} label="Aprender" />
+          <TabButton tab="ferramentas" icon={Flame} label="Ferramentas" />
           <TabButton tab="oab" icon={Gavel} label="OAB" />
         </div>
 
 
-        {/* ==================== ABA DESTAQUE ==================== */}
-        {mainTab === 'destaque' && (
+        {/* ==================== ABA FERRAMENTAS ==================== */}
+        {mainTab === 'ferramentas' && (
           <>
             {/* Desktop: Layout otimizado em colunas */}
             {isDesktop ? (
