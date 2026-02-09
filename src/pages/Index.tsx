@@ -70,9 +70,9 @@ const Index = () => {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
   
-  // Ler tab da URL para navegação de volta (default agora é 'iniciante' / Aprender)
+  // Ler tab da URL para navegação de volta (default agora é 'ferramentas' / Estudos)
   const tabFromUrl = searchParams.get('tab') as MainTab | null;
-  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'iniciante');
+  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'ferramentas');
   const [faculdadeSubTab, setFaculdadeSubTab] = useState<FaculdadeSubTab>('estudos');
 
   // Função para mudar tab e notificar o header
