@@ -312,8 +312,8 @@ const Index = () => {
         {/* ==================== ABA ESTUDOS - LINHA DO TEMPO ==================== */}
         {mainTab === 'iniciante' && (
           <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo Themis - fixa (igual Bibliotecas): o que mexe é só o conteúdo */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
+            {/* Imagem de fundo Themis - fixa a partir do menu de alternância */}
+            <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
               <img 
                 src={themisEstudosDesktop} 
                 alt="Jornada de Estudos"
