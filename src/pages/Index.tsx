@@ -274,7 +274,7 @@ const Index = () => {
                         <Newspaper className="w-5 h-5 text-amber-100" />
                       </div>
                       <div>
-                        <h2 className="font-cinzel text-base md:text-base font-bold text-amber-100">Notícias Jurídicas</h2>
+                        <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">Notícias Jurídicas</h3>
                         <p className="text-xs text-white/70">Fique atualizado</p>
                       </div>
                     </div>
