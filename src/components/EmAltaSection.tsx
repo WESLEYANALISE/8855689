@@ -35,7 +35,7 @@ export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmA
               Estudos
             </h3>
             <p className="text-white/70 text-xs">
-              Recursos mais acessados
+              Material de apoio
             </p>
           </div>
         </div>
