@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Lista de matérias gratuitas para verificação premium
+const FREE_MATERIA_NAMES = [
+  "história do direito", 
+  "historia do direito",
+  "introdução ao estudo do direito",
+  "introducao ao estudo do direito"
+];
+
 export interface ResultadoItem {
   id: string | number;
   titulo: string;
@@ -8,6 +16,7 @@ export interface ResultadoItem {
   extra?: string;
   imagem?: string;
   route: string;
+  isPremium?: boolean;
 }
 
 export interface CategoriaResultado {
@@ -264,10 +273,18 @@ const CATEGORIAS_CONFIG: CategoriaConfig[] = [
     icon: 'GraduationCap',
     iconColor: 'text-teal-500',
     tabelas: [
-      { nome: 'conceitos_topicos', colunas: ['titulo'], formatResult: (item) => ({
-        id: item.id, titulo: item.titulo, subtitulo: `Conceitos • ${item.materia?.nome || 'Matéria'}`, imagem: item.capa_url,
-        route: `/conceitos/topico/${item.id}`
-      })}
+      { nome: 'conceitos_topicos', colunas: ['titulo'], formatResult: (item) => {
+        const materiaNome = item.materia?.nome || '';
+        const isFree = FREE_MATERIA_NAMES.includes(materiaNome.toLowerCase().trim());
+        return {
+          id: item.id, 
+          titulo: item.titulo, 
+          subtitulo: `Conceitos • ${materiaNome || 'Matéria'}`, 
+          imagem: item.capa_url,
+          route: `/conceitos/topico/${item.id}`,
+          isPremium: !isFree
+        };
+      }}
     ]
   },
   {
@@ -278,7 +295,8 @@ const CATEGORIAS_CONFIG: CategoriaConfig[] = [
     tabelas: [
       { nome: 'oab_trilhas_temas', colunas: ['titulo', 'area'], formatResult: (item) => ({
         id: item.id, titulo: item.titulo, subtitulo: `OAB • ${item.area}`,
-        route: `/oab-trilhas/tema/${item.id}`
+        route: `/oab-trilhas/tema/${item.id}`,
+        isPremium: true // Todas as trilhas OAB são premium
       })}
     ]
   },
@@ -299,9 +317,14 @@ export const useBuscaGlobal = (termo: string, enabled: boolean = true) => {
         // Build OR query for all columns
         const orConditions = tabela.colunas.map(col => `"${col}".ilike.%${searchTerm}%`).join(',');
         
+        // Para conceitos_topicos, incluir a matéria para verificar acesso premium
+        const selectQuery = tabela.nome === 'conceitos_topicos' 
+          ? '*, materia:conceitos_materias(id, nome)' 
+          : '*';
+        
         const { data, error } = await supabase
           .from(tabela.nome as any)
-          .select('*')
+          .select(selectQuery)
           .or(orConditions)
           .limit(15);
         
