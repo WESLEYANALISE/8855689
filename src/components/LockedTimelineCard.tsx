@@ -126,13 +126,16 @@ export const LockedTimelineCard = ({
               )}
             </div>
             
-            {/* Barra Premium no lugar da barra de progresso + seta para entrar */}
-            <div className="mt-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-amber-400 flex items-center gap-1">
-                  <Crown className="w-3 h-3" />
-                  Conteúdo Premium
-                </span>
+            {/* Barra de progresso (zerada para Premium) + seta para entrar */}
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Progresso</span>
+                <span>0%</span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full" style={{ width: '0%' }} />
+              </div>
+              <div className="flex justify-end">
                 <ChevronRight className="w-4 h-4 text-amber-400" />
               </div>
             </div>
