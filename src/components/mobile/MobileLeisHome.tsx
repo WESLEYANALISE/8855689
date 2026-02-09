@@ -21,7 +21,7 @@ export const MobileLeisHome = memo(() => {
 
   const handleTabChange = (tab: 'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push') => {
     setActiveTab(tab);
-    if (tab === 'procurar') navigate('/pesquisar?tipo=legislacao');
+    if (tab === 'procurar') navigate('/pesquisar?tipo=artigos');
     else if (tab === 'resenha') navigate('/vade-mecum/resenha-diaria');
     else if (tab === 'push') navigate('/vade-mecum/push-legislacao');
     else if (tab === 'explicacao') navigate('/vade-mecum/sobre');
