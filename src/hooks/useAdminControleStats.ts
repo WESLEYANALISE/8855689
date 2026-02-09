@@ -38,7 +38,8 @@ interface DistribuicaoDispositivos {
 }
 
 interface DistribuicaoIntencoes {
-  Estudante: number;
+  Universitario: number;
+  Concurseiro: number;
   OAB: number;
   Advogado: number;
   Outro: number;
@@ -226,7 +227,8 @@ export const useDistribuicaoIntencoes = () => {
       if (error) throw error;
       
       const distribuicao: DistribuicaoIntencoes = {
-        Estudante: 0,
+        Universitario: 0,
+        Concurseiro: 0,
         OAB: 0,
         Advogado: 0,
         Outro: 0,
@@ -234,13 +236,15 @@ export const useDistribuicaoIntencoes = () => {
       
       (data || []).forEach((item) => {
         const intencao = item.intencao?.toLowerCase() || '';
-        if (intencao.includes('estudante') || intencao.includes('faculdade')) {
-          distribuicao.Estudante++;
-        } else if (intencao.includes('oab')) {
+        if (intencao === 'universitario' || intencao.includes('estudante') || intencao.includes('faculdade')) {
+          distribuicao.Universitario++;
+        } else if (intencao === 'concurseiro') {
+          distribuicao.Concurseiro++;
+        } else if (intencao === 'oab') {
           distribuicao.OAB++;
-        } else if (intencao.includes('advogado') || intencao.includes('profissional')) {
+        } else if (intencao === 'advogado' || intencao.includes('profissional')) {
           distribuicao.Advogado++;
-        } else {
+        } else if (intencao) {
           distribuicao.Outro++;
         }
       });

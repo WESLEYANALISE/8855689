@@ -22,6 +22,25 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUsuarioDetalhes } from '@/hooks/useUsuarioDetalhes';
 
+// Função para obter label e emoji da intenção
+const getIntencaoLabel = (intencao: string | null): string => {
+  if (!intencao) return '📚 Não informado';
+  switch (intencao.toLowerCase()) {
+    case 'universitario':
+      return '🎓 Universitário';
+    case 'concurseiro':
+      return '🎯 Concurseiro';
+    case 'oab':
+      return '⚖️ OAB';
+    case 'advogado':
+      return '👔 Advogado';
+    case 'estudante':
+      return '🎓 Estudante';
+    default:
+      return `📚 ${intencao}`;
+  }
+};
+
 const AdminUsuarioDetalhes = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -139,7 +158,7 @@ const AdminUsuarioDetalhes = () => {
                   {profile.intencao && (
                     <span className="flex items-center gap-1">
                       <Target className="h-4 w-4" />
-                      {profile.intencao}
+                      {getIntencaoLabel(profile.intencao)}
                     </span>
                   )}
                   <span className="flex items-center gap-1">
