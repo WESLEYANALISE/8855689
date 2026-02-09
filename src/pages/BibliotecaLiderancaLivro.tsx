@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
-import { Download, Loader2, BookOpen, Monitor, Video, FileText } from "lucide-react";
+import { Download, Loader2, BookOpen, Video, FileText, Crown } from "lucide-react";
 import { useState } from "react";
 import PDFViewerModal from "@/components/PDFViewerModal";
 import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VideoPlayer from "@/components/VideoPlayer";
 import LivroResumoPlayer from "@/components/biblioteca/LivroResumoPlayer";
 import { toast } from "sonner";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 const BibliotecaLiderancaLivro = () => {
   const { livroId } = useParams();
@@ -19,10 +21,12 @@ const BibliotecaLiderancaLivro = () => {
   const [showPDF, setShowPDF] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'vertical'>('normal');
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState("sobre");
   const [showResumo, setShowResumo] = useState(false);
   const [isLoadingResumo, setIsLoadingResumo] = useState(false);
   const [resumoData, setResumoData] = useState<any>(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const { isPremium } = useSubscription();
 
   const { data: livro, isLoading, refetch } = useQuery({
     queryKey: ["biblioteca-lideranca-livro", livroId],
@@ -34,18 +38,27 @@ const BibliotecaLiderancaLivro = () => {
         .single();
 
       if (error) throw error;
-      
-      if (data && !activeTab) {
-        if (data.aula) {
-          setActiveTab("aula");
-        } else {
-          setActiveTab("sobre");
-        }
-      }
-      
       return data;
     },
   });
+
+  const handleReadClick = () => {
+    if (!isPremium) {
+      setShowPremiumModal(true);
+      return;
+    }
+    setShowModeSelector(true);
+  };
+
+  const handleDownloadClick = () => {
+    if (!isPremium) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (livro?.download) {
+      window.open(livro.download, "_blank");
+    }
+  };
 
   const handleOpenResumo = async () => {
     if (!livro) return;
@@ -114,7 +127,8 @@ const BibliotecaLiderancaLivro = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/5 pb-20 animate-fade-in">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex flex-col items-center">
-          <div className="w-48 md:w-60 mb-8 rounded-xl overflow-hidden shadow-2xl hover:shadow-accent/50 transition-shadow duration-300">
+          {/* Capa com Badge Premium */}
+          <div className="relative w-48 md:w-60 mb-8 rounded-xl overflow-hidden shadow-2xl hover:shadow-accent/50 transition-shadow duration-300">
             {livro.imagem ? (
               <img
                 src={livro.imagem}
@@ -126,6 +140,11 @@ const BibliotecaLiderancaLivro = () => {
                 <BookOpen className="w-24 h-24 text-accent/50" />
               </div>
             )}
+            {/* Badge Premium */}
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white text-[10px] font-semibold shadow-lg">
+              <Crown className="w-3 h-3" />
+              Premium
+            </div>
           </div>
 
           <div className="w-full max-w-2xl text-center space-y-6">
@@ -139,7 +158,7 @@ const BibliotecaLiderancaLivro = () => {
             <div className="flex justify-center gap-3 mb-6">
               {livro.link && (
                 <Button
-                  onClick={() => setShowModeSelector(true)}
+                  onClick={handleReadClick}
                   size="lg"
                   className="shadow-lg hover:shadow-accent/50 transition-all"
                 >
@@ -159,10 +178,9 @@ const BibliotecaLiderancaLivro = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="sobre">Sobre</TabsTrigger>
                 <TabsTrigger value="aula" disabled={!livro.aula}>Aula</TabsTrigger>
-                <TabsTrigger value="desktop">Desktop</TabsTrigger>
                 <TabsTrigger value="download" disabled={!livro.download}>Download</TabsTrigger>
               </TabsList>
 
@@ -207,24 +225,6 @@ const BibliotecaLiderancaLivro = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="desktop">
-                <div className="text-center bg-card/50 backdrop-blur-sm rounded-xl p-8 border border-accent/20">
-                  <Monitor className="w-16 h-16 mx-auto mb-4 text-accent" />
-                  <h2 className="text-xl font-semibold mb-4">Acesso Desktop</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Leia este livro diretamente no seu computador através do nosso sistema desktop
-                  </p>
-                  <Button
-                    onClick={() => navigate("/acesso-desktop")}
-                    size="lg"
-                    className="min-w-[200px]"
-                  >
-                    <Monitor className="w-5 h-5 mr-2" />
-                    Acessar Desktop
-                  </Button>
-                </div>
-              </TabsContent>
-
               <TabsContent value="download">
                 <div className="text-center bg-card/50 backdrop-blur-sm rounded-xl p-8 border border-accent/20">
                   {livro.download ? (
@@ -235,7 +235,7 @@ const BibliotecaLiderancaLivro = () => {
                         Faça o download do livro para ler offline
                       </p>
                       <Button
-                        onClick={() => window.open(livro.download!, "_blank")}
+                        onClick={handleDownloadClick}
                         size="lg"
                         className="min-w-[200px]"
                       >
@@ -296,6 +296,12 @@ const BibliotecaLiderancaLivro = () => {
         livroId={livro.id}
         biblioteca="lideranca"
         onImagemGerada={() => refetch()}
+      />
+
+      <PremiumUpgradeModal
+        open={showPremiumModal}
+        onOpenChange={setShowPremiumModal}
+        featureName="Este livro"
       />
     </div>
   );
