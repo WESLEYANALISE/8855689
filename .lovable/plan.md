@@ -1,197 +1,155 @@
 
-# Plano de Correção: Brecha de Pesquisa + Notificações de Admin
+# Plano: Perfil Detalhado do Usuário + Métricas Premium no Painel Admin
 
-## Problema 1: Brecha de Acesso Premium via Pesquisa
+## Visão Geral
 
-### Diagnóstico
-A busca global permite que usuários encontrem e acessem diretamente conteúdos premium através das seguintes categorias:
-- **Aulas Conceitos** → navega para `/conceitos/topico/{id}`
-- **Aulas OAB Trilhas** → navega para `/oab-trilhas/tema/{id}`
+Vamos criar uma funcionalidade completa de "perfil detalhado do usuário" ao clicar no nome de um usuário na lista de cadastros, além de adicionar métricas globais de Premium no painel de Controle.
 
-Quando o usuário clica no resultado da busca, ele é direcionado diretamente para a página do tópico, **pulando a verificação de acesso** que existe apenas na página da matéria (`ConceitosMateria.tsx`).
+---
 
-### Solução
-Adicionar verificação de acesso premium diretamente nas páginas de tópicos individuais:
+## Parte 1: Página de Detalhes do Usuário
 
-**Arquivos a modificar:**
-1. `src/pages/ConceitosTopicoEstudo.tsx` - Adicionar verificação premium
-2. `src/components/pesquisa/ResultadoPreview.tsx` - Interceptar cliques em conteúdo premium
-3. `src/hooks/useBuscaGlobal.ts` - Marcar resultados premium na busca
+### Nova Rota
+- Rota: `/admin/usuario/:userId`
+- Novo arquivo: `src/pages/Admin/AdminUsuarioDetalhes.tsx`
 
-**Abordagem técnica:**
+### Métricas que serão exibidas
+
+| Métrica | Fonte de Dados | Como Calcular |
+|---------|----------------|---------------|
+| Páginas mais acessadas | `page_views` | Agrupar por `page_path` e contar |
+| Termos mais pesquisados | `cache_pesquisas` + filtro de sessão (se houver) | Buscar termos pesquisados na sessão |
+| Tempo médio online | `page_views` | Diferença entre primeira e última atividade do dia |
+| Área mais frequentada | `page_views` | Analisar paths e categorizar (ex: /conceitos, /oab, /videoaulas) |
+| Dias consecutivos de acesso | `page_views` | Identificar sequência de datas únicas |
+| Total de acessos | `page_views` | COUNT por user_id |
+| Primeira visita | `page_views` | MIN(created_at) |
+| Última visita | `page_views` | MAX(created_at) |
+| Páginas únicas visitadas | `page_views` | COUNT DISTINCT page_path |
+| Status Premium | `subscriptions` | Verificar status = 'authorized' |
+| Dias até virar Premium | `profiles + subscriptions` | Diferença entre subscription.created_at e profiles.created_at |
+
+### Layout da Página
+
 ```text
-1. No ConceitosTopicoEstudo.tsx:
-   - Importar useSubscription
-   - Buscar a matéria do tópico para verificar se é gratuita
-   - Comparar nome da matéria com lista FREE_MATERIA_NAMES
-   - Se não premium e não gratuito → mostrar PremiumUpgradeModal
-   
-2. No ResultadoPreview.tsx:
-   - Adicionar prop opcional "isPremium" no item
-   - Se isPremium e usuário não é premium → abrir modal em vez de navegar
-   
-3. No useBuscaGlobal.ts (categoria aulas-conceitos):
-   - Incluir materia.nome na query
-   - Marcar item como premium se matéria não for gratuita
++--------------------------------------------------+
+| < Voltar    Detalhes do Usuário                  |
++--------------------------------------------------+
+| AVATAR     Nome: Maria da Silva                  |
+|            Email: maria@email.com                |
+|            Dispositivo: Android                  |
+|            Intenção: Estudante                   |
+|            Membro desde: 05/02/2026              |
+|            Status: [Premium] ou [Gratuito]       |
++--------------------------------------------------+
+| RESUMO DE ATIVIDADE                              |
+| +--------+ +--------+ +--------+ +--------+      |
+| | Total  | | Páginas| | Dias   | | Tempo  |      |
+| | 280    | | 64     | | 5      | | 2h30m  |      |
+| +--------+ +--------+ +--------+ +--------+      |
++--------------------------------------------------+
+| SEQUÊNCIA DE ACESSO                              |
+| 5 dias consecutivos de acesso                    |
+| Última atividade: há 2 horas                     |
++--------------------------------------------------+
+| PÁGINAS MAIS ACESSADAS                           |
+| 1. Início (52 acessos)                           |
+| 2. Videoaulas (38 acessos)                       |
+| 3. Conceitos (18 acessos)                        |
++--------------------------------------------------+
+| ÁREAS PREFERIDAS                                 |
+| Estudos: 45% | OAB: 30% | Política: 15%          |
++--------------------------------------------------+
+| HISTÓRICO DE NAVEGAÇÃO (Timeline)                |
+| - 09/02 05:14 - /admin/controle                  |
+| - 09/02 04:58 - /videoaulas                      |
+| - 08/02 23:30 - /conceitos                       |
++--------------------------------------------------+
 ```
 
 ---
 
-## Problema 2: Notificações de Novos Usuários para Admin
+## Parte 2: Métricas Premium no Painel Controle
 
-### Diagnóstico
-O trigger `notify_admin_new_signup` está configurado para disparar quando:
-```sql
-IF (OLD.telefone IS NULL OR OLD.telefone = '') 
-   AND (NEW.telefone IS NOT NULL AND NEW.telefone != '')
-   AND (NEW.intencao IS NOT NULL AND NEW.intencao != '')
-```
+### Novos Cards de Estatísticas
 
-Porém, o fluxo de Onboarding atual (`src/pages/Onboarding.tsx`) **não coleta telefone** - apenas nome e intenção. Por isso, todos os novos usuários têm `telefone = NULL` e a notificação nunca é disparada.
+Adicionar na seção de cards principais:
 
-### Solução
-Modificar o trigger para disparar quando **apenas intencao** é preenchida (já que telefone não é mais coletado no onboarding).
+| Card | Valor | Como Calcular |
+|------|-------|---------------|
+| Total Premium | 4 | COUNT DISTINCT user_id WHERE status = 'authorized' |
+| Taxa Conversão | 0.8% | (Premium Únicos / Total Usuários) * 100 |
+| Média dias até Premium | 6 dias | AVG(subscription.created_at - profiles.created_at) |
 
-**Migração SQL:**
-```sql
-CREATE OR REPLACE FUNCTION public.notify_admin_new_signup()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  payload jsonb;
-BEGIN
-  -- Notificar quando intencao for preenchida pela primeira vez
-  -- (não depender de telefone, pois não é mais coletado no onboarding)
-  IF (OLD.intencao IS NULL OR OLD.intencao = '') 
-     AND (NEW.intencao IS NOT NULL AND NEW.intencao != '') THEN
-    
-    payload := jsonb_build_object(
-      'tipo', 'novo_cadastro',
-      'dados', jsonb_build_object(
-        'nome', NEW.nome,
-        'email', NEW.email,
-        'telefone', NEW.telefone,
-        'dispositivo', NEW.dispositivo,
-        'area', NEW.intencao,
-        'created_at', NEW.created_at,
-        'device_info', NEW.device_info
-      )
-    );
+### Nova Tab ou Seção "Premium"
 
-    PERFORM net.http_post(
-      url := 'https://izspjvegxdfgkgibpyst.supabase.co/functions/v1/notificar-admin-whatsapp',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'apikey', '...' -- chave existente
-      ),
-      body := payload
-    );
-  END IF;
-
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  RAISE WARNING 'Falha ao notificar admin: %', SQLERRM;
-  RETURN NEW;
-END;
-$function$;
-```
+Adicionar uma nova tab no painel com:
+- Lista de usuários premium
+- Gráfico de conversão por período
+- Tempo médio até conversão
+- Receita total
 
 ---
 
-## Detalhes Técnicos de Implementação
+## Detalhes Técnicos
 
-### Parte 1: Bloquear acesso na página ConceitosTopicoEstudo
+### Novos Hooks
 
+**1. useUsuarioDetalhes.ts**
 ```typescript
-// Adicionar no início do componente:
-const { isPremium, loading: loadingSubscription } = useSubscription();
-
-// Após buscar o tópico, verificar acesso:
-const FREE_MATERIA_NAMES = [
-  "história do direito", 
-  "historia do direito",
-  "introdução ao estudo do direito",
-  "introducao ao estudo do direito"
-];
-
-const isFreeMateria = topico?.materia?.nome 
-  ? FREE_MATERIA_NAMES.includes(topico.materia.nome.toLowerCase().trim())
-  : false;
-
-const canAccess = isPremium || isFreeMateria;
-
-// Se não pode acessar, mostrar modal:
-if (!loadingSubscription && !canAccess) {
-  return (
-    <div className="min-h-screen bg-background">
-      <StandardPageHeader ... />
-      <PremiumUpgradeModal 
-        open={true} 
-        onOpenChange={() => navigate(-1)}
-        featureName="Aulas de Conceitos" 
-      />
-    </div>
-  );
+export const useUsuarioDetalhes = (userId: string) => {
+  // Buscar dados do profile
+  // Buscar page_views do usuário
+  // Buscar subscriptions do usuário
+  // Calcular métricas
 }
 ```
 
-### Parte 2: Marcar itens premium na busca
-
-No `useBuscaGlobal.ts`, modificar a configuração de `aulas-conceitos`:
+**2. Adicionar ao useAdminControleStats.ts**
 ```typescript
-{
-  id: 'aulas-conceitos',
-  nome: 'Aulas Conceitos',
-  tabelas: [
-    { 
-      nome: 'conceitos_topicos', 
-      colunas: ['titulo'], 
-      formatResult: (item) => ({
-        id: item.id, 
-        titulo: item.titulo, 
-        subtitulo: `Conceitos • ${item.materia?.nome || 'Matéria'}`,
-        route: `/conceitos/topico/${item.id}`,
-        // Marcar como premium se matéria não for gratuita
-        isPremium: !FREE_MATERIA_NAMES.includes(
-          (item.materia?.nome || '').toLowerCase().trim()
-        )
-      })
-    }
-  ]
+export const useMetricasPremium = () => {
+  // Total de premium únicos
+  // Taxa de conversão
+  // Média de dias até virar premium
 }
 ```
 
-### Parte 3: Interceptar clique em itens premium
-
-No `ResultadoPreview.tsx`:
+### Função para calcular dias consecutivos
 ```typescript
-const handleClick = () => {
-  if (item.isPremium && !isPremium) {
-    setShowPremiumModal(true);
-    return;
-  }
-  navigate(item.route);
-};
+function calcularDiasConsecutivos(datas: Date[]): number {
+  // Ordenar datas
+  // Remover duplicatas (mesmo dia)
+  // Contar sequência contínua terminando em hoje
+}
+```
+
+### Função para categorizar áreas
+```typescript
+function categorizarArea(path: string): string {
+  if (path.includes('/conceitos') || path.includes('/estudos')) return 'Estudos';
+  if (path.includes('/oab')) return 'OAB';
+  if (path.includes('/videoaulas')) return 'Videoaulas';
+  if (path.includes('/politica')) return 'Política';
+  // etc
+}
 ```
 
 ---
 
-## Arquivos a Modificar
+## Arquivos a Criar/Modificar
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/ConceitosTopicoEstudo.tsx` | Adicionar verificação de acesso premium |
-| `src/hooks/useBuscaGlobal.ts` | Incluir flag `isPremium` nos resultados |
-| `src/components/pesquisa/ResultadoPreview.tsx` | Interceptar clique em itens premium |
-| `supabase/migrations/new_migration.sql` | Atualizar trigger para não depender de telefone |
+| Arquivo | Ação |
+|---------|------|
+| `src/pages/Admin/AdminUsuarioDetalhes.tsx` | Criar - página de detalhes |
+| `src/hooks/useUsuarioDetalhes.ts` | Criar - hook para dados do usuário |
+| `src/hooks/useAdminControleStats.ts` | Modificar - adicionar métricas premium |
+| `src/pages/Admin/AdminControle.tsx` | Modificar - tornar nomes clicáveis + adicionar cards premium |
+| `src/App.tsx` | Modificar - adicionar nova rota |
 
 ---
 
 ## Resultado Esperado
 
-1. **Pesquisa**: Usuários não-premium verão modal de upgrade ao clicar em resultados de conteúdo premium
-2. **Acesso direto**: Se alguém tentar acessar URL premium diretamente, verá modal de bloqueio
-3. **Notificações**: Admin receberá notificação WhatsApp quando novo usuário completar onboarding (mesmo sem telefone)
+1. **Clique no nome do usuário** -> Abre página com todas as métricas detalhadas
+2. **Painel principal** -> Mostra cards de Premium (Total, Taxa Conversão, Média dias)
+3. **Dados em tempo real** -> Todas as métricas são calculadas com dados atualizados do Supabase
