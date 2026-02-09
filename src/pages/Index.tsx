@@ -246,7 +246,7 @@ const Index = () => {
         </div>
 
         {/* Menu de Alternância Principal - Apenas mobile (desktop não tem abas) */}
-        <div className="flex gap-1.5 md:hidden mb-6">
+        <div className={`flex gap-1.5 md:hidden mb-6 relative z-20 ${mainTab !== 'destaque' ? 'bg-background/95 backdrop-blur-sm -mx-2 px-2 py-2 rounded-xl' : ''}`}>
           <TabButton tab="destaque" icon={Flame} label="Destaque" />
           <TabButton tab="iniciante" icon={GraduationCap} label="Aprender" />
           <TabButton tab="oab" icon={Gavel} label="OAB" />

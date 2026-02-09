@@ -122,26 +122,7 @@ export const MobileTrilhasAprender = () => {
         <h2 className="font-cinzel text-xl font-bold text-amber-100 mb-1">
           Jornada de Estudos
         </h2>
-        <p className="text-amber-200/70 text-xs">Escolha sua trilha de aprendizado</p>
-      </motion.div>
-
-      {/* Header Conceitos */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4 px-4 mb-4"
-      >
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/30">
-          <GraduationCap className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-white" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
-            Conceitos
-          </h1>
-          <p className="text-xs text-gray-400">
-            Fundamentos do Direito
-          </p>
-        </div>
+        <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </motion.div>
 
       {/* Info Stats */}
