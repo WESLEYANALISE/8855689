@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Flame, Scale, Library, FileCheck2, Sparkles, Video, Target, ChevronRight } from "lucide-react";
+import { Flame, Library, FileCheck2, Video, Target, ChevronRight, Sparkles, Briefcase } from "lucide-react";
 
 interface EmAltaSectionProps {
   isDesktop: boolean;
@@ -7,14 +7,14 @@ interface EmAltaSectionProps {
   handleLinkHover: (path: string) => void;
 }
 
-// Itens de ESTUDOS - ordem: Vade Mecum, Biblioteca, Resumos, Videoaulas, Flashcards, Questões
+// Itens de ESTUDOS - ordem: Flashcards, Biblioteca, Resumos, Videoaulas, Questões, Carreiras
 const itensEstudos = [
-  { id: "vade-mecum", title: "Vade Mecum", titleHighlight: "Comentado", description: "Legislação comentada e atualizada", icon: Scale, route: "/vade-mecum" },
+  { id: "flashcards", title: "Flashcards", description: "Memorização eficiente", icon: Sparkles, route: "/flashcards/areas" },
   { id: "biblioteca", title: "Biblioteca", description: "Acervo completo de livros", icon: Library, route: "/bibliotecas" },
   { id: "resumos", title: "Resumos", description: "Conteúdo objetivo e direto", icon: FileCheck2, route: "/resumos-juridicos" },
   { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo", icon: Video, route: "/videoaulas" },
-  { id: "flashcards", title: "Flashcards", description: "Memorização eficiente", icon: Sparkles, route: "/flashcards/areas" },
   { id: "questoes", title: "Questões", description: "Pratique com questões reais", icon: Target, route: "/questoes" },
+  { id: "carreiras", title: "Carreiras", description: "Explore as carreiras jurídicas", icon: Briefcase, route: "/carreiras" },
 ];
 
 export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmAltaSectionProps) => {
@@ -47,7 +47,6 @@ export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmA
         <div className={`grid gap-2 relative z-10 ${isDesktop ? 'grid-cols-6' : 'grid-cols-2 gap-3'}`}>
           {itensEstudos.map((item) => {
             const Icon = item.icon;
-            const hasHighlight = 'titleHighlight' in item && item.titleHighlight;
             return (
               <button 
                 key={item.id} 
@@ -55,12 +54,6 @@ export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmA
                 className={`group bg-white/15 rounded-xl p-2.5 text-left transition-all duration-150 hover:bg-white/20 flex flex-col gap-1.5 border border-white/10 hover:border-white/20 overflow-hidden relative ${isDesktop ? 'h-[100px]' : 'h-[130px] rounded-2xl p-3 gap-2'}`}
                 style={{ boxShadow: '4px 6px 12px rgba(0, 0, 0, 0.4)' }}
               >
-                {/* Badge Comentado no canto superior direito */}
-                {hasHighlight && (
-                  <span className={`absolute top-1.5 right-1.5 italic bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent font-bold animate-pulse ${isDesktop ? 'text-[8px]' : 'text-[10px]'}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                    {(item as any).titleHighlight}
-                  </span>
-                )}
                 <div className={`bg-white/20 rounded-lg w-fit group-hover:bg-white/30 transition-colors shadow-lg ${isDesktop ? 'p-1.5' : 'p-2 rounded-xl'}`}>
                   <Icon className={`text-amber-100 drop-shadow-md ${isDesktop ? 'w-4 h-4' : 'w-5 h-5'}`} />
                 </div>
@@ -74,7 +67,6 @@ export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmA
                     </p>
                   )}
                 </div>
-                {/* Setinha indicadora de clicável */}
                 <ChevronRight className={`absolute bottom-2 right-2 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-all ${isDesktop ? 'w-4 h-4' : 'w-5 h-5'}`} />
               </button>
             );
