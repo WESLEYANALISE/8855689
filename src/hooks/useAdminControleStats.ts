@@ -129,9 +129,10 @@ export const useEstatisticasGerais = () => {
   return useQuery({
     queryKey: ['admin-controle-stats'],
     queryFn: async (): Promise<EstatisticasGerais> => {
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
-      const hojeISO = hoje.toISOString();
+      // Usar UTC para garantir consistência com o banco de dados
+      const now = new Date();
+      const hojeUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+      const hojeISO = hojeUTC.toISOString();
       
       const ultimos7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const ultimos5Min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -141,7 +142,7 @@ export const useEstatisticasGerais = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true });
       
-      // Novos hoje
+      // Novos hoje (usando data UTC)
       const { count: novosHoje } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
