@@ -309,9 +309,6 @@ const Index = () => {
 
                 {/* Política - Livros, Artigos e Documentários */}
                 <PoliticaHomeSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
-
-                {/* Carreiras Jurídicas */}
-                <CarreirasSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
               </>
             )}
           </>

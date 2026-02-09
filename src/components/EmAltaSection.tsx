@@ -14,7 +14,7 @@ const itensEstudos = [
   { id: "resumos", title: "Resumos", description: "Conteúdo objetivo e direto", icon: FileCheck2, route: "/resumos-juridicos" },
   { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo", icon: Video, route: "/videoaulas" },
   { id: "questoes", title: "Questões", description: "Pratique com questões reais", icon: Target, route: "/questoes" },
-  { id: "carreiras", title: "Carreiras", description: "Explore as carreiras jurídicas", icon: Briefcase, route: "/carreiras" },
+  { id: "carreiras", title: "Carreiras", description: "Explore as carreiras jurídicas", icon: Briefcase, route: "/carreiras-juridicas" },
 ];
 
 export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmAltaSectionProps) => {
