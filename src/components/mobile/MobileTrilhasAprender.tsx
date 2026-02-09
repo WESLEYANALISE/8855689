@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,15 +5,18 @@ import { BookOpen, Footprints, GraduationCap, Loader2, Scale, Crown, Lock } from
 import { motion } from "framer-motion";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { LockedTimelineCard } from "@/components/LockedTimelineCard";
-import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
-// Matéria gratuita: "História do Direito"
-const FREE_MATERIA_NAMES = ["história do direito", "historia do direito"];
+// Matérias gratuitas: "História do Direito" e "Introdução ao Estudo do Direito"
+const FREE_MATERIA_NAMES = [
+  "história do direito", 
+  "historia do direito",
+  "introdução ao estudo do direito",
+  "introducao ao estudo do direito"
+];
 
 export const MobileTrilhasAprender = () => {
   const navigate = useNavigate();
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isPremium } = useSubscription();
 
   // Buscar todas as matérias do Trilhante
@@ -266,10 +268,11 @@ export const MobileTrilhasAprender = () => {
                 );
               })}
                
-               {/* Matérias bloqueadas (Premium) */}
+               {/* Matérias bloqueadas (Premium) - Permite ver conteúdo programático */}
                {lockedItems.map((materia, index) => {
                  const realIndex = visibleItems.length + index;
                  const isLeft = realIndex % 2 === 0;
+                 const topicos = topicosCount?.[materia.id] || 0;
                  
                  return (
                    <LockedTimelineCard
@@ -279,7 +282,8 @@ export const MobileTrilhasAprender = () => {
                      imageUrl={materia.capa_url || undefined}
                      isLeft={isLeft}
                      index={realIndex}
-                     onClick={() => setShowPremiumModal(true)}
+                     topicosCount={topicos}
+                     materiaId={materia.id}
                    />
                  );
                })}
@@ -287,13 +291,6 @@ export const MobileTrilhasAprender = () => {
           </div>
         </div>
       )}
-       
-      {/* Modal Premium */}
-      <PremiumUpgradeModal
-        open={showPremiumModal}
-        onOpenChange={setShowPremiumModal}
-        featureName="Todos os conceitos"
-      />
     </div>
   );
 };
