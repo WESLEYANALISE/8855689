@@ -249,3 +249,83 @@ export const useDistribuicaoIntencoes = () => {
     refetchInterval: 60000,
   });
 };
+
+// Interface para métricas premium
+interface MetricasPremium {
+  totalPremium: number;
+  taxaConversao: number;
+  mediaDiasAtePremium: number | null;
+}
+
+// Hook para métricas de Premium
+export const useMetricasPremium = () => {
+  return useQuery({
+    queryKey: ['admin-controle-premium'],
+    queryFn: async (): Promise<MetricasPremium> => {
+      // Buscar total de usuários
+      const { count: totalUsuarios } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      // Buscar subscriptions com status authorized (únicos por user_id)
+      const { data: subscriptions, error } = await supabase
+        .from('subscriptions')
+        .select('user_id, created_at, status')
+        .eq('status', 'authorized');
+      
+      if (error) throw error;
+      
+      // Calcular únicos por user_id
+      const usuariosPremium = new Set((subscriptions || []).map(s => s.user_id));
+      const totalPremium = usuariosPremium.size;
+      
+      // Taxa de conversão
+      const taxaConversao = totalUsuarios && totalUsuarios > 0 
+        ? (totalPremium / totalUsuarios) * 100 
+        : 0;
+      
+      // Calcular média de dias até virar premium
+      let mediaDiasAtePremium: number | null = null;
+      
+      if (subscriptions && subscriptions.length > 0) {
+        // Buscar profiles dos usuários premium para calcular dias até conversão
+        const userIds = [...usuariosPremium];
+        
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, created_at')
+          .in('id', userIds);
+        
+        if (profiles && profiles.length > 0) {
+          const profileMap = new Map(profiles.map(p => [p.id, new Date(p.created_at)]));
+          
+          let totalDias = 0;
+          let count = 0;
+          
+          subscriptions.forEach(sub => {
+            const profileDate = profileMap.get(sub.user_id);
+            if (profileDate) {
+              const subDate = new Date(sub.created_at);
+              const diffDias = Math.floor((subDate.getTime() - profileDate.getTime()) / (24 * 60 * 60 * 1000));
+              if (diffDias >= 0) {
+                totalDias += diffDias;
+                count++;
+              }
+            }
+          });
+          
+          if (count > 0) {
+            mediaDiasAtePremium = Math.round(totalDias / count);
+          }
+        }
+      }
+      
+      return {
+        totalPremium,
+        taxaConversao: Math.round(taxaConversao * 100) / 100,
+        mediaDiasAtePremium,
+      };
+    },
+    refetchInterval: 60000,
+  });
+};
