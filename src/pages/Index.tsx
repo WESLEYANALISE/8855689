@@ -27,10 +27,13 @@ import { OabCarreiraBlogList } from "@/components/oab/OabCarreiraBlogList";
 import { EmAltaSection } from "@/components/EmAltaSection";
 import { CarreirasSection } from "@/components/CarreirasSection";
 import { PoliticaHomeSection } from "@/components/home/PoliticaHomeSection";
+import { OABHomeSection } from "@/components/home/OABHomeSection";
 import { DesktopTrilhasAprender } from "@/components/desktop/DesktopTrilhasAprender";
 import { DesktopTrilhasOAB } from "@/components/desktop/DesktopTrilhasOAB";
 import { DesktopHomeDestaque } from "@/components/desktop/DesktopHomeDestaque";
 import { MobileTrilhasAprender } from "@/components/mobile/MobileTrilhasAprender";
+import { MobileVadeMecumHome } from "@/components/mobile/MobileVadeMecumHome";
+import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { WelcomeAudioPlayer } from "@/components/WelcomeAudioPlayer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,7 +62,7 @@ const HERO_IMAGES = [
   '/hero-banner-tribunal.webp'
 ];
 
-type MainTab = 'ferramentas' | 'iniciante' | 'oab';
+type MainTab = 'ferramentas' | 'iniciante' | 'leis';
 type FaculdadeSubTab = 'estudos' | 'ferramentas';
 
 const Index = () => {
@@ -89,7 +92,7 @@ const Index = () => {
 
   // Atualizar tab quando URL mudar
   useEffect(() => {
-    if (tabFromUrl && ['ferramentas', 'iniciante', 'oab'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['ferramentas', 'iniciante', 'leis'].includes(tabFromUrl)) {
       changeMainTab(tabFromUrl);
     }
   }, [tabFromUrl]);
@@ -98,7 +101,7 @@ const Index = () => {
   useEffect(() => {
     const handleHeaderClick = (e: CustomEvent<{ tab: string }>) => {
       const tab = e.detail.tab as MainTab;
-      if (['ferramentas', 'iniciante', 'oab'].includes(tab)) {
+      if (['ferramentas', 'iniciante', 'leis'].includes(tab)) {
         setMainTab(tab);
       }
     };
@@ -246,11 +249,11 @@ const Index = () => {
         </div>
 
         {/* Menu de Alternância Principal - Apenas mobile (desktop não tem abas) */}
-        {/* Ordem: Aulas (esquerda), Estudos (centro), OAB (direita) */}
+        {/* Ordem: Aulas (esquerda), Estudos (centro), Leis (direita) */}
         <div className={`flex gap-1.5 md:hidden mb-6 relative z-20 ${mainTab !== 'ferramentas' ? 'bg-background/95 backdrop-blur-sm -mx-2 px-2 py-2 rounded-xl' : ''}`}>
           <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
-          <TabButton tab="oab" icon={Gavel} label="OAB" />
+          <TabButton tab="leis" icon={Scale} label="Leis" />
         </div>
 
 
@@ -300,6 +303,9 @@ const Index = () => {
                 {/* Em Alta - Design Premium com Abas */}
                 <EmAltaSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
 
+                {/* OAB - Nova seção entre Estudos e Política */}
+                <OABHomeSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
+
                 {/* Política - Livros, Artigos e Documentários */}
                 <PoliticaHomeSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
 
@@ -338,163 +344,32 @@ const Index = () => {
           </div>
         )}
 
-        {/* ==================== ABA OAB - LINHA DO TEMPO ==================== */}
-        {mainTab === 'oab' && (
+        {/* ==================== ABA LEIS - VADE MECUM ==================== */}
+        {mainTab === 'leis' && (
           <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo que cobre tudo - desktop usa layout expandido */}
-            <div className={`absolute inset-0 ${isDesktop ? '-mx-8' : '-mx-3 md:-mx-6'} ${isDesktop ? '' : 'rounded-2xl'} overflow-hidden`}>
+            {/* Imagem de fundo fixa (estilo igual à aba Aulas) */}
+            <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
               <img 
                 src={oabAprovacaoHero} 
-                alt="Aprovação OAB"
-                className="w-full h-full object-cover opacity-40"
+                alt="Vade Mecum"
+                className="w-full h-full object-cover object-top opacity-50"
                 loading="eager"
                 fetchPriority="high"
                 decoding="sync"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/50 to-background/90" />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
             </div>
 
-            {/* Conteúdo sobre o fundo */}
+            {/* Conteúdo do Vade Mecum sobre o fundo */}
             <div className="relative z-10">
-              {/* Desktop: Layout horizontal das trilhas */}
               {isDesktop ? (
-                <DesktopTrilhasOAB />
+                <DesktopVadeMecumHome />
               ) : (
-                <div className="space-y-6">
-                  {/* Header */}
-                  <div className="flex items-center gap-3 px-1 pt-4">
-                    <div className="p-3 bg-red-900/40 backdrop-blur-md rounded-2xl shadow-lg ring-1 ring-red-800/30">
-                      <Gavel className="w-6 h-6 text-red-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground">Jornada OAB</h2>
-                      <p className="text-sm text-muted-foreground">Sua trilha para a aprovação</p>
-                    </div>
-                  </div>
-
-                  {/* Timeline Visual */}
-                  <div className="relative py-4">
-                    {/* Linha Central com animação de eletricidade */}
-                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-900/50 via-red-800/50 to-amber-900/50 transform -translate-x-1/2" />
-                
-                {/* Linha de energia animada */}
-                <div className="absolute left-1/2 top-0 bottom-0 w-0.5 transform -translate-x-1/2 overflow-hidden">
-                  <div 
-                    className="absolute inset-0 w-full"
-                    style={{
-                      background: 'linear-gradient(to bottom, transparent, #ef4444, #f59e0b, transparent)',
-                      backgroundSize: '100% 200%',
-                      animation: 'electricFlow 2s ease-in-out infinite',
-                    }}
-                  />
-                </div>
-                
-                {/* Card 1ª Fase - Esquerda */}
-                <div className="relative flex items-center mb-8">
-                  <div className="w-1/2 pr-6">
-                    <button
-                      onClick={() => navigate('/oab/primeira-fase')}
-                      className="w-full h-[100px] bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-red-800/30 flex items-center gap-3"
-                    >
-                      <div className="bg-white/15 rounded-xl p-2.5">
-                        <Target className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-white">1ª Fase</h3>
-                        <p className="text-xs text-white/70 mt-1">Conteúdo de estudo</p>
-                      </div>
-                    </button>
-                  </div>
-                  {/* Ícone de pegada no centro com pulso */}
-                  <div 
-                    className="absolute left-1/2 transform -translate-x-1/2 z-10"
-                    style={{ animation: 'footprintPulse 2s ease-in-out infinite 0s' }}
-                  >
-                    <div className="bg-red-600 rounded-full p-2 shadow-lg ring-4 ring-background relative">
-                      <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-30" />
-                      <Footprints className="w-4 h-4 text-white relative z-10" />
-                    </div>
-                  </div>
-                  <div className="w-1/2" />
-                </div>
-
-                {/* Card 2ª Fase - Direita */}
-                <div className="relative flex items-center mb-8">
-                  <div className="w-1/2" />
-                  {/* Ícone de pegada no centro com pulso */}
-                  <div 
-                    className="absolute left-1/2 transform -translate-x-1/2 z-10"
-                    style={{ animation: 'footprintPulse 2s ease-in-out infinite 0.7s' }}
-                  >
-                    <div className="bg-red-600 rounded-full p-2 shadow-lg ring-4 ring-background relative">
-                      <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-30" style={{ animationDelay: '0.7s' }} />
-                      <Footprints className="w-4 h-4 text-white relative z-10" />
-                    </div>
-                  </div>
-                  <div className="w-1/2 pl-6">
-                    <button
-                      onClick={() => navigate('/oab/segunda-fase')}
-                      className="w-full h-[100px] bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-red-800/30 flex items-center gap-3"
-                    >
-                      <div className="bg-white/15 rounded-xl p-2.5">
-                        <FileText className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-white">2ª Fase</h3>
-                        <p className="text-xs text-white/70 mt-1">Conteúdo de estudo</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Card Carreira - Esquerda */}
-                <div className="relative flex items-center mb-8">
-                  <div className="w-1/2 pr-6">
-                    <button
-                      onClick={() => navigate('/oab/carreira')}
-                      className="w-full h-[100px] bg-gradient-to-br from-amber-950 via-amber-900 to-amber-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-amber-800/30 flex items-center gap-3"
-                    >
-                      <div className="bg-white/15 rounded-xl p-2.5">
-                        <Briefcase className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-white">Carreira</h3>
-                        <p className="text-xs text-white/70 mt-1">O guia completo</p>
-                      </div>
-                    </button>
-                  </div>
-                  {/* Ícone de pegada no centro com pulso */}
-                  <div 
-                    className="absolute left-1/2 transform -translate-x-1/2 z-10"
-                    style={{ animation: 'footprintPulse 2s ease-in-out infinite 1.4s' }}
-                  >
-                    <div className="bg-amber-600 rounded-full p-2 shadow-lg ring-4 ring-background relative">
-                      <div className="absolute inset-0 bg-amber-500 rounded-full animate-ping opacity-30" style={{ animationDelay: '1.4s' }} />
-                      <Footprints className="w-4 h-4 text-white relative z-10" />
-                    </div>
-                  </div>
-                  <div className="w-1/2" />
-                </div>
-
-              </div>
+                <MobileVadeMecumHome />
+              )}
             </div>
-          )}
-
-            {/* CSS para animações */}
-            <style>{`
-              @keyframes electricFlow {
-                0% { background-position: 100% 0%; opacity: 0.3; }
-                50% { opacity: 1; }
-                100% { background-position: 100% 100%; opacity: 0.3; }
-              }
-              @keyframes footprintPulse {
-                0%, 100% { transform: translateX(-50%) scale(1); }
-                50% { transform: translateX(-50%) scale(1.15); }
-              }
-            `}</style>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
