@@ -1,124 +1,102 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, BookOpen, Gavel, BookText, HandCoins, Scroll, ChevronRight, FileText, Landmark, Users, Shield, Briefcase, Building2, Car, Trees, Heart } from "lucide-react";
+import { Scale, BookOpen, Gavel, BookText, HandCoins, Scroll, ChevronRight, Landmark, Users, FileText, FilePlus, BookMarked } from "lucide-react";
+import { motion } from "framer-motion";
 import { LeisBottomNav } from "@/components/leis/LeisBottomNav";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 
-// Trilhas de legislação organizadas em pares (esquerda/direita)
-const trilhasLegislacao = [
+// Categorias do Vade Mecum - apenas o que existe
+const categoriasVadeMecum = [
   { 
     id: "constituicao", 
     title: "Constituição Federal", 
-    description: "A Lei Maior do Brasil", 
     icon: Landmark, 
     route: "/codigos/constituicao",
-    color: "bg-amber-500/20",
-    iconColor: "text-amber-400"
+    color: "from-amber-500 to-amber-700",
+    bgColor: "bg-amber-500/20"
   },
   { 
     id: "codigos", 
     title: "Códigos", 
-    description: "Civil, Penal, CPC, CPP, CLT...", 
     icon: Scale, 
-    route: "/vade-mecum?categoria=codigos",
-    color: "bg-blue-500/20",
-    iconColor: "text-blue-400"
+    route: "/codigos",
+    color: "from-blue-500 to-blue-700",
+    bgColor: "bg-blue-500/20"
   },
   { 
     id: "estatutos", 
     title: "Estatutos", 
-    description: "ECA, Idoso, OAB, Cidade...", 
     icon: Users, 
-    route: "/vade-mecum?categoria=estatutos",
-    color: "bg-emerald-500/20",
-    iconColor: "text-emerald-400"
+    route: "/estatutos",
+    color: "from-emerald-500 to-emerald-700",
+    bgColor: "bg-emerald-500/20"
   },
   { 
     id: "legislacao-penal", 
     title: "Legislação Penal", 
-    description: "Drogas, Armas, Maria da Penha...", 
     icon: Gavel, 
-    route: "/vade-mecum?categoria=legislacao-penal",
-    color: "bg-red-500/20",
-    iconColor: "text-red-400"
+    route: "/legislacao-penal-especial",
+    color: "from-red-500 to-red-700",
+    bgColor: "bg-red-500/20"
   },
   { 
     id: "sumulas", 
     title: "Súmulas", 
-    description: "STF, STJ, TST, TSE...", 
     icon: BookText, 
-    route: "/resumos-juridicos/artigos-lei/sumulas",
-    color: "bg-purple-500/20",
-    iconColor: "text-purple-400"
+    route: "/sumulas",
+    color: "from-purple-500 to-purple-700",
+    bgColor: "bg-purple-500/20"
   },
   { 
     id: "previdenciario", 
     title: "Previdenciário", 
-    description: "Lei 8.212, 8.213...", 
     icon: HandCoins, 
-    route: "/resumos-juridicos/artigos-lei/previdenciario",
-    color: "bg-orange-500/20",
-    iconColor: "text-orange-400"
+    route: "/previdenciario",
+    color: "from-orange-500 to-orange-700",
+    bgColor: "bg-orange-500/20"
   },
   { 
-    id: "administrativo", 
-    title: "Administrativo", 
-    description: "Licitações, Processo Adm...", 
-    icon: Building2, 
+    id: "leis-ordinarias", 
+    title: "Leis Ordinárias", 
+    icon: FileText, 
     route: "/leis-ordinarias",
-    color: "bg-cyan-500/20",
-    iconColor: "text-cyan-400"
+    color: "from-cyan-500 to-cyan-700",
+    bgColor: "bg-cyan-500/20"
   },
   { 
-    id: "tributario", 
-    title: "Tributário", 
-    description: "CTN, ICMS, ISS...", 
-    icon: Briefcase, 
-    route: "/leis-ordinarias",
-    color: "bg-lime-500/20",
-    iconColor: "text-lime-400"
-  },
-  { 
-    id: "transito", 
-    title: "Trânsito", 
-    description: "CTB, Infrações...", 
-    icon: Car, 
-    route: "/leis-ordinarias",
-    color: "bg-yellow-500/20",
-    iconColor: "text-yellow-400"
-  },
-  { 
-    id: "ambiental", 
-    title: "Ambiental", 
-    description: "Crimes Ambientais, Florestas...", 
-    icon: Trees, 
-    route: "/leis-ordinarias",
-    color: "bg-green-500/20",
-    iconColor: "text-green-400"
-  },
-  { 
-    id: "consumidor", 
-    title: "Consumidor", 
-    description: "CDC, Práticas Abusivas...", 
-    icon: Shield, 
-    route: "/leis-ordinarias",
-    color: "bg-pink-500/20",
-    iconColor: "text-pink-400"
+    id: "pec", 
+    title: "PEC", 
+    icon: FilePlus, 
+    route: "/vade-mecum/legislacao",
+    color: "from-indigo-500 to-indigo-700",
+    bgColor: "bg-indigo-500/20"
   },
   { 
     id: "novas-leis", 
     title: "Novas Leis", 
-    description: "Legislação atualizada", 
     icon: Scroll, 
     route: "/novas-leis",
-    color: "bg-indigo-500/20",
-    iconColor: "text-indigo-400"
+    color: "from-lime-500 to-lime-700",
+    bgColor: "bg-lime-500/20"
   },
 ];
 
 export const MobileLeisHome = memo(() => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push'>('legislacao');
+
+  // Esconder o header principal quando estiver nesta aba
+  useEffect(() => {
+    const header = document.querySelector('header');
+    if (header) {
+      header.style.display = 'none';
+    }
+    return () => {
+      if (header) {
+        header.style.display = '';
+      }
+    };
+  }, []);
 
   const handleTabChange = (tab: 'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push') => {
     setActiveTab(tab);
@@ -138,72 +116,121 @@ export const MobileLeisHome = memo(() => {
 
   return (
     <div className="relative min-h-screen">
-      {/* Imagem de fundo fixa */}
+      {/* Imagem de fundo fixa - igual ao Vade Mecum */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img 
           src={heroVadeMecumPlanalto} 
           alt="Vade Mecum"
-          className="w-full h-full object-cover object-top opacity-60"
+          className="w-full h-full object-cover object-center opacity-70"
           loading="eager"
           fetchPriority="high"
           decoding="sync"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background" />
       </div>
 
       {/* Conteúdo */}
-      <div className="relative z-10 space-y-6 px-1 pt-4 pb-32">
+      <div className="relative z-10 flex flex-col items-center py-4 pb-32">
         {/* Header */}
-        <div className="flex items-center gap-3 px-2">
-          <div className="p-3 bg-amber-900/40 backdrop-blur-md rounded-2xl shadow-lg ring-1 ring-amber-800/30">
-            <Scale className="w-6 h-6 text-amber-400" />
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-5"
+        >
+          <h2 className="font-cinzel text-xl font-bold text-amber-100 mb-1">
+            Vade Mecum X
+          </h2>
+          <p className="text-amber-200/70 text-xs">Seu Vade Mecum Jurídico <span className="text-primary font-semibold">2026</span></p>
+        </motion.div>
+
+        {/* Info Stats */}
+        <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-6">
+          <div className="flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-primary" />
+            <span>{categoriasVadeMecum.length} categorias</span>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Vade Mecum X</h2>
-            <p className="text-sm text-muted-foreground">Seu Vade Mecum Jurídico <span className="text-amber-400 font-semibold">2026</span></p>
+          <div className="flex items-center gap-1.5">
+            <Scale className="w-3.5 h-3.5 text-amber-400" />
+            <span>Legislação completa</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <BookMarked className="w-3.5 h-3.5 text-purple-400" />
+            <span>Atualizado</span>
           </div>
         </div>
 
-        {/* Trilhas de Legislação - Layout alternado */}
-        <div className="relative px-2">
-          {/* Linha central decorativa */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/30 to-transparent -translate-x-1/2" />
-          
-          <div className="space-y-4">
-            {trilhasLegislacao.map((trilha, index) => {
-              const Icon = trilha.icon;
-              const isLeft = index % 2 === 0;
-              
-              return (
-                <div 
-                  key={trilha.id}
-                  className={`relative flex items-center gap-3 ${isLeft ? 'pr-[52%]' : 'pl-[52%]'}`}
-                >
-                  <button
-                    onClick={() => navigate(trilha.route)}
-                    className={`group w-full bg-card/90 backdrop-blur-sm rounded-2xl p-4 text-left transition-all duration-150 hover:bg-card hover:scale-[1.02] border border-border/50 hover:border-primary/30 shadow-lg relative overflow-hidden ${isLeft ? 'flex-row' : 'flex-row-reverse text-right'}`}
+        {/* Timeline de Categorias */}
+        <div className="w-full px-4">
+          <div className="max-w-lg mx-auto relative">
+            {/* Linha central da timeline com animação */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
+              <div className="w-full h-full bg-gradient-to-b from-primary/80 via-primary/60 to-primary/40 rounded-full" />
+              {/* Animação de fluxo elétrico */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-primary/30 to-transparent rounded-full"
+                animate={{ y: ["0%", "300%"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
+            
+            <div className="space-y-4">
+              {categoriasVadeMecum.map((categoria, index) => {
+                const Icon = categoria.icon;
+                const isLeft = index % 2 === 0;
+                
+                return (
+                  <motion.div
+                    key={categoria.id}
+                    initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    className={`relative flex items-center ${
+                      isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
+                    }`}
                   >
-                    <div className={`flex items-start gap-3 ${isLeft ? '' : 'flex-row-reverse'}`}>
-                      <div className={`${trilha.color} rounded-xl p-2.5 flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                        <Icon className={`w-5 h-5 ${trilha.iconColor}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground mb-0.5 text-sm leading-tight">
-                          {trilha.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {trilha.description}
-                        </p>
-                      </div>
+                    {/* Marcador Balança no centro */}
+                    <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.15, 1],
+                          boxShadow: [
+                            "0 0 0 0 rgba(var(--primary-rgb), 0.4)",
+                            "0 0 0 10px rgba(var(--primary-rgb), 0)",
+                            "0 0 0 0 rgba(var(--primary-rgb), 0)"
+                          ]
+                        }}
+                        transition={{ 
+                          duration: 2, 
+                          repeat: Infinity,
+                          delay: index * 0.3
+                        }}
+                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${categoria.color} flex items-center justify-center shadow-lg shadow-primary/40`}
+                      >
+                        <Scale className="w-5 h-5 text-white" />
+                      </motion.div>
                     </div>
-                    <ChevronRight className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-hover:text-foreground transition-all ${isLeft ? 'right-3 group-hover:translate-x-0.5' : 'left-3 rotate-180 group-hover:-translate-x-0.5'}`} />
-                  </button>
-                  
-                  {/* Marcador na linha central */}
-                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary ring-4 ring-background shadow-lg" />
-                </div>
-              );
-            })}
+                    
+                    {/* Card da Categoria - Tamanho fixo */}
+                    <div className="w-full">
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate(categoria.route)}
+                        className="w-full h-[70px] rounded-2xl bg-card/95 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all overflow-hidden flex items-center gap-3 px-3"
+                      >
+                        <div className={`${categoria.bgColor} rounded-xl p-2.5 flex-shrink-0`}>
+                          <Icon className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="font-semibold text-sm text-foreground flex-1 text-left">
+                          {categoria.title}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
