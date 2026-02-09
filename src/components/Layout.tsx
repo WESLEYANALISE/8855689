@@ -459,16 +459,21 @@ export const Layout = ({ children }: LayoutProps) => {
   }, []);
   
   // Esconder BottomNav usando Sets e funções auxiliares
+  // Inclui aba "Leis" na home que tem seu próprio menu de rodapé
   const hideBottomNav = useMemo(() => {
     const path = location.pathname;
+    const searchParams = new URLSearchParams(location.search);
+    const isLeisTab = path === '/' && searchParams.get('tab') === 'leis';
+    
     return (
+      isLeisTab ||
       HIDE_BOTTOM_NAV_ROUTES.has(path) ||
       matchesPrefixes(path, HIDE_BOTTOM_NAV_PREFIXES) ||
       isLibraryBookRoute(path) ||
       isSimuladoResolverRoute(path) ||
       isEscreventeRoute(path)
     );
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
   
   // Esconder Header
   const hideHeader = useMemo(() => {
