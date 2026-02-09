@@ -7,7 +7,20 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Crown, Star, BookmarkPlus, Highlighter, StickyNote, MessageCircle } from 'lucide-react';
+import { 
+  Crown, 
+  Star, 
+  BookmarkPlus, 
+  Highlighter, 
+  StickyNote, 
+  MessageCircle,
+  GraduationCap,
+  BookOpen,
+  FileText,
+  Sparkles,
+  Mic,
+  BrainCircuit
+} from 'lucide-react';
 
 interface PremiumUpgradeModalProps {
   open: boolean;
@@ -16,10 +29,16 @@ interface PremiumUpgradeModalProps {
 }
 
 const PREMIUM_FEATURES = [
-  { icon: Star, text: 'Favoritar artigos e leis' },
-  { icon: StickyNote, text: 'Anotações personalizadas' },
-  { icon: Highlighter, text: 'Grifar textos importantes' },
-  { icon: MessageCircle, text: 'Evelyn no WhatsApp 24h' },
+  { icon: GraduationCap, text: '16 matérias de Conceitos do Direito', highlight: true },
+  { icon: BookOpen, text: '+150 tópicos com aulas interativas', highlight: true },
+  { icon: BrainCircuit, text: '+1.500 flashcards para revisão', highlight: false },
+  { icon: FileText, text: '+2.000 questões para praticar', highlight: false },
+  { icon: Sparkles, text: 'IA para explicações personalizadas', highlight: false },
+  { icon: Mic, text: 'Narração de artigos e leis', highlight: false },
+  { icon: Star, text: 'Favoritar artigos e leis ilimitado', highlight: false },
+  { icon: StickyNote, text: 'Anotações personalizadas em tudo', highlight: false },
+  { icon: Highlighter, text: 'Grifar textos importantes', highlight: false },
+  { icon: MessageCircle, text: 'Evelyn no WhatsApp 24h', highlight: false },
 ];
 
 export const PremiumUpgradeModal = ({
@@ -36,7 +55,7 @@ export const PremiumUpgradeModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex justify-center mb-4">
             <div className="p-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600">
@@ -51,11 +70,20 @@ export const PremiumUpgradeModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 my-4">
+        <div className="space-y-2 my-4">
           {PREMIUM_FEATURES.map((feature, index) => (
-            <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-              <feature.icon className="h-5 w-5 text-amber-500" />
-              <span className="text-sm">{feature.text}</span>
+            <div 
+              key={index} 
+              className={`flex items-center gap-3 p-2 rounded-lg ${
+                feature.highlight 
+                  ? 'bg-amber-500/10 border border-amber-500/20' 
+                  : 'bg-muted/50'
+              }`}
+            >
+              <feature.icon className={`h-5 w-5 ${feature.highlight ? 'text-amber-400' : 'text-amber-500'}`} />
+              <span className={`text-sm ${feature.highlight ? 'font-medium text-foreground' : ''}`}>
+                {feature.text}
+              </span>
             </div>
           ))}
         </div>
@@ -66,7 +94,7 @@ export const PremiumUpgradeModal = ({
             className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
           >
             <Crown className="h-4 w-4 mr-2" />
-            Assinar por R$ 89,90 (acesso vitalício)
+            Seja Premium
           </Button>
           <Button 
             variant="ghost" 

@@ -12,16 +12,21 @@ import { TopicoProgressoDetalhado } from "@/components/conceitos/TopicoProgresso
 import { useConceitosAutoGeneration } from "@/hooks/useConceitosAutoGeneration";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
-// Matéria gratuita: "História do Direito"
-const FREE_MATERIA_NAMES = ["história do direito", "historia do direito"];
+// Matérias gratuitas: "História do Direito" e "Introdução ao Estudo do Direito"
+const FREE_MATERIA_NAMES = [
+  "história do direito", 
+  "historia do direito",
+  "introdução ao estudo do direito",
+  "introducao ao estudo do direito"
+];
 
 const ConceitosMateria = () => {
   const { id } = useParams<{ id: string }>();
   const [showPdfModal, setShowPdfModal] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const parsedMateriaId = id ? parseInt(id) : null;
@@ -163,7 +168,8 @@ const ConceitosMateria = () => {
     if (canAccessTopics) {
       navigate(`/conceitos/topico/${topicoId}`);
     } else {
-      setShowPremiumModal(true);
+      // Redireciona direto para página de assinatura
+      navigate('/assinatura');
     }
   };
 
@@ -444,13 +450,6 @@ const ConceitosMateria = () => {
           }}
         />
       )}
-      
-      {/* Modal Premium */}
-      <PremiumUpgradeModal
-        open={showPremiumModal}
-        onOpenChange={setShowPremiumModal}
-        featureName="Este conteúdo"
-      />
     </div>
   );
 };

@@ -10,17 +10,22 @@ import { InstantBackground } from "@/components/ui/instant-background";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 import { LockedTimelineCard } from "@/components/LockedTimelineCard";
-import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
-// Matéria gratuita: "História do Direito"
-const FREE_MATERIA_NAMES = ["história do direito", "historia do direito"];
+// Matérias gratuitas: "História do Direito" e "Introdução ao Estudo do Direito"
+const FREE_MATERIA_NAMES = [
+  "história do direito", 
+  "historia do direito",
+  "introdução ao estudo do direito",
+  "introducao ao estudo do direito"
+];
 
 const ConceitosTrilhante = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  
   const { isPremium } = useSubscription();
 
   // Buscar todas as matérias do Trilhante
@@ -347,10 +352,11 @@ const ConceitosTrilhante = () => {
                   );
                 })}
                  
-                 {/* Matérias bloqueadas (Premium) */}
+                 {/* Matérias bloqueadas (Premium) - Redireciona para /assinatura */}
                  {lockedItems.map((materia, index) => {
                    const realIndex = visibleItems.length + index;
                    const isLeft = realIndex % 2 === 0;
+                   const topicos = topicosCount?.[materia.id] || 0;
                    
                    return (
                      <LockedTimelineCard
@@ -360,7 +366,8 @@ const ConceitosTrilhante = () => {
                        imageUrl={materia.capa_url || undefined}
                        isLeft={isLeft}
                        index={realIndex}
-                       onClick={() => setShowPremiumModal(true)}
+                       topicosCount={topicos}
+                       onClick={() => navigate('/assinatura')}
                      />
                    );
                  })}
@@ -371,13 +378,6 @@ const ConceitosTrilhante = () => {
         
         {/* Botão flutuante de scroll */}
         <FloatingScrollButton />
-         
-         {/* Modal Premium */}
-         <PremiumUpgradeModal
-           open={showPremiumModal}
-           onOpenChange={setShowPremiumModal}
-           featureName="Todos os conceitos"
-         />
       </div>
     </div>
   );
