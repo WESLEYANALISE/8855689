@@ -313,12 +313,12 @@ const Index = () => {
         {/* ==================== ABA ESTUDOS - LINHA DO TEMPO ==================== */}
         {mainTab === 'iniciante' && (
           <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo Themis - tamanho original, posicionada no topo */}
-            <div className={`absolute inset-0 ${isDesktop ? '-mx-8' : '-mx-3 md:-mx-6'} overflow-hidden pointer-events-none`}>
+            {/* Imagem de fundo Themis - fixa a partir do menu de alternância */}
+            <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
               <img 
                 src={themisEstudosDesktop} 
                 alt="Jornada de Estudos"
-                className="w-full h-auto opacity-60"
+                className="w-full h-full object-cover object-top opacity-60"
                 loading="eager"
                 fetchPriority="high"
                 decoding="sync"
