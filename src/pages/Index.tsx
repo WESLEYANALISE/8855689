@@ -312,8 +312,8 @@ const Index = () => {
         {/* ==================== ABA ESTUDOS - LINHA DO TEMPO ==================== */}
         {mainTab === 'iniciante' && (
           <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo Themis - preenche todo o fundo */}
-            <div className={`absolute inset-0 ${isDesktop ? '-mx-8' : '-mx-3 md:-mx-6'} ${isDesktop ? '' : 'rounded-2xl'} overflow-hidden`}>
+            {/* Imagem de fundo Themis - fixa (igual Bibliotecas): o que mexe é só o conteúdo */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
               <img 
                 src={themisEstudosDesktop} 
                 alt="Jornada de Estudos"
@@ -322,7 +322,7 @@ const Index = () => {
                 fetchPriority="high"
                 decoding="sync"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/30 to-background/95" />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
             </div>
 
             {/* Conteúdo sobre o fundo */}
