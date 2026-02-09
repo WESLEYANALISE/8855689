@@ -1,86 +1,117 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Landmark, Scale, ChevronRight, Footprints, Clock, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { BookOpen, Footprints, GraduationCap, Loader2, Scale, Crown, Lock } from "lucide-react";
+import { motion } from "framer-motion";
+import { UniversalImage } from "@/components/ui/universal-image";
+import { LockedTimelineCard } from "@/components/LockedTimelineCard";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
-interface TrilhaCardProps {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-  delay?: number;
-  color: string;
-  comingSoon?: boolean;
-}
-
-const TrilhaCard = ({ title, subtitle, icon, onClick, delay = 0, comingSoon }: TrilhaCardProps) => (
-  <motion.button
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay }}
-    onClick={onClick}
-    whileTap={{ scale: 0.98 }}
-    className="w-full h-[100px] bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-2xl p-4 text-left transition-all hover:scale-[1.02] hover:shadow-2xl shadow-xl border border-red-800/30 flex items-center gap-3 relative overflow-hidden"
-  >
-    {/* Badge "Em breve" */}
-    {comingSoon && (
-      <div className="absolute top-2 right-2 bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        Em breve
-      </div>
-    )}
-    
-    <div className="bg-white/15 rounded-xl p-2.5">
-      {icon}
-    </div>
-    <div className="flex-1">
-      <h3 className="font-cinzel text-sm font-bold text-white">{title}</h3>
-      <p className="text-xs text-white/70 mt-1">{subtitle}</p>
-    </div>
-    <ChevronRight className="w-5 h-5 text-white/50" />
-  </motion.button>
-);
+// Matéria gratuita: "História do Direito"
+const FREE_MATERIA_NAMES = ["história do direito", "historia do direito"];
 
 export const MobileTrilhasAprender = () => {
   const navigate = useNavigate();
-  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const { isPremium } = useSubscription();
 
-  const trilhas = [
-    {
-      title: "Conceitos",
-      subtitle: "Bases do Direito",
-      icon: <Landmark className="w-6 h-6 text-amber-400" />,
-      onClick: () => navigate("/primeiros-passos"),
-      position: 'left' as const,
-      color: "#f59e0b",
-      comingSoon: false,
+  // Buscar todas as matérias do Trilhante
+  const { data: materias, isLoading } = useQuery({
+    queryKey: ["conceitos-materias-trilhante"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("conceitos_materias")
+        .select("*")
+        .eq("ativo", true)
+        .order("area_ordem", { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
     },
-    {
-      title: "Temática",
-      subtitle: "Por Área",
-      icon: <Scale className="w-6 h-6 text-amber-400" />,
-      onClick: () => setShowComingSoonModal(true),
-      position: 'right' as const,
-      color: "#8b5cf6",
-      comingSoon: true,
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache
+  });
+
+  // Buscar contagem de tópicos por matéria
+  const { data: topicosCount } = useQuery({
+    queryKey: ["conceitos-topicos-count-materia"],
+    queryFn: async () => {
+      const counts: Record<number, number> = {};
+      
+      const { data: topicos } = await supabase
+        .from("conceitos_topicos")
+        .select("materia_id");
+      
+      if (!topicos) return counts;
+      
+      for (const topico of topicos) {
+        counts[topico.materia_id] = (counts[topico.materia_id] || 0) + 1;
+      }
+      
+      return counts;
     },
-  ];
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Buscar total de páginas (slides)
+  const { data: totalPaginas } = useQuery({
+    queryKey: ["conceitos-total-paginas"],
+    queryFn: async () => {
+      const { data: topicos } = await supabase
+        .from("conceitos_topicos")
+        .select("slides_json");
+      
+      if (!topicos) return 0;
+      
+      let total = 0;
+      for (const topico of topicos) {
+        if (topico.slides_json) {
+          try {
+            const slides = typeof topico.slides_json === 'string' 
+              ? JSON.parse(topico.slides_json) 
+              : topico.slides_json;
+            if (slides.secoes && Array.isArray(slides.secoes)) {
+              for (const secao of slides.secoes) {
+                if (secao.slides && Array.isArray(secao.slides)) {
+                  total += secao.slides.length;
+                }
+              }
+            }
+          } catch {
+            // Ignora erro de parse
+          }
+        }
+      }
+      
+      return total;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const totalMaterias = materias?.length || 0;
+  const totalTopicos = Object.values(topicosCount || {}).reduce((a, b) => a + b, 0);
+
+  // Separar matérias gratuitas e premium
+  const isMateriaFree = (nome: string) => FREE_MATERIA_NAMES.includes(nome.toLowerCase().trim());
+  
+  const freeMaterias = materias?.filter(m => isMateriaFree(m.nome)) || [];
+  const premiumMaterias = materias?.filter(m => !isMateriaFree(m.nome)) || [];
+  
+  // Se o usuário é premium, todas são visíveis
+  const visibleItems = isPremium ? materias || [] : freeMaterias;
+  const lockedItems = isPremium ? [] : premiumMaterias;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative py-4 flex flex-col items-center">
-      {/* CSS Keyframes - igual OAB */}
-      <style>{`
-        @keyframes electricFlow {
-          0% { background-position: 100% 0%; opacity: 0.3; }
-          50% { opacity: 1; }
-          100% { background-position: 100% 100%; opacity: 0.3; }
-        }
-        @keyframes footprintPulse {
-          0%, 100% { transform: translateX(-50%) scale(1); }
-          50% { transform: translateX(-50%) scale(1.15); }
-        }
-      `}</style>
-
       {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -94,139 +125,194 @@ export const MobileTrilhasAprender = () => {
         <p className="text-amber-200/70 text-xs">Escolha sua trilha de aprendizado</p>
       </motion.div>
 
-      {/* Cards das Trilhas - Layout Timeline igual OAB */}
-      <div className="w-full px-2 relative">
-        {/* Linha central da timeline - FINA igual OAB */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-900/50 via-amber-800/50 to-amber-700/50 transform -translate-x-1/2" />
-        
-        {/* Animação elétrica na linha - igual OAB */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 transform -translate-x-1/2 overflow-hidden">
-          <div 
-            className="absolute inset-0 w-full"
-            style={{
-              background: 'linear-gradient(to bottom, transparent, #f59e0b, #fbbf24, transparent)',
-              backgroundSize: '100% 200%',
-              animation: 'electricFlow 2s ease-in-out infinite',
-            }}
-          />
+      {/* Header Conceitos */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-4 px-4 mb-4"
+      >
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/30">
+          <GraduationCap className="w-6 h-6 text-white" />
         </div>
+        <div>
+          <h1 className="text-lg font-bold text-white" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+            Conceitos
+          </h1>
+          <p className="text-xs text-gray-400">
+            Fundamentos do Direito
+          </p>
+        </div>
+      </motion.div>
 
-        <div className="space-y-6 relative z-10">
-          {trilhas.map((trilha, index) => {
-            const isLeft = trilha.position === 'left';
-            
-            return (
-              <motion.div
-                key={trilha.title}
-                initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.15 }}
-                className={`relative flex items-center ${
-                  isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
-                }`}
-              >
-                {/* Marcador Pegadas no centro - Estilo OAB (menor, com ring) */}
-                <div 
-                  className="absolute left-1/2 transform -translate-x-1/2 z-10"
-                  style={{ animation: `footprintPulse 2s ease-in-out infinite ${index * 0.3}s` }}
-                >
-                  <div 
-                    className="rounded-full p-2 shadow-lg ring-4 ring-background relative"
-                    style={{ backgroundColor: trilha.color }}
-                  >
-                    {/* Ping animation - igual OAB */}
-                    <div 
-                      className="absolute inset-0 rounded-full animate-ping opacity-30" 
-                      style={{ backgroundColor: trilha.color, animationDelay: `${index * 0.3}s` }}
-                    />
-                    <Footprints className="w-4 h-4 text-white relative z-10" />
-                  </div>
-                </div>
-                
-                {/* Card */}
-                <div className="w-full">
-                  <TrilhaCard
-                    title={trilha.title}
-                    subtitle={trilha.subtitle}
-                    icon={trilha.icon}
-                    onClick={trilha.onClick}
-                    delay={index * 0.15}
-                    color={trilha.color}
-                    comingSoon={trilha.comingSoon}
-                  />
-                </div>
-              </motion.div>
-            );
-          })}
+      {/* Info Stats */}
+      <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-6">
+        <div className="flex items-center gap-1.5">
+          <BookOpen className="w-3.5 h-3.5 text-red-400" />
+          <span>{totalMaterias} matérias</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Footprints className="w-3.5 h-3.5 text-yellow-400" />
+          <span>{totalTopicos} tópicos</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Scale className="w-3.5 h-3.5 text-purple-400" />
+          <span>{totalPaginas || 0} páginas</span>
         </div>
       </div>
 
-      {/* Modal "Em breve" */}
-      <AnimatePresence>
-        {showComingSoonModal && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-              onClick={() => setShowComingSoonModal(false)}
-            />
+      {/* Timeline de Matérias */}
+      {materias && materias.length > 0 && (
+        <div className="w-full px-4">
+          <div className="max-w-lg mx-auto relative">
+            {/* Linha central da timeline */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
+              <div className="w-full h-full bg-gradient-to-b from-red-500/80 via-red-600/60 to-red-700/40 rounded-full" />
+              {/* Animação de fluxo elétrico */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-red-300/30 to-transparent rounded-full"
+                animate={{ y: ["0%", "300%"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
             
-            {/* Modal Card */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[85%] max-w-sm"
-            >
-              <div className="bg-gradient-to-br from-[#1a1a2e] to-[#12121a] rounded-2xl border border-amber-500/30 shadow-2xl overflow-hidden">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-amber-600 to-amber-500 p-4 relative">
-                  <button
-                    onClick={() => setShowComingSoonModal(false)}
-                    className="absolute top-3 right-3 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/20 rounded-full p-2">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-cinzel text-lg font-bold text-white">Em Breve</h3>
-                      <p className="text-white/80 text-xs">Novidade chegando!</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="space-y-6">
+               {/* Matérias visíveis (liberadas) */}
+               {visibleItems.map((materia, index) => {
+                const isLeft = index % 2 === 0;
+                const topicos = topicosCount?.[materia.id] || 0;
+                const temCapa = !!materia.capa_url;
                 
-                {/* Content */}
-                <div className="p-5 text-center">
-                  <div className="mb-4">
-                    <Scale className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-                  </div>
-                  <h4 className="font-semibold text-white text-base mb-2">
-                    Trilha Temática
-                  </h4>
-                  <p className="text-gray-400 text-sm leading-relaxed">
-                    Estamos preparando uma experiência incrível de estudo por áreas do Direito. 
-                    <span className="text-amber-400 font-medium"> Esta atualização virá em breve!</span>
-                  </p>
-                  
-                  <button
-                    onClick={() => setShowComingSoonModal(false)}
-                    className="mt-5 w-full py-3 bg-gradient-to-r from-amber-600 to-amber-500 text-white font-semibold rounded-xl hover:from-amber-500 hover:to-amber-400 transition-all"
+                // Simular progresso (em produção, isso viria do banco de dados)
+                const progressoPercentual = 0; // TODO: buscar progresso real do usuário
+                
+                return (
+                  <motion.div
+                    key={materia.id}
+                    initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    className={`relative flex items-center ${
+                      isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
+                    }`}
                   >
-                    Entendi
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                    {/* Marcador Pegada no centro */}
+                    <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.15, 1],
+                          boxShadow: [
+                            "0 0 0 0 rgba(239, 68, 68, 0.4)",
+                            "0 0 0 10px rgba(239, 68, 68, 0)",
+                            "0 0 0 0 rgba(239, 68, 68, 0)"
+                          ]
+                        }}
+                        transition={{ 
+                          duration: 2, 
+                          repeat: Infinity,
+                          delay: index * 0.3
+                        }}
+                        className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/40"
+                      >
+                        <Footprints className="w-5 h-5 text-white" />
+                      </motion.div>
+                    </div>
+                    
+                    {/* Card da Matéria */}
+                    <div className="w-full">
+                      <motion.div 
+                        whileTap={{ scale: 0.98 }}
+                        className="rounded-2xl bg-[#12121a]/90 backdrop-blur-sm border border-white/10 hover:border-red-500/50 transition-all overflow-hidden min-h-[180px] flex flex-col"
+                      >
+                        {/* Capa da matéria */}
+                        <div className="h-16 w-full overflow-hidden relative flex-shrink-0">
+                          {temCapa ? (
+                            <>
+                              <UniversalImage
+                                src={materia.capa_url!}
+                                alt={materia.nome}
+                                priority={index < 4}
+                                blurCategory="course"
+                                containerClassName="w-full h-full"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+                            </>
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
+                          )}
+                          
+                          {/* Tema */}
+                          <div className="absolute bottom-1 left-2">
+                            <p className="text-[10px] text-red-400 font-semibold drop-shadow-lg">
+                              Tema {materia.area_ordem}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Conteúdo clicável */}
+                        <button
+                          onClick={() => navigate(`/conceitos/materia/${materia.id}`)}
+                          className="flex-1 p-2.5 text-left flex flex-col"
+                        >
+                          <div className="flex-1">
+                            <h3 className="font-medium text-xs leading-snug text-white line-clamp-2">
+                              {materia.nome}
+                            </h3>
+                            
+                            {/* Contagem de tópicos */}
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <BookOpen className="w-3 h-3 text-yellow-400" />
+                              <span className="text-[10px] text-yellow-400 font-medium">{topicos} tópicos</span>
+                            </div>
+                          </div>
+                          
+                          {/* Barra de progresso */}
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[9px] text-gray-500">Progresso</span>
+                              <span className="text-[9px] text-green-400 font-medium">{progressoPercentual}%</span>
+                            </div>
+                            <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all"
+                                style={{ width: `${progressoPercentual}%` }}
+                              />
+                            </div>
+                          </div>
+                        </button>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+               
+               {/* Matérias bloqueadas (Premium) */}
+               {lockedItems.map((materia, index) => {
+                 const realIndex = visibleItems.length + index;
+                 const isLeft = realIndex % 2 === 0;
+                 
+                 return (
+                   <LockedTimelineCard
+                     key={materia.id}
+                     title={materia.nome}
+                     subtitle={`Tema ${materia.area_ordem}`}
+                     imageUrl={materia.capa_url || undefined}
+                     isLeft={isLeft}
+                     index={realIndex}
+                     onClick={() => setShowPremiumModal(true)}
+                   />
+                 );
+               })}
+            </div>
+          </div>
+        </div>
+      )}
+       
+      {/* Modal Premium */}
+      <PremiumUpgradeModal
+        open={showPremiumModal}
+        onOpenChange={setShowPremiumModal}
+        featureName="Todos os conceitos"
+      />
     </div>
   );
 };
