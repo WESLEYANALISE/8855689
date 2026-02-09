@@ -246,10 +246,10 @@ const Index = () => {
         </div>
 
         {/* Menu de Alternância Principal - Apenas mobile (desktop não tem abas) */}
-        {/* Ordem: Aprender (esquerda), Ferramentas (centro), OAB (direita) */}
+        {/* Ordem: Aulas (esquerda), Estudos (centro), OAB (direita) */}
         <div className={`flex gap-1.5 md:hidden mb-6 relative z-20 ${mainTab !== 'ferramentas' ? 'bg-background/95 backdrop-blur-sm -mx-2 px-2 py-2 rounded-xl' : ''}`}>
-          <TabButton tab="iniciante" icon={GraduationCap} label="Aprender" />
-          <TabButton tab="ferramentas" icon={Flame} label="Ferramentas" />
+          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
+          <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
           <TabButton tab="oab" icon={Gavel} label="OAB" />
         </div>
 
