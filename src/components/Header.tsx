@@ -8,26 +8,26 @@ const getHierarchicalDestination = (pathname: string, search: string): string =>
   // ===== VADE MECUM =====
   if (pathname === "/vade-mecum/busca") return "/vade-mecum";
   if (pathname === "/vade-mecum/sobre") return "/vade-mecum";
-  if (pathname === "/vade-mecum") return "/";
+  if (pathname === "/vade-mecum") return "/?tab=leis";
   if (pathname.startsWith("/codigo/")) return "/codigos";
-  if (pathname === "/codigos") return "/vade-mecum";
-  if (pathname === "/constituicao") return "/vade-mecum";
+  if (pathname === "/codigos") return "/?tab=leis";
+  if (pathname === "/constituicao") return "/?tab=leis";
   if (pathname.startsWith("/estatuto/")) return "/estatutos";
-  if (pathname === "/estatutos") return "/vade-mecum";
+  if (pathname === "/estatutos") return "/?tab=leis";
   if (pathname.startsWith("/sumula/")) return "/sumulas";
-  if (pathname === "/sumulas") return "/vade-mecum";
+  if (pathname === "/sumulas") return "/?tab=leis";
 
   // ===== PREVIDENCIÁRIO =====
   if (pathname.startsWith("/lei-previdenciaria/")) return "/previdenciario";
-  if (pathname === "/previdenciario") return "/vade-mecum";
+  if (pathname === "/previdenciario") return "/?tab=leis";
 
   // ===== LEGISLAÇÃO PENAL =====
   if (pathname.startsWith("/lei-penal/")) return "/legislacao-penal-especial";
-  if (pathname === "/legislacao-penal-especial") return "/vade-mecum";
+  if (pathname === "/legislacao-penal-especial") return "/?tab=leis";
 
   // ===== LEIS ORDINÁRIAS =====
   if (pathname.startsWith("/leis-ordinarias/")) return "/leis-ordinarias";
-  if (pathname === "/leis-ordinarias") return "/vade-mecum";
+  if (pathname === "/leis-ordinarias") return "/?tab=leis";
 
   // ===== FLASHCARDS (hierárquico com parâmetros) =====
   if (pathname === "/flashcards/artigos-lei/estudar") {
@@ -349,6 +349,7 @@ const getPreviousPageTitle = (pathname: string, search: string): string => {
   // Mapeamento de destinos para títulos
   const titleMap: Record<string, string> = {
     "/": "Início",
+    "/?tab=leis": "Leis",
     "/vade-mecum": "Vade Mecum",
     "/codigos": "Códigos & Leis",
     "/estatutos": "Estatutos",
