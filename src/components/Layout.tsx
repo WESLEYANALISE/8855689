@@ -15,6 +15,7 @@ import { PageBreadcrumb } from "./PageBreadcrumb";
 import { useDeviceType } from "@/hooks/use-device-type";
 import { PageTransition } from "./PageTransition";
 import PremiumWelcomeCard from "./PremiumWelcomeCard";
+import RateAppFloatingCard from "./RateAppFloatingCard";
 
 // Lazy load AulasPlaylistSidebar since it uses useCursosCache
 const AulasPlaylistSidebar = lazy(() => import("./AulasPlaylistSidebar").then(m => ({ default: m.AulasPlaylistSidebar })));
@@ -571,6 +572,9 @@ export const Layout = ({ children }: LayoutProps) => {
       
       {/* Card de upgrade Premium para usuários gratuitos */}
       <PremiumWelcomeCard />
+      
+      {/* Card flutuante de avaliação do app */}
+      <RateAppFloatingCard />
     </div>
   );
 };
