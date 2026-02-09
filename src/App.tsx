@@ -141,6 +141,7 @@ import PostsJuridicosAdmin from "./pages/Admin/PostsJuridicosAdmin";
 import GeracaoCentral from "./pages/Admin/GeracaoCentral";
 import AdminAssinaturas from "./pages/Admin/AdminAssinaturas";
 import AdminControle from "./pages/Admin/AdminControle";
+import AdminUsuarioDetalhes from "./pages/Admin/AdminUsuarioDetalhes";
 import AdminCapasBiblioteca from "./pages/AdminCapasBiblioteca";
 import NovasLeis from "./pages/NovasLeis";
 import PrimeirosPassos from "./pages/PrimeirosPassos";
@@ -774,6 +775,7 @@ const App = () => {
               <Route path="/faculdade/questoes" element={<QuestoesFaculdade />} />
               <Route path="/faculdade/questoes/quiz" element={<QuizFaculdade />} />
               <Route path="/admin/gerar-questoes" element={<GerarQuestoesAdmin />} />
+              <Route path="/admin/usuario/:userId" element={<AdminUsuarioDetalhes />} />
               <Route path="/mapa-mental" element={<MapaMentalAreas />} />
               <Route path="/mapa-mental/area/:area" element={<MapaMentalTemas />} />
               <Route path="/acesso-desktop" element={<AcessoDesktop />} />

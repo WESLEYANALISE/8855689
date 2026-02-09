@@ -9,9 +9,12 @@ import {
   Search,
   FileText,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Crown,
+  Percent,
+  CalendarClock
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -26,6 +29,7 @@ import {
   useEstatisticasGerais,
   useDistribuicaoDispositivos,
   useDistribuicaoIntencoes,
+  useMetricasPremium,
 } from '@/hooks/useAdminControleStats';
 
 const AdminControle = () => {
@@ -38,6 +42,7 @@ const AdminControle = () => {
   const { data: estatisticas, isLoading: loadingStats, refetch: refetchStats } = useEstatisticasGerais();
   const { data: dispositivos, refetch: refetchDispositivos } = useDistribuicaoDispositivos();
   const { data: intencoes, refetch: refetchIntencoes } = useDistribuicaoIntencoes();
+  const { data: metricasPremium, refetch: refetchPremium } = useMetricasPremium();
 
   const handleRefreshAll = () => {
     refetchUsuarios();
@@ -46,6 +51,7 @@ const AdminControle = () => {
     refetchStats();
     refetchDispositivos();
     refetchIntencoes();
+    refetchPremium();
   };
 
   // Calcula porcentagens para gráficos
@@ -126,7 +132,7 @@ const AdminControle = () => {
                     {loadingStats ? '...' : estatisticas?.novosHoje || 0}
                   </p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-500 opacity-50" />
+                <TrendingUp className="h-8 w-8 text-emerald-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -150,11 +156,11 @@ const AdminControle = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Ativos (7 dias)</p>
-                  <p className="text-3xl font-bold text-blue-500">
+                  <p className="text-3xl font-bold text-sky-500">
                     {loadingStats ? '...' : estatisticas?.ativosUltimos7Dias || 0}
                   </p>
                 </div>
-                <Activity className="h-8 w-8 text-blue-500 opacity-50" />
+                <Activity className="h-8 w-8 text-sky-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -164,14 +170,61 @@ const AdminControle = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Online Agora</p>
-                  <p className="text-3xl font-bold text-green-500">
+                  <p className="text-3xl font-bold text-emerald-500">
                     {loadingStats ? '...' : estatisticas?.onlineAgora || 0}
                   </p>
                 </div>
                 <div className="relative">
-                  <Clock className="h-8 w-8 text-green-500 opacity-50" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                  <Clock className="h-8 w-8 text-emerald-500 opacity-50" />
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Cards de Premium */}
+        <div className="grid grid-cols-3 gap-4">
+          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Premium</p>
+                  <p className="text-3xl font-bold text-amber-500">
+                    {metricasPremium?.totalPremium || 0}
+                  </p>
+                </div>
+                <Crown className="h-8 w-8 text-amber-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Taxa Conversão</p>
+                  <p className="text-3xl font-bold text-amber-500">
+                    {metricasPremium?.taxaConversao?.toFixed(2) || 0}%
+                  </p>
+                </div>
+                <Percent className="h-8 w-8 text-amber-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Média até Premium</p>
+                  <p className="text-3xl font-bold text-amber-500">
+                    {metricasPremium?.mediaDiasAtePremium !== null 
+                      ? `${metricasPremium.mediaDiasAtePremium}d` 
+                      : '-'}
+                  </p>
+                </div>
+                <CalendarClock className="h-8 w-8 text-amber-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -215,15 +268,16 @@ const AdminControle = () => {
                 ) : (
                   <div className="space-y-3 max-h-[600px] overflow-y-auto">
                     {novosUsuarios?.map((usuario) => (
-                      <div
+                      <Link
                         key={usuario.id}
-                        className="p-4 rounded-lg bg-secondary/30 border border-border"
+                        to={`/admin/usuario/${usuario.id}`}
+                        className="block p-4 rounded-lg bg-secondary/30 border border-border hover:bg-secondary/50 hover:border-primary/30 transition-colors cursor-pointer"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-500 rounded-full" />
-                              <span className="font-medium">
+                              <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+                              <span className="font-medium hover:text-primary transition-colors">
                                 {usuario.nome || 'Sem nome'}
                               </span>
                               {usuario.intencao && (
@@ -250,7 +304,7 @@ const AdminControle = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
