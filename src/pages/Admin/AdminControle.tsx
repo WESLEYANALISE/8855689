@@ -222,7 +222,7 @@ const AdminControle = () => {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-muted-foreground truncate">Média até Premium</p>
                   <p className="text-2xl sm:text-3xl font-bold text-amber-500">
-                    {metricasPremium?.mediaDiasAtePremium !== null 
+                    {metricasPremium?.mediaDiasAtePremium != null 
                       ? `${metricasPremium.mediaDiasAtePremium}d` 
                       : '-'}
                   </p>
