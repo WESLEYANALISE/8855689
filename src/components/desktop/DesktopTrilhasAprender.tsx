@@ -77,13 +77,18 @@ const RecursoCard = ({ title, icon, onClick, delay = 0 }: RecursoCardProps) => (
 export const DesktopTrilhasAprender = () => {
   const navigate = useNavigate();
 
+  // Redireciona diretamente para a trilha de conceitos
+  const handleAcessarConceitos = () => {
+    navigate("/conceitos/trilhante");
+  };
+
   const trilhas = [
     {
       title: "Conceitos",
       subtitle: "Bases do Direito",
       description: "Fundamentos essenciais para iniciar sua jornada jurídica",
       icon: <Landmark className="w-10 h-10 text-amber-400" />,
-      onClick: () => navigate("/primeiros-passos"),
+      onClick: handleAcessarConceitos,
     },
     {
       title: "Dominando",
