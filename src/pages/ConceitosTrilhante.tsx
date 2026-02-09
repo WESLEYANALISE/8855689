@@ -352,7 +352,7 @@ const ConceitosTrilhante = () => {
                   );
                 })}
                  
-                 {/* Matérias bloqueadas (Premium) - Redireciona para /assinatura */}
+                 {/* Matérias bloqueadas (Premium) - Permite ver conteúdo programático */}
                  {lockedItems.map((materia, index) => {
                    const realIndex = visibleItems.length + index;
                    const isLeft = realIndex % 2 === 0;
@@ -367,7 +367,7 @@ const ConceitosTrilhante = () => {
                        isLeft={isLeft}
                        index={realIndex}
                        topicosCount={topicos}
-                       onClick={() => navigate('/assinatura')}
+                       materiaId={materia.id}
                      />
                    );
                  })}

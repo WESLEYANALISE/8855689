@@ -1,4 +1,4 @@
-import { Lock, Crown, Footprints, BookOpen } from 'lucide-react';
+import { Lock, Crown, Footprints, BookOpen, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ interface LockedTimelineCardProps {
   isLeft: boolean;
   index: number;
   topicosCount?: number;
+  materiaId?: number;
   onClick?: () => void;
 }
 
@@ -21,16 +22,17 @@ export const LockedTimelineCard = ({
   isLeft,
   index,
   topicosCount,
+  materiaId,
   onClick,
 }: LockedTimelineCardProps) => {
   const navigate = useNavigate();
   
-  // Redirecionar direto para assinatura
+  // Navegar para a matéria para ver os tópicos (conteúdo programático)
   const handleClick = () => {
     if (onClick) {
       onClick();
-    } else {
-      navigate('/assinatura');
+    } else if (materiaId) {
+      navigate(`/conceitos/materia/${materiaId}`);
     }
   };
 
@@ -66,7 +68,7 @@ export const LockedTimelineCard = ({
         </motion.div>
       </div>
       
-      {/* Card com capa visível (sem blur) */}
+      {/* Card com capa visível (navegável) */}
       <div className="w-full">
         <motion.div
           whileHover={{ scale: 1.02 }}
@@ -124,14 +126,14 @@ export const LockedTimelineCard = ({
               )}
             </div>
             
-            {/* Barra Premium no lugar da barra de progresso */}
+            {/* Barra Premium no lugar da barra de progresso + seta para entrar */}
             <div className="mt-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-amber-400 flex items-center gap-1">
                   <Crown className="w-3 h-3" />
                   Conteúdo Premium
                 </span>
-                <Lock className="w-4 h-4 text-amber-400" />
+                <ChevronRight className="w-4 h-4 text-amber-400" />
               </div>
             </div>
           </div>
