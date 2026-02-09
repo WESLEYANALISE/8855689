@@ -1,6 +1,6 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, BookOpen, Gavel, Calendar, Bell, ChevronRight, Search, ScrollText, BookText, HandCoins, Landmark, PenTool, Newspaper } from "lucide-react";
+import { Scale, BookOpen, Gavel, Bell, ChevronRight, Search, ScrollText, BookText, HandCoins, Landmark, PenTool, Newspaper } from "lucide-react";
 import brasaoRepublica from "@/assets/brasao-republica.png";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import heroVadeMecumBusca from "@/assets/hero-vademecum-busca.webp";
@@ -10,13 +10,13 @@ import { useCapacitorPlatform } from "@/hooks/use-capacitor-platform";
 
 // Categorias de Legislação para o grid
 const categoriasLegislacao = [
-  { id: "constituicao", title: "Constituição", description: "CF/88 completa e atualizada", icon: Landmark, iconBg: "bg-blue-500", color: "#3b82f6" },
-  { id: "codigos", title: "Códigos", description: "Civil, Penal, CPC, CPP...", icon: Scale, iconBg: "bg-purple-500", color: "#a855f7" },
-  { id: "legislacao-penal", title: "Legislação Penal", description: "Lei de Drogas, Maria da Penha...", icon: Gavel, iconBg: "bg-red-500", color: "#ef4444" },
-  { id: "estatutos", title: "Estatutos", description: "ECA, Idoso, OAB, Cidade...", icon: BookOpen, iconBg: "bg-amber-500", color: "#f59e0b" },
+  { id: "constituicao", title: "Constituição", description: "CF/88 completa e a...", icon: Landmark, iconBg: "bg-blue-500", color: "#3b82f6" },
+  { id: "codigos", title: "Códigos", description: "Civil, Penal, CPC, C...", icon: Scale, iconBg: "bg-purple-500", color: "#a855f7" },
+  { id: "legislacao-penal", title: "Legislação Penal", description: "Lei de Drogas, Mari...", icon: Gavel, iconBg: "bg-red-500", color: "#ef4444" },
+  { id: "estatutos", title: "Estatutos", description: "ECA, Idoso, OAB, C...", icon: BookOpen, iconBg: "bg-amber-500", color: "#f59e0b" },
   { id: "previdenciario", title: "Previdenciário", description: "Lei 8.213, Lei 8.212...", icon: HandCoins, iconBg: "bg-emerald-500", color: "#10b981" },
-  { id: "sumulas", title: "Súmulas", description: "STF, STJ, TST, Vinculantes", icon: BookText, iconBg: "bg-cyan-500", color: "#06b6d4" },
-  { id: "leis-ordinarias", title: "Leis Ordinárias", description: "Legislação esparsa federal", icon: ScrollText, iconBg: "bg-orange-500", color: "#f97316" },
+  { id: "sumulas", title: "Súmulas", description: "STF, STJ, TST, Vinc...", icon: BookText, iconBg: "bg-cyan-500", color: "#06b6d4" },
+  { id: "leis-ordinarias", title: "Leis Ordinárias", description: "Legislação esparsa...", icon: ScrollText, iconBg: "bg-orange-500", color: "#f97316" },
   { id: "pec", title: "PEC", description: "Propostas de Emenda", icon: PenTool, iconBg: "bg-pink-500", color: "#ec4899" },
 ];
 
@@ -39,14 +39,25 @@ export const MobileVadeMecumHome = memo(() => {
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>("legislacao");
   const { isNative } = useCapacitorPlatform();
 
+  // Esconder header principal quando estiver na aba Leis
+  useEffect(() => {
+    // Notificar para esconder o header e search bar
+    window.dispatchEvent(new CustomEvent('hide-main-header'));
+    
+    return () => {
+      // Restaurar ao sair
+      window.dispatchEvent(new CustomEvent('show-main-header'));
+    };
+  }, []);
+
   const handleProcurarClick = () => {
     navigate('/vade-mecum?tab=busca');
   };
 
   return (
     <div className="min-h-screen relative overflow-hidden pb-24">
-      {/* Hero Background Full Screen FIXO */}
-      <div className="fixed inset-0 z-0 pointer-events-none" style={{ top: '160px' }}>
+      {/* Hero Background Full Screen - preenche TODA a tela */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Background principal */}
         <img
           src={activeFooterTab === "busca" ? heroVadeMecumBusca : heroVadeMecumPlanalto}
@@ -62,39 +73,39 @@ export const MobileVadeMecumHome = memo(() => {
           style={{
             background: `linear-gradient(
               to bottom,
-              hsl(var(--background) / 0) 0%,
-              hsl(var(--background) / 0.15) 30%,
-              hsl(var(--background) / 0.5) 60%,
-              hsl(var(--background) / 0.9) 100%
+              hsl(var(--background) / 0.3) 0%,
+              hsl(var(--background) / 0.4) 30%,
+              hsl(var(--background) / 0.6) 60%,
+              hsl(var(--background) / 0.95) 100%
             )`
           }}
         />
       </div>
 
       {/* Conteúdo */}
-      <div className="relative z-10">
-        {/* Header com Brasão */}
-        <div className="px-4 pt-4 pb-3">
-          <div className="flex items-center gap-4">
+      <div className="relative z-10 pt-4">
+        {/* Header com Brasão Centralizado */}
+        <div className="text-center px-4 pt-8 pb-4">
+          <div className="inline-flex flex-col items-center">
             <img 
               src={brasaoRepublica} 
               alt="Brasão da República Federativa do Brasil" 
-              className="w-14 h-14 object-contain drop-shadow-lg"
+              className="w-16 h-16 object-contain drop-shadow-lg mb-3"
             />
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Seu Vade Mecum Digital</h2>
-              <p className="text-sm text-muted-foreground">
-                Acesse a legislação brasileira sempre atualizada
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">
+              Seu Vade Mecum Digital
+            </h1>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Acesse a legislação brasileira sempre atualizada
+            </p>
           </div>
         </div>
 
         {/* Conteúdo das Abas */}
         <div className="flex-1 overflow-y-auto">
-          {/* Aba Legislação - Timeline com cards */}
+          {/* Aba Legislação - Grid de categorias em timeline */}
           {activeFooterTab === "legislacao" && (
-            <div className="px-4 pb-8 pt-2">
+            <div className="px-4 pb-8 pt-4">
               <div className="relative">
                 {/* Linha curva SVG de fundo com animação de luz */}
                 <svg 
@@ -292,7 +303,7 @@ export const MobileVadeMecumHome = memo(() => {
         </div>
       </div>
 
-      {/* Menu de Rodapé Fixo - Igual ao BottomNav do Estudos */}
+      {/* Menu de Rodapé Fixo */}
       <nav 
         className={cn(
           "fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card",

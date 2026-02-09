@@ -215,37 +215,41 @@ const Index = () => {
       {/* Áudio de boas-vindas para novos usuários */}
       <WelcomeAudioPlayer />
       
-      {/* Hero Banner Mobile - Menor e com opacidade reduzida */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
-        <img 
-          src={heroImage}
-          alt="Direito X"
-          className="absolute inset-0 w-full h-full object-cover object-top opacity-85"
-          loading="eager"
-          fetchPriority="high"
-          decoding="sync"
-        />
-        {/* Gradiente suave para transição */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/50 to-background" />
-      </div>
+      {/* Hero Banner Mobile - Menor e com opacidade reduzida - ESCONDE na aba Leis */}
+      {mainTab !== 'leis' && (
+        <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+          <img 
+            src={heroImage}
+            alt="Direito X"
+            className="absolute inset-0 w-full h-full object-cover object-top opacity-85"
+            loading="eager"
+            fetchPriority="high"
+            decoding="sync"
+          />
+          {/* Gradiente suave para transição */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/50 to-background" />
+        </div>
+      )}
 
       {/* Header com gradiente sutil - Desktop */}
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] py-[2px]" style={{ zIndex: 2 }}>
-        {/* Search Bar - Apenas mobile (desktop usa a barra no header) */}
-        <div 
-          data-tutorial="busca-principal"
-          onClick={() => navigate('/pesquisar')} 
-          className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg mt-4"
-        >
-          <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
-            <Search className="w-5 h-5 text-red-400" />
+        {/* Search Bar - Apenas mobile (desktop usa a barra no header) - ESCONDE na aba Leis */}
+        {mainTab !== 'leis' && (
+          <div 
+            data-tutorial="busca-principal"
+            onClick={() => navigate('/pesquisar')} 
+            className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg mt-4"
+          >
+            <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
+              <Search className="w-5 h-5 text-red-400" />
+            </div>
+            <span className="text-muted-foreground text-sm group-hover:text-foreground/80 transition-colors">
+              O que você quer buscar?
+            </span>
           </div>
-          <span className="text-muted-foreground text-sm group-hover:text-foreground/80 transition-colors">
-            O que você quer buscar?
-          </span>
-        </div>
+        )}
 
         {/* Menu de Alternância Principal - Apenas mobile (desktop não tem abas) */}
         {/* Ordem: Aulas (esquerda), Estudos (centro), Leis (direita) */}
