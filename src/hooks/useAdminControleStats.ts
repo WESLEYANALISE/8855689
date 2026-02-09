@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NovoUsuario {
@@ -328,4 +329,57 @@ export const useMetricasPremium = () => {
     },
     refetchInterval: 60000,
   });
+};
+
+// Hook para Online Agora com Supabase Realtime
+export const useOnlineAgoraRealtime = () => {
+  const [onlineAgora, setOnlineAgora] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchOnline = useCallback(async () => {
+    try {
+      const ultimos5Min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('page_views')
+        .select('session_id')
+        .gte('created_at', ultimos5Min);
+      
+      const sessoesUnicas = new Set((data || []).map(d => d.session_id));
+      setOnlineAgora(sessoesUnicas.size);
+    } catch (error) {
+      console.error('Erro ao buscar online agora:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Buscar valor inicial
+    fetchOnline();
+
+    // Escutar novas inserções em tempo real
+    const channel = supabase
+      .channel('online-agora-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'page_views' },
+        () => {
+          console.log('Nova page_view detectada - atualizando contador');
+          fetchOnline();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Status do canal online-agora:', status);
+      });
+
+    // Polling backup a cada 30s
+    const interval = setInterval(fetchOnline, 30000);
+
+    return () => {
+      channel.unsubscribe();
+      clearInterval(interval);
+    };
+  }, [fetchOnline]);
+
+  return { onlineAgora, isLoading, refetch: fetchOnline };
 };
