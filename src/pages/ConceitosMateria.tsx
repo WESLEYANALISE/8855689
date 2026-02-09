@@ -173,7 +173,7 @@ const ConceitosMateria = () => {
       <div className="sticky top-0 z-20 bg-[#0d0d14]/90 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-lg mx-auto px-4 py-3">
           <button 
-            onClick={() => navigate('/conceitos/trilhante')}
+            onClick={() => navigate('/?tab=iniciante')}
             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
