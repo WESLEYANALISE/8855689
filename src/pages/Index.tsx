@@ -311,22 +311,24 @@ const Index = () => {
 
         {/* ==================== ABA ESTUDOS - LINHA DO TEMPO ==================== */}
         {mainTab === 'iniciante' && (
-          <div className="relative min-h-[600px]">
-            {/* Imagem de fundo Themis - preenche todo o fundo */}
-            <div className={`absolute inset-0 ${isDesktop ? '-mx-8' : '-mx-3 md:-mx-6'} ${isDesktop ? '' : 'rounded-2xl'} overflow-hidden`}>
+          <div className="relative min-h-screen -mx-3 md:-mx-6 lg:-mx-8">
+            {/* Background Image - Fixed (igual Biblioteca) */}
+            <div className="fixed inset-0 z-0">
               <img 
                 src={themisEstudosDesktop} 
                 alt="Jornada de Estudos"
-                className="w-full h-full object-cover object-top opacity-60"
+                className="w-full h-full object-cover object-top"
                 loading="eager"
                 fetchPriority="high"
                 decoding="sync"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/30 to-background/95" />
             </div>
+            
+            {/* Dark gradient overlay - Fixed */}
+            <div className="fixed inset-0 z-0 bg-gradient-to-b from-black/50 via-black/60 to-background/95" />
 
             {/* Conteúdo sobre o fundo */}
-            <div className="relative z-10">
+            <div className="relative z-10 px-3 md:px-6 lg:px-8">
               {/* Desktop: Layout horizontal das trilhas */}
               {isDesktop ? (
                 <DesktopTrilhasAprender />
