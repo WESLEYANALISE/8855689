@@ -250,7 +250,8 @@ const Index = () => {
 
         {/* Menu de Alternância Principal - Apenas mobile (desktop não tem abas) */}
         {/* Ordem: Aulas (esquerda), Estudos (centro), Leis (direita) */}
-        <div className={`flex gap-1.5 md:hidden mb-6 relative z-20 ${mainTab !== 'ferramentas' ? 'bg-background/95 backdrop-blur-sm -mx-2 px-2 py-2 rounded-xl' : ''}`}>
+        {/* Menu de Alternância - altura fixa para evitar saltos */}
+        <div className="flex gap-1.5 md:hidden mb-6 relative z-20 h-[44px]">
           <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
