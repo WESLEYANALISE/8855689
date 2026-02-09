@@ -1,10 +1,12 @@
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, BookOpen, Gavel, Calendar, Bell, ChevronRight, Search, ScrollText, FileText, BookText, HandCoins, Landmark, PenTool, Scroll, Newspaper } from "lucide-react";
+import { Scale, BookOpen, Gavel, Calendar, Bell, ChevronRight, Search, ScrollText, FileText, BookText, HandCoins, Landmark, PenTool, Newspaper } from "lucide-react";
 import brasaoRepublica from "@/assets/brasao-republica.png";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import heroVadeMecumBusca from "@/assets/hero-vademecum-busca.webp";
 import ExplicacoesList from "@/components/lei-seca/ExplicacoesList";
+import { cn } from "@/lib/utils";
+import { useCapacitorPlatform } from "@/hooks/use-capacitor-platform";
 
 // Categorias de Legislação para o grid
 const categoriasLegislacao = [
@@ -24,14 +26,11 @@ type FooterTab = "legislacao" | "busca" | "explicacao" | "resenha" | "push";
 export const MobileVadeMecumHome = memo(() => {
   const navigate = useNavigate();
   const [activeFooterTab, setActiveFooterTab] = useState<FooterTab>("legislacao");
+  const { isNative } = useCapacitorPlatform();
 
-  const footerItems = [
-    { id: "legislacao" as FooterTab, label: "Legislação", icon: Scale },
-    { id: "busca" as FooterTab, label: "Buscar", icon: Search },
-    { id: "explicacao" as FooterTab, label: "Explicação", icon: BookOpen },
-    { id: "resenha" as FooterTab, label: "Resenha", icon: Newspaper },
-    { id: "push" as FooterTab, label: "Push", icon: Bell },
-  ];
+  const handleProcurarClick = () => {
+    navigate('/vade-mecum?tab=busca');
+  };
 
   return (
     <div className="min-h-screen relative overflow-hidden pb-24">
@@ -85,11 +84,11 @@ export const MobileVadeMecumHome = memo(() => {
             <div className="px-4 pb-8 pt-2 space-y-3">
               {/* Header da seção */}
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/20 rounded-xl">
-                  <Scale className="w-5 h-5 text-blue-300" />
+                <div className="p-2 bg-amber-500/20 rounded-xl">
+                  <Scale className="w-5 h-5 text-amber-100" />
                 </div>
                 <div>
-                  <h3 className="font-playfair text-xl font-bold text-blue-100 tracking-tight">
+                  <h3 className="font-playfair text-xl font-bold text-amber-100 tracking-tight">
                     Legislação
                   </h3>
                   <p className="text-white/70 text-xs">
@@ -98,8 +97,8 @@ export const MobileVadeMecumHome = memo(() => {
                 </div>
               </div>
 
-              {/* Container azul com grid */}
-              <div className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-blue-800/30">
+              {/* Container vermelho com grid - igual ao Estudos */}
+              <div className="bg-gradient-to-br from-red-950 via-red-900 to-red-950/95 rounded-3xl p-4 relative overflow-hidden shadow-2xl border border-red-800/30">
                 <div className="grid grid-cols-2 gap-3 relative z-10">
                   {categoriasLegislacao.map((item) => {
                     const Icon = item.icon;
@@ -152,14 +151,14 @@ export const MobileVadeMecumHome = memo(() => {
             <div className="px-4 pb-8 pt-6">
               <div className="text-center space-y-4">
                 <div className="p-4 bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50">
-                  <Search className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                  <Search className="w-12 h-12 text-primary mx-auto mb-3" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">Busca Avançada</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     Acesse o Vade Mecum completo para buscar artigos, leis e códigos
                   </p>
                   <button
                     onClick={() => navigate('/vade-mecum?tab=busca')}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-3 font-medium transition-colors"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl py-3 font-medium transition-colors"
                   >
                     Abrir Busca Completa
                   </button>
@@ -219,31 +218,85 @@ export const MobileVadeMecumHome = memo(() => {
         </div>
       </div>
 
-      {/* Menu de Rodapé Fixo */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border/50 safe-area-pb">
-        <div className="flex items-center justify-around py-2 px-1">
-          {footerItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeFooterTab === item.id;
-            return (
+      {/* Menu de Rodapé Fixo - Igual ao BottomNav do Estudos */}
+      <nav 
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card",
+          isNative && "pb-safe"
+        )}
+        style={isNative ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' } : undefined}
+      >
+        <div className="max-w-2xl mx-auto px-2 py-2">
+          <div className="grid grid-cols-5 items-end">
+            {/* Legislação */}
+            <button
+              onClick={() => setActiveFooterTab("legislacao")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
+                activeFooterTab === "legislacao"
+                  ? "text-primary bg-primary/15 ring-1 ring-primary/20"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+              )}
+            >
+              <Scale className={cn("w-6 h-6 transition-transform", activeFooterTab === "legislacao" && "scale-110")} />
+              <span className="text-[10px] font-medium leading-tight text-center">Legislação</span>
+            </button>
+
+            {/* Explicação */}
+            <button
+              onClick={() => setActiveFooterTab("explicacao")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
+                activeFooterTab === "explicacao"
+                  ? "text-primary bg-primary/15 ring-1 ring-primary/20"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+              )}
+            >
+              <BookOpen className={cn("w-6 h-6 transition-transform", activeFooterTab === "explicacao" && "scale-110")} />
+              <span className="text-[10px] font-medium leading-tight text-center">Explicação</span>
+            </button>
+
+            {/* Botão Central Procurar - Elevado */}
+            <div className="flex flex-col items-center -mt-6">
               <button
-                key={item.id}
-                onClick={() => setActiveFooterTab(item.id)}
-                className={`flex flex-col items-center gap-0.5 py-1.5 px-2 rounded-xl transition-all min-w-[56px] ${
-                  isActive 
-                    ? 'bg-blue-500/20 text-blue-400' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                onClick={handleProcurarClick}
+                className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center"
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : ''}`} />
-                <span className={`text-[10px] font-medium ${isActive ? 'text-blue-400' : ''}`}>
-                  {item.label}
-                </span>
+                <Search className="w-7 h-7 text-primary-foreground" />
               </button>
-            );
-          })}
+              <span className="text-[10px] font-medium text-primary mt-1">Procurar</span>
+            </div>
+
+            {/* Resenha */}
+            <button
+              onClick={() => setActiveFooterTab("resenha")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
+                activeFooterTab === "resenha"
+                  ? "text-primary bg-primary/15 ring-1 ring-primary/20"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+              )}
+            >
+              <Newspaper className={cn("w-6 h-6 transition-transform", activeFooterTab === "resenha" && "scale-110")} />
+              <span className="text-[10px] font-medium leading-tight text-center">Resenha</span>
+            </button>
+
+            {/* Push */}
+            <button
+              onClick={() => setActiveFooterTab("push")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
+                activeFooterTab === "push"
+                  ? "text-primary bg-primary/15 ring-1 ring-primary/20"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+              )}
+            >
+              <Bell className={cn("w-6 h-6 transition-transform", activeFooterTab === "push" && "scale-110")} />
+              <span className="text-[10px] font-medium leading-tight text-center">Push</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </nav>
     </div>
   );
 });
