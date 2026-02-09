@@ -15,7 +15,17 @@ import {
   type ConceitoSecao 
 } from "@/components/conceitos/slides";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 import { markImageLoaded } from "@/hooks/useImagePreload";
+
+// Lista de matérias gratuitas
+const FREE_MATERIA_NAMES = [
+  "história do direito", 
+  "historia do direito",
+  "introdução ao estudo do direito",
+  "introducao ao estudo do direito"
+];
 
 interface Flashcard {
   frente: string;
@@ -45,6 +55,7 @@ const ConceitosTopicoEstudo = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { isPremium, loading: loadingSubscription } = useSubscription();
   
   // Modo de visualização
   const [viewMode, setViewMode] = useState<ViewMode>('intro');
@@ -413,6 +424,31 @@ const ConceitosTopicoEstudo = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Verificar acesso premium
+  const materiaNome = topico?.materia?.nome || '';
+  const isFreeMateria = FREE_MATERIA_NAMES.includes(materiaNome.toLowerCase().trim());
+  const canAccessContent = isPremium || isFreeMateria;
+
+  // Bloquear acesso se não for premium e a matéria não for gratuita
+  if (!loadingSubscription && !canAccessContent && topico) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <StandardPageHeader
+          title={topico?.titulo || "Conteúdo Premium"}
+          subtitle={topico?.materia?.nome}
+          onBack={() => navigate(-1)}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <PremiumUpgradeModal 
+            open={true} 
+            onOpenChange={() => navigate(-1)}
+            featureName="Aulas de Conceitos" 
+          />
+        </div>
       </div>
     );
   }
