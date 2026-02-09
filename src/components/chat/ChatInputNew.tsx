@@ -89,15 +89,17 @@ export const ChatInputNew = ({
         data: base64
       };
 
-      onFilesChange([...uploadedFiles, uploaded]);
-
-      // Para PDFs, extrair texto e enviar automaticamente
+      // Enviar AMBOS os tipos automaticamente para análise
       if (type === 'pdf') {
         const extractedText = await onExtractPdf(file);
         onSend(`📎 PDF anexado: ${file.name}`, [uploaded], extractedText);
+      } else {
+        // IMAGEM - também enviar automaticamente para análise visual
+        onSend(`🖼️ Imagem anexada: ${file.name}`, [uploaded]);
       }
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
+      toast.error('Erro ao processar arquivo');
     } finally {
       setIsProcessingFile(false);
     }

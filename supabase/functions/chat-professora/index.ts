@@ -329,23 +329,43 @@ serve(async (request) => {
     let systemPrompt = '';
     
     if (isAnalyzeMode) {
-      systemPrompt = `Você é uma Professora de Direito analisando material de forma objetiva.
+      systemPrompt = `Você é uma Professora de Direito analisando material enviado pelo aluno.
 
-🚨 MODO: ANÁLISE INICIAL SÉRIA E PROFISSIONAL
+🚨 MODO: ANÁLISE COMPLETA DE MATERIAL (PDF OU IMAGEM)
 
-REGRAS CRÍTICAS:
-❌ NÃO use tom descomplicado/informal/didático
-❌ NÃO explique conceitos sem antes transcrever
-❌ NÃO use linguagem coloquial ("tipo assim", "olha", "sacou")
-✅ Seja séria, objetiva e descritiva
-✅ Transcreva primeiro, analise depois
-✅ Use linguagem técnica apropriada
+OBJETIVO: Analisar o material COMPLETAMENTE, explicar do que se trata, e perguntar o que o aluno deseja fazer.
 
-ESTRUTURA OBRIGATÓRIA:
-1. TRANSCRIÇÃO/DESCRIÇÃO literal do conteúdo
-2. **Tema principal:** [identificar em 1 frase]
-3. "Como posso te ajudar com este material?"
-4. [ACAO_BUTTONS]
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+## 📄 Sobre este Material
+
+[Descreva em detalhes o que é o material:
+- Tipo de documento (petição, artigo, questão, lei, slide, etc.)
+- Tema principal abordado
+- Se for imagem: descreva o conteúdo visual detalhadamente
+- Se for PDF: transcreva os pontos principais]
+
+## 📚 Conteúdo Identificado
+
+[Liste os principais tópicos, conceitos ou informações presentes no material]
+
+## 🎯 Áreas do Direito Relacionadas
+
+[Identifique quais áreas do direito este material aborda]
+
+---
+
+**O que você gostaria que eu fizesse com este material?**
+
+[QUESTOES_CLICAVEIS]
+["📝 Resumir este conteúdo", "📖 Explicar os conceitos em detalhes", "❓ Criar questões sobre o tema", "🃏 Gerar flashcards para revisão", "📊 Criar mapa mental", "⚖️ Analisar juridicamente"]
+[/QUESTOES_CLICAVEIS]
+
+REGRAS:
+✅ Analise TODO o conteúdo antes de responder
+✅ Seja detalhista na descrição do material
+✅ Sempre termine com as opções clicáveis
+✅ Use linguagem técnica mas acessível
 
 ${cfContext}`;
       
@@ -570,12 +590,13 @@ ${cfContext || ''}`;
     const acceptHeader = request.headers.get('Accept') || '';
     const wantsSSE = acceptHeader.includes('text/event-stream');
     
-    // OTIMIZAÇÃO: Usar modelo mais rápido para respostas concise
-    // gemini-2.0-flash é mais rápido para respostas curtas (~1-3 segundos)
-    // gemini-2.5-flash é mais poderoso para análises profundas
-    const modelName = (responseLevel === 'deep' || mode === 'aula' || mode === 'lesson')
-      ? 'gemini-2.5-flash'  // Mais poderoso para análises profundas
-      : 'gemini-2.0-flash'; // Mais rápido para respostas curtas
+    // OTIMIZAÇÃO: Usar modelo adequado para cada situação
+    // gemini-2.5-flash é necessário para análise multimodal (imagens) e análises profundas
+    // gemini-2.0-flash é mais rápido para respostas de texto curtas
+    const hasImages = files && files.some((f: any) => f.type?.includes('image'));
+    const modelName = (responseLevel === 'deep' || mode === 'aula' || mode === 'lesson' || mode === 'analyze' || hasImages)
+      ? 'gemini-2.5-flash'  // Mais poderoso para análises profundas e imagens
+      : 'gemini-2.0-flash'; // Mais rápido para respostas curtas sem imagem
     
     console.log('🤖 Chamando Gemini API...', {
       mode,
