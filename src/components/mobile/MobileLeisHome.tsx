@@ -31,12 +31,12 @@ export const MobileLeisHome = memo(() => {
     <div className="relative min-h-[500px] pb-32">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2.5 bg-amber-500/20 rounded-xl">
-          <Scale className="w-6 h-6 text-amber-400" />
+        <div className="p-2 bg-amber-500/20 rounded-xl">
+          <Scale className="w-5 h-5 text-amber-100" />
         </div>
         <div>
-          <h2 className="font-playfair text-xl font-bold text-amber-100">Vade Mecum X</h2>
-          <p className="text-white/70 text-xs">Legislação completa <span className="text-primary font-semibold">2026</span></p>
+          <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">Vade Mecum 2026</h3>
+          <p className="text-white/70 text-xs">Legislação Comentada</p>
         </div>
       </div>
 
