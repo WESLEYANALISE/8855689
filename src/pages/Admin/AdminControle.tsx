@@ -63,7 +63,7 @@ const AdminControle = () => {
     : 0;
 
   const totalIntencoes = intencoes
-    ? intencoes.Estudante + intencoes.OAB + intencoes.Advogado + intencoes.Outro
+    ? intencoes.Universitario + intencoes.Concurseiro + intencoes.OAB + intencoes.Advogado + intencoes.Outro
     : 0;
 
   const getDeviceIcon = (dispositivo: string | null) => {
@@ -484,10 +484,17 @@ const AdminControle = () => {
                     <>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span>📚 Estudante</span>
-                          <span>{intencoes.Estudante} ({((intencoes.Estudante / totalIntencoes) * 100).toFixed(1)}%)</span>
+                          <span>🎓 Universitário</span>
+                          <span>{intencoes.Universitario} ({((intencoes.Universitario / totalIntencoes) * 100).toFixed(1)}%)</span>
                         </div>
-                        <Progress value={(intencoes.Estudante / totalIntencoes) * 100} className="h-2" />
+                        <Progress value={(intencoes.Universitario / totalIntencoes) * 100} className="h-2" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>🎯 Concurseiro</span>
+                          <span>{intencoes.Concurseiro} ({((intencoes.Concurseiro / totalIntencoes) * 100).toFixed(1)}%)</span>
+                        </div>
+                        <Progress value={(intencoes.Concurseiro / totalIntencoes) * 100} className="h-2" />
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
