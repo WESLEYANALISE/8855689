@@ -1,5 +1,4 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
@@ -346,28 +345,13 @@ const Index = () => {
 
         {/* ==================== ABA LEIS - VADE MECUM ==================== */}
         {mainTab === 'leis' && (
-          <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo fixa (estilo igual à aba Aulas) */}
-            <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
-              <img 
-                src={heroVadeMecumPlanalto} 
-                alt="Vade Mecum"
-                className="w-full h-full object-cover object-top opacity-60"
-                loading="eager"
-                fetchPriority="high"
-                decoding="sync"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
-            </div>
-
-            {/* Conteúdo do Vade Mecum sobre o fundo */}
-            <div className="relative z-10">
-              {isDesktop ? (
-                <DesktopVadeMecumHome />
-              ) : (
-                <MobileVadeMecumHome />
-              )}
-            </div>
+          <div className="relative">
+            {/* Conteúdo do Vade Mecum - gerencia seu próprio fundo */}
+            {isDesktop ? (
+              <DesktopVadeMecumHome />
+            ) : (
+              <MobileVadeMecumHome />
+            )}
           </div>
         )}
       </div>
