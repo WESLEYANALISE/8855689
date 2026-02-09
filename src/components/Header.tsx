@@ -214,11 +214,14 @@ const getHierarchicalDestination = (pathname: string, search: string): string =>
   if (pathname === "/faculdade") return "/?tab=iniciante";
 
   // ===== OAB =====
+  // OAB está dentro da aba 'ferramentas' (Estudos), não é aba separada
   if (pathname.match(/^\/oab\/o-que-estudar\/[^/]+$/)) return "/oab/o-que-estudar";
-  if (pathname === "/oab/o-que-estudar") return "/oab";
-  if (pathname === "/oab-funcoes") return "/oab";
-  if (pathname.startsWith("/oab/")) return "/oab";
-  if (pathname === "/oab") return "/";
+  if (pathname === "/oab/o-que-estudar") return "/?tab=ferramentas";
+  if (pathname === "/oab-funcoes") return "/?tab=ferramentas";
+  if (pathname === "/oab/primeira-fase") return "/?tab=ferramentas";
+  if (pathname === "/oab/segunda-fase") return "/?tab=ferramentas";
+  if (pathname.startsWith("/oab/")) return "/?tab=ferramentas";
+  if (pathname === "/oab") return "/?tab=ferramentas";
 
   // ===== JURIFLIX =====
   if (pathname.match(/^\/juriflix\/[^/]+$/)) return "/juriflix";
