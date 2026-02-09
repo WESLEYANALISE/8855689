@@ -30,8 +30,8 @@ export const LeisBottomNav = ({ activeTab, onTabChange }: LeisBottomNavProps) =>
             className={cn(
               "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
               isActive("legislacao")
-                ? "text-primary bg-primary/15 ring-1 ring-primary/20"
-                : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                ? "text-red-500 bg-red-500/15 ring-1 ring-red-500/20"
+                : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
             )}
           >
             <Scale className={cn("w-6 h-6 transition-transform", isActive("legislacao") && "scale-110")} />
@@ -44,8 +44,8 @@ export const LeisBottomNav = ({ activeTab, onTabChange }: LeisBottomNavProps) =>
             className={cn(
               "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
               isActive("explicacao")
-                ? "text-primary bg-primary/15 ring-1 ring-primary/20"
-                : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                ? "text-red-500 bg-red-500/15 ring-1 ring-red-500/20"
+                : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
             )}
           >
             <BookOpen className={cn("w-6 h-6 transition-transform", isActive("explicacao") && "scale-110")} />
@@ -56,11 +56,11 @@ export const LeisBottomNav = ({ activeTab, onTabChange }: LeisBottomNavProps) =>
           <div className="flex flex-col items-center -mt-6">
             <button
               onClick={() => onTabChange('procurar')}
-              className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center"
+              className="w-14 h-14 rounded-full bg-gradient-to-br from-red-600 to-red-700 shadow-[0_6px_20px_rgba(239,68,68,0.4)] hover:shadow-[0_10px_30px_rgba(239,68,68,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center"
             >
-              <Search className="w-7 h-7 text-primary-foreground" />
+              <Search className="w-7 h-7 text-white" />
             </button>
-            <span className="text-[10px] font-medium text-primary mt-1">Procurar</span>
+            <span className="text-[10px] font-medium text-red-500 mt-1">Procurar</span>
           </div>
 
           {/* Resenha */}
@@ -69,8 +69,8 @@ export const LeisBottomNav = ({ activeTab, onTabChange }: LeisBottomNavProps) =>
             className={cn(
               "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
               isActive("resenha")
-                ? "text-primary bg-primary/15 ring-1 ring-primary/20"
-                : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                ? "text-red-500 bg-red-500/15 ring-1 ring-red-500/20"
+                : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
             )}
           >
             <Newspaper className={cn("w-6 h-6 transition-transform", isActive("resenha") && "scale-110")} />
@@ -83,8 +83,8 @@ export const LeisBottomNav = ({ activeTab, onTabChange }: LeisBottomNavProps) =>
             className={cn(
               "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
               isActive("push")
-                ? "text-primary bg-primary/15 ring-1 ring-primary/20"
-                : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                ? "text-red-500 bg-red-500/15 ring-1 ring-red-500/20"
+                : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
             )}
           >
             <Bell className={cn("w-6 h-6 transition-transform", isActive("push") && "scale-110")} />
