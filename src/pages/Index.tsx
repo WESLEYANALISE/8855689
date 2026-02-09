@@ -347,6 +347,9 @@ const Index = () => {
                 src={oabAprovacaoHero} 
                 alt="Aprovação OAB"
                 className="w-full h-full object-cover opacity-40"
+                loading="eager"
+                fetchPriority="high"
+                decoding="sync"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/50 to-background/90" />
             </div>
