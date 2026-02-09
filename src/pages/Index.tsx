@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
+import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
@@ -32,8 +33,7 @@ import { DesktopTrilhasAprender } from "@/components/desktop/DesktopTrilhasApren
 import { DesktopTrilhasOAB } from "@/components/desktop/DesktopTrilhasOAB";
 import { DesktopHomeDestaque } from "@/components/desktop/DesktopHomeDestaque";
 import { MobileTrilhasAprender } from "@/components/mobile/MobileTrilhasAprender";
-import { MobileVadeMecumHome } from "@/components/mobile/MobileVadeMecumHome";
-import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
+import { MobileLeisHome } from "@/components/mobile/MobileLeisHome";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { WelcomeAudioPlayer } from "@/components/WelcomeAudioPlayer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -345,9 +345,13 @@ const Index = () => {
         )}
 
         {/* ==================== ABA LEIS - VADE MECUM ==================== */}
-        {mainTab === 'leis' && (
-          <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo fixa (estilo igual à aba Aulas) */}
+        {mainTab === 'leis' && !isDesktop && (
+          <MobileLeisHome />
+        )}
+        
+        {mainTab === 'leis' && isDesktop && (
+          <div className="relative min-h-[70vh]">
+            {/* Imagem de fundo fixa */}
             <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
               <img 
                 src={heroVadeMecumPlanalto} 
@@ -360,13 +364,9 @@ const Index = () => {
               <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
             </div>
 
-            {/* Conteúdo do Vade Mecum sobre o fundo */}
+            {/* Conteúdo do Vade Mecum Desktop */}
             <div className="relative z-10">
-              {isDesktop ? (
-                <DesktopVadeMecumHome />
-              ) : (
-                <MobileVadeMecumHome />
-              )}
+              <DesktopVadeMecumHome />
             </div>
           </div>
         )}
