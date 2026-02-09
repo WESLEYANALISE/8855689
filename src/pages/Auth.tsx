@@ -17,7 +17,7 @@ import { useHomePreloader } from '@/hooks/useHomePreloader';
 import { useDeviceType } from '@/hooks/use-device-type';
 import { preloadOnboardingVideo } from '@/hooks/useOnboardingVideoPreloader';
 import DesktopLandingSections from '@/components/landing/DesktopLandingSections';
-import logoImage from '@/assets/logo.jpg';
+import logoDireitoPremium from '@/assets/logo-direito-premium.png';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -364,9 +364,9 @@ const Auth: React.FC = () => {
 
   // Conteúdo do formulário inline para evitar perda de foco
   const formContent = (
-    <Card className="border-border/30 bg-card/90 backdrop-blur-md shadow-2xl">
-      <CardHeader className="space-y-1 pb-6">
-        {/* Logo e título "Direito X" - apenas no login */}
+    <Card className="border-border/30 bg-card/90 backdrop-blur-md shadow-2xl overflow-visible">
+      <CardHeader className="space-y-1 pb-6 overflow-visible">
+        {/* Logo e título "Direito Premium" - apenas no login */}
         {mode === 'login' && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
@@ -374,11 +374,11 @@ const Auth: React.FC = () => {
             className="flex flex-col items-center mb-4"
           >
             <img 
-              src={logoImage} 
-              alt="Direito X" 
-              className="w-12 h-12 mb-2"
+              src={logoDireitoPremium} 
+              alt="Direito Premium" 
+              className="w-16 h-16 mb-2 rounded-xl"
             />
-            <h1 className="text-2xl font-bold text-foreground">Direito X</h1>
+            <h1 className="text-2xl font-bold text-foreground font-playfair">Direito Premium</h1>
             <p className="text-sm text-muted-foreground mt-1">Direito descomplicado</p>
           </motion.div>
         )}
@@ -485,7 +485,8 @@ const Auth: React.FC = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="space-y-2 overflow-hidden"
+                className="space-y-2"
+                style={{ overflow: 'visible' }}
               >
                 <Label htmlFor="password" className="text-sm font-medium">
                   {mode === 'reset' ? 'Nova senha' : 'Senha'}
@@ -650,10 +651,14 @@ const Auth: React.FC = () => {
               transition={{ duration: 0.6, ease: 'easeOut' }}
               className="flex flex-col items-center mb-6"
             >
-              <div className="flex items-center gap-2">
-                <Scale className="w-8 h-8 text-red-500" />
+              <div className="flex items-center gap-3">
+                <img 
+                  src={logoDireitoPremium} 
+                  alt="Direito Premium" 
+                  className="w-10 h-10 rounded-lg"
+                />
                 <span className="text-2xl font-bold text-foreground font-playfair">
-                  Direito X
+                  Direito Premium
                 </span>
               </div>
               <span className="text-xs text-muted-foreground mt-1">
