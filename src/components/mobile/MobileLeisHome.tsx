@@ -35,8 +35,10 @@ export const MobileLeisHome = memo(() => {
           <Scale className="w-5 h-5 text-amber-100" />
         </div>
         <div>
-          <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">Vade Mecum 2026</h3>
-          <p className="text-white/70 text-xs">Legislação Comentada</p>
+          <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight flex items-center gap-2">
+            Vade Mecum <span className="w-px h-4 bg-amber-100/50" /> <span className="font-normal">Comentado</span>
+          </h3>
+          <p className="text-white/70 text-xs">Legislação 2026</p>
         </div>
       </div>
 
