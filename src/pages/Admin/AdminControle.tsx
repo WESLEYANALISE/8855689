@@ -30,6 +30,7 @@ import {
   useDistribuicaoDispositivos,
   useDistribuicaoIntencoes,
   useMetricasPremium,
+  useOnlineAgoraRealtime,
 } from '@/hooks/useAdminControleStats';
 
 const AdminControle = () => {
@@ -43,6 +44,7 @@ const AdminControle = () => {
   const { data: dispositivos, refetch: refetchDispositivos } = useDistribuicaoDispositivos();
   const { data: intencoes, refetch: refetchIntencoes } = useDistribuicaoIntencoes();
   const { data: metricasPremium, refetch: refetchPremium } = useMetricasPremium();
+  const { onlineAgora, isLoading: loadingOnline, refetch: refetchOnline } = useOnlineAgoraRealtime();
 
   const handleRefreshAll = () => {
     refetchUsuarios();
@@ -52,6 +54,7 @@ const AdminControle = () => {
     refetchDispositivos();
     refetchIntencoes();
     refetchPremium();
+    refetchOnline();
   };
 
   // Calcula porcentagens para gráficos
@@ -171,7 +174,7 @@ const AdminControle = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Online Agora</p>
                   <p className="text-3xl font-bold text-emerald-500">
-                    {loadingStats ? '...' : estatisticas?.onlineAgora || 0}
+                    {loadingOnline ? '...' : onlineAgora}
                   </p>
                 </div>
                 <div className="relative">
@@ -184,17 +187,17 @@ const AdminControle = () => {
         </div>
 
         {/* Cards de Premium */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm text-muted-foreground">Total Premium</p>
-                  <p className="text-3xl font-bold text-amber-500">
+                  <p className="text-2xl sm:text-3xl font-bold text-amber-500">
                     {metricasPremium?.totalPremium || 0}
                   </p>
                 </div>
-                <Crown className="h-8 w-8 text-amber-500 opacity-50" />
+                <Crown className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -202,13 +205,13 @@ const AdminControle = () => {
           <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm text-muted-foreground">Taxa Conversão</p>
-                  <p className="text-3xl font-bold text-amber-500">
+                  <p className="text-2xl sm:text-3xl font-bold text-amber-500">
                     {metricasPremium?.taxaConversao?.toFixed(2) || 0}%
                   </p>
                 </div>
-                <Percent className="h-8 w-8 text-amber-500 opacity-50" />
+                <Percent className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -216,15 +219,15 @@ const AdminControle = () => {
           <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Média até Premium</p>
-                  <p className="text-3xl font-bold text-amber-500">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-muted-foreground truncate">Média até Premium</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-amber-500">
                     {metricasPremium?.mediaDiasAtePremium !== null 
                       ? `${metricasPremium.mediaDiasAtePremium}d` 
                       : '-'}
                   </p>
                 </div>
-                <CalendarClock className="h-8 w-8 text-amber-500 opacity-50" />
+                <CalendarClock className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
