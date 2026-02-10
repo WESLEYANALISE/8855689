@@ -335,6 +335,55 @@ export const useMetricasPremium = () => {
   });
 };
 
+// Interface para assinante premium
+export interface AssinantePremium {
+  email: string;
+  plano: string;
+  valor: number;
+  data: string;
+  status: string;
+}
+
+// Hook para listar assinantes premium únicos
+export const useListaAssinantesPremium = () => {
+  return useQuery({
+    queryKey: ['admin-controle-lista-premium'],
+    queryFn: async (): Promise<AssinantePremium[]> => {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('user_email, plan_id, amount, created_at, status')
+        .eq('status', 'authorized')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Agrupar por email único, mantendo a assinatura mais recente
+      const emailMap = new Map<string, AssinantePremium>();
+
+      (data || []).forEach((sub: any) => {
+        const email = sub.user_email || 'Email não disponível';
+        if (!emailMap.has(email)) {
+          const planId = (sub.plan_id || '').toLowerCase();
+          let plano = 'Vitalício';
+          if (planId.includes('mensal') || planId.includes('monthly')) plano = 'Mensal';
+          else if (planId.includes('anual') || planId.includes('yearly')) plano = 'Anual';
+
+          emailMap.set(email, {
+            email,
+            plano,
+            valor: sub.amount || 0,
+            data: sub.created_at,
+            status: sub.status,
+          });
+        }
+      });
+
+      return Array.from(emailMap.values());
+    },
+    refetchInterval: 60000,
+  });
+};
+
 // Hook para Online Agora com Supabase Realtime
 export const useOnlineAgoraRealtime = () => {
   const [onlineAgora, setOnlineAgora] = useState(0);

@@ -31,7 +31,10 @@ import {
   useDistribuicaoIntencoes,
   useMetricasPremium,
   useOnlineAgoraRealtime,
+  useListaAssinantesPremium,
 } from '@/hooks/useAdminControleStats';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
 
 const AdminControle = () => {
   const navigate = useNavigate();
@@ -45,7 +48,7 @@ const AdminControle = () => {
   const { data: intencoes, refetch: refetchIntencoes } = useDistribuicaoIntencoes();
   const { data: metricasPremium, refetch: refetchPremium } = useMetricasPremium();
   const { onlineAgora, isLoading: loadingOnline, refetch: refetchOnline } = useOnlineAgoraRealtime();
-
+  const { data: listaAssinantes, isLoading: loadingAssinantes, refetch: refetchAssinantes } = useListaAssinantesPremium();
   const handleRefreshAll = () => {
     refetchUsuarios();
     refetchPaginas();
@@ -55,6 +58,7 @@ const AdminControle = () => {
     refetchIntencoes();
     refetchPremium();
     refetchOnline();
+    refetchAssinantes();
   };
 
   // Calcula porcentagens para gráficos
@@ -233,6 +237,70 @@ const AdminControle = () => {
           </Card>
         </div>
 
+        {/* Lista de Assinantes Premium */}
+        <Card className="border-amber-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-500" />
+                Assinantes Premium
+              </div>
+              <Badge className="bg-amber-500 text-white">
+                {listaAssinantes?.length || 0} únicos
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingAssinantes ? (
+              <div className="flex justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : listaAssinantes && listaAssinantes.length > 0 ? (
+              <div className="max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {listaAssinantes.map((assinante, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium text-sm">
+                          {assinante.email}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {assinante.plano}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          R$ {assinante.valor?.toFixed(2) || '0.00'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(assinante.data), 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-emerald-500/20 text-emerald-500 text-xs">
+                            Ativo
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                Nenhum assinante encontrado
+              </p>
+            )}
+          </CardContent>
+        </Card>
         {/* Tabs de Análise */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid grid-cols-4 w-full max-w-2xl">
