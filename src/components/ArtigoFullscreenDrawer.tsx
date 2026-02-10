@@ -520,11 +520,11 @@ export const ArtigoFullscreenDrawer = ({
   
   // Verificar se narração é permitida para este artigo
   const numeroArtigoStr = article["Número do Artigo"] || "";
-  const canPlayNarration = isNarrationAllowed(numeroArtigoStr, isPremium);
+  const canPlayNarration = isNarrationAllowed(numeroArtigoStr, isPremium, codeName);
   const narrationBlocked = hasNarracao && !canPlayNarration;
   
   // Verificar se recursos do artigo são permitidos (favoritar, grifo, anotações, recursos)
-  const canUseArticleFeatures = isArticleFeatureAllowed(numeroArtigoStr, isPremium);
+  const canUseArticleFeatures = isArticleFeatureAllowed(numeroArtigoStr, isPremium, codeName);
   
   // Handlers que verificam premium antes de executar ação
   const handleFavoritoClick = () => {

@@ -68,7 +68,7 @@ export const ArtigoActionsMenu = ({
   
   const { isPremium } = useSubscription();
   const numeroArtigo = article["Número do Artigo"] || "";
-  const canUseResources = isArticleFeatureAllowed(numeroArtigo, isPremium);
+  const canUseResources = isArticleFeatureAllowed(numeroArtigo, isPremium, codigoNome);
 
   const handleAction = (action: () => void) => {
     if (!canUseResources) {
