@@ -462,18 +462,15 @@ export const Layout = ({ children }: LayoutProps) => {
   // Inclui aba "Leis" na home que tem seu próprio menu de rodapé
   const hideBottomNav = useMemo(() => {
     const path = location.pathname;
-    const searchParams = new URLSearchParams(location.search);
-    const isLeisTab = path === '/' && searchParams.get('tab') === 'leis';
     
     return (
-      isLeisTab ||
       HIDE_BOTTOM_NAV_ROUTES.has(path) ||
       matchesPrefixes(path, HIDE_BOTTOM_NAV_PREFIXES) ||
       isLibraryBookRoute(path) ||
       isSimuladoResolverRoute(path) ||
       isEscreventeRoute(path)
     );
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
   
   // Esconder Header
   const hideHeader = useMemo(() => {
