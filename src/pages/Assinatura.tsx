@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, ArrowLeft, MessageCircle, BookOpen, Bot, Sparkles, BadgeCheck, Ban, Scale, Headphones, FileText, Check, Gavel, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -64,9 +64,21 @@ const FUNCIONALIDADES = [
 const Assinatura = () => {
   const [contentTab, setContentTab] = useState<"sobre" | "funcoes">("sobre");
   const navigate = useNavigate();
+  
   const { user } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const { trialExpired } = useTrialStatus();
+
+  // Se Premium e acessou diretamente (reload/abertura do app), redirecionar para home
+  useEffect(() => {
+    if (!subscriptionLoading && isPremium && window.performance) {
+      const navEntries = window.performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      const isDirectLoad = navEntries.length > 0 && (navEntries[0].type === 'navigate' || navEntries[0].type === 'reload');
+      if (isDirectLoad) {
+        navigate('/?tab=ferramentas', { replace: true });
+      }
+    }
+  }, [subscriptionLoading, isPremium, navigate]);
   const [loadingPlano, setLoadingPlano] = useState<PlanType | null>(null);
   const [modalPlano, setModalPlano] = useState<PlanType | null>(null);
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
