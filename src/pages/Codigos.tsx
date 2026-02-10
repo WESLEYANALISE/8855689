@@ -10,6 +10,9 @@ import { GerenciadorBackgroundModal } from "@/components/GerenciadorBackgroundMo
 import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumBadge } from "@/components/PremiumBadge";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 interface CodeCard {
   id: string;
@@ -20,6 +23,9 @@ interface CodeCard {
   color: string;
   iconBg: string;
 }
+
+// Códigos gratuitos: apenas CC e CP
+const FREE_CODES = ['cc', 'cp'];
 
 const codes: CodeCard[] = [
   { id: "cc", abbr: "CC", title: "Código Civil", description: "Lei 10.406/2002", icon: Scale, color: "#f97316", iconBg: "bg-orange-500" },
@@ -52,6 +58,8 @@ const Codigos = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('todos');
   const { backgroundUrl, opacity, isGenerating, generateNew, deleteImage, setOpacity } = useBackgroundImage('codigos');
+  const { isPremium, loading: loadingSubscription } = useSubscription();
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   
   // Hooks de favoritos e recentes
   const { data: favoritas = [] } = useLeisFavoritas(CATEGORIA);
@@ -59,23 +67,22 @@ const Codigos = () => {
   const { toggle: toggleFavorita, isLoading: isTogglingFavorita } = useToggleFavorita(CATEGORIA);
   const registrarAcesso = useRegistrarAcesso(CATEGORIA);
 
+  const isFreeCode = (id: string) => FREE_CODES.includes(id);
+
   // Filtrar códigos baseado no modo e busca
   const filteredCodes = useMemo(() => {
     let result = codes;
 
-    // Filtrar por modo
     if (filterMode === 'favoritos') {
       const favoritasIds = favoritas.map(f => f.lei_id);
       result = codes.filter(code => favoritasIds.includes(code.id));
     } else if (filterMode === 'recentes') {
       const recentesIds = recentes.map(r => r.lei_id);
-      // Ordenar pelos recentes na ordem correta
       result = recentesIds
         .map(id => codes.find(code => code.id === id))
         .filter((code): code is CodeCard => code !== undefined);
     }
 
-    // Filtrar por busca
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(code => 
@@ -89,7 +96,12 @@ const Codigos = () => {
   }, [searchQuery, filterMode, favoritas, recentes]);
 
   const handleCardClick = (code: CodeCard) => {
-    // Registrar acesso
+    // Se não é Premium e o código não é gratuito, mostrar modal
+    if (!isPremium && !loadingSubscription && !isFreeCode(code.id)) {
+      setPremiumModalOpen(true);
+      return;
+    }
+    
     registrarAcesso.mutate({
       lei_id: code.id,
       titulo: code.title,
@@ -114,6 +126,7 @@ const Codigos = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PremiumUpgradeModal open={premiumModalOpen} onOpenChange={setPremiumModalOpen} featureName="este código" />
 
       {/* Header com brasão e background */}
       <LegislacaoBackground 
@@ -122,7 +135,6 @@ const Codigos = () => {
         className="border-b border-border/30"
       >
         <div className="px-4 py-6 flex flex-col items-center text-center bg-gradient-to-b from-card/80 to-background">
-          {/* Botão de gerenciamento */}
           <div className="absolute top-3 right-3 z-20">
             <GerenciadorBackgroundModal
               backgroundUrl={backgroundUrl}
@@ -159,7 +171,6 @@ const Codigos = () => {
           </Button>
         </div>
         
-        {/* Toggle Menu */}
         <LeisToggleMenu
           value={filterMode}
           onChange={setFilterMode}
@@ -183,11 +194,12 @@ const Codigos = () => {
           ) : (
             filteredCodes.map((code, index) => {
               const Icon = code.icon;
+              const isLocked = !isPremium && !loadingSubscription && !isFreeCode(code.id);
               return (
                 <div
                   key={code.id}
                   onClick={() => handleCardClick(code)}
-                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg"
+                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg relative"
                   style={{ 
                     borderLeftColor: code.color,
                     opacity: 0,
@@ -206,7 +218,8 @@ const Codigos = () => {
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{code.title}</p>
                     </div>
-                    <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {isLocked && <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />}
+                    {!isLocked && <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />}
                   </div>
                 </div>
               );

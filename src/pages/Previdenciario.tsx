@@ -11,6 +11,9 @@ import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
 import { LeiFavoritaButton } from "@/components/LeiFavoritaButton";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumBadge } from "@/components/PremiumBadge";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 interface LeiCard {
   id: string;
@@ -56,6 +59,8 @@ const Previdenciario = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('todos');
   const { backgroundUrl, opacity, isGenerating, generateNew, deleteImage, setOpacity } = useBackgroundImage('previdenciario');
+  const { isPremium, loading: loadingSubscription } = useSubscription();
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
 
   // Hooks de favoritos e recentes
   const { data: favoritas = [] } = useLeisFavoritas(CATEGORIA);
@@ -91,12 +96,12 @@ const Previdenciario = () => {
   }, [searchQuery, filterMode, favoritas, recentes]);
 
   const handleCardClick = (lei: LeiCard) => {
+    if (!isPremium && !loadingSubscription) {
+      setPremiumModalOpen(true);
+      return;
+    }
     registrarAcesso.mutate({
-      lei_id: lei.id,
-      titulo: lei.titulo,
-      sigla: lei.sigla,
-      cor: lei.color,
-      route: lei.route,
+      lei_id: lei.id, titulo: lei.titulo, sigla: lei.sigla, cor: lei.color, route: lei.route,
     });
     navigate(lei.route);
   };
@@ -115,7 +120,7 @@ const Previdenciario = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-
+      <PremiumUpgradeModal open={premiumModalOpen} onOpenChange={setPremiumModalOpen} featureName="Previdenciário" />
       {/* Header com brasão e background */}
       <LegislacaoBackground 
         imageUrl={backgroundUrl} 
@@ -189,7 +194,7 @@ const Previdenciario = () => {
                 <div
                   key={lei.id}
                   onClick={() => handleCardClick(lei)}
-                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg"
+                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg relative"
                   style={{ 
                     borderLeftColor: lei.color,
                     opacity: 0,
@@ -220,7 +225,11 @@ const Previdenciario = () => {
                       onClick={(e) => handleFavoritaClick(e, lei)}
                       className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                     />
-                    <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {!isPremium && !loadingSubscription ? (
+                      <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
                   </div>
                 </div>
               );

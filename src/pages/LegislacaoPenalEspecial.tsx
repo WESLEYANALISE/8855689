@@ -8,6 +8,9 @@ import brasaoRepublica from "@/assets/brasao-republica.png";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
 import { LeiFavoritaButton } from "@/components/LeiFavoritaButton";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumBadge } from "@/components/PremiumBadge";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 interface LeiCard {
   id: string;
@@ -50,8 +53,9 @@ const LegislacaoPenalEspecial = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('todos');
+  const { isPremium, loading: loadingSubscription } = useSubscription();
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
 
-  // Hooks de favoritos e recentes
   const { data: favoritas = [] } = useLeisFavoritas(CATEGORIA);
   const { data: recentes = [] } = useLeisRecentes(CATEGORIA);
   const { toggle: toggleFavorita, isLoading: isTogglingFavorita } = useToggleFavorita(CATEGORIA);
@@ -59,19 +63,13 @@ const LegislacaoPenalEspecial = () => {
 
   const filteredLeis = useMemo(() => {
     let result = leis;
-
-    // Filtrar por modo
     if (filterMode === 'favoritos') {
       const favoritasIds = favoritas.map(f => f.lei_id);
       result = leis.filter(lei => favoritasIds.includes(lei.id));
     } else if (filterMode === 'recentes') {
       const recentesIds = recentes.map(r => r.lei_id);
-      result = recentesIds
-        .map(id => leis.find(lei => lei.id === id))
-        .filter((lei): lei is LeiCard => lei !== undefined);
+      result = recentesIds.map(id => leis.find(lei => lei.id === id)).filter((lei): lei is LeiCard => lei !== undefined);
     }
-
-    // Filtrar por busca
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().replace(/\./g, '');
       result = result.filter(lei => {
@@ -81,81 +79,52 @@ const LegislacaoPenalEspecial = () => {
         return sigla.includes(query) || titulo.includes(query) || numero.includes(query);
       });
     }
-
     return result;
   }, [searchQuery, filterMode, favoritas, recentes]);
 
   const handleCardClick = (lei: LeiCard) => {
-    registrarAcesso.mutate({
-      lei_id: lei.id,
-      titulo: lei.titulo,
-      sigla: lei.sigla,
-      cor: lei.color,
-      route: lei.route,
-    });
+    if (!isPremium && !loadingSubscription) {
+      setPremiumModalOpen(true);
+      return;
+    }
+    registrarAcesso.mutate({ lei_id: lei.id, titulo: lei.titulo, sigla: lei.sigla, cor: lei.color, route: lei.route });
     navigate(lei.route);
   };
 
   const handleFavoritaClick = (e: React.MouseEvent, lei: LeiCard) => {
     e.stopPropagation();
     const isFavorita = favoritas.some(f => f.lei_id === lei.id);
-    toggleFavorita({
-      lei_id: lei.id,
-      titulo: lei.titulo,
-      sigla: lei.sigla,
-      cor: lei.color,
-      route: lei.route,
-    }, isFavorita);
+    toggleFavorita({ lei_id: lei.id, titulo: lei.titulo, sigla: lei.sigla, cor: lei.color, route: lei.route }, isFavorita);
   };
+
+  const isLocked = !isPremium && !loadingSubscription;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PremiumUpgradeModal open={premiumModalOpen} onOpenChange={setPremiumModalOpen} featureName="Legislação Penal" />
 
-      {/* Header com brasão */}
       <div className="px-4 py-6 flex flex-col items-center text-center border-b border-border/30 bg-gradient-to-b from-card to-background">
-        <img 
-          src={brasaoRepublica} 
-          alt="Brasão da República" 
-          className="w-20 h-20 object-contain mb-3"
-        />
+        <img src={brasaoRepublica} alt="Brasão da República" className="w-20 h-20 object-contain mb-3" />
         <h1 className="text-xl font-bold text-foreground">LEGISLAÇÃO PENAL ESPECIAL</h1>
         <p className="text-sm text-amber-400 mt-1">Leis penais extravagantes</p>
       </div>
 
-      {/* Barra de busca */}
       <div className="px-4 py-4 border-b border-border/30 bg-card/50 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar lei..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-background/50"
-          />
-          <Button variant="secondary" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2">
-            Buscar
-          </Button>
+          <Input placeholder="Buscar lei..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-background/50" />
+          <Button variant="secondary" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2">Buscar</Button>
         </div>
-        
-        {/* Toggle Menu */}
-        <LeisToggleMenu
-          value={filterMode}
-          onChange={setFilterMode}
-          favoritosCount={favoritas.length}
-          recentesCount={recentes.length}
-        />
+        <LeisToggleMenu value={filterMode} onChange={setFilterMode} favoritosCount={favoritas.length} recentesCount={recentes.length} />
       </div>
 
-      {/* Lista de leis */}
       <ScrollArea className="flex-1">
         <div className="px-4 py-4 space-y-3 pb-24">
           {filteredLeis.length === 0 ? (
             <div className="text-center py-12">
               <Search className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground">
-                {filterMode === 'favoritos' ? 'Nenhum favorito ainda' : 
-                 filterMode === 'recentes' ? 'Nenhum acesso recente' : 
-                 'Nenhuma lei encontrada'}
+                {filterMode === 'favoritos' ? 'Nenhum favorito ainda' : filterMode === 'recentes' ? 'Nenhum acesso recente' : 'Nenhuma lei encontrada'}
               </p>
             </div>
           ) : (
@@ -166,40 +135,26 @@ const LegislacaoPenalEspecial = () => {
                 <div
                   key={lei.id}
                   onClick={() => handleCardClick(lei)}
-                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg"
-                  style={{ 
-                    borderLeftColor: lei.color,
-                    opacity: 0,
-                    transform: 'translateY(-20px) translateZ(0)',
-                    animation: `slideDown 0.5s ease-out ${index * 0.08}s forwards`,
-                    willChange: 'transform, opacity'
-                  }}
+                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg relative"
+                  style={{ borderLeftColor: lei.color, opacity: 0, transform: 'translateY(-20px) translateZ(0)', animation: `slideDown 0.5s ease-out ${index * 0.08}s forwards`, willChange: 'transform, opacity' }}
                 >
                   <div className="flex items-center gap-3">
-                    <div 
-                      className={`${lei.iconBg} rounded-lg p-2.5 shrink-0`}
-                    >
+                    <div className={`${lei.iconBg} rounded-lg p-2.5 shrink-0`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-foreground">{lei.sigla}</h3>
-                        <span 
-                          className="text-xs font-medium px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: `${lei.color}20`, color: lei.color }}
-                        >
-                          {lei.numero}
-                        </span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${lei.color}20`, color: lei.color }}>{lei.numero}</span>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{lei.titulo}</p>
                     </div>
-                    <LeiFavoritaButton
-                      isFavorita={isFavorita}
-                      isLoading={isTogglingFavorita}
-                      onClick={(e) => handleFavoritaClick(e, lei)}
-                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                    />
-                    <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <LeiFavoritaButton isFavorita={isFavorita} isLoading={isTogglingFavorita} onClick={(e) => handleFavoritaClick(e, lei)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100" />
+                    {isLocked ? (
+                      <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
                   </div>
                 </div>
               );
