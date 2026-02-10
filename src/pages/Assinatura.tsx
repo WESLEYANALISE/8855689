@@ -32,7 +32,7 @@ interface PlanConfig {
 const PLANS: Record<PlanType, PlanConfig> = {
   mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false }, // Mantido para compatibilidade mas não exibido
   anual: { price: 69.90, label: 'Anual', days: 365, badge: null, pixEnabled: true }, // Mantido para compatibilidade mas não exibido
-  vitalicio: { price: 29.90, label: 'Vitalício', days: 36500, badge: 'MAIS ADQUIRIDO', featured: true, pixEnabled: true }
+  vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'MAIS ADQUIRIDO', featured: true, pixEnabled: true }
 };
 
 // Benefícios para o marquee infinito - mais compacto

@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // Configuração dos planos - apenas vitalício
 const PLANS = {
-  vitalicio: { amount: 29.90, days: 36500, description: 'Direito Premium - Vitalício' }
+  vitalicio: { amount: 89.90, days: 36500, description: 'Direito Premium - Vitalício' }
 };
 
 serve(async (req) => {
