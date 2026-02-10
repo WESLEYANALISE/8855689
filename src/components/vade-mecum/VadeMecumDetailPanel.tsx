@@ -92,11 +92,11 @@ export const VadeMecumDetailPanel = ({
   const hasAula = !!article["Aula"];
   
   // Verificar se narração é permitida para este artigo
-  const canPlayNarration = isNarrationAllowed(numeroArtigo, isPremium);
+  const canPlayNarration = isNarrationAllowed(numeroArtigo, isPremium, codeName);
   const narrationBlocked = hasAudio && !canPlayNarration;
   
-  // Verificar se recursos são permitidos (artigos 1-5 para não-premium)
-  const canUseFeatures = isArticleFeatureAllowed(numeroArtigo, isPremium);
+  // Verificar se recursos são permitidos
+  const canUseFeatures = isArticleFeatureAllowed(numeroArtigo, isPremium, codeName);
 
   // Hook para verificar se tem anotação
   const { hasAnotacao } = useArtigoAnotacoes({
