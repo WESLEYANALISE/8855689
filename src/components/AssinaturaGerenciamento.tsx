@@ -76,7 +76,7 @@ const AssinaturaGerenciamento = () => {
   };
 
   const getPlanValue = () => {
-    if (subscription?.planType === 'vitalicio') return 'R$ 89,90 (vitalício)';
+    if (subscription?.planType === 'vitalicio') return 'R$ 29,90 (vitalício)';
     if (subscription?.planType === 'anual') return 'R$ 69,90/ano';
     if (subscription?.planType === 'mensal') return 'R$ 17,99/mês';
     return subscription?.amount ? `R$ ${subscription.amount.toFixed(2).replace('.', ',')}` : '';
