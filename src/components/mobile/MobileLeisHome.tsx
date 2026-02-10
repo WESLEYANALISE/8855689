@@ -27,7 +27,7 @@ export const MobileLeisHome = memo(() => {
     if (tab === 'procurar') navigate('/pesquisar?tipo=artigos');
     else if (tab === 'resenha') navigate('/vade-mecum/resenha-diaria');
     else if (tab === 'push') navigate('/vade-mecum/push-legislacao');
-    else if (tab === 'explicacao') navigate('/vade-mecum/sobre');
+    else if (tab === 'explicacao') navigate('/resumos-juridicos/artigos-lei');
   };
 
   return (
