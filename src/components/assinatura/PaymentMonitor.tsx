@@ -18,7 +18,7 @@ export default function PaymentMonitor({ userId, planType, onCancel }: PaymentMo
   const [showSuccess, setShowSuccess] = useState(false);
   const { refreshSubscription, isPremium } = useSubscription();
 
-  const planAmount = planType === 'vitalicio' ? 29.90 : 15.90;
+  const planAmount = planType === 'vitalicio' ? 89.90 : 15.90;
 
   // Verificar status manualmente
   const checkPaymentStatus = useCallback(async () => {
