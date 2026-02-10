@@ -1,50 +1,58 @@
 
 
-## Plano: Bloqueio de Acesso para Usuários com Período de Teste Encerrado
+## Corrigir e Mostrar Lista de Assinantes Premium no Dashboard
 
-### O que vai acontecer
+### Problema Atual
+O "Total Premium" no dashboard admin nao mostra o numero correto porque a **politica RLS** da tabela `subscriptions` so permite que cada usuario veja suas proprias assinaturas. Alem disso, nao existe uma lista mostrando quem sao os assinantes.
 
-Usuários cadastrados **até o dia 8 de fevereiro de 2026** que **não possuem plano Premium** verão uma tela informando que o período de teste acabou. Eles só poderão acessar a **página de assinatura** para escolher um plano. O restante do app ficará bloqueado até a compra.
+### O que sera feito
 
-Usuários cadastrados **após o dia 8** continuam usando normalmente (período de teste ativo). Usuários **Premium** não são afetados.
+**1. Adicionar politica RLS para admin ver todas as assinaturas**
 
----
+Executar SQL no banco para permitir que o admin leia todos os registros:
 
-### Etapas
+```text
+CREATE POLICY "Admin pode ver todas as assinaturas"
+  ON subscriptions FOR SELECT
+  USING (is_admin(auth.uid()));
+```
 
-1. **Criar hook `useTrialStatus`**
-   - Verifica a data de criação do usuário (`user.created_at`) e o status Premium do `SubscriptionContext`
-   - Retorna `trialExpired: true` se o usuário foi criado em ou antes de 08/02/2026 e não é Premium
+**2. Criar hook para listar assinantes unicos com email e plano**
 
-2. **Criar componente `TrialExpiredGuard`**
-   - Envolve as rotas protegidas
-   - Se `trialExpired === true` e a rota atual **não é** `/assinatura`, `/assinatura/checkout`, `/assinatura/callback` ou `/perfil`, redireciona para `/assinatura`
-   - Exibe um banner/toast informando que o período de teste encerrou
+No arquivo `useAdminControleStats.ts`, adicionar um novo hook `useListaAssinantesPremium` que retorna:
+- Email do usuario
+- Plano assinado (mensal, anual, vitalicio)
+- Valor pago
+- Data da assinatura
+- Status
 
-3. **Integrar no `ProtectedRoute`**
-   - Após as verificações de autenticação e onboarding, adicionar a verificação de trial expirado
-   - Se expirado, redireciona para `/assinatura`
+A query vai buscar as assinaturas com status "authorized", agrupar por usuario unico (email), e mostrar a assinatura mais recente de cada um.
 
-4. **Tela de assinatura com aviso**
-   - Adicionar um banner no topo da página de assinatura quando o usuário tem trial expirado, com mensagem clara: "Seu período de teste encerrou. Escolha um plano para continuar."
+**3. Adicionar secao de assinantes no AdminControle**
 
----
+Abaixo dos cards de Premium (Total Premium, Taxa Conversao, Media ate Premium), adicionar uma tabela/lista com:
+- Coluna de email
+- Coluna de plano
+- Coluna de valor
+- Coluna de data
+- Badge de status
+- Contagem total de assinantes unicos no topo
 
-### Detalhes Técnicos
+A lista tera scroll e sera ordenada por data (mais recente primeiro).
 
-**Novo arquivo: `src/hooks/useTrialStatus.ts`**
-- Usa `useAuth()` para pegar `user.created_at`
-- Usa `useSubscription()` para pegar `isPremium` e `loading`
-- Data de corte: `2026-02-08T23:59:59`
-- Retorna `{ trialExpired, loading }`
+### Dados atuais no banco
 
-**Modificação: `src/components/auth/ProtectedRoute.tsx`**
-- Importa `useTrialStatus`
-- Após checar auth e onboarding, checa `trialExpired`
-- Rotas permitidas mesmo com trial expirado: `/assinatura`, `/assinatura/checkout`, `/assinatura/callback`, `/configuracoes`, `/perfil`
-- Se trial expirado e rota não permitida: `<Navigate to="/assinatura" />`
+Existem **50 assinaturas autorizadas**, mas muitas sao duplicadas do mesmo usuario. Os assinantes unicos reais sao aproximadamente **6 usuarios**:
+- eloilson.leao@gmail.com (vitalicio)
+- danilocostag19@gmail.com (vitalicio)
+- wn7corporation@gmail.com (mensal/anual - multiplas)
+- emillymaria2003@icloud.com (vitalicio)
+- enagioaraujo@gmail.com (vitalicio)
+- haverothmel@gmail.com (vitalicio)
 
-**Modificação: `src/pages/Assinatura.tsx`**
-- Detecta via `useTrialStatus` se o usuário chegou por trial expirado
-- Mostra banner vermelho/amarelo no topo: "Seu período de teste encerrou! Escolha um plano abaixo para continuar acessando o app."
+### Arquivos modificados
+
+- **Banco de dados**: Nova politica RLS na tabela `subscriptions`
+- **`src/hooks/useAdminControleStats.ts`**: Novo hook `useListaAssinantesPremium` e atualizar interface `MetricasPremium` para incluir lista de assinantes
+- **`src/pages/Admin/AdminControle.tsx`**: Nova secao abaixo dos cards mostrando a tabela de assinantes
 
