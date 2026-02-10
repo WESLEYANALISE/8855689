@@ -11,6 +11,9 @@ import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
 import { LeiFavoritaButton } from "@/components/LeiFavoritaButton";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { PremiumBadge } from "@/components/PremiumBadge";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 
 interface SumulaCard {
   id: string;
@@ -42,6 +45,8 @@ const Sumulas = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('todos');
   const { backgroundUrl, opacity, isGenerating, generateNew, deleteImage, setOpacity } = useBackgroundImage('sumulas');
+  const { isPremium, loading: loadingSubscription } = useSubscription();
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
 
   // Hooks de favoritos e recentes
   const { data: favoritas = [] } = useLeisFavoritas(CATEGORIA);
@@ -77,16 +82,15 @@ const Sumulas = () => {
   }, [searchQuery, filterMode, favoritas, recentes]);
 
   const handleCardClick = (sumula: SumulaCard) => {
-    if (sumula.available) {
-      registrarAcesso.mutate({
-        lei_id: sumula.id,
-        titulo: sumula.title,
-        sigla: sumula.abbr,
-        cor: sumula.color,
-        route: `/sumula/${sumula.id}`,
-      });
-      navigate(`/sumula/${sumula.id}`);
+    if (!sumula.available) return;
+    if (!isPremium && !loadingSubscription) {
+      setPremiumModalOpen(true);
+      return;
     }
+    registrarAcesso.mutate({
+      lei_id: sumula.id, titulo: sumula.title, sigla: sumula.abbr, cor: sumula.color, route: `/sumula/${sumula.id}`,
+    });
+    navigate(`/sumula/${sumula.id}`);
   };
 
   const handleFavoritaClick = (e: React.MouseEvent, sumula: SumulaCard) => {
@@ -104,7 +108,7 @@ const Sumulas = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-
+      <PremiumUpgradeModal open={premiumModalOpen} onOpenChange={setPremiumModalOpen} featureName="Súmulas" />
       {/* Header com brasão e background */}
       <LegislacaoBackground 
         imageUrl={backgroundUrl} 
@@ -214,7 +218,11 @@ const Sumulas = () => {
                           onClick={(e) => handleFavoritaClick(e, sumula)}
                           className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         />
-                        <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {!isPremium && !loadingSubscription ? (
+                          <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />
+                        ) : (
+                          <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
                       </>
                     )}
                   </div>
