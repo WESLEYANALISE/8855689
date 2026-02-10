@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { useTrialStatus, isTrialAllowedRoute } from '@/hooks/useTrialStatus';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -15,8 +16,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const { isComplete, isLoading: onboardingLoading } = useOnboardingStatus();
+  const { trialExpired, loading: trialLoading } = useTrialStatus();
 
-  const isLoading = authLoading || (!skipOnboardingCheck && onboardingLoading);
+  const isLoading = authLoading || (!skipOnboardingCheck && onboardingLoading) || trialLoading;
 
   if (isLoading) {
     return (
@@ -36,6 +38,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Redireciona para onboarding se não estiver completo
   if (!skipOnboardingCheck && !isComplete && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  // Redireciona para assinatura se o período de teste expirou
+  if (trialExpired && !isTrialAllowedRoute(location.pathname)) {
+    return <Navigate to="/assinatura" replace />;
   }
 
   return <>{children}</>;
