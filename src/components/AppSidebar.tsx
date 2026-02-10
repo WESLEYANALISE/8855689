@@ -40,7 +40,9 @@ import {
   Clock,
   Settings,
   Route,
-  Activity
+  Activity,
+  Star,
+  ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +55,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parse, isValid } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useExternalBrowser } from "@/hooks/use-external-browser";
+import { useCapacitorPlatform } from "@/hooks/use-capacitor-platform";
+
+const APP_STORE_URL = "https://apps.apple.com/id/app/direito-conte%C3%BAdo-jur%C3%ADdico/id6450845861";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=br.com.app.gpu2675756.gpu0e7509bfb7bde52aef412888bb17a456";
 
 interface AppSidebarProps {
   onClose?: () => void;
@@ -76,7 +83,8 @@ export const AppSidebar = ({ onClose }: AppSidebarProps = {}) => {
   const [novidades, setNovidades] = useState<Novidade[]>([]);
   const [loadingNovidades, setLoadingNovidades] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
+  const { openUrl } = useExternalBrowser();
+  const { isIOS, isAndroid } = useCapacitorPlatform();
   // Fetch user avatar
   useEffect(() => {
     if (user) {
@@ -257,6 +265,33 @@ export const AppSidebar = ({ onClose }: AppSidebarProps = {}) => {
         ) : (
           /* Menu Content */
           <div className="py-2">
+          {/* Avaliar App - Destaque */}
+          <div className="px-3 mb-4">
+            <button
+              onClick={async () => {
+                let storeUrl = PLAY_STORE_URL;
+                if (isIOS) {
+                  storeUrl = APP_STORE_URL;
+                } else if (!isAndroid) {
+                  const ua = navigator.userAgent.toLowerCase();
+                  if (/iphone|ipad|ipod/.test(ua)) storeUrl = APP_STORE_URL;
+                }
+                await openUrl(storeUrl);
+                onClose?.();
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-amber-500/15 to-amber-600/10 border border-amber-500/30 hover:from-amber-500/25 hover:to-amber-600/20 transition-all group"
+            >
+              <div className="p-1.5 rounded-lg bg-amber-500/20">
+                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <span className="text-sm font-semibold text-foreground">Avaliar o App</span>
+                <p className="text-[10px] text-muted-foreground">Deixe sua avaliação na loja!</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-amber-400 animate-[bounceRight_1s_ease-in-out_infinite]" />
+            </button>
+          </div>
+
           {/* Em Alta Section */}
           <div className="px-3 space-y-0.5 mb-4">
             <h3 className="px-2 text-[11px] md:text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
