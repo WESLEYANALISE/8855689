@@ -30,9 +30,9 @@ interface PlanConfig {
 }
 
 const PLANS: Record<PlanType, PlanConfig> = {
-  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false },
+  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false }, // Mantido para compatibilidade mas não exibido
   anual: { price: 69.90, label: 'Anual', days: 365, badge: null, pixEnabled: true }, // Mantido para compatibilidade mas não exibido
-  vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'MAIS ADQUIRIDO', featured: true, pixEnabled: true }
+  vitalicio: { price: 29.90, label: 'Vitalício', days: 36500, badge: 'MAIS ADQUIRIDO', featured: true, pixEnabled: true }
 };
 
 // Benefícios para o marquee infinito - mais compacto
@@ -226,9 +226,8 @@ const Assinatura = () => {
             </div>
           </div>
 
-          {/* Cards dos Planos - 2 planos */}
+          {/* Card do Plano Vitalício - único */}
           <div className="max-w-md mx-auto px-2 space-y-4">
-            {/* Plano Vitalício - Destaque */}
             <PlanoCardNovo
               planKey="vitalicio"
               plan={PLANS.vitalicio}
@@ -236,16 +235,6 @@ const Assinatura = () => {
               imagemLoading={imagesLoading}
               onVerMais={() => setModalPlano('vitalicio')}
               delay={0.1}
-            />
-            
-            {/* Plano Mensal */}
-            <PlanoCardNovo
-              planKey="mensal"
-              plan={PLANS.mensal}
-              imagemUrl={planImages.mensal}
-              imagemLoading={imagesLoading}
-              onVerMais={() => setModalPlano('mensal')}
-              delay={0.2}
             />
           </div>
 

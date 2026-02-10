@@ -166,7 +166,7 @@ const PremiumWelcomeCard = () => {
             <div className="text-center mb-4">
               <div className="inline-flex items-baseline gap-1">
                 <span className="text-xs text-muted-foreground">Por apenas</span>
-                <span className="text-2xl font-bold text-amber-400">R$ 89,90</span>
+                <span className="text-2xl font-bold text-amber-400">R$ 29,90</span>
               </div>
               <p className="text-xs text-muted-foreground">Acesso vitalício • Pagamento único</p>
             </div>
