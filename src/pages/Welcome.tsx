@@ -42,7 +42,7 @@ const Welcome = () => {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative min-h-[75vh] flex flex-col items-center justify-center overflow-hidden">
+      <section className="relative min-h-[65vh] flex flex-col items-center justify-center overflow-hidden pb-4">
         <div className="absolute inset-0">
           <img src={themisFull} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-background" />
@@ -57,12 +57,12 @@ const Welcome = () => {
             <h2 className="text-primary font-serif text-lg md:text-xl mb-4 tracking-widest uppercase">
               Direito Premium
             </h2>
-            <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6">
-              Cansado de estudar Direito{' '}
-              <span className="text-primary">sem rumo?</span>
+            <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4">
+              Tudo que você precisa para{' '}
+              <span className="text-primary">dominar o Direito</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-300 mb-8 leading-relaxed">
-              Tudo do Direito em um só lugar. Aulas, leis, flashcards e IA.
+            <p className="text-lg md:text-xl text-muted-foreground mb-6 leading-relaxed">
+              A ferramenta completa para estudar Direito: aulas, leis, flashcards, IA e muito mais.
             </p>
             <Button 
               size="lg" 
@@ -70,10 +70,17 @@ const Welcome = () => {
               className="text-lg px-10 py-6 rounded-full shadow-lg shadow-primary/20 transition-all"
             >
               Acessar
-              <ChevronRight className="ml-1 h-5 w-5" />
+              <ChevronRight className="ml-1 h-5 w-5 animate-[bounce-right_1s_ease-in-out_infinite]" />
             </Button>
           </motion.div>
         </div>
+
+        <style>{`
+          @keyframes bounce-right {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+          }
+        `}</style>
       </section>
 
       {/* Carrossel contínuo de Screenshots */}
