@@ -316,6 +316,7 @@ export interface AssinantePremium {
   valor: number;
   data: string;
   status: string;
+  intencao: string | null;
 }
 
 // Hook para listar assinantes premium únicos
@@ -347,9 +348,26 @@ export const useListaAssinantesPremium = () => {
             valor: sub.amount || 0,
             data: sub.created_at,
             status: sub.status,
+            intencao: null,
           });
         }
       });
+
+      // Fetch intencao from profiles for each email
+      const emails = Array.from(emailMap.keys());
+      if (emails.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('email, intencao')
+          .in('email', emails);
+
+        (profiles || []).forEach((p: any) => {
+          const existing = emailMap.get(p.email);
+          if (existing) {
+            existing.intencao = p.intencao;
+          }
+        });
+      }
 
       return Array.from(emailMap.values());
     },

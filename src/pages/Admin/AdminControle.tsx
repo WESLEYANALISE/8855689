@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { 
+import { useState, useRef } from 'react';
+import {
   Activity, 
   Users, 
   Clock, 
@@ -363,7 +363,13 @@ const AdminControle = () => {
 
         {/* Cards de Premium */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+          <Card 
+            className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent cursor-pointer hover:border-amber-500/60 transition-colors"
+            onClick={() => {
+              const el = document.getElementById('assinantes-premium-section');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
@@ -371,6 +377,7 @@ const AdminControle = () => {
                   <p className="text-2xl sm:text-3xl font-bold text-amber-500">
                     {metricasPremium?.totalPremium || 0}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">Toque para ver detalhes</p>
                 </div>
                 <Crown className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
               </div>
@@ -409,7 +416,7 @@ const AdminControle = () => {
         </div>
 
         {/* Lista de Assinantes Premium */}
-        <Card className="border-amber-500/30">
+        <Card className="border-amber-500/30" id="assinantes-premium-section">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -432,6 +439,7 @@ const AdminControle = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
+                      <TableHead>Perfil</TableHead>
                       <TableHead>Plano</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Data</TableHead>
@@ -443,6 +451,11 @@ const AdminControle = () => {
                       <TableRow key={index}>
                         <TableCell className="font-medium text-sm">
                           {assinante.email}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {assinante.intencao || '—'}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
