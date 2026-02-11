@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import useEmblaCarousel from 'embla-carousel-react';
@@ -39,6 +39,7 @@ import { WelcomeAudioPlayer } from "@/components/WelcomeAudioPlayer";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { preloadImages } from "@/hooks/useInstantCache";
+import IntroCarousel from "@/components/onboarding/IntroCarousel";
 
 // Imagens de carreiras para preload
 import carreiraAdvogado from "@/assets/carreira-advogado.webp";
@@ -72,6 +73,19 @@ const Index = () => {
   const { handleLinkHover } = useRoutePrefetch();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // Intro carousel for first-time users
+  const [showIntro, setShowIntro] = useState(() => {
+    if (!user) return false;
+    return !localStorage.getItem(`intro_carousel_seen_${user.id}`);
+  });
+
+  const handleIntroComplete = useCallback(() => {
+    if (user) {
+      localStorage.setItem(`intro_carousel_seen_${user.id}`, 'true');
+    }
+    setShowIntro(false);
+  }, [user]);
   
   // Ler tab da URL para navegação de volta (default agora é 'ferramentas' / Estudos)
   const tabFromUrl = searchParams.get('tab') as MainTab | null;
@@ -213,6 +227,8 @@ const Index = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-20 md:pb-0 relative">
+      {/* Carrossel de introdução para novos usuários */}
+      {showIntro && <IntroCarousel onComplete={handleIntroComplete} />}
       {/* Áudio de boas-vindas para novos usuários */}
       <WelcomeAudioPlayer />
       
