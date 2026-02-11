@@ -25,7 +25,7 @@ const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
 
 export const useOnboardingStatus = (): OnboardingStatus => {
   const { user } = useAuth();
-  const { isPremium } = useSubscription();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileData | null>(null);
 
@@ -79,7 +79,7 @@ export const useOnboardingStatus = (): OnboardingStatus => {
   return {
     isComplete,
     planChosen,
-    isLoading,
+    isLoading: isLoading || subscriptionLoading,
     profile,
     refetch: fetchProfile,
   };
