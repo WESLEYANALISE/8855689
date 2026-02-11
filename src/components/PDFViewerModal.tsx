@@ -1,8 +1,9 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, ZoomIn, ZoomOut, Maximize, Bookmark, BookmarkCheck, Eye, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Sun, Moon, Coffee, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { processDriveUrl } from "@/lib/driveUtils";
+import { processDriveUrl, isGoogleDriveUrl } from "@/lib/driveUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useExternalBrowser } from "@/hooks/use-external-browser";
 import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,6 +31,7 @@ type TextWidth = 60 | 80 | 100;
 const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title, viewMode = 'normal' }: PDFViewerModalProps) => {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { openUrl } = useExternalBrowser();
   
   // Estados para recursos premium (apenas modo vertical)
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -41,7 +43,17 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   
   // Selecionar URL baseado no modo
   const urlToUse = viewMode === 'normal' ? normalModeUrl : verticalModeUrl;
+  const isExternalUrl = !isGoogleDriveUrl(urlToUse);
   const processedUrl = processDriveUrl(urlToUse, viewMode);
+  
+  // URLs externas (FlipHTML5 etc): abrir via Capacitor Browser (mobile) ou nova aba (web)
+  useEffect(() => {
+    if (isOpen && isExternalUrl) {
+      openUrl(urlToUse);
+      onClose();
+    }
+  }, [isOpen, isExternalUrl, urlToUse]);
+  
   
   // Carregar bookmarks salvos
   useEffect(() => {
@@ -270,6 +282,9 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   };
   
   const isVerticalMode = viewMode === 'vertical';
+  
+  // Se é URL externa, não renderizar o modal (Capacitor Browser já abriu)
+  if (isExternalUrl) return null;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
