@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   Activity, 
   Users, 
@@ -15,7 +15,13 @@ import {
   CalendarClock,
   Eye,
   BarChart3,
-  Calendar
+  Calendar,
+  DollarSign,
+  Phone,
+  Mail,
+  Monitor,
+  X,
+  UserPlus,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +29,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -36,6 +44,10 @@ import {
   useOnlineAgoraRealtime,
   useListaAssinantesPremium,
   useCadastrosPorDia,
+  useOnlineDetails,
+  useAtivosDetalhes,
+  useNovosDetalhes,
+  type UsuarioDetalhe,
 } from '@/hooks/useAdminControleStats';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -50,6 +62,7 @@ import {
 } from 'recharts';
 
 type PeriodoFiltro = 'hoje' | '7dias' | '30dias' | '90dias';
+type DialogType = 'online' | 'novos' | 'ativos' | 'total' | null;
 
 const PERIODOS: { value: PeriodoFiltro; label: string; dias: number }[] = [
   { value: 'hoje', label: 'Hoje', dias: 0 },
@@ -62,24 +75,83 @@ const getDiasFromPeriodo = (periodo: PeriodoFiltro): number => {
   return PERIODOS.find(p => p.value === periodo)?.dias ?? 7;
 };
 
+// Componente para lista de usuários no dialog
+const UsuarioItem = ({ user, showPagePath, showViews, showCreatedAt }: { 
+  user: UsuarioDetalhe; 
+  showPagePath?: boolean;
+  showViews?: boolean;
+  showCreatedAt?: boolean;
+}) => (
+  <div className="p-3 rounded-lg bg-secondary/30 border border-border space-y-1.5">
+    <div className="flex items-center justify-between">
+      <span className="font-medium text-sm truncate">{user.nome || 'Sem nome'}</span>
+      {user.dispositivo && (
+        <Badge variant="outline" className="text-[10px] shrink-0 ml-2">
+          {user.dispositivo}
+        </Badge>
+      )}
+    </div>
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Mail className="h-3 w-3 shrink-0" />
+      <span className="truncate">{user.email || '—'}</span>
+    </div>
+    {user.telefone && (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Phone className="h-3 w-3 shrink-0" />
+        <span>{user.telefone}</span>
+      </div>
+    )}
+    {showPagePath && user.page_path && (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <FileText className="h-3 w-3 shrink-0" />
+        <span className="truncate">{user.page_path}</span>
+      </div>
+    )}
+    {showViews && user.total_views != null && (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Eye className="h-3 w-3 shrink-0" />
+        <span>{user.total_views} page views</span>
+      </div>
+    )}
+    {showCreatedAt && user.created_at && (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Clock className="h-3 w-3 shrink-0" />
+        <span>{formatDistanceToNow(new Date(user.created_at), { addSuffix: true, locale: ptBR })}</span>
+      </div>
+    )}
+    {user.last_seen && (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Clock className="h-3 w-3 shrink-0" />
+        <span>Visto {formatDistanceToNow(new Date(user.last_seen), { addSuffix: true, locale: ptBR })}</span>
+      </div>
+    )}
+  </div>
+);
+
 const AdminControle = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('usuarios');
   const [periodo, setPeriodo] = useState<PeriodoFiltro>('7dias');
+  const [openDialog, setOpenDialog] = useState<DialogType>(null);
 
   const diasFiltro = getDiasFromPeriodo(periodo);
-  const diasParaQuery = diasFiltro === 0 ? 1 : diasFiltro; // Para queries que não aceitam 0
+  const diasParaQuery = diasFiltro === 0 ? 1 : diasFiltro;
 
   const { data: novosUsuarios, isLoading: loadingUsuarios, refetch: refetchUsuarios } = useNovosUsuarios(diasParaQuery);
   const { data: paginasPopulares, isLoading: loadingPaginas, refetch: refetchPaginas } = usePaginasPopulares(diasParaQuery);
   const { data: termosPesquisados, isLoading: loadingTermos, refetch: refetchTermos } = useTermosPesquisados();
-  const { data: estatisticas, isLoading: loadingStats, refetch: refetchStats } = useEstatisticasGerais(diasParaQuery);
+  const { data: estatisticas, isLoading: loadingStats, refetch: refetchStats } = useEstatisticasGerais(diasFiltro);
   const { data: dispositivos, refetch: refetchDispositivos } = useDistribuicaoDispositivos();
   const { data: intencoes, refetch: refetchIntencoes } = useDistribuicaoIntencoes();
-  const { data: metricasPremium, refetch: refetchPremium } = useMetricasPremium();
+  const { data: metricasPremium, refetch: refetchPremium } = useMetricasPremium(diasFiltro);
   const { onlineAgora, isLoading: loadingOnline, refetch: refetchOnline } = useOnlineAgoraRealtime();
   const { data: listaAssinantes, isLoading: loadingAssinantes, refetch: refetchAssinantes } = useListaAssinantesPremium();
   const { data: cadastrosDia } = useCadastrosPorDia(diasParaQuery);
+
+  // Detail hooks for dialogs
+  const { data: onlineDetails } = useOnlineDetails();
+  const { data: ativosDetails } = useAtivosDetalhes(diasParaQuery);
+  const { data: novosDetails } = useNovosDetalhes(diasFiltro);
 
   const handleRefreshAll = () => {
     refetchUsuarios();
@@ -128,11 +200,40 @@ const AdminControle = () => {
 
   const periodoLabel = PERIODOS.find(p => p.value === periodo)?.label || '';
 
-  // Format chart data
   const chartData = (cadastrosDia || []).map(item => ({
     dia: format(new Date(item.dia + 'T12:00:00'), 'dd/MM'),
     total: item.total,
   }));
+
+  const getDialogTitle = () => {
+    switch (openDialog) {
+      case 'online': return 'Usuários Online Agora';
+      case 'novos': return `Novos Usuários (${periodoLabel})`;
+      case 'ativos': return `Usuários Ativos (${periodoLabel})`;
+      case 'total': return 'Todos os Usuários';
+      default: return '';
+    }
+  };
+
+  const getDialogUsers = (): UsuarioDetalhe[] => {
+    switch (openDialog) {
+      case 'online': return onlineDetails || [];
+      case 'novos': return novosDetails || [];
+      case 'ativos': return ativosDetails || [];
+      case 'total': return ativosDetails || []; // reuse ativos with large period
+      default: return [];
+    }
+  };
+
+  const formatPaymentMethod = (method: string | null) => {
+    if (!method) return '—';
+    const m = method.toLowerCase();
+    if (m.includes('pix')) return 'PIX';
+    if (m.includes('credit') || m.includes('cartao') || m.includes('card')) return 'Cartão';
+    if (m.includes('debit')) return 'Débito';
+    if (m.includes('boleto')) return 'Boleto';
+    return method;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,11 +242,7 @@ const AdminControle = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(-1)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
@@ -186,79 +283,12 @@ const AdminControle = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Cards de Estatísticas - Novos por período */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Novos Hoje</p>
-                  <p className="text-2xl font-bold text-emerald-500">
-                    {loadingStats ? '...' : estatisticas?.novosHoje || 0}
-                  </p>
-                </div>
-                <TrendingUp className="h-6 w-6 text-emerald-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Novos 7d</p>
-                  <p className="text-2xl font-bold text-sky-500">
-                    {loadingStats ? '...' : estatisticas?.novos7d || 0}
-                  </p>
-                </div>
-                <BarChart3 className="h-6 w-6 text-sky-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Novos 30d</p>
-                  <p className="text-2xl font-bold text-violet-500">
-                    {loadingStats ? '...' : estatisticas?.novos30d || 0}
-                  </p>
-                </div>
-                <BarChart3 className="h-6 w-6 text-violet-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Usuários</p>
-                  <p className="text-2xl font-bold">
-                    {loadingStats ? '...' : estatisticas?.totalUsuarios?.toLocaleString('pt-BR') || 0}
-                  </p>
-                </div>
-                <Users className="h-6 w-6 text-primary opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Ativos ({periodoLabel})</p>
-                  <p className="text-2xl font-bold text-sky-500">
-                    {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
-                  </p>
-                </div>
-                <Activity className="h-6 w-6 text-sky-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
+        {/* Cards de Estatísticas - Clicáveis */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card 
+            className="cursor-pointer hover:border-emerald-500/50 transition-colors"
+            onClick={() => setOpenDialog('online')}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -266,6 +296,7 @@ const AdminControle = () => {
                   <p className="text-2xl font-bold text-emerald-500">
                     {loadingOnline ? '...' : onlineAgora}
                   </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
                 </div>
                 <div className="relative">
                   <Clock className="h-6 w-6 text-emerald-500 opacity-50" />
@@ -274,7 +305,93 @@ const AdminControle = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card 
+            className="cursor-pointer hover:border-sky-500/50 transition-colors"
+            onClick={() => setOpenDialog('novos')}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Novos ({periodoLabel})</p>
+                  <p className="text-2xl font-bold text-sky-500">
+                    {loadingStats ? '...' : estatisticas?.novosNoPeriodo || 0}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
+                </div>
+                <UserPlus className="h-6 w-6 text-sky-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:border-violet-500/50 transition-colors"
+            onClick={() => setOpenDialog('ativos')}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Ativos ({periodoLabel})</p>
+                  <p className="text-2xl font-bold text-violet-500">
+                    {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
+                </div>
+                <Activity className="h-6 w-6 text-violet-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => setOpenDialog('total')}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Usuários</p>
+                  <p className="text-2xl font-bold">
+                    {loadingStats ? '...' : estatisticas?.totalUsuarios?.toLocaleString('pt-BR') || 0}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
+                </div>
+                <Users className="h-6 w-6 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Dialog de detalhes */}
+        <Dialog open={openDialog !== null} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-lg max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>{getDialogTitle()}</DialogTitle>
+              <DialogDescription>
+                {openDialog === 'online' && 'Sessões ativas nos últimos 5 minutos'}
+                {openDialog === 'novos' && `Cadastros no período: ${periodoLabel}`}
+                {openDialog === 'ativos' && `Usuários com atividade no período: ${periodoLabel}`}
+                {openDialog === 'total' && 'Usuários mais recentes com atividade'}
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh]">
+              <div className="space-y-2 pr-4">
+                {getDialogUsers().length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
+                ) : (
+                  getDialogUsers().map((user) => (
+                    <UsuarioItem 
+                      key={user.user_id} 
+                      user={user} 
+                      showPagePath={openDialog === 'online'}
+                      showViews={openDialog === 'ativos' || openDialog === 'total'}
+                      showCreatedAt={openDialog === 'novos'}
+                    />
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
 
         {/* Page views + média */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -299,14 +416,9 @@ const AdminControle = () => {
                   <p className="text-sm text-muted-foreground">Média cadastros/dia ({periodoLabel})</p>
                   <p className="text-3xl font-bold">
                     {loadingStats ? '...' : (
-                      diasFiltro > 0 && estatisticas?.novos30d
-                        ? Math.round(
-                            (periodo === '7dias' ? estatisticas.novos7d : 
-                             periodo === '30dias' ? estatisticas.novos30d : 
-                             periodo === '90dias' ? estatisticas.novos30d :
-                             estatisticas.novosHoje) / Math.max(diasFiltro || 1, 1)
-                          )
-                        : estatisticas?.novosHoje || 0
+                      diasFiltro > 0 && estatisticas?.novosNoPeriodo
+                        ? Math.round(estatisticas.novosNoPeriodo / Math.max(diasFiltro, 1))
+                        : estatisticas?.novosNoPeriodo || 0
                     )}
                   </p>
                 </div>
@@ -361,8 +473,8 @@ const AdminControle = () => {
           </Card>
         )}
 
-        {/* Cards de Premium */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Cards de Premium + Receita */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card 
             className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent cursor-pointer hover:border-amber-500/60 transition-colors"
             onClick={() => {
@@ -370,52 +482,61 @@ const AdminControle = () => {
               el?.scrollIntoView({ behavior: 'smooth' });
             }}
           >
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-muted-foreground">Total Premium</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-amber-500">
-                    {metricasPremium?.totalPremium || 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Toque para ver detalhes</p>
-                </div>
-                <Crown className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
-              </div>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Total Premium</p>
+              <p className="text-2xl font-bold text-amber-500">{metricasPremium?.totalPremium || 0}</p>
             </CardContent>
           </Card>
 
           <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-muted-foreground">Taxa Conversão</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-amber-500">
-                    {metricasPremium?.taxaConversao?.toFixed(2) || 0}%
-                  </p>
-                </div>
-                <Percent className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
-              </div>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Taxa Conversão</p>
+              <p className="text-2xl font-bold text-amber-500">{metricasPremium?.taxaConversao?.toFixed(2) || 0}%</p>
             </CardContent>
           </Card>
 
           <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-muted-foreground truncate">Média até Premium</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-amber-500">
-                    {metricasPremium?.mediaDiasAtePremium != null 
-                      ? `${metricasPremium.mediaDiasAtePremium}d` 
-                      : '-'}
-                  </p>
-                </div>
-                <CalendarClock className="h-8 w-8 text-amber-500 opacity-50 flex-shrink-0" />
-              </div>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Novos Premium ({periodoLabel})</p>
+              <p className="text-2xl font-bold text-amber-500">{metricasPremium?.novosPremiumPeriodo || 0}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Receita Total</p>
+              <p className="text-xl font-bold text-emerald-500">
+                R$ {(metricasPremium?.receitaTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Receita Mensal</p>
+              <p className="text-lg font-bold text-emerald-500">
+                R$ {(metricasPremium?.receitaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Anual: R$ {(metricasPremium?.receitaAnual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Receita Vitalício</p>
+              <p className="text-lg font-bold text-emerald-500">
+                R$ {(metricasPremium?.receitaVitalicio || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Média até Premium: {metricasPremium?.mediaDiasAtePremium != null ? `${metricasPremium.mediaDiasAtePremium}d` : '—'}
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Lista de Assinantes Premium */}
+        {/* Lista de Assinantes Premium - Responsiva */}
         <Card className="border-amber-500/30" id="assinantes-premium-section">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -434,54 +555,88 @@ const AdminControle = () => {
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : listaAssinantes && listaAssinantes.length > 0 ? (
-              <div className="max-h-[400px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Perfil</TableHead>
-                      <TableHead>Plano</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {listaAssinantes.map((assinante, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium text-sm">
-                          {assinante.email}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {assinante.intencao || '—'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {assinante.plano}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          R$ {assinante.valor?.toFixed(2) || '0.00'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(assinante.data), 'dd/MM/yyyy')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-emerald-500/20 text-emerald-500 text-xs">
-                            Ativo
-                          </Badge>
-                        </TableCell>
+              <>
+                {/* Mobile: Cards */}
+                <div className="space-y-3 md:hidden max-h-[500px] overflow-y-auto">
+                  {listaAssinantes.map((assinante, index) => (
+                    <div key={index} className="p-4 rounded-lg bg-secondary/30 border border-border space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm truncate">{assinante.nome || assinante.email}</span>
+                        <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px]">Ativo</Badge>
+                      </div>
+                      {assinante.nome && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{assinante.email}</span>
+                        </div>
+                      )}
+                      {assinante.telefone && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          <span>{assinante.telefone}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px]">{assinante.plano}</Badge>
+                          <span className="font-medium">R$ {assinante.valor?.toFixed(2)}</span>
+                        </div>
+                        <span className="text-muted-foreground">{format(new Date(assinante.data), 'dd/MM/yyyy')}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {assinante.intencao && (
+                          <Badge variant="outline" className="text-[10px] capitalize">{assinante.intencao}</Badge>
+                        )}
+                        <span className="text-muted-foreground">{formatPaymentMethod(assinante.payment_method)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: Table */}
+                <div className="hidden md:block max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead>Plano</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Pagamento</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {listaAssinantes.map((assinante, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium text-sm">{assinante.nome || '—'}</TableCell>
+                          <TableCell className="text-sm">{assinante.email}</TableCell>
+                          <TableCell className="text-sm">{assinante.telefone || '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs capitalize">{assinante.intencao || '—'}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{assinante.plano}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">R$ {assinante.valor?.toFixed(2) || '0.00'}</TableCell>
+                          <TableCell className="text-sm">{formatPaymentMethod(assinante.payment_method)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(assinante.data), 'dd/MM/yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-emerald-500/20 text-emerald-500 text-xs">Ativo</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             ) : (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhum assinante encontrado
-              </p>
+              <p className="text-center text-muted-foreground py-8">Nenhum assinante encontrado</p>
             )}
           </CardContent>
         </Card>
@@ -600,29 +755,18 @@ const AdminControle = () => {
                         <div key={pagina.page_path} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground w-6">
-                                #{index + 1}
-                              </span>
-                              <span className="font-medium">
-                                {pagina.page_title || pagina.page_path}
-                              </span>
+                              <span className="text-muted-foreground w-6">#{index + 1}</span>
+                              <span className="font-medium">{pagina.page_title || pagina.page_path}</span>
                             </div>
-                            <Badge variant="secondary">
-                              {pagina.count.toLocaleString('pt-BR')}
-                            </Badge>
+                            <Badge variant="secondary">{pagina.count.toLocaleString('pt-BR')}</Badge>
                           </div>
                           <Progress value={percentage} className="h-2" />
-                          <p className="text-xs text-muted-foreground">
-                            {pagina.page_path}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{pagina.page_path}</p>
                         </div>
                       );
                     })}
-
                     {(!paginasPopulares || paginasPopulares.length === 0) && (
-                      <p className="text-center text-muted-foreground py-8">
-                        Nenhum dado de navegação ainda
-                      </p>
+                      <p className="text-center text-muted-foreground py-8">Nenhum dado de navegação ainda</p>
                     )}
                   </div>
                 )}
@@ -654,24 +798,17 @@ const AdminControle = () => {
                         <div key={termo.termo} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground w-6">
-                                #{index + 1}
-                              </span>
+                              <span className="text-muted-foreground w-6">#{index + 1}</span>
                               <span className="font-medium">{termo.termo}</span>
                             </div>
-                            <Badge variant="secondary">
-                              {termo.count.toLocaleString('pt-BR')}
-                            </Badge>
+                            <Badge variant="secondary">{termo.count.toLocaleString('pt-BR')}</Badge>
                           </div>
                           <Progress value={percentage} className="h-2" />
                         </div>
                       );
                     })}
-
                     {(!termosPesquisados || termosPesquisados.length === 0) && (
-                      <p className="text-center text-muted-foreground py-8">
-                        Nenhuma busca registrada ainda
-                      </p>
+                      <p className="text-center text-muted-foreground py-8">Nenhuma busca registrada ainda</p>
                     )}
                   </div>
                 )}
@@ -693,41 +830,23 @@ const AdminControle = () => {
                 <CardContent className="space-y-4">
                   {dispositivos && totalDispositivos > 0 ? (
                     <>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>🍎 iOS</span>
-                          <span>{dispositivos.iOS} ({((dispositivos.iOS / totalDispositivos) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(dispositivos.iOS / totalDispositivos) * 100} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>🤖 Android</span>
-                          <span>{dispositivos.Android} ({((dispositivos.Android / totalDispositivos) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(dispositivos.Android / totalDispositivos) * 100} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>💻 Desktop</span>
-                          <span>{dispositivos.Desktop} ({((dispositivos.Desktop / totalDispositivos) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(dispositivos.Desktop / totalDispositivos) * 100} className="h-2" />
-                      </div>
-                      {dispositivos.Outro > 0 && (
-                        <div className="space-y-2">
+                      {[
+                        { label: '🍎 iOS', value: dispositivos.iOS },
+                        { label: '🤖 Android', value: dispositivos.Android },
+                        { label: '💻 Desktop', value: dispositivos.Desktop },
+                        ...(dispositivos.Outro > 0 ? [{ label: '📱 Outro', value: dispositivos.Outro }] : []),
+                      ].map(d => (
+                        <div key={d.label} className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span>📱 Outro</span>
-                            <span>{dispositivos.Outro} ({((dispositivos.Outro / totalDispositivos) * 100).toFixed(1)}%)</span>
+                            <span>{d.label}</span>
+                            <span>{d.value} ({((d.value / totalDispositivos) * 100).toFixed(1)}%)</span>
                           </div>
-                          <Progress value={(dispositivos.Outro / totalDispositivos) * 100} className="h-2" />
+                          <Progress value={(d.value / totalDispositivos) * 100} className="h-2" />
                         </div>
-                      )}
+                      ))}
                     </>
                   ) : (
-                    <p className="text-center text-muted-foreground py-4">
-                      Carregando dados...
-                    </p>
+                    <p className="text-center text-muted-foreground py-4">Carregando dados...</p>
                   )}
                 </CardContent>
               </Card>
@@ -743,48 +862,24 @@ const AdminControle = () => {
                 <CardContent className="space-y-4">
                   {intencoes && totalIntencoes > 0 ? (
                     <>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>🎓 Universitário</span>
-                          <span>{intencoes.Universitario} ({((intencoes.Universitario / totalIntencoes) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(intencoes.Universitario / totalIntencoes) * 100} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>🎯 Concurseiro</span>
-                          <span>{intencoes.Concurseiro} ({((intencoes.Concurseiro / totalIntencoes) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(intencoes.Concurseiro / totalIntencoes) * 100} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>⚖️ OAB</span>
-                          <span>{intencoes.OAB} ({((intencoes.OAB / totalIntencoes) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(intencoes.OAB / totalIntencoes) * 100} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>👔 Advogado</span>
-                          <span>{intencoes.Advogado} ({((intencoes.Advogado / totalIntencoes) * 100).toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={(intencoes.Advogado / totalIntencoes) * 100} className="h-2" />
-                      </div>
-                      {intencoes.Outro > 0 && (
-                        <div className="space-y-2">
+                      {[
+                        { label: '🎓 Universitário', value: intencoes.Universitario },
+                        { label: '🎯 Concurseiro', value: intencoes.Concurseiro },
+                        { label: '⚖️ OAB', value: intencoes.OAB },
+                        { label: '👔 Advogado', value: intencoes.Advogado },
+                        ...(intencoes.Outro > 0 ? [{ label: '❓ Outro', value: intencoes.Outro }] : []),
+                      ].map(d => (
+                        <div key={d.label} className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span>❓ Outro</span>
-                            <span>{intencoes.Outro} ({((intencoes.Outro / totalIntencoes) * 100).toFixed(1)}%)</span>
+                            <span>{d.label}</span>
+                            <span>{d.value} ({((d.value / totalIntencoes) * 100).toFixed(1)}%)</span>
                           </div>
-                          <Progress value={(intencoes.Outro / totalIntencoes) * 100} className="h-2" />
+                          <Progress value={(d.value / totalIntencoes) * 100} className="h-2" />
                         </div>
-                      )}
+                      ))}
                     </>
                   ) : (
-                    <p className="text-center text-muted-foreground py-4">
-                      Carregando dados...
-                    </p>
+                    <p className="text-center text-muted-foreground py-4">Carregando dados...</p>
                   )}
                 </CardContent>
               </Card>
