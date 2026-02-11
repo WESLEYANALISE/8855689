@@ -1,49 +1,41 @@
 
-# Correção: Usuários Premium vendo tela de escolha de plano
+# Teste do Facebook Pixel + Correção de Build
 
-## Problema
-Quando um usuário Premium faz login (especialmente em dispositivo novo sem localStorage), ocorre uma race condition:
+## O que será feito
 
-1. Auth carrega -> usuário existe
-2. Perfil carrega -> onboarding completo
-3. `planChosen` verifica: `hasPlanChosen()` (localStorage = FALSE em novo dispositivo) OU `isPremium` (ainda carregando = FALSE)
-4. `ProtectedRoute` vê `planChosen = false` -> redireciona para `/escolher-plano`
+### 1. Adicionar `test_event_code` na Edge Function
+O Facebook exige que o `test_event_code: TEST30748` seja incluído no payload enviado à API de Conversões para validar que o servidor está funcionando. Vou adicionar suporte a esse código na edge function.
 
-O `useOnboardingStatus` usa `isPremium` do `SubscriptionContext`, mas não espera o `loading` da assinatura terminar antes de retornar o resultado.
+- **Arquivo:** `supabase/functions/facebook-conversions/index.ts`
+- Aceitar campo opcional `test_event_code` no body da requisição
+- Incluir no payload enviado ao Facebook: `{ data: [...], test_event_code: "TEST30748" }`
 
-## Solução
-Incluir o estado de `loading` do `SubscriptionContext` no `isLoading` retornado pelo `useOnboardingStatus`. Assim, o `ProtectedRoute` aguarda a verificação da assinatura terminar antes de decidir se redireciona.
+### 2. Enviar `test_event_code` pelo hook do frontend
+- **Arquivo:** `src/hooks/useFacebookPixel.ts`
+- Adicionar parâmetro opcional `test_event_code` no `trackEvent`
+- Passar para a edge function quando presente
 
-## Arquivo a editar
+### 3. Corrigir warning de build (import dinâmico vs estático)
+- **Arquivo:** `src/pages/Auth.tsx`
+- O `useFacebookPixel` está sendo importado dinamicamente (`await import(...)`) em Auth.tsx, mas estaticamente nos outros arquivos, gerando um warning do Vite
+- Solução: mudar para chamada direta da edge function via `supabase.functions.invoke()` sem importar o hook (já que está fora de um componente React, dentro de um callback)
 
-**`src/hooks/useOnboardingStatus.ts`**
-- Importar `loading` do `useSubscription()` (já importa `isPremium`)
-- Incluir `loading` da assinatura no cálculo do `isLoading` retornado
-- Mudança: `isLoading` passa a ser `profileLoading || subscriptionLoading`
+### 4. Disparar evento de teste
+- Após deploy, vou chamar a edge function diretamente com o `test_event_code: TEST30748` para validar a conexão com o Facebook
 
-## Mudança específica
+## Detalhes Técnicos
 
+**Edge Function - mudança no payload:**
 ```typescript
-// ANTES:
-const { isPremium } = useSubscription();
-const [isLoading, setIsLoading] = useState(true);
-// ...
-return { isComplete, planChosen, isLoading, profile, refetch: fetchProfile };
+// Aceitar test_event_code do body
+const { event_name, event_id, ..., test_event_code } = await req.json();
 
-// DEPOIS:
-const { isPremium, loading: subscriptionLoading } = useSubscription();
-const [isLoading, setIsLoading] = useState(true);
-// ...
-return { 
-  isComplete, 
-  planChosen, 
-  isLoading: isLoading || subscriptionLoading,  // Espera ambos
-  profile, 
-  refetch: fetchProfile 
+// Incluir no payload se presente
+const eventData = {
+  data: [...],
+  ...(test_event_code && { test_event_code }),
 };
 ```
 
-## Impacto
-- O `ProtectedRoute` já espera `onboardingLoading` (que agora inclui subscription loading)
-- Usuários Premium não serão mais redirecionados para `/escolher-plano` erroneamente
-- Nenhuma mudança visual -- apenas garante que o loading screen permanece até a verificação Premium completar
+**Auth.tsx - remover import dinâmico, usar supabase diretamente:**
+Já está fazendo `supabase.functions.invoke('facebook-conversions', ...)` diretamente, então basta remover o `await import('@/hooks/useFacebookPixel')` que não está sendo usado de fato.
