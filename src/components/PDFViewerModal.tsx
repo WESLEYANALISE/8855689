@@ -341,16 +341,7 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
                 src={processedUrl}
                 className="w-full h-full"
                 title={title}
-                seamless
-                scrolling="no"
-                frameBorder="0"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                allowTransparency
-                style={{
-                  touchAction: 'pan-y pinch-zoom',
-                  border: 'none',
-                }}
+                style={{ touchAction: 'pan-y pinch-zoom' }}
               />
             </div>
             
