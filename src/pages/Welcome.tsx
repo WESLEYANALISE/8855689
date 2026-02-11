@@ -2,13 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Video, Brain, Library, Scale, FileText, Globe, 
-  ChevronRight, Sparkles
+  ChevronRight, ChevronDown, Sparkles, Lock, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { CarouselApi } from '@/components/ui/carousel';
+import { toast } from 'sonner';
 
 import themisFull from '@/assets/themis-full.webp';
 import welcome1 from '@/assets/landing/welcome-1.png';
@@ -32,12 +33,28 @@ const features = [
   { icon: Globe, title: 'Política', desc: 'Estudos e atualidades' },
 ];
 
+// YouTube IFrame API types
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 const Welcome = () => {
   const navigate = useNavigate();
   const autoplayPlugin = useRef(Autoplay({ delay: 3000, stopOnInteraction: true }));
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  
+  // Video progress state
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoCompleted, setVideoCompleted] = useState(false);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!api) return;
@@ -46,7 +63,97 @@ const Welcome = () => {
     api.on('select', () => setCurrent(api.selectedScrollSnap()));
   }, [api]);
 
-  const handleCTA = useCallback(() => navigate('/auth'), [navigate]);
+  // Load YouTube IFrame API
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      createPlayer();
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScript = document.getElementsByTagName('script')[0];
+    firstScript.parentNode?.insertBefore(tag, firstScript);
+
+    window.onYouTubeIframeAPIReady = () => {
+      createPlayer();
+    };
+
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, []);
+
+  const createPlayer = () => {
+    if (playerRef.current || !playerContainerRef.current) return;
+    
+    playerRef.current = new window.YT.Player(playerContainerRef.current, {
+      videoId: 'vx7xFDI_MDE',
+      playerVars: {
+        rel: 0,
+        modestbranding: 1,
+        playsinline: 1,
+      },
+      events: {
+        onStateChange: onPlayerStateChange,
+      },
+    });
+  };
+
+  const onPlayerStateChange = (event: any) => {
+    // Playing
+    if (event.data === 1) {
+      startProgressTracking();
+    }
+    // Paused or ended
+    if (event.data === 2 || event.data === 0) {
+      stopProgressTracking();
+    }
+    // Ended
+    if (event.data === 0) {
+      setVideoProgress(100);
+      setVideoCompleted(true);
+    }
+  };
+
+  const startProgressTracking = () => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    progressIntervalRef.current = setInterval(() => {
+      if (playerRef.current && playerRef.current.getDuration) {
+        const duration = playerRef.current.getDuration();
+        const currentTime = playerRef.current.getCurrentTime();
+        if (duration > 0) {
+          const pct = Math.min(Math.round((currentTime / duration) * 100), 100);
+          setVideoProgress(pct);
+          if (pct >= 95) {
+            setVideoCompleted(true);
+          }
+        }
+      }
+    }, 500);
+  };
+
+  const stopProgressTracking = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
+  const scrollToVideo = useCallback(() => {
+    videoSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  const handleComecar = useCallback(() => {
+    if (!videoCompleted) {
+      toast.info('Assista o vídeo demonstrativo até o final para continuar', {
+        description: `Progresso: ${videoProgress}%`,
+        duration: 3000,
+      });
+      return;
+    }
+    navigate('/auth');
+  }, [navigate, videoCompleted, videoProgress]);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -75,17 +182,20 @@ const Welcome = () => {
             </p>
             <Button 
               size="lg" 
-              onClick={handleCTA}
-              className="text-lg px-10 py-6 rounded-full animate-pulse shadow-lg shadow-primary/30"
+              onClick={scrollToVideo}
+              variant="outline"
+              className="text-lg px-10 py-6 rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-lg shadow-primary/20 transition-all"
             >
-              Começar Agora <ChevronRight className="ml-1 h-5 w-5" />
+              <Play className="mr-2 h-5 w-5" />
+              Demonstrativo
+              <ChevronDown className="ml-1 h-5 w-5 animate-bounce" />
             </Button>
           </motion.div>
         </div>
       </section>
 
       {/* Demonstrativo - YouTube Video */}
-      <section className="py-16 px-6">
+      <section ref={videoSectionRef} className="py-16 px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -98,14 +208,52 @@ const Welcome = () => {
             Demonstrativo
           </h2>
           <div className="rounded-2xl overflow-hidden border border-border shadow-2xl shadow-primary/10">
-            <iframe
-              src="https://www.youtube.com/embed/vx7xFDI_MDE"
-              title="Demonstrativo Direito Premium"
-              className="w-full aspect-[9/16]"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            <div ref={playerContainerRef} className="w-full aspect-[9/16]" />
           </div>
+
+          {/* Progress bar */}
+          <div className="mt-6 space-y-3">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${videoProgress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {videoCompleted ? '✅ Vídeo concluído!' : `${videoProgress}% assistido`}
+            </p>
+          </div>
+
+          {/* CTA - Começar Agora */}
+          <motion.div className="mt-8" animate={{ scale: videoCompleted ? [1, 1.05, 1] : 1 }} transition={{ repeat: videoCompleted ? Infinity : 0, duration: 1.5 }}>
+            <Button
+              size="lg"
+              onClick={handleComecar}
+              className={`text-lg px-10 py-6 rounded-full shadow-lg transition-all w-full ${
+                videoCompleted
+                  ? 'animate-pulse shadow-primary/30'
+                  : 'opacity-80'
+              }`}
+            >
+              {videoCompleted ? (
+                <>
+                  Começar Agora <ChevronRight className="ml-1 h-5 w-5" />
+                </>
+              ) : (
+                <>
+                  <Lock className="mr-2 h-4 w-4" />
+                  Começar Agora ({videoProgress}%)
+                </>
+              )}
+            </Button>
+            {!videoCompleted && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Assista o vídeo para desbloquear
+              </p>
+            )}
+          </motion.div>
         </motion.div>
       </section>
 
@@ -196,13 +344,22 @@ const Welcome = () => {
         >
           <Button
             size="lg"
-            onClick={handleCTA}
-            className="text-xl px-12 py-7 rounded-full animate-pulse shadow-xl shadow-primary/30"
+            onClick={handleComecar}
+            className={`text-xl px-12 py-7 rounded-full shadow-xl transition-all ${
+              videoCompleted ? 'animate-pulse shadow-primary/30' : 'opacity-80'
+            }`}
           >
-            Acessar Gratuitamente <ChevronRight className="ml-2 h-6 w-6" />
+            {videoCompleted ? (
+              <>Acessar Gratuitamente <ChevronRight className="ml-2 h-6 w-6" /></>
+            ) : (
+              <>
+                <Lock className="mr-2 h-5 w-5" />
+                Assista o demonstrativo ({videoProgress}%)
+              </>
+            )}
           </Button>
           <p className="text-muted-foreground mt-4 text-sm">
-            Cadastro rápido e gratuito
+            {videoCompleted ? 'Cadastro rápido e gratuito' : 'Assista o vídeo acima para desbloquear'}
           </p>
         </motion.div>
       </section>
