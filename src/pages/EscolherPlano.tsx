@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Check, X, Crown, Gift, MessageCircle, Play, Loader2, Sparkles, Star } from 'lucide-react';
+import { Check, X, Crown, Gift, MessageCircle, Play, Loader2, Star, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
@@ -52,12 +52,63 @@ const LIFETIME_FEATURES = [
   { label: 'Suporte prioritário', included: true },
 ];
 
+const INITIAL_VISIBLE = 8;
+
 export const markPlanChosen = (userId: string) => {
   localStorage.setItem(`${PLAN_CHOSEN_KEY}_${userId}`, 'true');
 };
 
 export const hasPlanChosen = (userId: string): boolean => {
   return localStorage.getItem(`${PLAN_CHOSEN_KEY}_${userId}`) === 'true';
+};
+
+const FeatureList = ({ features, amber }: { features: typeof FREE_FEATURES; amber?: boolean }) => {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? features : features.slice(0, INITIAL_VISIBLE);
+  const hasMore = features.length > INITIAL_VISIBLE;
+
+  return (
+    <div className="px-3 sm:px-4 py-3">
+      <div className="space-y-1.5 sm:space-y-2">
+        {visible.map((f, i) => (
+          <div key={i} className="flex items-start gap-1.5 sm:gap-2 text-[11px] sm:text-sm">
+            {f.included ? (
+              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-700 flex-shrink-0 mt-0.5" />
+            )}
+            <span className={f.included ? 'text-zinc-300' : 'text-zinc-600 line-through'}>
+              {f.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {hasMore && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className={`mt-2 flex items-center gap-1 text-[11px] sm:text-xs font-medium ${
+            amber ? 'text-amber-400 hover:text-amber-300' : 'text-zinc-400 hover:text-zinc-300'
+          } transition-colors`}
+        >
+          <ChevronDown className="w-3 h-3" />
+          Ver mais ({features.length - INITIAL_VISIBLE})
+        </button>
+      )}
+
+      {hasMore && expanded && (
+        <button
+          onClick={() => setExpanded(false)}
+          className={`mt-2 flex items-center gap-1 text-[11px] sm:text-xs font-medium ${
+            amber ? 'text-amber-400 hover:text-amber-300' : 'text-zinc-400 hover:text-zinc-300'
+          } transition-colors`}
+        >
+          <ChevronDown className="w-3 h-3 rotate-180" />
+          Ver menos
+        </button>
+      )}
+    </div>
+  );
 };
 
 const EscolherPlano: React.FC = () => {
@@ -67,9 +118,7 @@ const EscolherPlano: React.FC = () => {
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
 
   const handleFree = () => {
-    if (user?.id) {
-      markPlanChosen(user.id);
-    }
+    if (user?.id) markPlanChosen(user.id);
     navigate('/onboarding', { replace: true });
   };
 
@@ -119,7 +168,7 @@ const EscolherPlano: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Cards - always side by side */}
+        {/* Cards */}
         <div className="grid grid-cols-2 gap-3 sm:gap-5 mb-6 sm:mb-8">
           {/* Free Card */}
           <motion.div
@@ -128,35 +177,20 @@ const EscolherPlano: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="rounded-2xl border border-zinc-700/60 overflow-hidden flex flex-col bg-zinc-900/80"
           >
-            {/* Banner Gratuito */}
             <div className="bg-gradient-to-r from-zinc-700 to-zinc-600 px-3 py-3 sm:py-4 text-center">
-              <p className="text-xs text-zinc-300 uppercase tracking-wider font-medium">Plano</p>
-              <h2 className="text-lg sm:text-2xl font-bold text-white">Gratuito</h2>
+              <p className="text-[10px] sm:text-xs text-zinc-300 uppercase tracking-wider font-medium">Plano</p>
+              <h2 className="text-base sm:text-2xl font-bold text-white">Gratuito</h2>
             </div>
 
-            {/* Price */}
             <div className="text-center py-3 sm:py-4 border-b border-zinc-800">
-              <span className="text-2xl sm:text-4xl font-bold text-white">R$ 0</span>
+              <span className="text-xl sm:text-4xl font-bold text-white">R$ 0</span>
               <p className="text-[10px] sm:text-xs text-zinc-500 mt-1">Para sempre</p>
             </div>
 
-            {/* Features */}
-            <div className="flex-1 px-3 sm:px-4 py-3 space-y-1.5 sm:space-y-2">
-              {FREE_FEATURES.map((f, i) => (
-                <div key={i} className="flex items-start gap-1.5 sm:gap-2 text-[11px] sm:text-sm">
-                  {f.included ? (
-                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-700 flex-shrink-0 mt-0.5" />
-                  )}
-                  <span className={f.included ? 'text-zinc-300' : 'text-zinc-600 line-through'}>
-                    {f.label}
-                  </span>
-                </div>
-              ))}
+            <div className="flex-1">
+              <FeatureList features={FREE_FEATURES} />
             </div>
 
-            {/* CTA */}
             <div className="p-3 sm:p-4">
               <Button
                 variant="outline"
@@ -175,7 +209,6 @@ const EscolherPlano: React.FC = () => {
             transition={{ delay: 0.2 }}
             className="rounded-2xl border-2 border-amber-500/70 overflow-hidden flex flex-col relative bg-zinc-900/80 shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]"
           >
-            {/* Badge */}
             <div className="absolute top-0 right-0 z-10">
               <span className="bg-amber-500 text-black text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-bl-lg flex items-center gap-1">
                 <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
@@ -183,35 +216,24 @@ const EscolherPlano: React.FC = () => {
               </span>
             </div>
 
-            {/* Banner Vitalício */}
             <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 px-3 py-3 sm:py-4 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent_60%)]" />
               <div className="relative">
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Crown className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-black" />
-                </div>
+                <Crown className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-black mx-auto mb-0.5" />
                 <p className="text-[10px] sm:text-xs text-black/70 uppercase tracking-wider font-medium">Acesso</p>
-                <h2 className="text-lg sm:text-2xl font-bold text-black">Vitalício</h2>
+                <h2 className="text-base sm:text-2xl font-bold text-black">Vitalício + Bônus</h2>
               </div>
             </div>
 
-            {/* Price */}
             <div className="text-center py-3 sm:py-4 border-b border-amber-500/20 bg-amber-500/5">
-              <span className="text-2xl sm:text-4xl font-bold text-amber-400">R$ 89,90</span>
+              <span className="text-xl sm:text-4xl font-bold text-amber-400">R$ 89,90</span>
               <p className="text-[10px] sm:text-xs text-amber-300/60 mt-1">Pagamento único</p>
             </div>
 
-            {/* Features */}
-            <div className="flex-1 px-3 sm:px-4 py-3 space-y-1.5 sm:space-y-2">
-              {LIFETIME_FEATURES.map((f, i) => (
-                <div key={i} className="flex items-start gap-1.5 sm:gap-2 text-[11px] sm:text-sm">
-                  <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-zinc-200">{f.label}</span>
-                </div>
-              ))}
+            <div className="flex-1">
+              <FeatureList features={LIFETIME_FEATURES} amber />
             </div>
 
-            {/* CTA */}
             <div className="p-3 sm:p-4">
               <Button
                 onClick={handleLifetime}
@@ -246,8 +268,8 @@ const EscolherPlano: React.FC = () => {
               <Gift className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-base sm:text-lg">Bônus exclusivo — R$ 89,90</h3>
-              <p className="text-emerald-300/80 text-xs sm:text-sm">Incluso no plano Vitalício</p>
+              <h3 className="font-bold text-white text-sm sm:text-lg">Bônus exclusivo — R$ 89,90</h3>
+              <p className="text-emerald-300/80 text-[10px] sm:text-sm">Incluso no plano Vitalício</p>
             </div>
           </div>
 
@@ -268,7 +290,6 @@ const EscolherPlano: React.FC = () => {
           </Button>
         </motion.div>
 
-        {/* Video Modal */}
         <Dialog open={showBonusVideo} onOpenChange={setShowBonusVideo}>
           <DialogContent className="max-w-2xl p-0 overflow-hidden bg-black border-zinc-800">
             <DialogTitle className="sr-only">Bônus Evelyn</DialogTitle>
