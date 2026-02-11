@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { 
   BookOpen, 
   Target, 
@@ -119,7 +120,7 @@ const AnaliseDocumentario = ({ analise }: AnaliseDocumentarioProps) => {
           <li 
             key={idx} 
             className="text-sm text-muted-foreground leading-relaxed ml-4"
-            dangerouslySetInnerHTML={{ __html: textoLimpo }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(textoLimpo) }}
           />
         );
       }
@@ -129,7 +130,7 @@ const AnaliseDocumentario = ({ analise }: AnaliseDocumentarioProps) => {
           <p 
             key={idx} 
             className="text-sm text-muted-foreground leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: textoLimpo }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(textoLimpo) }}
           />
         );
       }

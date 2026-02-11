@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { X, Copy, Loader2, FileText, Lightbulb, MessageCircle, ListChecks, Scale, CheckCircle2, Database, BookOpen, ChevronDown, ChevronUp, Share2, Layers, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -263,7 +264,7 @@ function MarkdownRenderer({ conteudo }: { conteudo: string }) {
             {listItems.map((item, idx) => (
               <li key={idx} className="text-[11px] text-white/70 leading-relaxed flex items-start gap-2">
                 <span className="text-amber-400 mt-0.5">•</span>
-                <span dangerouslySetInnerHTML={{ __html: formatInline(item) }} />
+                <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatInline(item)) }} />
               </li>
             ))}
           </ul>
@@ -275,7 +276,7 @@ function MarkdownRenderer({ conteudo }: { conteudo: string }) {
       if (linha.trim()) {
         elementos.push(
           <p key={i} className="text-[11px] text-white/70 leading-relaxed mb-3" 
-             dangerouslySetInnerHTML={{ __html: formatInline(linha) }} />
+             dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatInline(linha)) }} />
         );
       }
       i++;

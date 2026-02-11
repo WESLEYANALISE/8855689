@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { formatTextWithUppercase } from "@/lib/textFormatter";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { SumulaActionsMenu } from "./SumulaActionsMenu";
 import { useArticleTracking } from "@/hooks/useArticleTracking";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,7 @@ export const SumulaCard = ({
           lineHeight: "1.7"
         }} 
         dangerouslySetInnerHTML={{
-          __html: formatTextWithUppercase(sumula["Texto da Súmula"] || "Texto não disponível")
+          __html: sanitizeHtml(formatTextWithUppercase(sumula["Texto da Súmula"] || "Texto não disponível"))
         }} 
       />
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileText, 
@@ -295,7 +296,7 @@ export const InteractiveSlide = ({
       return (
         <div 
           className="text-foreground leading-relaxed whitespace-pre-line prose prose-sm max-w-none dark:prose-invert [&_span]:rounded [&_span]:px-1 [&_strong]:font-semibold [&_em]:italic [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_.key-term]:bg-primary/20 [&_.key-term]:text-primary [&_.key-term]:font-semibold [&_.key-term]:px-1 [&_.key-term]:py-0.5 [&_.key-term]:rounded [&_.key-term]:border-b-2 [&_.key-term]:border-primary/50"
-          dangerouslySetInnerHTML={{ __html: cleanedContent }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(cleanedContent) }}
         />
       );
     }
@@ -306,14 +307,14 @@ export const InteractiveSlide = ({
       return (
         <div className="space-y-4 text-foreground leading-relaxed">
           {paragraphs.map((para, idx) => (
-            <p key={idx} className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: para }} />
+            <p key={idx} className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: sanitizeHtml(para) }} />
           ))}
         </div>
       );
     }
     
     return (
-      <p className="text-foreground leading-relaxed whitespace-pre-line" dangerouslySetInnerHTML={{ __html: cleanedContent }} />
+      <p className="text-foreground leading-relaxed whitespace-pre-line" dangerouslySetInnerHTML={{ __html: sanitizeHtml(cleanedContent) }} />
     );
   };
 

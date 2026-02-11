@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1037,7 +1038,7 @@ const QuestoesArtigosLeiResolver = () => {
                   <div 
                     className="text-sm leading-relaxed whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ 
-                      __html: highlightCitedText(artigoTexto, artigoGrifos) 
+                      __html: sanitizeHtml(highlightCitedText(artigoTexto, artigoGrifos)) 
                     }}
                   />
                 </>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Briefcase, Image as ImageIcon, Loader2, Building2, Home, Users } from "lucide-react";
 
 interface SlideExemploComImagemProps {
@@ -53,7 +54,7 @@ export const SlideExemploComImagem = ({
       return (
         <div 
           className="text-foreground leading-relaxed whitespace-pre-line [&_span]:rounded [&_span]:px-1"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
         />
       );
     }

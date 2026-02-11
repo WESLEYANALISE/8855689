@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Highlight } from "@/hooks/useArtigoGrifos";
 import { formatTextWithUppercase } from "@/lib/textFormatter";
 import { TextAnnotate, AnnotateTag } from "react-text-annotate-blend";
@@ -87,7 +88,7 @@ export const ArticleHighlighter = ({
         }}
       >
         {highlights.length === 0 ? (
-          <div dangerouslySetInnerHTML={{ __html: formatTextWithUppercase(content, hideAnnotations) }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatTextWithUppercase(content, hideAnnotations)) }} />
         ) : (
           <TextAnnotate
             content={plainText}

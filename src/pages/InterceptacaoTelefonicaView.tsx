@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Search, X, Plus, Minus, ArrowUp } from "lucide-react";
 import { BuscaCompacta } from "@/components/BuscaCompacta";
@@ -400,7 +401,7 @@ const ArticleCard = ({
       <div key={article.id} className="text-center mb-4 mt-6 font-serif-content">
         <div 
           className="text-sm leading-tight text-muted-foreground/80 whitespace-pre-line" 
-          dangerouslySetInnerHTML={{ __html: formatTextWithUppercase(article["Artigo"] || "") }} 
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatTextWithUppercase(article["Artigo"] || "")) }} 
         />
       </div>
     );
@@ -442,7 +443,7 @@ const ArticleCard = ({
           lineHeight: "1.7"
         }}
         dangerouslySetInnerHTML={{
-          __html: formatTextWithUppercase(article["Artigo"] || "Conteúdo não disponível")
+          __html: sanitizeHtml(formatTextWithUppercase(article["Artigo"] || "Conteúdo não disponível"))
         }}
       />
 

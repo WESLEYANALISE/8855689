@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileText, Calendar, ExternalLink, Copy, Share2, ChevronDown, ChevronUp, RefreshCw, Database, Loader2, Sparkles, CheckCircle, Play, FileCode, RotateCcw, Trash2, Zap, AlertCircle, ChevronRight, Home, Wand2, FileEdit, Table2, Eye } from 'lucide-react';
 import brasaoRepublica from '@/assets/brasao-republica.png';
@@ -1949,7 +1950,7 @@ export default function NovasLeisView() {
                                       <div 
                                         key={i} 
                                         className="overflow-x-auto w-full"
-                                        dangerouslySetInnerHTML={{ __html: parte }}
+                                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(parte) }}
                                       />
                                     );
                                   }

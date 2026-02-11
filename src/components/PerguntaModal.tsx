@@ -3,6 +3,7 @@ import { X, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseConfig";
 import { AssistantMessage } from "./AssistantMessage";
 interface Message {
   role: "user" | "assistant";
@@ -100,14 +101,14 @@ FORMATO:
       const session = await supabase.auth.getSession();
       
       const response = await fetch(
-        `https://izspjvegxdfgkgibpyst.supabase.co/functions/v1/chat-professora`,
+        `${SUPABASE_URL}/functions/v1/chat-professora`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'text/event-stream',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c3BqdmVneGRmZ2tnaWJweXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNDA2MTQsImV4cCI6MjA2MDcxNjYxNH0.LwTMbDH-S0mBoiIxfrSH2BpUMA7r4upOWWAb5a_If0Y',
-            'Authorization': `Bearer ${session.data.session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c3BqdmVneGRmZ2tnaWJweXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNDA2MTQsImV4cCI6MjA2MDcxNjYxNH0.LwTMbDH-S0mBoiIxfrSH2BpUMA7r4upOWWAb5a_If0Y'}`
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${session.data.session?.access_token || SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             messages: [{ role: "user", content: promptInicial }],
@@ -268,14 +269,14 @@ Pergunta do estudante: ${pergunta}`;
       
       // Fazer chamada com streaming SSE
       const response = await fetch(
-        `https://izspjvegxdfgkgibpyst.supabase.co/functions/v1/chat-professora`,
+        `${SUPABASE_URL}/functions/v1/chat-professora`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'text/event-stream',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c3BqdmVneGRmZ2tnaWJweXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNDA2MTQsImV4cCI6MjA2MDcxNjYxNH0.LwTMbDH-S0mBoiIxfrSH2BpUMA7r4upOWWAb5a_If0Y',
-            'Authorization': `Bearer ${session.data.session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c3BqdmVneGRmZ2tnaWJweXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNDA2MTQsImV4cCI6MjA2MDcxNjYxNH0.LwTMbDH-S0mBoiIxfrSH2BpUMA7r4upOWWAb5a_If0Y'}`
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${session.data.session?.access_token || SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             messages: allMessages.map(m => ({

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Calendar, MapPin, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -245,7 +246,7 @@ const BuscaDiarios = () => {
                           {gazette.excerpts && gazette.excerpts.length > 0 && (
                             <div className="text-sm text-foreground/80 bg-muted/50 p-2 rounded">
                               <p className="line-clamp-3" dangerouslySetInnerHTML={{ 
-                                __html: gazette.excerpts[0].replace(/<\/?em>/g, (m) => m === '<em>' ? '<mark class="bg-yellow-200 dark:bg-yellow-800">' : '</mark>')
+                                __html: sanitizeHtml(gazette.excerpts[0].replace(/<\/?em>/g, (m) => m === '<em>' ? '<mark class="bg-yellow-200 dark:bg-yellow-800">' : '</mark>'))
                               }} />
                             </div>
                           )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Heart, Share2, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
@@ -278,7 +279,7 @@ export const WikipediaArtigo = ({ titulo, categoria }: WikipediaArtigoProps) => 
           {/* Conteúdo do artigo */}
           <div 
             className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: artigo.html || artigo.conteudo }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(artigo.html || artigo.conteudo) }}
           />
         </>
       )}

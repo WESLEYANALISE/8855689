@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,7 +68,7 @@ export const NoticiaConteudo = ({ url, titulo }: NoticiaConteudoProps) => {
 
   return (
     <div className="prose prose-sm max-w-none p-4">
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />
     </div>
   );
 };
