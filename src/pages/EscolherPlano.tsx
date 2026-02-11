@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Check, X, Crown, Loader2, Star, ArrowLeft } from 'lucide-react';
+import { Check, X, Crown, Loader2, Star, ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
 import { useAssinaturaBackgroundAudio } from '@/hooks/useAssinaturaBackgroundAudio';
@@ -164,28 +164,19 @@ const EscolherPlano: React.FC = () => {
 
         {/* Confirm button right below cover */}
         <div className="px-4 py-4 max-w-lg mx-auto">
-          {isLifetime ? (
-            <Button
-              onClick={handleConfirm}
-              disabled={pixLoading}
-              className="w-full h-12 text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25"
-            >
-              {pixLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Crown className="w-4 h-4 mr-2" />
-              )}
-              Confirmar escolha
-            </Button>
-          ) : (
-            <Button
-              onClick={handleConfirm}
-              variant="outline"
-              className="w-full h-12 text-sm border-zinc-600 text-zinc-300 hover:bg-zinc-800 font-semibold"
-            >
-              Confirmar escolha
-            </Button>
-          )}
+          <Button
+            onClick={handleConfirm}
+            disabled={pixLoading}
+            className="w-full h-12 text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25 group"
+          >
+            {pixLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : isLifetime ? (
+              <Crown className="w-4 h-4 mr-2" />
+            ) : null}
+            Confirmar escolha
+            <ChevronRight className="w-4 h-4 ml-1 animate-[slide-in-right_0.6s_ease-in-out_infinite_alternate] group-hover:translate-x-1 transition-transform" />
+          </Button>
         </div>
 
         {/* Toggle tabs */}
