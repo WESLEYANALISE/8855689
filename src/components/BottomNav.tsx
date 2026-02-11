@@ -1,62 +1,23 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, MessageCircle, Menu, Landmark, GraduationCap, Pause, Play } from "lucide-react";
+import { Home, MessageCircle, Menu, Landmark, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AppSidebar } from "./AppSidebar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCapacitorPlatform } from "@/hooks/use-capacitor-platform";
-import { useNarrationPlayer } from "@/contexts/NarrationPlayerContext";
 
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isNative } = useCapacitorPlatform();
-  const { currentNarrationRef, stopNarration } = useNarrationPlayer();
   
-  // Estado para controlar se há áudio tocando
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [hasActiveAudio, setHasActiveAudio] = useState(false);
-
-  // Monitorar o estado do áudio
-  useEffect(() => {
-    const checkAudioStatus = () => {
-      const audioElement = currentNarrationRef.current;
-      if (audioElement) {
-        setHasActiveAudio(true);
-        setIsAudioPlaying(!audioElement.paused);
-      } else {
-        setHasActiveAudio(false);
-        setIsAudioPlaying(false);
-      }
-    };
-
-    // Verificar a cada 500ms
-    const interval = setInterval(checkAudioStatus, 500);
-    checkAudioStatus();
-
-    return () => clearInterval(interval);
-  }, [currentNarrationRef]);
-
   const isActive = (path: string) => location.pathname === path;
   
   // Mostrar apenas na página inicial
   if (location.pathname !== '/') {
     return null;
   }
-
-  const handleToggleAudio = () => {
-    const audioElement = currentNarrationRef.current;
-    if (!audioElement) return;
-    
-    if (audioElement.paused) {
-      audioElement.play().catch(console.error);
-      setIsAudioPlaying(true);
-    } else {
-      audioElement.pause();
-      setIsAudioPlaying(false);
-    }
-  };
   
   const handlePoliticaClick = () => {
     navigate('/politica');
@@ -92,40 +53,19 @@ export const BottomNav = () => {
             <span className="text-[10px] font-medium leading-tight text-center">Início</span>
           </button>
 
-          {/* Áudio ou Desktop */}
-          {hasActiveAudio ? (
-            <button
-              onClick={handleToggleAudio}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
-                isAudioPlaying
-                  ? "text-primary bg-primary/15 ring-1 ring-primary/20"
-                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-              )}
-            >
-              {isAudioPlaying ? (
-                <Pause className="w-6 h-6 transition-transform" />
-              ) : (
-                <Play className="w-6 h-6 transition-transform" />
-              )}
-              <span className="text-[10px] font-medium leading-tight text-center">
-                {isAudioPlaying ? "Pausar" : "Continuar"}
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate("/evelyn")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
-                isActive("/evelyn")
-                  ? "text-primary bg-primary/15 ring-1 ring-primary/20"
-                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-              )}
-            >
-              <MessageCircle className={cn("w-6 h-6 transition-transform", isActive("/evelyn") && "scale-110")} />
-              <span className="text-[10px] font-medium leading-tight text-center">Evelyn</span>
-            </button>
-          )}
+          {/* Evelyn */}
+          <button
+            onClick={() => navigate("/evelyn")}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all",
+              isActive("/evelyn")
+                ? "text-primary bg-primary/15 ring-1 ring-primary/20"
+                : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+            )}
+          >
+            <MessageCircle className={cn("w-6 h-6 transition-transform", isActive("/evelyn") && "scale-110")} />
+            <span className="text-[10px] font-medium leading-tight text-center">Evelyn</span>
+          </button>
 
           {/* Botão Central da Professora - Elevado */}
           <div className="flex flex-col items-center -mt-6">
