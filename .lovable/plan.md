@@ -1,41 +1,20 @@
 
-# Teste do Facebook Pixel + Correção de Build
+# Reverter redirecionamento externo - Abrir FlipHTML5 dentro do app
 
-## O que será feito
+## Problema
+A correção anterior classificou URLs do FlipHTML5 como "externas" e passou a abrir em nova aba, mas o FlipHTML5 foi projetado para funcionar em iframes. O usuário quer que todos os livros abram dentro do modal do app.
 
-### 1. Adicionar `test_event_code` na Edge Function
-O Facebook exige que o `test_event_code: TEST30748` seja incluído no payload enviado à API de Conversões para validar que o servidor está funcionando. Vou adicionar suporte a esse código na edge function.
+## Solução
+Remover a lógica de detecção de URL externa do `PDFViewerModal.tsx` que redireciona para o navegador. Deixar todas as URLs (Google Drive e FlipHTML5) serem renderizadas normalmente no iframe do modal.
 
-- **Arquivo:** `supabase/functions/facebook-conversions/index.ts`
-- Aceitar campo opcional `test_event_code` no body da requisição
-- Incluir no payload enviado ao Facebook: `{ data: [...], test_event_code: "TEST30748" }`
+## Arquivo a editar
 
-### 2. Enviar `test_event_code` pelo hook do frontend
-- **Arquivo:** `src/hooks/useFacebookPixel.ts`
-- Adicionar parâmetro opcional `test_event_code` no `trackEvent`
-- Passar para a edge function quando presente
+**`src/components/PDFViewerModal.tsx`**
+- Remover import de `isGoogleDriveUrl` (não é mais necessário aqui)
+- Remover imports não usados: `Loader2`, `ExternalLink`
+- Remover estados `iframeLoading` e `iframeError`
+- Remover variável `isExternalUrl`
+- Remover o `useEffect` que faz `window.open` para URLs externas (linhas 50-55)
+- Remover o `if (isExternalUrl) return null` (linha 286)
 
-### 3. Corrigir warning de build (import dinâmico vs estático)
-- **Arquivo:** `src/pages/Auth.tsx`
-- O `useFacebookPixel` está sendo importado dinamicamente (`await import(...)`) em Auth.tsx, mas estaticamente nos outros arquivos, gerando um warning do Vite
-- Solução: mudar para chamada direta da edge function via `supabase.functions.invoke()` sem importar o hook (já que está fora de um componente React, dentro de um callback)
-
-### 4. Disparar evento de teste
-- Após deploy, vou chamar a edge function diretamente com o `test_event_code: TEST30748` para validar a conexão com o Facebook
-
-## Detalhes Técnicos
-
-**Edge Function - mudança no payload:**
-```typescript
-// Aceitar test_event_code do body
-const { event_name, event_id, ..., test_event_code } = await req.json();
-
-// Incluir no payload se presente
-const eventData = {
-  data: [...],
-  ...(test_event_code && { test_event_code }),
-};
-```
-
-**Auth.tsx - remover import dinâmico, usar supabase diretamente:**
-Já está fazendo `supabase.functions.invoke('facebook-conversions', ...)` diretamente, então basta remover o `await import('@/hooks/useFacebookPixel')` que não está sendo usado de fato.
+Resultado: tanto Google Drive quanto FlipHTML5 abrem normalmente no iframe dentro do modal do app.
