@@ -19,7 +19,7 @@ serve(async (req) => {
       throw new Error("FACEBOOK_CONVERSIONS_API_TOKEN não configurado");
     }
 
-    const { event_name, event_id, event_time, user_data, custom_data, event_source_url, action_source } = await req.json();
+    const { event_name, event_id, event_time, user_data, custom_data, event_source_url, action_source, test_event_code } = await req.json();
 
     if (!event_name) {
       throw new Error("event_name é obrigatório");
@@ -56,6 +56,7 @@ serve(async (req) => {
           custom_data: custom_data || undefined,
         },
       ],
+      ...(test_event_code && { test_event_code }),
     };
 
     const url = `https://graph.facebook.com/v21.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
