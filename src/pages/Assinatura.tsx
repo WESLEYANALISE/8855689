@@ -71,16 +71,7 @@ const Assinatura = () => {
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const { trialExpired } = useTrialStatus();
 
-  // Se Premium e acessou diretamente (reload/abertura do app), redirecionar para home
-  useEffect(() => {
-    if (!subscriptionLoading && isPremium && window.performance) {
-      const navEntries = window.performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-      const isDirectLoad = navEntries.length > 0 && (navEntries[0].type === 'navigate' || navEntries[0].type === 'reload');
-      if (isDirectLoad) {
-        navigate('/?tab=ferramentas', { replace: true });
-      }
-    }
-  }, [subscriptionLoading, isPremium, navigate]);
+  // Redirecionamento removido - Premium pode ver tela de gerenciamento
   const [loadingPlano, setLoadingPlano] = useState<PlanType | null>(null);
   const [modalPlano, setModalPlano] = useState<PlanType | null>(null);
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();

@@ -233,11 +233,19 @@ const AssinaturaGerenciamento = () => {
                   {getStatusBadge()}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-zinc-300">
                   <CreditCard className={`${isDesktop ? 'w-5 h-5' : 'w-4 h-4'} text-amber-500`} />
                   <span className={`${isDesktop ? 'text-lg' : 'text-base'} font-medium`}>{getPlanValue()}</span>
                 </div>
+                {subscription?.createdAt && (
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Calendar className={`${isDesktop ? 'w-5 h-5' : 'w-4 h-4'} text-amber-500/70`} />
+                    <span className="text-sm">
+                      Assinado em {format(new Date(subscription.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
