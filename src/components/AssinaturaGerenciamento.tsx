@@ -303,75 +303,77 @@ const AssinaturaGerenciamento = () => {
           </motion.div>
         </div>
 
-        {/* Botões de Ação */}
-        <div className={`mt-6 ${isDesktop ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
-          {/* Botão Mudar de Plano */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Button
-              onClick={handleMudarPlano}
-              disabled={mudandoPlano}
-              variant="outline"
-              className={`w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white ${isDesktop ? 'py-7' : 'py-6'} rounded-xl transition-all duration-300`}
+        {/* Botões de Ação - Ocultos para plano vitalício */}
+        {subscription?.planType !== 'vitalicio' && (
+          <div className={`mt-6 ${isDesktop ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
+            {/* Botão Mudar de Plano */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
             >
-              {mudandoPlano ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Mudar de Plano
-            </Button>
-          </motion.div>
+              <Button
+                onClick={handleMudarPlano}
+                disabled={mudandoPlano}
+                variant="outline"
+                className={`w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white ${isDesktop ? 'py-7' : 'py-6'} rounded-xl transition-all duration-300`}
+              >
+                {mudandoPlano ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Mudar de Plano
+              </Button>
+            </motion.div>
 
-          {/* Botão Cancelar Assinatura */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={`w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 ${isDesktop ? 'py-7' : 'py-6'} rounded-xl transition-all duration-300`}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Cancelar Assinatura
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="bg-[#1A1A1B] border-zinc-800">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-white">Cancelar assinatura?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-zinc-400 space-y-3">
-                    <p>Tem certeza que deseja cancelar sua assinatura premium?</p>
-                    <p className="text-amber-400 font-medium">
-                      Sua assinatura permanecerá ativa até {formatExpirationDate()}.
-                    </p>
-                    <p>Após essa data, você perderá acesso a todas as funcionalidades exclusivas.</p>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700">
-                    Voltar
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleCancelar}
-                    disabled={cancelando}
-                    className="bg-red-600 text-white hover:bg-red-700"
+            {/* Botão Cancelar Assinatura */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={`w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 ${isDesktop ? 'py-7' : 'py-6'} rounded-xl transition-all duration-300`}
                   >
-                    {cancelando ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : null}
-                    Confirmar Cancelamento
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </motion.div>
-        </div>
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Cancelar Assinatura
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-[#1A1A1B] border-zinc-800">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Cancelar assinatura?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-zinc-400 space-y-3">
+                      <p>Tem certeza que deseja cancelar sua assinatura premium?</p>
+                      <p className="text-amber-400 font-medium">
+                        Sua assinatura permanecerá ativa até {formatExpirationDate()}.
+                      </p>
+                      <p>Após essa data, você perderá acesso a todas as funcionalidades exclusivas.</p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700">
+                      Voltar
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCancelar}
+                      disabled={cancelando}
+                      className="bg-red-600 text-white hover:bg-red-700"
+                    >
+                      {cancelando ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : null}
+                      Confirmar Cancelamento
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </motion.div>
+          </div>
+        )}
 
         {/* Botão de Suporte Mobile */}
         {!isDesktop && (
