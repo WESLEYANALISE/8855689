@@ -1,66 +1,79 @@
 
 
-# Corrigir visualização de livros FlipHTML5 no app
+# Criar Proxy para FlipHTML5 funcionar no iframe (Web + Mobile)
 
-## Problema identificado
+## Problema
 
-O livro "Origens e definições do direito administrativo" (id 981) usa uma URL do **FlipHTML5** (`https://online.fliphtml5.com/zmzll/fcvw/`). O FlipHTML5 bloqueia embedding em iframes de outros domínios usando o header `X-Frame-Options: SAMEORIGIN`. Por isso aparece a mensagem "Este conteudo esta bloqueado".
-
-Se antes funcionava, provavelmente era porque o app rodava como app nativo via Capacitor (WebView nativa), que nao respeita essa restricao da mesma forma que o navegador web.
+O FlipHTML5 envia o header `X-Frame-Options: SAMEORIGIN`, que impede navegadores web de exibir o conteudo em iframes de outros dominios. Isso nao e um bug do app -- e uma restricao do servidor do FlipHTML5.
 
 ## Solucao
 
-Detectar URLs que nao sao do Google Drive (como FlipHTML5) e abrir usando o **Capacitor Browser** (WebView nativa no app mobile) ou em nova aba (na versao web). Isso ja existe no projeto com o hook `useExternalBrowser`.
+Criar uma Edge Function que funciona como proxy: ela busca a pagina do FlipHTML5 no servidor, remove o header de bloqueio, e retorna o conteudo para o iframe do app. Assim o iframe carrega normalmente em qualquer ambiente.
 
 ## Mudancas
 
-### 1. `src/components/PDFViewerModal.tsx`
-- Importar `isGoogleDriveUrl` de `driveUtils` e o hook `useExternalBrowser`
-- Quando a URL nao for do Google Drive, ao abrir o modal, usar `openUrl()` do Capacitor Browser (que abre na WebView nativa no mobile, ou em nova aba no web) e fechar o modal
-- URLs do Google Drive continuam abrindo normalmente no iframe como sempre
+### 1. Nova Edge Function: `supabase/functions/proxy-reader/index.ts`
+- Recebe a URL do livro como parametro
+- Faz fetch da pagina no servidor
+- Remove o header `X-Frame-Options` da resposta
+- Retorna o conteudo HTML para o iframe
+- Inclui headers CORS para funcionar no preview e producao
 
-### 2. Logica de deteccao
+### 2. Atualizar `src/lib/driveUtils.ts`
+- Adicionar funcao `proxyExternalUrl(url)` que gera a URL do proxy para links que nao sao do Google Drive
+- Exemplo: `https://supabase-url/functions/v1/proxy-reader?url=https://online.fliphtml5.com/zmzll/fcvw/`
+
+### 3. Atualizar `src/components/PDFViewerModal.tsx`
+- Para URLs que nao sao do Google Drive, usar a URL do proxy em vez da URL direta
+- URLs do Google Drive continuam funcionando como sempre (sem proxy)
+
+## Fluxo
 
 ```text
-URL do livro
-   |
-   v
-E Google Drive? --Sim--> Abre no iframe (comportamento atual)
-   |
-  Nao (FlipHTML5 etc)
-   |
-   v
-E app nativo? --Sim--> Capacitor Browser.open() (WebView nativa)
-   |
-  Nao (web)
-   |
-   v
-window.open() em nova aba
+Usuario clica no livro FlipHTML5
+        |
+        v
+PDFViewerModal detecta que nao e Google Drive
+        |
+        v
+Gera URL do proxy: /functions/v1/proxy-reader?url=...
+        |
+        v
+Edge Function busca o conteudo do FlipHTML5
+        |
+        v
+Remove X-Frame-Options e retorna o HTML
+        |
+        v
+iframe exibe o conteudo normalmente
 ```
 
 ## Detalhes tecnicos
 
-No `PDFViewerModal.tsx`, adicionar um `useEffect` que detecta quando o modal abre com uma URL externa (nao-Drive):
-
+### Edge Function (proxy-reader)
 ```typescript
-import { isGoogleDriveUrl } from "@/lib/driveUtils";
-import { useExternalBrowser } from "@/hooks/use-external-browser";
-
-// Dentro do componente:
-const { openUrl } = useExternalBrowser();
-const isExternalUrl = !isGoogleDriveUrl(urlToUse);
-
-useEffect(() => {
-  if (isOpen && isExternalUrl) {
-    openUrl(urlToUse); // Capacitor Browser no mobile, nova aba no web
-    onClose();
-  }
-}, [isOpen, isExternalUrl, urlToUse]);
-
-if (isExternalUrl && isOpen) return null;
+// Recebe ?url=https://online.fliphtml5.com/...
+// Faz fetch da URL
+// Remove X-Frame-Options da resposta
+// Retorna com headers CORS
 ```
 
-Isso garante que:
-- No **app nativo** (Capacitor): abre na WebView do sistema (Safari/Chrome in-app), que funciona com FlipHTML5
-- Na **versao web**: abre em nova aba do navegador
-- **Google Drive**: continua no iframe dentro do modal como sempre
+### driveUtils.ts
+```typescript
+export const getProxyUrl = (url: string): string => {
+  const supabaseUrl = "..."; // URL do Supabase
+  return `${supabaseUrl}/functions/v1/proxy-reader?url=${encodeURIComponent(url)}`;
+};
+```
+
+### PDFViewerModal.tsx
+```typescript
+const processedUrl = isGoogleDriveUrl(urlToUse) 
+  ? processDriveUrl(urlToUse, viewMode)
+  : getProxyUrl(urlToUse);
+```
+
+## Observacao importante
+
+O proxy funciona bem para a pagina HTML inicial do FlipHTML5, mas o FlipHTML5 carrega muitos recursos adicionais (JavaScript, CSS, imagens) de seus proprios servidores. Esses recursos continuarao carregando diretamente do FlipHTML5 (o que normalmente funciona, pois a restricao X-Frame-Options se aplica apenas ao documento principal no iframe, nao aos sub-recursos).
+
