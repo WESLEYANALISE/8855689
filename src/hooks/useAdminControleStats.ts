@@ -475,8 +475,8 @@ export const useOnlineDetails = () => {
       const { data, error } = await supabase.rpc('get_admin_online_details');
       if (error) throw error;
       return (data || []).map((item: any) => ({
-        user_id: item.user_id,
-        nome: item.nome,
+        user_id: item.user_id || item.session_id,
+        nome: item.nome || (item.user_id ? null : 'Visitante anônimo'),
         email: item.email,
         telefone: item.telefone,
         dispositivo: item.dispositivo,
