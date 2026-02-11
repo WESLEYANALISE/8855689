@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
-  const { isComplete, isLoading: onboardingLoading } = useOnboardingStatus();
+  const { isComplete, planChosen, isLoading: onboardingLoading } = useOnboardingStatus();
   const { trialExpired, loading: trialLoading } = useTrialStatus();
 
   const isLoading = authLoading || (!skipOnboardingCheck && onboardingLoading) || trialLoading;
@@ -35,8 +35,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/welcome" state={{ from: location }} replace />;
   }
 
-  // Redireciona para onboarding se não estiver completo
-  if (!skipOnboardingCheck && !isComplete && location.pathname !== '/onboarding') {
+  // Redireciona para escolha de plano se ainda não escolheu
+  if (!skipOnboardingCheck && !isComplete && !planChosen && location.pathname !== '/escolher-plano') {
+    return <Navigate to="/escolher-plano" replace />;
+  }
+
+  // Redireciona para onboarding se não estiver completo (mas já escolheu plano)
+  if (!skipOnboardingCheck && !isComplete && planChosen && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

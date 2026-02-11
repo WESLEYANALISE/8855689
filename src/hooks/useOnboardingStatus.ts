@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasPlanChosen } from '@/pages/EscolherPlano';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProfileData {
@@ -13,6 +14,7 @@ interface ProfileData {
 
 interface OnboardingStatus {
   isComplete: boolean;
+  planChosen: boolean;
   isLoading: boolean;
   profile: ProfileData | null;
   refetch: () => Promise<void>;
@@ -64,6 +66,9 @@ export const useOnboardingStatus = (): OnboardingStatus => {
     ? localStorage.getItem(`${ONBOARDING_COMPLETED_KEY}_${user.id}`) === 'true'
     : false;
 
+  // Verificar se já escolheu plano
+  const planChosen = user ? hasPlanChosen(user.id) : false;
+
   // Onboarding é completo se:
   // 1. Já completou antes (localStorage) OU
   // 2. Telefone E intenção estão preenchidos
@@ -71,6 +76,7 @@ export const useOnboardingStatus = (): OnboardingStatus => {
 
   return {
     isComplete,
+    planChosen,
     isLoading,
     profile,
     refetch: fetchProfile,

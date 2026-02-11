@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { GraduationCap, Target, ArrowRight, ArrowLeft, Check, Scale, Briefcase } from 'lucide-react';
 import { markOnboardingComplete } from '@/hooks/useOnboardingStatus';
+import { markPlanChosen } from '@/pages/EscolherPlano';
 import { getPreloadedVideoUrl } from '@/hooks/useOnboardingVideoPreloader';
 
 // Imagens elegantes para cada perfil
@@ -122,9 +123,10 @@ const Onboarding = () => {
 
       if (error) throw error;
 
-      // Marcar onboarding como completo no localStorage
+      // Marcar onboarding e plano como completo
       if (user?.id) {
         markOnboardingComplete(user.id);
+        markPlanChosen(user.id);
       }
 
       navigate('/', { replace: true });

@@ -40,6 +40,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { preloadImages } from "@/hooks/useInstantCache";
 import IntroCarousel from "@/components/onboarding/IntroCarousel";
+import PremiumCelebration from "@/components/onboarding/PremiumCelebration";
 
 // Imagens de carreiras para preload
 import carreiraAdvogado from "@/assets/carreira-advogado.webp";
@@ -73,6 +74,17 @@ const Index = () => {
   const { handleLinkHover } = useRoutePrefetch();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // Premium celebration for new subscribers
+  const [showCelebration, setShowCelebration] = useState(() => {
+    if (!user) return false;
+    const key = `just_subscribed_${user.id}`;
+    if (localStorage.getItem(key) === 'true') {
+      localStorage.removeItem(key);
+      return true;
+    }
+    return false;
+  });
 
   // Intro carousel for first-time users
   const [showIntro, setShowIntro] = useState(() => {
@@ -227,6 +239,8 @@ const Index = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-20 md:pb-0 relative">
+      {/* Animação de celebração Premium */}
+      {showCelebration && <PremiumCelebration onComplete={() => setShowCelebration(false)} />}
       {/* Carrossel de introdução para novos usuários */}
       {showIntro && <IntroCarousel onComplete={handleIntroComplete} />}
       {/* Áudio de boas-vindas para novos usuários */}
