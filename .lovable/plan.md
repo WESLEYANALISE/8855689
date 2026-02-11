@@ -1,53 +1,62 @@
 
 
-# Corrigir PDFViewerModal para funcionar como a versao do GitHub
+# Correcao do WebView - CSP bloqueando iframes
 
-## Problema identificado
+## Problema raiz
 
-Ao comparar o codigo do GitHub (que funciona) com o codigo atual, encontrei as seguintes diferencas no iframe:
+O `index.html` tem uma Content-Security-Policy com `frame-src` restritivo:
 
-1. **`scrolling="no"`** -- Este atributo esta BLOQUEANDO o scroll dentro do iframe. Isso quebra completamente o modo vertical (scroll continuo) e tambem impede navegacao no modo paginas.
-2. **`seamless`** -- Atributo obsoleto que pode causar comportamentos inesperados em diferentes navegadores.
-3. **`frameBorder="0"`, `allow`, `allowFullScreen`, `allowTransparency`** -- Atributos extras que nao existem na versao funcional e podem interferir.
+```
+frame-src 'self' https://www.youtube.com https://youtube.com https://player.vimeo.com;
+```
+
+Isso bloqueia **todos** os iframes de FlipHTML5 (`online.fliphtml5.com`) e Google Drive (`drive.google.com`). Esse e o motivo pelo qual nem os PDFs do Drive nem as paginas do FlipHTML5 aparecem.
 
 ## Solucao
 
-Reverter o iframe para ficar identico ao da versao do GitHub que funciona:
+### 1. Atualizar CSP no `index.html` (linha 12)
 
-### Arquivo: `src/components/PDFViewerModal.tsx`
+Adicionar os dominios necessarios ao `frame-src`:
 
-**Remover** todos os atributos extras do iframe e deixar apenas o basico:
-
-```tsx
-// DE (atual - quebrado):
-<iframe
-  ref={iframeRef}
-  src={processedUrl}
-  className="w-full h-full"
-  title={title}
-  seamless
-  scrolling="no"
-  frameBorder="0"
-  allow="autoplay; encrypted-media"
-  allowFullScreen
-  allowTransparency
-  style={{ touchAction: 'pan-y pinch-zoom', border: 'none' }}
-/>
-
-// PARA (igual GitHub - funciona):
-<iframe
-  ref={iframeRef}
-  src={processedUrl}
-  className="w-full h-full"
-  title={title}
-  style={{ touchAction: 'pan-y pinch-zoom' }}
-/>
+```
+frame-src 'self' https://www.youtube.com https://youtube.com https://player.vimeo.com https://drive.google.com https://*.google.com https://online.fliphtml5.com https://*.fliphtml5.com;
 ```
 
-### Tambem no `driveUtils.ts`
+### 2. Atualizar `capacitor.config.ts`
 
-A versao do GitHub NAO tem a funcao `getProxyUrl`. O `processDriveUrl` ja retorna URLs nao-Drive como estao (sem proxy). O codigo atual ja faz isso corretamente, entao nenhuma mudanca necessaria aqui.
+Adicionar configuracoes que melhoram compatibilidade do WebView nativo:
+
+- `server.allowNavigation: ['*']` -- permite navegacao para qualquer dominio dentro do WebView
+- `android.allowMixedContent: true` -- permite conteudo HTTP e HTTPS misturados
+- Manter configuracoes existentes (SplashScreen, StatusBar)
+
+### 3. Nenhuma mudanca no `PDFViewerModal.tsx`
+
+O iframe simplificado (sem `scrolling="no"`, sem `seamless`) ja esta correto. O problema era exclusivamente o CSP bloqueando os dominios.
 
 ## Resumo
 
-A unica mudanca necessaria e remover os atributos extras do iframe que foram adicionados nas tentativas anteriores de correcao. O iframe simples (como no GitHub) e o que funciona.
+A unica mudanca critica e adicionar `drive.google.com` e `fliphtml5.com` ao `frame-src` do CSP no `index.html`. Sem isso, o navegador bloqueia silenciosamente o carregamento dos iframes.
+
+## Detalhes tecnicos
+
+### index.html - CSP atualizado (linha 12)
+
+Alterar apenas a diretiva `frame-src` dentro do Content-Security-Policy existente para incluir:
+- `https://drive.google.com` -- para PDFs do Google Drive
+- `https://*.google.com` -- para preview do Google Drive
+- `https://online.fliphtml5.com` -- para livros FlipHTML5
+- `https://*.fliphtml5.com` -- para sub-recursos FlipHTML5
+
+### capacitor.config.ts
+
+Adicionar ao objeto `server`:
+- `allowNavigation: ['*']`
+- `cleartext: true`
+
+Adicionar secao `android`:
+- `allowMixedContent: true`
+
+Adicionar secao `ios`:
+- `limitsNavigationsToAppBoundDomains: false`
+
