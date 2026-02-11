@@ -33,3 +33,11 @@ export const processDriveUrl = (url: string, viewMode: 'normal' | 'vertical'): s
 export const isGoogleDriveUrl = (url: string): boolean => {
   return /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/.test(url);
 };
+
+/**
+ * Gera URL do proxy para conteúdo externo (ex: FlipHTML5)
+ */
+export const getProxyUrl = (url: string): string => {
+  const supabaseUrl = "https://izspjvegxdfgkgibpyst.supabase.co";
+  return `${supabaseUrl}/functions/v1/proxy-reader?url=${encodeURIComponent(url)}`;
+};
