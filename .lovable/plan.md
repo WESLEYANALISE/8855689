@@ -1,58 +1,94 @@
 
+## Pagina de Apresentacao (Landing Page) antes da Autenticacao
 
-## Corrigir e Mostrar Lista de Assinantes Premium no Dashboard
+### Objetivo
+Criar uma pagina `/welcome` que sera exibida antes da tela de login/cadastro. Funcionara como uma vitrine do app com carrossel de prints, video demonstrativo e CTA para cadastro.
 
-### Problema Atual
-O "Total Premium" no dashboard admin nao mostra o numero correto porque a **politica RLS** da tabela `subscriptions` so permite que cada usuario veja suas proprias assinaturas. Alem disso, nao existe uma lista mostrando quem sao os assinantes.
+### Estrutura da Pagina
 
-### O que sera feito
+A pagina tera as seguintes secoes, em ordem vertical:
 
-**1. Adicionar politica RLS para admin ver todas as assinaturas**
+**1. Hero Section**
+- Fundo com imagem da deusa Themis (`themis-full.webp`) com overlay escuro e gradiente
+- Logo "Direito Premium" no topo
+- Headline chamativa focada na dor do estudante: "Cansado de estudar Direito sem rumo?"
+- Subtitulo persuasivo: "Tudo do Direito em um so lugar. Aulas, leis, flashcards e IA."
+- Animacao de entrada (fade-in + slide-up) com framer-motion
 
-Executar SQL no banco para permitir que o admin leia todos os registros:
+**2. Secao "Demonstrativo" - Video do YouTube**
+- Titulo da secao: "Demonstrativo"
+- Embed do YouTube Shorts `vx7xFDI_MDE` em formato vertical responsivo
+- Borda estilizada e sombra
+
+**3. Carrossel de Screenshots do App**
+- Usando o componente Carousel (Embla) ja existente no projeto
+- 7 imagens fornecidas pelo usuario (prints do app) copiadas para `src/assets/landing/`
+- Cada slide mostra uma imagem em formato vertical (mockup de celular)
+- Indicadores de paginacao (dots) na parte inferior
+- Auto-play com pausa ao tocar
+- Responsivo: imagens com altura adequada em mobile e desktop
+
+**4. Secao de Funcionalidades**
+- Grid com icones e descricoes curtas das funcionalidades principais:
+  - Videoaulas de todas as materias
+  - Jornada Juridica com aulas explicativas
+  - Flashcards inteligentes
+  - Biblioteca Juridica com +1200 livros
+  - Preparacao OAB 1a e 2a Fase
+  - Vade Mecum Comentado
+  - Estudos de Politica e Atualidades
+- Cada item com icone do Lucide e animacao de entrada escalonada
+
+**5. CTA Final**
+- Botao grande e destacado: "Comecar Agora" ou "Acessar Gratuitamente"
+- Animacao pulsante para chamar atencao
+- Ao clicar, navega para `/auth`
+- Texto de apoio abaixo: "Cadastro rapido e gratuito"
+
+### Mudancas Tecnicas
+
+**Arquivos novos:**
+- `src/pages/Welcome.tsx` - Pagina completa com todas as secoes
+
+**Arquivos de imagem (copiar das uploads para o projeto):**
+- `src/assets/landing/welcome-1.png` (imagem 1 - Estude tudo sobre o Direito)
+- `src/assets/landing/welcome-2.png` (imagem 2 - Vade Mecum Comentado)
+- `src/assets/landing/welcome-3.png` (imagem 3 - Videoaulas)
+- `src/assets/landing/welcome-4.png` (imagem 4 - Jornada Juridica)
+- `src/assets/landing/welcome-5.png` (imagem 5 - Flashcards)
+- `src/assets/landing/welcome-6.png` (imagem 6 - Biblioteca Juridica)
+- `src/assets/landing/welcome-7.png` (imagem 7 - OAB)
+- `src/assets/landing/welcome-8.png` (imagem 8 - Politica)
+
+**Arquivos modificados:**
+- `src/App.tsx` - Adicionar rota `/welcome` fora do Layout e do ProtectedRoute
+- `src/components/auth/ProtectedRoute.tsx` - Quando usuario nao autenticado, redirecionar para `/welcome` em vez de `/auth`
+
+### Fluxo do Usuario
 
 ```text
-CREATE POLICY "Admin pode ver todas as assinaturas"
-  ON subscriptions FOR SELECT
-  USING (is_admin(auth.uid()));
+Usuario abre o app
+       |
+       v
+  /welcome (Landing Page)
+       |
+  [Navega pelo carrossel, assiste video]
+       |
+  [Clica "Comecar Agora"]
+       |
+       v
+    /auth (Login / Cadastro)
+       |
+       v
+  /onboarding (se novo)
+       |
+       v
+    / (Home)
 ```
 
-**2. Criar hook para listar assinantes unicos com email e plano**
-
-No arquivo `useAdminControleStats.ts`, adicionar um novo hook `useListaAssinantesPremium` que retorna:
-- Email do usuario
-- Plano assinado (mensal, anual, vitalicio)
-- Valor pago
-- Data da assinatura
-- Status
-
-A query vai buscar as assinaturas com status "authorized", agrupar por usuario unico (email), e mostrar a assinatura mais recente de cada um.
-
-**3. Adicionar secao de assinantes no AdminControle**
-
-Abaixo dos cards de Premium (Total Premium, Taxa Conversao, Media ate Premium), adicionar uma tabela/lista com:
-- Coluna de email
-- Coluna de plano
-- Coluna de valor
-- Coluna de data
-- Badge de status
-- Contagem total de assinantes unicos no topo
-
-A lista tera scroll e sera ordenada por data (mais recente primeiro).
-
-### Dados atuais no banco
-
-Existem **50 assinaturas autorizadas**, mas muitas sao duplicadas do mesmo usuario. Os assinantes unicos reais sao aproximadamente **6 usuarios**:
-- eloilson.leao@gmail.com (vitalicio)
-- danilocostag19@gmail.com (vitalicio)
-- wn7corporation@gmail.com (mensal/anual - multiplas)
-- emillymaria2003@icloud.com (vitalicio)
-- enagioaraujo@gmail.com (vitalicio)
-- haverothmel@gmail.com (vitalicio)
-
-### Arquivos modificados
-
-- **Banco de dados**: Nova politica RLS na tabela `subscriptions`
-- **`src/hooks/useAdminControleStats.ts`**: Novo hook `useListaAssinantesPremium` e atualizar interface `MetricasPremium` para incluir lista de assinantes
-- **`src/pages/Admin/AdminControle.tsx`**: Nova secao abaixo dos cards mostrando a tabela de assinantes
-
+### Tecnologias Utilizadas
+- Framer Motion (ja instalado) para animacoes de entrada
+- Embla Carousel (ja instalado) com autoplay para o carrossel de imagens
+- YouTube iframe embed para o video
+- Tailwind CSS para layout e responsividade
+- Assets da deusa Themis ja existentes no projeto para o fundo
