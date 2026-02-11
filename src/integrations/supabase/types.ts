@@ -19890,6 +19890,7 @@ export type Database = {
           last_seen: string
           nome: string
           page_path: string
+          session_id: string
           telefone: string
           user_id: string
         }[]
