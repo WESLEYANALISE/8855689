@@ -1,76 +1,49 @@
 
 
-## Corrigir Dashboard Controle - Metricas e Filtros
+## Substituir Botao WhatsApp por Chatbot de Vendas na Pagina de Assinatura
 
-### Problemas Identificados
+### O que muda
 
-1. **"Novos Hoje" mostra 7, mas sao 33**: O codigo usa UTC (meia-noite em Londres). No fuso do Brasil (UTC-3), o dia comeca 3h depois. Resultado: perde os cadastros entre 21h-23h59 do dia anterior no horario de Brasilia.
+O botao verde flutuante do WhatsApp na pagina de assinatura sera substituido por um chatbot interno que funciona como um "consultor de vendas" humanizado. Ele responde duvidas sobre o plano Premium, funcionalidades, precos e formas de pagamento usando a IA Gemini.
 
-2. **"Online Agora" mostra 0, mas tem 13 sessoes ativas**: A query do cliente pode ter race condition com autenticacao. Alem disso, nao ha fallback robusto.
+### Como vai funcionar
 
-3. **Paginas Mais Acessadas mostra dados incompletos**: O hook busca TODAS as page_views (6.653 registros) e conta no frontend, mas o Supabase silenciosamente retorna no maximo 1.000 linhas. Os dados estao truncados.
+1. O botao flutuante verde vira um botao de chat (mesmo estilo, mesma posicao)
+2. Ao clicar, abre um modal de chat com a "Consultora Premium"
+3. O chat tera perguntas pre-prontas como:
+   - "Quais funcoes estao incluidas no Premium?"
+   - "Quanto custa e como pago?"
+   - "O acesso e realmente vitalicio?"
+   - "Posso testar antes de assinar?"
+   - "O que muda sem anuncios?"
+4. A IA responde de forma humanizada, persuasiva e informativa, sempre baseada nas funcionalidades reais do app
+5. As respostas vem do edge function `gemini-chat` ja existente, com um prompt de sistema especifico para vendas
 
-4. **Sem opcao de filtro por periodo**: So mostra 7 dias, sem opcao de "Hoje", "30 dias", etc.
+### Detalhes Tecnicos
 
-### Solucao
+**Novo componente: `src/components/assinatura/ConsultoraChatModal.tsx`**
+- Modal de chat similar ao `ProfessoraChatModal` (mesmo padrao visual)
+- Mensagem de boas-vindas humanizada da "Consultora Premium"
+- 5-6 perguntas sugeridas pre-definidas sobre o plano
+- Envia mensagens para o edge function `gemini-chat` com um prompt de sistema que contem todas as informacoes do plano (preco R$89,90, funcionalidades, beneficios)
+- Respostas renderizadas com ReactMarkdown
+- Botao "Assinar Agora" embutido no chat quando relevante
 
-#### 1. Criar funcoes RPC no banco de dados para agregar dados corretamente
+**Arquivo modificado: `src/pages/Assinatura.tsx`**
+- Remover o link do WhatsApp (linhas 375-384)
+- Adicionar estado para controlar abertura do chat
+- Adicionar botao flutuante que abre o `ConsultoraChatModal`
+- Importar o novo componente
 
-Criar 3 funcoes SQL que fazem a contagem diretamente no banco, eliminando o limite de 1000 linhas:
+**Edge function `gemini-chat`**: Ja existe e sera reutilizada. O prompt de sistema sera montado no frontend antes de enviar, contendo:
+- Todas as funcionalidades do Premium
+- Preco e forma de pagamento
+- Tom humanizado e persuasivo
+- Instrucao para sempre convidar a pessoa a assinar
 
-- `get_novos_usuarios_count(start_date, end_date)` - retorna contagem de novos usuarios no periodo
-- `get_paginas_populares(start_date, end_date, limite)` - retorna paginas agrupadas e contadas no banco
-- `get_online_agora()` - retorna contagem de sessoes unicas nos ultimos 5 minutos
+### Resultado
 
-Todas usarao `SECURITY DEFINER` com verificacao de admin para seguranca.
-
-#### 2. Corrigir timezone para "Novos Hoje"
-
-Usar o fuso `America/Sao_Paulo` ao calcular o inicio do dia, garantindo que "hoje" corresponda ao dia real no Brasil.
-
-#### 3. Adicionar filtro de periodo no dashboard
-
-Adicionar seletor no topo com opcoes:
-- Hoje
-- 7 dias
-- 30 dias
-- 90 dias
-
-Este filtro afetara: "Novos no periodo", "Paginas Mais Acessadas", "Usuarios Ativos" e "Novos Cadastros" (lista).
-
-#### 4. Adicionar metricas extras
-
-- **Novos Hoje / 7d / 30d**: Cards com contagens por periodo
-- **Cadastros por Dia**: Mini grafico com os ultimos 7/30 dias
-- **Retencao**: Usuarios que voltaram nos ultimos 7 dias vs total
-- **Paginas por periodo**: Filtro "Hoje", "7 dias", "30 dias"
-
-### Arquivos Modificados
-
-**Banco de dados (migracao SQL):**
-- Criar funcao `get_admin_paginas_populares(p_dias INTEGER)` que faz `GROUP BY page_path` e `COUNT(*)` diretamente no banco
-- Criar funcao `get_admin_online_count()` que retorna sessoes unicas nos ultimos 5 min
-- Criar funcao `get_admin_novos_por_periodo(p_dias INTEGER)` que conta novos usuarios no fuso de Brasilia
-
-**`src/hooks/useAdminControleStats.ts`:**
-- Corrigir `useEstatisticasGerais`: usar fuso `America/Sao_Paulo` para "Novos Hoje", e adicionar contagens para 7d e 30d
-- Corrigir `usePaginasPopulares`: aceitar parametro de dias, usar RPC em vez de buscar todas as linhas
-- Corrigir `useOnlineAgoraRealtime`: usar RPC `get_admin_online_count` para contagem precisa
-- Adicionar hook `useCadastrosPorDia` para grafico de evolucao
-
-**`src/pages/Admin/AdminControle.tsx`:**
-- Adicionar estado `periodoFiltro` com opcoes "hoje", "7dias", "30dias", "90dias"
-- Adicionar seletor de periodo (botoes ou select) abaixo do header
-- Atualizar cards: mostrar "Novos (periodo selecionado)" dinamicamente
-- Atualizar tab Paginas: usar o periodo selecionado
-- Adicionar card com mini grafico de cadastros por dia (usando Recharts, ja instalado)
-- Mostrar mais detalhes nas metricas: total de page views no periodo, media de cadastros/dia
-
-### Resultado Esperado
-
-- "Novos Hoje" mostrara 33 (correto com fuso Brasil)
-- "Online Agora" mostrara 13 (sessoes reais ativas)
-- "Paginas Mais Acessadas" mostrara dados completos (sem truncamento)
-- Filtro de periodo permitira ver metricas de Hoje, 7d, 30d, 90d
-- Metricas mais detalhadas e precisas em todo o dashboard
-
+- O usuario clica no botao flutuante e conversa com uma IA que conhece tudo sobre o plano
+- Perguntas sugeridas facilitam a interacao
+- A IA responde de forma natural, explicando beneficios e tirando duvidas
+- Experiencia mais imersiva do que redirecionar para o WhatsApp
