@@ -92,9 +92,9 @@ const EscolherPlano: React.FC = () => {
   const handlePaymentApproved = () => {
     if (user?.id) {
       markPlanChosen(user.id);
-      localStorage.setItem(`just_subscribed_${user.id}`, 'true');
     }
-    navigate('/', { replace: true });
+    // Não navegar aqui — deixar o PremiumSuccessCard aparecer na PixPaymentScreen
+    // O botão "Começar a usar" do card já navega para /
   };
 
   const handleConfirm = () => {
