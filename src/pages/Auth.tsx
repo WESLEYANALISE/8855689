@@ -363,22 +363,22 @@ const Auth: React.FC = () => {
   const formContent = (
     <Card className="border-border/30 bg-card/90 backdrop-blur-md shadow-2xl overflow-visible">
       <CardHeader className="space-y-1 pb-6 overflow-visible">
-        {/* Logo e título "Direito Premium" - apenas no login */}
-        {mode === 'login' && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center mb-4"
-          >
-            <img 
-              src={logoDireitoPremium} 
-              alt="Direito Premium" 
-              className="w-16 h-16 mb-2 rounded-xl"
-            />
-            <h1 className="text-2xl font-bold text-foreground font-playfair">Direito Premium</h1>
-            <p className="text-sm text-muted-foreground mt-1">Tudo do Direito em um só lugar</p>
-          </motion.div>
-        )}
+        {/* Logo e título "Direito Premium" - transição suave */}
+        <div className={`grid transition-all duration-300 ease-out ${
+          mode === 'login' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}>
+          <div className="overflow-hidden">
+            <div className="flex flex-col items-center mb-4">
+              <img 
+                src={logoDireitoPremium} 
+                alt="Direito Premium" 
+                className="w-16 h-16 mb-2 rounded-xl"
+              />
+              <h1 className="text-2xl font-bold text-foreground font-playfair">Direito Premium</h1>
+              <p className="text-sm text-muted-foreground mt-1">Tudo do Direito em um só lugar</p>
+            </div>
+          </div>
+        </div>
 
         {/* Toggle menu for login/signup */}
         {(mode === 'login' || mode === 'signup') && (
@@ -425,39 +425,37 @@ const Auth: React.FC = () => {
       
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={mode}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="space-y-4"
-            >
-              {mode === 'signup' && (
-                <div className="space-y-2">
-                  <Label htmlFor="nome" className="text-sm font-medium">
-                    Nome
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="nome"
-                      name="nome"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={formData.nome}
-                      onChange={handleInputChange}
-                      className={`pl-10 ${errors.nome ? 'border-destructive' : ''}`}
-                      disabled={isLoading}
-                    />
+              {/* Campo Nome - transição suave, só no signup */}
+              <div className={`grid transition-all duration-300 ease-out ${
+                mode === 'signup' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}>
+                <div className="overflow-hidden">
+                  <div className="space-y-2 pb-1">
+                    <Label htmlFor="nome" className="text-sm font-medium">
+                      Nome
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="nome"
+                        name="nome"
+                        type="text"
+                        placeholder="Seu nome completo"
+                        value={formData.nome}
+                        onChange={handleInputChange}
+                        className={`pl-10 ${errors.nome ? 'border-destructive' : ''}`}
+                        disabled={isLoading}
+                        tabIndex={mode === 'signup' ? 0 : -1}
+                      />
+                    </div>
+                    {errors.nome && (
+                      <p className="text-xs text-destructive">{errors.nome}</p>
+                    )}
                   </div>
-                  {errors.nome && (
-                    <p className="text-xs text-destructive">{errors.nome}</p>
-                  )}
                 </div>
-              )}
+              </div>
 
+              {/* Email - sempre visível (exceto reset) */}
               {mode !== 'reset' && (
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium">
@@ -482,6 +480,7 @@ const Auth: React.FC = () => {
                 </div>
               )}
 
+              {/* Senha - sempre visível (exceto forgot) */}
               {((mode === 'login' && emailEntered) || mode === 'signup' || mode === 'reset') && (
                 <div className="space-y-2" style={{ overflow: 'visible' }}>
                   <Label htmlFor="password" className="text-sm font-medium">
@@ -519,85 +518,95 @@ const Auth: React.FC = () => {
                 </div>
               )}
 
-          {(mode === 'signup' || mode === 'reset') && (
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirmar senha
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className={`pl-10 pr-10 ${errors.confirmPassword ? 'border-destructive' : ''}`}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+              {/* Confirmar Senha - transição suave, só no signup/reset */}
+              <div className={`grid transition-all duration-300 ease-out ${
+                mode === 'signup' || mode === 'reset' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}>
+                <div className="overflow-hidden">
+                  <div className="space-y-2 pb-1">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                      Confirmar senha
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className={`pl-10 pr-10 ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                        disabled={isLoading}
+                        tabIndex={mode === 'signup' || mode === 'reset' ? 0 : -1}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              {errors.confirmPassword && (
-                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
-              )}
-            </div>
-          )}
 
-          {mode === 'login' && (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => switchMode('forgot')}
-                className="text-sm text-red-500 hover:text-red-400 transition-colors"
+              {/* Esqueceu a senha - transição suave */}
+              <div className={`grid transition-all duration-300 ease-out ${
+                mode === 'login' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}>
+                <div className="overflow-hidden">
+                  <div className="flex justify-end pb-1">
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgot')}
+                      className="text-sm text-red-500 hover:text-red-400 transition-colors"
+                      disabled={isLoading}
+                      tabIndex={mode === 'login' ? 0 : -1}
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
                 disabled={isLoading}
               >
-                Esqueceu a senha?
-              </button>
-            </div>
-          )}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Aguarde...
+                  </>
+                ) : (
+                  <>
+                    {getButtonText()}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
 
-          <Button
-            type="submit"
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Aguarde...
-              </>
-            ) : (
-              <>
-                {getButtonText()}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-
-          {(mode === 'forgot' || mode === 'reset') && (
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-              disabled={isLoading}
-            >
-              ← Voltar para o login
-            </button>
-          )}
-            </motion.div>
-          </AnimatePresence>
+              {(mode === 'forgot' || mode === 'reset') && (
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isLoading}
+                >
+                  ← Voltar para o login
+                </button>
+              )}
         </form>
       </CardContent>
     </Card>
