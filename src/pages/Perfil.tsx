@@ -21,10 +21,11 @@ import { PerfilPlanoTab } from '@/components/perfil/PerfilPlanoTab';
 import { PerfilSuporteTab } from '@/components/perfil/PerfilSuporteTab';
 import { PerfilLocalizacaoTab } from '@/components/perfil/PerfilLocalizacaoTab';
 
-type Intencao = 'estudante' | 'oab';
+type Intencao = 'universitario' | 'concurseiro' | 'oab' | 'advogado';
 
 interface ProfileData {
   nome: string | null;
+  email: string | null;
   telefone: string | null;
   avatar_url: string | null;
   intencao: Intencao | null;
@@ -32,16 +33,28 @@ interface ProfileData {
 
 const intencaoOptions: { value: Intencao; label: string; icon: React.ReactNode; description: string }[] = [
   { 
-    value: 'estudante', 
-    label: 'Estudos', 
+    value: 'universitario', 
+    label: 'Universitário', 
     icon: <GraduationCap className="h-5 w-5" />,
-    description: 'Quero estudar Direito e acessar todo o conteúdo'
+    description: 'Estudo Direito na faculdade'
+  },
+  { 
+    value: 'concurseiro', 
+    label: 'Concurseiro', 
+    icon: <FileText className="h-5 w-5" />,
+    description: 'Quero passar em concursos públicos'
   },
   { 
     value: 'oab', 
     label: 'OAB', 
     icon: <FileText className="h-5 w-5" />,
     description: 'Quero estudar para 1ª e 2ª Fase da OAB'
+  },
+  { 
+    value: 'advogado', 
+    label: 'Advogado', 
+    icon: <Briefcase className="h-5 w-5" />,
+    description: 'Sou advogado e quero me atualizar'
   },
 ];
 
@@ -56,6 +69,7 @@ export default function Perfil() {
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     nome: '',
+    email: null,
     telefone: '',
     avatar_url: null,
     intencao: null,
@@ -73,7 +87,7 @@ export default function Perfil() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('nome, telefone, avatar_url, intencao')
+        .select('nome, email, telefone, avatar_url, intencao')
         .eq('id', user.id)
         .single();
 
@@ -84,6 +98,7 @@ export default function Perfil() {
       if (data) {
         setProfile({
           nome: data.nome || user.email?.split('@')[0] || '',
+          email: data.email || user.email || null,
           telefone: data.telefone || '',
           avatar_url: data.avatar_url,
           intencao: data.intencao as Intencao | null,
@@ -323,6 +338,18 @@ export default function Perfil() {
                 onChange={(e) => setProfile(prev => ({ ...prev, nome: e.target.value }))}
                 placeholder="Seu nome"
                 className="h-12"
+              />
+            </div>
+
+            {/* Email Field (read-only) */}
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                value={profile.email || user?.email || ''}
+                readOnly
+                disabled
+                className="h-12 opacity-70"
               />
             </div>
 
