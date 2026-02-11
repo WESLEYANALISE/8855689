@@ -16,6 +16,7 @@ import AssinaturaHeroImage from "@/components/assinatura/AssinaturaHeroImage";
 import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
 import PlanoDetalhesModal from "@/components/assinatura/PlanoDetalhesModal";
+import { ConsultoraChatModal } from "@/components/assinatura/ConsultoraChatModal";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -63,6 +64,7 @@ const FUNCIONALIDADES = [
 ];
 const Assinatura = () => {
   const [contentTab, setContentTab] = useState<"sobre" | "funcoes">("sobre");
+  const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
   
   const { user } = useAuth();
@@ -372,16 +374,16 @@ const Assinatura = () => {
         onPaymentSuccess={handlePaymentSuccess}
       />
 
-      {/* Botão flutuante de WhatsApp para suporte */}
-      <a
-        href="https://wa.me/5511991897603?text=Ol%C3%A1%21%20Preciso%20de%20ajuda%20com%20a%20assinatura%20do%20Direito%20Premium."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-        aria-label="Suporte via WhatsApp"
+      {/* Botão flutuante do chatbot de vendas */}
+      <button
+        onClick={() => setChatOpen(true)}
+        className="fixed bottom-6 right-6 z-50 bg-amber-500 hover:bg-amber-600 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+        aria-label="Falar com consultora Premium"
       >
         <MessageCircle className="w-6 h-6" />
-      </a>
+      </button>
+
+      <ConsultoraChatModal isOpen={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 };
