@@ -1,7 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, ZoomIn, ZoomOut, Maximize, Bookmark, BookmarkCheck, Eye, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Sun, Moon, Coffee, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { processDriveUrl } from "@/lib/driveUtils";
+import { processDriveUrl, isGoogleDriveUrl, getProxyUrl } from "@/lib/driveUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -41,7 +41,9 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   
   // Selecionar URL baseado no modo
   const urlToUse = viewMode === 'normal' ? normalModeUrl : verticalModeUrl;
-  const processedUrl = processDriveUrl(urlToUse, viewMode);
+  const processedUrl = isGoogleDriveUrl(urlToUse) 
+    ? processDriveUrl(urlToUse, viewMode)
+    : getProxyUrl(urlToUse);
   
   
   // Carregar bookmarks salvos

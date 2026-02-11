@@ -1,1 +1,4 @@
 project_id = "izspjvegxdfgkgibpyst"
+
+[functions.proxy-reader]
+verify_jwt = false
