@@ -591,8 +591,8 @@ const App = () => {
             
             {/* Auth routes - outside Layout for full-screen experience */}
             <Routes>
-              <Route path="/welcome" element={<Welcome />} />
-              <Route path="/auth" element={<Auth />} />
+               <Route path="/welcome" element={<Navigate to="/auth" replace />} />
+               <Route path="/auth" element={<Auth />} />
               <Route path="/escolher-plano" element={
                 <ProtectedRoute skipOnboardingCheck>
                   <EscolherPlano />
