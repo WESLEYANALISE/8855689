@@ -1,9 +1,8 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowLeft, ZoomIn, ZoomOut, Maximize, Bookmark, BookmarkCheck, Eye, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Sun, Moon, Coffee, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { processDriveUrl, isGoogleDriveUrl } from "@/lib/driveUtils";
+import { processDriveUrl } from "@/lib/driveUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useExternalBrowser } from "@/hooks/use-external-browser";
 import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,7 +30,6 @@ type TextWidth = 60 | 80 | 100;
 const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title, viewMode = 'normal' }: PDFViewerModalProps) => {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { openUrl, isNative } = useExternalBrowser();
   
   // Estados para recursos premium (apenas modo vertical)
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -43,20 +41,7 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   
   // Selecionar URL baseado no modo
   const urlToUse = viewMode === 'normal' ? normalModeUrl : verticalModeUrl;
-  const isExternalUrl = !isGoogleDriveUrl(urlToUse);
-  // No app nativo, iframe funciona com FlipHTML5 (WebView ignora X-Frame-Options)
-  // Na web, precisa abrir em nova aba
-  const shouldOpenExternal = isExternalUrl && !isNative;
-  const processedUrl = isExternalUrl ? urlToUse : processDriveUrl(urlToUse, viewMode);
-  
-  // URLs externas na versão WEB: abrir em nova aba (navegador bloqueia iframe)
-  // No app nativo: deixa abrir no iframe normalmente
-  useEffect(() => {
-    if (isOpen && shouldOpenExternal) {
-      openUrl(urlToUse);
-      onClose();
-    }
-  }, [isOpen, shouldOpenExternal, urlToUse]);
+  const processedUrl = processDriveUrl(urlToUse, viewMode);
   
   
   // Carregar bookmarks salvos
@@ -287,8 +272,6 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   
   const isVerticalMode = viewMode === 'vertical';
   
-  // Na web com URL externa, não renderizar o modal (já abriu em nova aba)
-  if (shouldOpenExternal) return null;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
