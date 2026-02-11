@@ -1,7 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, ZoomIn, ZoomOut, Maximize, Bookmark, BookmarkCheck, Eye, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Sun, Moon, Coffee, Minimize2, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, ZoomIn, ZoomOut, Maximize, Bookmark, BookmarkCheck, Eye, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Sun, Moon, Coffee, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { processDriveUrl, isGoogleDriveUrl } from "@/lib/driveUtils";
+import { processDriveUrl } from "@/lib/driveUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -38,21 +38,10 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [isZenMode, setIsZenMode] = useState(false);
   const [textWidth, setTextWidth] = useState<TextWidth>(100);
-  const [iframeLoading, setIframeLoading] = useState(true);
-  const [iframeError, setIframeError] = useState(false);
   
   // Selecionar URL baseado no modo
   const urlToUse = viewMode === 'normal' ? normalModeUrl : verticalModeUrl;
   const processedUrl = processDriveUrl(urlToUse, viewMode);
-  const isExternalUrl = !isGoogleDriveUrl(urlToUse);
-  
-  // Para URLs externas (FlipHTML5 etc), abrir direto no navegador
-  useEffect(() => {
-    if (isOpen && isExternalUrl) {
-      window.open(urlToUse, '_blank');
-      onClose();
-    }
-  }, [isOpen, isExternalUrl, urlToUse, onClose]);
   
   // Carregar bookmarks salvos
   useEffect(() => {
@@ -281,9 +270,6 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   };
   
   const isVerticalMode = viewMode === 'vertical';
-  
-  // Não renderizar modal para URLs externas (abre em nova aba)
-  if (isExternalUrl) return null;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
