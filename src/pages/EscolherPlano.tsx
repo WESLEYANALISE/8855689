@@ -170,50 +170,48 @@ const EscolherPlano: React.FC = () => {
         </motion.div>
 
         {/* Cards */}
-        <div className="flex flex-col gap-4 max-w-md mx-auto mb-6 sm:mb-8">
-          {/* Free Card */}
+        <div className="flex flex-col gap-4 max-w-lg mx-auto mb-6 sm:mb-8">
+          {/* Free Card - Compact horizontal */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rounded-2xl border border-zinc-700/60 overflow-hidden flex flex-col bg-zinc-900/80"
+            className="rounded-2xl border border-zinc-700/60 overflow-hidden bg-zinc-900/80"
           >
-            {/* Cover image */}
-            <div className="h-32 w-full relative overflow-hidden">
-              <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center] brightness-50 saturate-50" />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
-              <div className="absolute bottom-3 left-3">
-                <p className="text-[10px] sm:text-xs text-zinc-300 uppercase tracking-wider font-medium">Plano</p>
-                <h2 className="text-lg sm:text-2xl font-bold text-white">Gratuito</h2>
+            <div className="flex">
+              {/* Cover image - left side */}
+              <div className="w-28 sm:w-36 relative overflow-hidden flex-shrink-0">
+                <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center] brightness-50 saturate-50" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/80" />
+              </div>
+              {/* Info - right side */}
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
+                <div>
+                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Plano</p>
+                  <h2 className="text-base sm:text-xl font-bold text-white">Gratuito</h2>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <span className="text-lg sm:text-2xl font-bold text-white">R$ 0</span>
+                    <span className="text-[10px] text-zinc-500">Para sempre</span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleFree}
+                  className="w-full h-9 sm:h-10 text-xs sm:text-sm border-zinc-600 text-zinc-300 hover:bg-zinc-800 mt-2"
+                >
+                  Começar Grátis
+                </Button>
               </div>
             </div>
-
-            <div className="text-center py-3 sm:py-4 border-b border-zinc-800">
-              <span className="text-xl sm:text-4xl font-bold text-white">R$ 0</span>
-              <p className="text-[10px] sm:text-xs text-zinc-500 mt-1">Para sempre</p>
-            </div>
-
-            <div className="flex-1">
-              <FeatureList features={FREE_FEATURES} />
-            </div>
-
-            <div className="p-3 sm:p-4">
-              <Button
-                variant="outline"
-                onClick={handleFree}
-                className="w-full h-10 sm:h-12 text-xs sm:text-base border-zinc-600 text-zinc-300 hover:bg-zinc-800"
-              >
-                Começar Grátis
-              </Button>
-            </div>
+            <FeatureList features={FREE_FEATURES} />
           </motion.div>
 
-          {/* Lifetime Card */}
+          {/* Lifetime Card - Compact horizontal */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-2xl border-2 border-amber-500/70 overflow-hidden flex flex-col relative bg-zinc-900/80 shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]"
+            className="rounded-2xl border-2 border-amber-500/70 overflow-hidden relative bg-zinc-900/80 shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]"
           >
             <div className="absolute top-0 right-0 z-10">
               <span className="bg-amber-500 text-black text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-bl-lg flex items-center gap-1">
@@ -222,47 +220,45 @@ const EscolherPlano: React.FC = () => {
               </span>
             </div>
 
-            {/* Cover image */}
-            <div className="h-32 w-full relative overflow-hidden">
-              <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-amber-500/20" />
-              <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                <Crown className="w-5 h-5 text-amber-400" />
+            <div className="flex">
+              {/* Cover image - left side */}
+              <div className="w-28 sm:w-36 relative overflow-hidden flex-shrink-0">
+                <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/60" />
+              </div>
+              {/* Info - right side */}
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
                 <div>
-                  <p className="text-[10px] sm:text-xs text-amber-300/80 uppercase tracking-wider font-medium">Acesso</p>
-                  <h2 className="text-lg sm:text-2xl font-bold text-white">Vitalício + Bônus</h2>
+                  <div className="flex items-center gap-1.5">
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <p className="text-[10px] text-amber-300/80 uppercase tracking-wider font-medium">Acesso</p>
+                  </div>
+                  <h2 className="text-base sm:text-xl font-bold text-white">Vitalício + Bônus</h2>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <span className="text-lg sm:text-2xl font-bold text-amber-400">R$ 89,90</span>
+                    <span className="text-[10px] text-amber-300/60">Pagamento único</span>
+                  </div>
                 </div>
+                <Button
+                  onClick={handleLifetime}
+                  disabled={pixLoading}
+                  className="w-full h-9 sm:h-10 text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25 animate-pulse mt-2"
+                >
+                  {pixLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+                      Assinar Vitalício
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
-
-            <div className="text-center py-3 sm:py-4 border-b border-amber-500/20 bg-amber-500/5">
-              <span className="text-xl sm:text-4xl font-bold text-amber-400">R$ 89,90</span>
-              <p className="text-[10px] sm:text-xs text-amber-300/60 mt-1">Pagamento único</p>
-            </div>
-
-            <div className="flex-1">
-              <FeatureList features={LIFETIME_FEATURES} amber />
-            </div>
-
-            <div className="p-3 sm:p-4">
-              <Button
-                onClick={handleLifetime}
-                disabled={pixLoading}
-                className="w-full h-10 sm:h-12 text-xs sm:text-base bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25 animate-pulse"
-              >
-                {pixLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
-                    Assinar Vitalício
-                  </>
-                )}
-              </Button>
-            </div>
+            <FeatureList features={LIFETIME_FEATURES} amber />
           </motion.div>
         </div>
 

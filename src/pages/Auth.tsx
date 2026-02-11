@@ -242,10 +242,7 @@ const Auth: React.FC = () => {
           return;
         }
 
-        toast({
-          title: 'Conta criada!',
-          description: 'Verifique seu email para confirmar o cadastro.',
-        });
+        // Toast removido - redirecionamento direto
         setMode('login');
         setFormData({ nome: '', email: '', password: '', confirmPassword: '' });
       } else if (mode === 'forgot') {
