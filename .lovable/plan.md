@@ -1,56 +1,110 @@
 
 
-## Carrossel de Boas-Vindas para Novos Usuarios
+## Tela de Escolha de Plano pos-Cadastro
+
+### Fluxo Atual vs Novo Fluxo
+
+```text
+ATUAL:  Cadastro (Auth) --> Onboarding (perfil) --> Home (tutorial carousel)
+
+NOVO:   Cadastro (Auth) --> Escolha de Plano --> Onboarding (perfil) --> Home (tutorial/animacao)
+```
 
 ### O que sera criado
 
-Um carrossel fullscreen com 6 slides animados que aparece **apenas na primeira vez** que o usuario acessa o app (apos o onboarding de perfil). Cada slide tera uma imagem de fundo tematica, titulo persuasivo, descricao curta e animacoes suaves. O ultimo slide apresenta a Evelyn (assistente IA no WhatsApp).
+Uma nova etapa intermediaria entre o cadastro e o onboarding, onde o usuario escolhe entre **Plano Gratuito** e **Plano Vitalicio (R$89,90)**. A tela apresenta dois cards lado a lado com todas as funcionalidades listadas, um bonus da Evelyn com video demonstrativo, e integracao com o fluxo de pagamento PIX existente.
 
-### Estrutura dos 6 slides
+---
 
-| Slide | Tema | Imagem de fundo | Conteudo |
-|---|---|---|---|
-| 1 | Boas-vindas | `capa-faculdade-opt.webp` | "Sua jornada juridica comeca agora" - Apresentacao do Direito Premium como plataforma completa |
-| 2 | Ferramentas de Estudo | `estudos-section.webp` | Flashcards, Mapas Mentais, Resumos IA, Dicionario Juridico |
-| 3 | Videoaulas e OAB | `oab-section.webp` | Videoaulas, Trilhas OAB, Questoes comentadas |
-| 4 | Biblioteca e Vade Mecum | `biblioteca-section-opt.webp` | Acervo juridico, legislacao atualizada, sumulas |
-| 5 | Questoes e Simulados | `concurso-section.webp` | Banco de questoes, simulados OAB, pratica diaria |
-| 6 | Evelyn - IA no WhatsApp | `evelyn-ai-section.webp` | Assistente juridica 24h, tira duvidas, ajuda nos estudos |
+### Estrutura da Tela de Planos
 
-### Como vai funcionar
+**Dois cards lado a lado (em mobile, empilhados):**
 
-1. Apos o onboarding (selecao de perfil), o usuario e redirecionado para `/` (Home)
-2. Na Home, um check no `localStorage` verifica se `intro_carousel_seen_{userId}` existe
-3. Se nao existir, exibe o carrossel fullscreen com overlay escuro
-4. O usuario navega com swipe/botoes entre os slides
-5. No ultimo slide, o botao "Comecar a Usar" fecha o carrossel e marca como visto no localStorage
-6. O usuario pode pular a qualquer momento com "Pular" no canto superior
+| Plano Gratuito (R$0) | Plano Vitalicio (R$89,90) |
+|---|---|
+| Chat Juridico (limitado) | Chat Juridico (ilimitado) |
+| Flashcards (3 por dia) | Flashcards ilimitados |
+| Dicionario Juridico | Dicionario Juridico |
+| Constituicao Federal | Vade Mecum completo (+50 leis) |
+| Codigo Civil e Penal | Todos os codigos e estatutos |
+| Noticias Juridicas | Noticias + Analise IA |
+| Videoaulas (2 gratis) | Todas as videoaulas |
+| - | +30.000 questoes OAB |
+| - | Mapas mentais |
+| - | Resumos com IA |
+| - | Simulados OAB |
+| - | Peticoes e contratos |
+| - | Audioaulas |
+| - | Sumulas vinculantes |
+| - | Trilhas OAB completas |
+| - | Biblioteca completa |
+| - | Sem anuncios |
+| - | Suporte prioritario |
+| Botao: "Comecar Gratis" | Botao: "Assinar Vitalicio" |
+
+**Bonus da Evelyn:**
+- Abaixo dos cards, uma secao com fundo degradê destacado
+- Texto: "Bonus exclusivo: Evelyn, sua assistente juridica no WhatsApp"
+- Botao "Ver bonus" que abre um modal/expansao com o video do YouTube (embed: HlE9u1c_MPQ) ja existente no app
+- Valor: "Incluso no plano Vitalicio - R$89,90"
+
+---
+
+### Comportamento
+
+1. **Apos o cadastro** (signup com sucesso no Auth.tsx), ao inves de redirecionar para `/onboarding`, redireciona para `/escolher-plano`
+2. **Escolha "Comecar Gratis"**: redireciona para `/onboarding` (fluxo normal de escolha de perfil)
+3. **Escolha "Assinar Vitalicio"**: abre o fluxo de pagamento PIX (reutiliza o hook `useMercadoPagoPix` existente). Apos pagamento aprovado, redireciona para `/onboarding` com uma flag de "premium"
+4. **No Onboarding/Home**: se o usuario acabou de assinar, exibe uma animacao de parabens antes do tutorial carousel (confetti + texto "Voce agora e Premium!")
+5. **Controle de acesso**: a rota `/escolher-plano` so aparece para usuarios novos (sem perfil completo). Usuarios existentes que ja passaram por ela nao veem novamente (controlado pelo mesmo fluxo de onboarding)
+
+---
 
 ### Detalhes Tecnicos
 
-**Novo componente: `src/components/onboarding/IntroCarousel.tsx`**
-- Carrossel fullscreen usando `framer-motion` para animacoes de transicao entre slides
-- Cada slide: imagem de fundo com `object-cover`, overlay gradiente escuro, conteudo centralizado
-- Indicadores de progresso (dots) na parte inferior
-- Botao "Pular" no topo direito
-- Botao "Proximo" / "Comecar a Usar" (ultimo slide)
-- Suporte a swipe com drag do framer-motion
-- Controle via `localStorage` com chave `intro_carousel_seen_{userId}`
-- Utiliza imagens ja existentes em `src/assets/landing/`
+**Novo arquivo: `src/pages/EscolherPlano.tsx`**
+- Pagina fullscreen com fundo escuro elegante (mesmo estilo da pagina de Assinatura)
+- Dois cards com scroll vertical para listar funcionalidades
+- Icones de check (verde) para funcionalidades incluidas, X (cinza) para nao incluidas
+- Card Vitalicio com borda dourada/primary e badge "RECOMENDADO"
+- Secao de bonus Evelyn com botao que expande/abre modal com iframe do YouTube
+- Integra com `useMercadoPagoPix` para pagamento
+- Reutiliza `PixPaymentScreen` quando PIX for gerado
+
+**Novo arquivo: `src/components/onboarding/PremiumCelebration.tsx`**
+- Overlay animado com confetti (canvas-confetti ja instalado) e texto de parabens
+- Exibido por 3-4 segundos antes de mostrar o intro carousel
+- Controlado via query param ou localStorage flag `just_subscribed_{userId}`
+
+**Arquivo modificado: `src/pages/Onboarding.tsx`**
+- Atualizar `handleFinish` para verificar se veio da escolha de plano
+- Manter o fluxo de escolha de perfil (universitario, concurseiro, etc.)
+
+**Arquivo modificado: `src/hooks/useOnboardingStatus.tsx`**
+- Adicionar verificacao: se o usuario nao escolheu plano ainda, considerar onboarding incompleto
+- Nova chave localStorage: `plan_chosen_{userId}`
+
+**Arquivo modificado: `src/components/auth/ProtectedRoute.tsx`**
+- Adicionar redirecionamento para `/escolher-plano` se o usuario nao tiver escolhido plano
+- Ordem: sem plano escolhido -> `/escolher-plano` -> sem perfil -> `/onboarding` -> app normal
 
 **Arquivo modificado: `src/pages/Index.tsx`**
-- Importar `IntroCarousel`
-- Adicionar estado `showIntro` baseado no localStorage
-- Renderizar o carrossel como overlay quando `showIntro === true`
-- Callback `onComplete` para fechar e marcar como visto
+- Verificar flag `just_subscribed` para exibir `PremiumCelebration` antes do `IntroCarousel`
+
+**Rota nova em `App.tsx`:**
+- `/escolher-plano` como rota protegida com `skipOnboardingCheck`
+
+---
 
 ### Design Visual
 
-- Fundo: imagem fullscreen com blur leve + overlay escuro (70%)
-- Texto: branco, titulos grandes (text-3xl bold), descricoes em text-lg com opacidade
-- Icones tematicos para cada slide (lucide-react)
-- Animacao de entrada: fade + slide de baixo para cima
-- Transicao entre slides: slide horizontal com framer-motion
-- Dots de progresso com cor primaria (vermelho)
-- CTA final com gradiente vermelho e animacao pulsante
+- Fundo: gradiente escuro (zinc-950 para black) com efeitos de glow sutis
+- Cards: fundo card/95 com backdrop-blur, borda arredondada
+- Card Vitalicio: borda dourada/amber, badge "RECOMENDADO" no topo
+- Card Gratuito: borda neutra, visual mais simples
+- Funcionalidades: lista com icones Check (verde) e X (vermelho/cinza)
+- Bonus Evelyn: secao com gradiente verde/emerald sutil, icone WhatsApp
+- Botoes: "Comecar Gratis" outline, "Assinar Vitalicio" primary com animacao pulsante
+- Animacao de entrada: cards surgem com stagger do framer-motion
+- Responsivo: cards lado a lado em telas maiores, empilhados em mobile
 
