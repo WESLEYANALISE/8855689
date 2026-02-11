@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Check, X, Crown, Gift, MessageCircle, Play, Loader2, Star, ChevronDown } from 'lucide-react';
+import { Check, X, Crown, Gift, MessageCircle, Play, Loader2, Star, ChevronDown, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
@@ -54,6 +54,7 @@ const LIFETIME_FEATURES = [
 ];
 
 const INITIAL_VISIBLE = 8;
+const COMPACT_VISIBLE = 4;
 
 export const markPlanChosen = (userId: string) => {
   localStorage.setItem(`${PLAN_CHOSEN_KEY}_${userId}`, 'true');
@@ -116,6 +117,7 @@ const EscolherPlano: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showBonusVideo, setShowBonusVideo] = useState(false);
+  const [detailPlan, setDetailPlan] = useState<'free' | 'lifetime' | null>(null);
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
 
   const handleFree = () => {
@@ -171,7 +173,7 @@ const EscolherPlano: React.FC = () => {
 
         {/* Cards */}
         <div className="flex flex-col gap-4 max-w-lg mx-auto mb-6 sm:mb-8">
-          {/* Free Card - Compact horizontal */}
+          {/* Free Card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -179,88 +181,167 @@ const EscolherPlano: React.FC = () => {
             className="rounded-2xl border border-zinc-700/60 overflow-hidden bg-zinc-900/80"
           >
             <div className="flex">
-              {/* Cover image - left side */}
+              {/* Cover image */}
               <div className="w-28 sm:w-36 relative overflow-hidden flex-shrink-0">
                 <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center] brightness-50 saturate-50" />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/80" />
               </div>
-              {/* Info - right side */}
-              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
-                <div>
-                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Plano</p>
-                  <h2 className="text-base sm:text-xl font-bold text-white">Gratuito</h2>
-                  <div className="flex items-baseline gap-1.5 mt-1">
-                    <span className="text-lg sm:text-2xl font-bold text-white">R$ 0</span>
-                    <span className="text-[10px] text-zinc-500">Para sempre</span>
-                  </div>
+              {/* Features + actions */}
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between gap-2">
+                <div className="space-y-1.5">
+                  {FREE_FEATURES.slice(0, COMPACT_VISIBLE).map((f, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
+                      <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                      <span className="text-zinc-300">{f.label}</span>
+                    </div>
+                  ))}
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={handleFree}
-                  className="w-full h-9 sm:h-10 text-xs sm:text-sm border-zinc-600 text-zinc-300 hover:bg-zinc-800 mt-2"
-                >
-                  Começar Grátis
-                </Button>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-white">R$ 0</span>
+                  <span className="text-[10px] text-zinc-500">Para sempre</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleFree}
+                    className="flex-1 h-9 text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Começar Grátis
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setDetailPlan('free')}
+                    className="h-9 text-xs text-zinc-400 hover:text-zinc-200 px-3"
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1" />
+                    Ver mais
+                  </Button>
+                </div>
               </div>
             </div>
-            <FeatureList features={FREE_FEATURES} />
           </motion.div>
 
-          {/* Lifetime Card - Compact horizontal */}
+          {/* Lifetime Card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="rounded-2xl border-2 border-amber-500/70 overflow-hidden relative bg-zinc-900/80 shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]"
           >
-            <div className="absolute top-0 right-0 z-10">
-              <span className="bg-amber-500 text-black text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-bl-lg flex items-center gap-1">
-                <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
+            <div className="absolute top-2 right-2 z-10">
+              <span className="bg-amber-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-current" />
                 MELHOR
               </span>
             </div>
 
             <div className="flex">
-              {/* Cover image - left side */}
+              {/* Cover image */}
               <div className="w-28 sm:w-36 relative overflow-hidden flex-shrink-0">
                 <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center]" />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/60" />
               </div>
-              {/* Info - right side */}
-              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <Crown className="w-4 h-4 text-amber-400" />
-                    <p className="text-[10px] text-amber-300/80 uppercase tracking-wider font-medium">Acesso</p>
-                  </div>
-                  <h2 className="text-base sm:text-xl font-bold text-white">Vitalício + Bônus</h2>
-                  <div className="flex items-baseline gap-1.5 mt-1">
-                    <span className="text-lg sm:text-2xl font-bold text-amber-400">R$ 89,90</span>
-                    <span className="text-[10px] text-amber-300/60">Pagamento único</span>
-                  </div>
+              {/* Features + actions */}
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between gap-2">
+                <div className="space-y-1.5">
+                  {LIFETIME_FEATURES.slice(0, COMPACT_VISIBLE).map((f, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
+                      <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                      <span className="text-zinc-300">{f.label}</span>
+                    </div>
+                  ))}
                 </div>
+                <div className="flex items-center gap-1.5">
+                  <Crown className="w-4 h-4 text-amber-400" />
+                  <span className="text-lg font-bold text-amber-400">R$ 89,90</span>
+                  <span className="text-[10px] text-amber-300/60">Pagamento único</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleLifetime}
+                    disabled={pixLoading}
+                    className="flex-1 h-9 text-xs bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25 animate-pulse"
+                  >
+                    {pixLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Crown className="w-3.5 h-3.5 mr-1" />
+                        Assinar
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setDetailPlan('lifetime')}
+                    className="h-9 text-xs text-amber-400 hover:text-amber-300 px-3"
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1" />
+                    Ver mais
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Detail Dialog */}
+        <Dialog open={detailPlan !== null} onOpenChange={(open) => !open && setDetailPlan(null)}>
+          <DialogContent className="max-w-md p-0 overflow-hidden bg-zinc-900 border-zinc-700 max-h-[85vh] overflow-y-auto">
+            <DialogTitle className="sr-only">
+              {detailPlan === 'free' ? 'Plano Gratuito' : 'Plano Vitalício'}
+            </DialogTitle>
+            {/* Extended cover */}
+            <div className="h-40 w-full relative overflow-hidden">
+              <img
+                src={themisFaceCloseup}
+                alt=""
+                className={`w-full h-full object-cover object-[30%_center] ${detailPlan === 'free' ? 'brightness-50 saturate-50' : ''}`}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
+              <div className="absolute bottom-4 left-4">
+                {detailPlan === 'lifetime' && <Crown className="w-5 h-5 text-amber-400 mb-1" />}
+                <h2 className="text-xl font-bold text-white">
+                  {detailPlan === 'free' ? 'Plano Gratuito' : 'Vitalício + Bônus'}
+                </h2>
+                <p className={`text-sm font-bold ${detailPlan === 'lifetime' ? 'text-amber-400' : 'text-white'}`}>
+                  {detailPlan === 'free' ? 'R$ 0 — Para sempre' : 'R$ 89,90 — Pagamento único'}
+                </p>
+              </div>
+            </div>
+            {/* Full feature list */}
+            <FeatureList
+              features={detailPlan === 'free' ? FREE_FEATURES : LIFETIME_FEATURES}
+              amber={detailPlan === 'lifetime'}
+            />
+            <div className="p-4 pt-0">
+              {detailPlan === 'free' ? (
+                <Button
+                  variant="outline"
+                  onClick={handleFree}
+                  className="w-full h-11 border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+                >
+                  Começar Grátis
+                </Button>
+              ) : (
                 <Button
                   onClick={handleLifetime}
                   disabled={pixLoading}
-                  className="w-full h-9 sm:h-10 text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25 animate-pulse mt-2"
+                  className="w-full h-11 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25"
                 >
                   {pixLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      Gerando...
-                    </>
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                   ) : (
                     <>
-                      <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+                      <Crown className="w-4 h-4 mr-1" />
                       Assinar Vitalício
                     </>
                   )}
                 </Button>
-              </div>
+              )}
             </div>
-            <FeatureList features={LIFETIME_FEATURES} amber />
-          </motion.div>
-        </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Bonus Evelyn */}
         <motion.div
