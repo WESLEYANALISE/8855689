@@ -12,7 +12,10 @@ import {
   ArrowLeft,
   Crown,
   Percent,
-  CalendarClock
+  CalendarClock,
+  Eye,
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,23 +35,52 @@ import {
   useMetricasPremium,
   useOnlineAgoraRealtime,
   useListaAssinantesPremium,
+  useCadastrosPorDia,
 } from '@/hooks/useAdminControleStats';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+type PeriodoFiltro = 'hoje' | '7dias' | '30dias' | '90dias';
+
+const PERIODOS: { value: PeriodoFiltro; label: string; dias: number }[] = [
+  { value: 'hoje', label: 'Hoje', dias: 0 },
+  { value: '7dias', label: '7 dias', dias: 7 },
+  { value: '30dias', label: '30 dias', dias: 30 },
+  { value: '90dias', label: '90 dias', dias: 90 },
+];
+
+const getDiasFromPeriodo = (periodo: PeriodoFiltro): number => {
+  return PERIODOS.find(p => p.value === periodo)?.dias ?? 7;
+};
 
 const AdminControle = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('usuarios');
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>('7dias');
 
-  const { data: novosUsuarios, isLoading: loadingUsuarios, refetch: refetchUsuarios } = useNovosUsuarios();
-  const { data: paginasPopulares, isLoading: loadingPaginas, refetch: refetchPaginas } = usePaginasPopulares();
+  const diasFiltro = getDiasFromPeriodo(periodo);
+  const diasParaQuery = diasFiltro === 0 ? 1 : diasFiltro; // Para queries que não aceitam 0
+
+  const { data: novosUsuarios, isLoading: loadingUsuarios, refetch: refetchUsuarios } = useNovosUsuarios(diasParaQuery);
+  const { data: paginasPopulares, isLoading: loadingPaginas, refetch: refetchPaginas } = usePaginasPopulares(diasParaQuery);
   const { data: termosPesquisados, isLoading: loadingTermos, refetch: refetchTermos } = useTermosPesquisados();
-  const { data: estatisticas, isLoading: loadingStats, refetch: refetchStats } = useEstatisticasGerais();
+  const { data: estatisticas, isLoading: loadingStats, refetch: refetchStats } = useEstatisticasGerais(diasParaQuery);
   const { data: dispositivos, refetch: refetchDispositivos } = useDistribuicaoDispositivos();
   const { data: intencoes, refetch: refetchIntencoes } = useDistribuicaoIntencoes();
   const { data: metricasPremium, refetch: refetchPremium } = useMetricasPremium();
   const { onlineAgora, isLoading: loadingOnline, refetch: refetchOnline } = useOnlineAgoraRealtime();
   const { data: listaAssinantes, isLoading: loadingAssinantes, refetch: refetchAssinantes } = useListaAssinantesPremium();
+  const { data: cadastrosDia } = useCadastrosPorDia(diasParaQuery);
+
   const handleRefreshAll = () => {
     refetchUsuarios();
     refetchPaginas();
@@ -61,7 +93,6 @@ const AdminControle = () => {
     refetchAssinantes();
   };
 
-  // Calcula porcentagens para gráficos
   const totalDispositivos = dispositivos 
     ? dispositivos.iOS + dispositivos.Android + dispositivos.Desktop + dispositivos.Outro 
     : 0;
@@ -95,6 +126,14 @@ const AdminControle = () => {
     return parts.join(' ');
   };
 
+  const periodoLabel = PERIODOS.find(p => p.value === periodo)?.label || '';
+
+  // Format chart data
+  const chartData = (cadastrosDia || []).map(item => ({
+    dia: format(new Date(item.dia + 'T12:00:00'), 'dd/MM'),
+    total: item.total,
+  }));
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -124,22 +163,41 @@ const AdminControle = () => {
               Atualizar
             </Button>
           </div>
+
+          {/* Filtro de Período */}
+          <div className="flex items-center gap-2 mt-4">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Período:</span>
+            <div className="flex gap-1">
+              {PERIODOS.map((p) => (
+                <Button
+                  key={p.value}
+                  variant={periodo === p.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPeriodo(p.value)}
+                  className="text-xs h-7 px-3"
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Cards de Estatísticas - Novos por período */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Novos Hoje</p>
-                  <p className="text-3xl font-bold text-primary">
+                  <p className="text-xs text-muted-foreground">Novos Hoje</p>
+                  <p className="text-2xl font-bold text-emerald-500">
                     {loadingStats ? '...' : estatisticas?.novosHoje || 0}
                   </p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-emerald-500 opacity-50" />
+                <TrendingUp className="h-6 w-6 text-emerald-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -148,12 +206,40 @@ const AdminControle = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Usuários</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-xs text-muted-foreground">Novos 7d</p>
+                  <p className="text-2xl font-bold text-sky-500">
+                    {loadingStats ? '...' : estatisticas?.novos7d || 0}
+                  </p>
+                </div>
+                <BarChart3 className="h-6 w-6 text-sky-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Novos 30d</p>
+                  <p className="text-2xl font-bold text-violet-500">
+                    {loadingStats ? '...' : estatisticas?.novos30d || 0}
+                  </p>
+                </div>
+                <BarChart3 className="h-6 w-6 text-violet-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Usuários</p>
+                  <p className="text-2xl font-bold">
                     {loadingStats ? '...' : estatisticas?.totalUsuarios?.toLocaleString('pt-BR') || 0}
                   </p>
                 </div>
-                <Users className="h-8 w-8 text-primary opacity-50" />
+                <Users className="h-6 w-6 text-primary opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -162,12 +248,12 @@ const AdminControle = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Ativos (7 dias)</p>
-                  <p className="text-3xl font-bold text-sky-500">
-                    {loadingStats ? '...' : estatisticas?.ativosUltimos7Dias || 0}
+                  <p className="text-xs text-muted-foreground">Ativos ({periodoLabel})</p>
+                  <p className="text-2xl font-bold text-sky-500">
+                    {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
                   </p>
                 </div>
-                <Activity className="h-8 w-8 text-sky-500 opacity-50" />
+                <Activity className="h-6 w-6 text-sky-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -176,19 +262,104 @@ const AdminControle = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Online Agora</p>
-                  <p className="text-3xl font-bold text-emerald-500">
+                  <p className="text-xs text-muted-foreground">Online Agora</p>
+                  <p className="text-2xl font-bold text-emerald-500">
                     {loadingOnline ? '...' : onlineAgora}
                   </p>
                 </div>
                 <div className="relative">
-                  <Clock className="h-8 w-8 text-emerald-500 opacity-50" />
+                  <Clock className="h-6 w-6 text-emerald-500 opacity-50" />
                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Page views + média */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Page Views ({periodoLabel})</p>
+                  <p className="text-3xl font-bold">
+                    {loadingStats ? '...' : estatisticas?.totalPageViews?.toLocaleString('pt-BR') || 0}
+                  </p>
+                </div>
+                <Eye className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Média cadastros/dia ({periodoLabel})</p>
+                  <p className="text-3xl font-bold">
+                    {loadingStats ? '...' : (
+                      diasFiltro > 0 && estatisticas?.novos30d
+                        ? Math.round(
+                            (periodo === '7dias' ? estatisticas.novos7d : 
+                             periodo === '30dias' ? estatisticas.novos30d : 
+                             periodo === '90dias' ? estatisticas.novos30d :
+                             estatisticas.novosHoje) / Math.max(diasFiltro || 1, 1)
+                          )
+                        : estatisticas?.novosHoje || 0
+                    )}
+                  </p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráfico de cadastros por dia */}
+        {chartData.length > 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TrendingUp className="h-5 w-5" />
+                Cadastros por Dia ({periodoLabel})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCadastros" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis dataKey="dia" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    name="Cadastros"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorCadastros)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Cards de Premium */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -301,6 +472,7 @@ const AdminControle = () => {
             )}
           </CardContent>
         </Card>
+
         {/* Tabs de Análise */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid grid-cols-4 w-full max-w-2xl">
@@ -326,9 +498,12 @@ const AdminControle = () => {
           <TabsContent value="usuarios" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Novos Cadastros
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Novos Cadastros ({periodoLabel})
+                  </div>
+                  <Badge variant="secondary">{novosUsuarios?.length || 0}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -387,9 +562,14 @@ const AdminControle = () => {
           <TabsContent value="paginas" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Páginas Mais Acessadas (7 dias)
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Páginas Mais Acessadas ({periodoLabel})
+                  </div>
+                  <Badge variant="secondary">
+                    {estatisticas?.totalPageViews?.toLocaleString('pt-BR') || 0} views
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>

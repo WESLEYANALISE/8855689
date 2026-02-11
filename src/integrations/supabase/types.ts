@@ -19818,6 +19818,28 @@ export type Database = {
           video_titulo: string
         }[]
       }
+      get_admin_ativos_periodo: { Args: { p_dias?: number }; Returns: number }
+      get_admin_cadastros_por_dia: {
+        Args: { p_dias?: number }
+        Returns: {
+          dia: string
+          total: number
+        }[]
+      }
+      get_admin_novos_por_periodo: {
+        Args: { p_dias?: number }
+        Returns: number
+      }
+      get_admin_online_count: { Args: never; Returns: number }
+      get_admin_paginas_populares: {
+        Args: { p_dias?: number }
+        Returns: {
+          page_path: string
+          page_title: string
+          total: number
+        }[]
+      }
+      get_admin_total_pageviews: { Args: { p_dias?: number }; Returns: number }
       get_flashcard_areas: {
         Args: never
         Returns: {
