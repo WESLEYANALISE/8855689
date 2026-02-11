@@ -81,7 +81,7 @@ const EscolherPlano: React.FC = () => {
 
   const handleFree = () => {
     if (user?.id) markPlanChosen(user.id);
-    navigate('/onboarding', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const handleLifetime = async () => {
@@ -94,7 +94,7 @@ const EscolherPlano: React.FC = () => {
       markPlanChosen(user.id);
       localStorage.setItem(`just_subscribed_${user.id}`, 'true');
     }
-    navigate('/onboarding', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const handleConfirm = () => {
