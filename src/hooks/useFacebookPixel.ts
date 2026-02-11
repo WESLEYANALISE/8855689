@@ -37,7 +37,7 @@ export const useFacebookPixel = () => {
   const { user } = useAuth();
 
   const trackEvent = useCallback(
-    (eventName: FacebookEventName, customData?: CustomData) => {
+    (eventName: FacebookEventName, customData?: CustomData, testEventCode?: string) => {
       const eventId = generateEventId();
 
       // 1. Frontend Pixel
@@ -68,6 +68,7 @@ export const useFacebookPixel = () => {
               client_user_agent: navigator.userAgent,
             },
             custom_data: customData || undefined,
+            ...(testEventCode && { test_event_code: testEventCode }),
           },
         })
         .catch((err) => console.warn('Facebook CAPI error:', err));

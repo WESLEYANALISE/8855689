@@ -244,8 +244,6 @@ const Auth: React.FC = () => {
 
         // Track CompleteRegistration event for Facebook Ads
         try {
-          const { useFacebookPixel } = await import('@/hooks/useFacebookPixel');
-          // Can't use hook here, call edge function directly
           const eventId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           if (window.fbq) {
             window.fbq('track', 'CompleteRegistration', { content_name: 'Signup', status: true }, { eventID: eventId });
