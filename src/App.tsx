@@ -20,6 +20,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 // Auth pages
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
+import Welcome from "./pages/Welcome";
 
 // ALL PAGES - Direct imports for instant loading
 import Index from "./pages/Index";
@@ -589,6 +590,7 @@ const App = () => {
             
             {/* Auth routes - outside Layout for full-screen experience */}
             <Routes>
+              <Route path="/welcome" element={<Welcome />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={
                 <ProtectedRoute skipOnboardingCheck>
