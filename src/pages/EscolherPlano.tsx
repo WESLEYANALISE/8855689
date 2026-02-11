@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFacebookPixel } from '@/hooks/useFacebookPixel';
 import { Check, X, Crown, Loader2, Star, ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
@@ -72,9 +73,18 @@ export const hasPlanChosen = (userId: string): boolean => {
 const EscolherPlano: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackEvent } = useFacebookPixel();
   const [detailPlan, setDetailPlan] = useState<'free' | 'lifetime' | null>(null);
   const [detailTab, setDetailTab] = useState<'funcoes' | 'sobre'>('funcoes');
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
+
+  // Track ViewContent ao montar
+  useEffect(() => {
+    trackEvent('ViewContent', {
+      content_name: 'Escolher Plano',
+      content_category: 'subscription',
+    });
+  }, []);
 
   // Áudio de fundo imersivo
   useAssinaturaBackgroundAudio(true);

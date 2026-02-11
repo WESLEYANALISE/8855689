@@ -12,6 +12,7 @@ import PixPaymentScreen from "@/components/assinatura/PixPaymentScreen";
 import { useMercadoPagoPix, type PlanType } from "@/hooks/use-mercadopago-pix";
 import { useAssinaturaExperiencia } from "@/hooks/use-assinatura-experiencia";
 import { useAssinaturaBackgroundAudio } from "@/hooks/useAssinaturaBackgroundAudio";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import AssinaturaHeroImage from "@/components/assinatura/AssinaturaHeroImage";
 import AssinaturaNarracao from "@/components/assinatura/AssinaturaNarracao";
 import PlanoCardNovo from "@/components/assinatura/PlanoCardNovo";
@@ -69,6 +70,19 @@ const Assinatura = () => {
   
   const { user } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { trackEvent } = useFacebookPixel();
+
+  // Track ViewContent quando página monta (e não é premium)
+  useEffect(() => {
+    if (!subscriptionLoading && !isPremium) {
+      trackEvent('ViewContent', {
+        content_name: 'Assinatura Premium',
+        content_category: 'subscription',
+        currency: 'BRL',
+        value: 89.90,
+      });
+    }
+  }, [subscriptionLoading, isPremium]);
   
 
   const [loadingPlano, setLoadingPlano] = useState<PlanType | null>(null);

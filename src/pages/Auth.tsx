@@ -242,6 +242,27 @@ const Auth: React.FC = () => {
           return;
         }
 
+        // Track CompleteRegistration event for Facebook Ads
+        try {
+          const { useFacebookPixel } = await import('@/hooks/useFacebookPixel');
+          // Can't use hook here, call edge function directly
+          const eventId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          if (window.fbq) {
+            window.fbq('track', 'CompleteRegistration', { content_name: 'Signup', status: true }, { eventID: eventId });
+          }
+          supabase.functions.invoke('facebook-conversions', {
+            body: {
+              event_name: 'CompleteRegistration',
+              event_id: eventId,
+              event_time: Math.floor(Date.now() / 1000),
+              event_source_url: window.location.href,
+              action_source: 'website',
+              user_data: { em: formData.email.trim() },
+              custom_data: { content_name: 'Signup', status: true },
+            },
+          }).catch(() => {});
+        } catch {}
+
         // Toast removido - redirecionamento direto
         setMode('login');
         setFormData({ nome: '', email: '', password: '', confirmPassword: '' });

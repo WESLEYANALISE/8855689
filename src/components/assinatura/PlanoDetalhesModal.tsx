@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CheckoutCartaoModal } from "./CheckoutCartaoModal";
 import { useAppStatistics } from "@/hooks/useAppStatistics";
 import { usePlanAnalytics } from "@/hooks/usePlanAnalytics";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import type { PlanType } from "@/hooks/use-mercadopago-pix";
 
 // Imagens horizontais estáticas importadas localmente (pré-carregadas)
@@ -187,6 +188,7 @@ const PlanoDetalhesModal = ({
   // Estatísticas do app para lista dinâmica
   const { statistics } = useAppStatistics();
   const { trackPlanClick } = usePlanAnalytics();
+  const { trackEvent } = useFacebookPixel();
   const funcionalidades = gerarFuncionalidades(statistics);
 
   // Aba de conteúdo: funções ou sobre
@@ -221,6 +223,13 @@ const PlanoDetalhesModal = ({
       setSelectedInstallments(plano === 'mensal' ? 1 : 10);
       // Track modal open
       trackPlanClick(plano, "open_modal");
+      // Facebook AddToCart event
+      trackEvent('AddToCart', {
+        content_name: `Plano ${plano === 'vitalicio' ? 'Vitalício' : plano === 'anual' ? 'Anual' : 'Mensal'}`,
+        content_type: 'product',
+        currency: 'BRL',
+        value: planConfig?.price || 89.90,
+      });
     }
     if (!open) {
       setShowCardModal(false);
@@ -229,6 +238,14 @@ const PlanoDetalhesModal = ({
 
   const handlePaymentClick = () => {
     if (plano) {
+      // Facebook InitiateCheckout event
+      trackEvent('InitiateCheckout', {
+        content_name: `Plano ${planConfig?.label}`,
+        currency: 'BRL',
+        value: planConfig?.price || 89.90,
+        payment_method: paymentMethod,
+      });
+
       if (paymentMethod === "pix") {
         trackPlanClick(plano, "select_pix");
         onPagar();

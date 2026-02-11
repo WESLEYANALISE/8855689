@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useFacebookPixel } from "@/hooks/useFacebookPixel";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 
@@ -68,6 +69,14 @@ export const ConsultoraChatModal = ({ isOpen, onClose }: ConsultoraChatModalProp
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { trackEvent } = useFacebookPixel();
+
+  // Track Lead event quando o chat abre
+  useEffect(() => {
+    if (isOpen) {
+      trackEvent('Lead', { content_name: 'Consultora Premium Chat' });
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
