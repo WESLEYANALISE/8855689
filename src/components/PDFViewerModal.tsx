@@ -31,7 +31,7 @@ type TextWidth = 60 | 80 | 100;
 const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title, viewMode = 'normal' }: PDFViewerModalProps) => {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { openUrl } = useExternalBrowser();
+  const { openUrl, isNative } = useExternalBrowser();
   
   // Estados para recursos premium (apenas modo vertical)
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -44,15 +44,19 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   // Selecionar URL baseado no modo
   const urlToUse = viewMode === 'normal' ? normalModeUrl : verticalModeUrl;
   const isExternalUrl = !isGoogleDriveUrl(urlToUse);
-  const processedUrl = processDriveUrl(urlToUse, viewMode);
+  // No app nativo, iframe funciona com FlipHTML5 (WebView ignora X-Frame-Options)
+  // Na web, precisa abrir em nova aba
+  const shouldOpenExternal = isExternalUrl && !isNative;
+  const processedUrl = isExternalUrl ? urlToUse : processDriveUrl(urlToUse, viewMode);
   
-  // URLs externas (FlipHTML5 etc): abrir via Capacitor Browser (mobile) ou nova aba (web)
+  // URLs externas na versão WEB: abrir em nova aba (navegador bloqueia iframe)
+  // No app nativo: deixa abrir no iframe normalmente
   useEffect(() => {
-    if (isOpen && isExternalUrl) {
+    if (isOpen && shouldOpenExternal) {
       openUrl(urlToUse);
       onClose();
     }
-  }, [isOpen, isExternalUrl, urlToUse]);
+  }, [isOpen, shouldOpenExternal, urlToUse]);
   
   
   // Carregar bookmarks salvos
@@ -283,8 +287,8 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   
   const isVerticalMode = viewMode === 'vertical';
   
-  // Se é URL externa, não renderizar o modal (Capacitor Browser já abriu)
-  if (isExternalUrl) return null;
+  // Na web com URL externa, não renderizar o modal (já abriu em nova aba)
+  if (shouldOpenExternal) return null;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
