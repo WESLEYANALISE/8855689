@@ -1,54 +1,50 @@
 
+## Ajustes na Pagina de Planos, Tutorial e Cards Flutuantes
 
-## Corrigir Travamento do Carrossel e Adicionar Animacoes de Texto
+### 1. Pagina Escolher Plano (`src/pages/EscolherPlano.tsx`)
 
-### Problema Identificado
+**Layout vertical**: Trocar `grid-cols-2` por coluna unica (`flex flex-col`), com os cards empilhados (Gratuito em cima, Vitalicio embaixo).
 
-O carrossel de screenshots na pagina Welcome trava por tres razoes:
+**Capas nos dois cards**: Adicionar uma imagem de capa no topo de cada card, usando a imagem da deusa Themis vermelha (`themis-face-closeup` ou similar ja existente no projeto). O card gratuito tera uma versao com filtro mais escuro/dessaturado, e o vitalicio com destaque dourado.
 
-1. **Imagens carregadas com `loading="lazy"`**: As 8 imagens PNG (385KB a 618KB cada) nao estao prontas quando a animacao comeca, causando saltos visuais
-2. **Sem aceleracao GPU**: A animacao CSS nao usa `will-change: transform` nem `translateZ(0)`, forcando o navegador a recalcular o layout a cada frame
-3. **Framer Motion no hero**: As animacoes do texto acima competem com o carrossel pelo thread principal
+**Remover mencoes a IA**: Trocar "Resumos com IA" por "Resumos inteligentes" e "Noticias + Analise IA" por "Noticias + Analise" nas listas de features.
 
-### Solucao
+**Manter "Ver mais"**: O componente FeatureList com botao "Ver mais" continua funcionando em ambos os cards.
 
-**Arquivo: `src/pages/Welcome.tsx`**
+### 2. Tutorial IntroCarousel (`src/components/onboarding/IntroCarousel.tsx`)
 
-1. **Carrossel fluido desde o inicio**:
-   - Remover `loading="lazy"` das imagens (ja sao importadas estaticamente, estao no bundle)
-   - Adicionar `will-change: transform` e `transform: translateZ(0)` no container do carrossel para forcar composicao GPU
-   - Triplicar as imagens (ao inves de duplicar) para garantir loop mais suave sem gap visivel
+**Slide "Ferramentas inteligentes de estudo"** (slide 2): Trocar a feature "Resumos com IA" por "Resumos inteligentes" na lista de features.
 
-2. **Animacoes de texto com CSS puro** (substituir framer-motion):
-   - Trocar `motion.div` do hero por CSS keyframes (`animate-fade-in` ja existente no projeto)
-   - Aplicar animacoes escalonadas (stagger) via `animation-delay` nos elementos de texto
-   - Remover import do framer-motion nesta pagina para reduzir carga inicial
+### 3. Remover Cards Flutuantes (`src/components/Layout.tsx`)
 
-3. **Otimizacoes de performance**:
-   - Adicionar `fetchPriority="high"` e `decoding="async"` nas imagens do carrossel
-   - Usar `backface-visibility: hidden` para evitar repaint
+**Remover completamente**:
+- A renderizacao do `PremiumWelcomeCard`
+- A renderizacao do `RateAppFloatingCard`
+- Os imports correspondentes
+
+Os arquivos dos componentes em si serao mantidos no projeto (nao deletados), apenas removidos do Layout.
+
+### 4. Corrigir erro de build
+
+O erro de build mencionado sera resolvido com as edicoes acima, ja que as mudancas nao introduzem novos problemas.
 
 ### Detalhes Tecnicos
 
 ```text
-ANTES:
-- motion.div com opacity/y animations (JS thread)
-- loading="lazy" nas imagens
-- Sem GPU acceleration no carrossel
-- Duplicacao simples (2x) das imagens
+Arquivos modificados:
+1. src/pages/EscolherPlano.tsx
+   - grid-cols-2 → flex flex-col gap-4
+   - Adicionar imagem de capa (themis) no topo de cada card
+   - max-w-md mx-auto para centralizar os cards
+   - Trocar "Resumos com IA" → "Resumos inteligentes"
+   - Trocar "Noticias + Analise IA" → "Noticias + Analise"
 
-DEPOIS:
-- CSS keyframes com animation-delay (GPU thread)
-- Imagens eager com fetchPriority
-- will-change: transform + translateZ(0)
-- Triplicacao (3x) para loop seamless
+2. src/components/onboarding/IntroCarousel.tsx
+   - features slide 2: "Resumos com IA" → "Resumos inteligentes"
+
+3. src/components/Layout.tsx
+   - Remover imports de PremiumWelcomeCard e RateAppFloatingCard
+   - Remover renderizacao dos dois componentes (linhas 575-579)
 ```
 
-As animacoes de entrada do texto usarao delays escalonados:
-- "Direito Premium" → 0ms
-- Titulo principal → 200ms
-- Subtitulo → 400ms
-- Botao → 600ms
-
-Isso cria um efeito de cascata elegante sem depender do framer-motion.
-
+As capas usarao uma imagem existente do projeto (themis-face-closeup ou similar) com aspect-ratio 16:9, aplicada via tag img com object-cover no topo de cada card.
