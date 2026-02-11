@@ -26,8 +26,11 @@ interface TermoPesquisado {
 interface EstatisticasGerais {
   totalUsuarios: number;
   novosHoje: number;
-  ativosUltimos7Dias: number;
+  novos7d: number;
+  novos30d: number;
+  ativosNoPeriodo: number;
   onlineAgora: number;
+  totalPageViews: number;
 }
 
 interface DistribuicaoDispositivos {
@@ -45,62 +48,53 @@ interface DistribuicaoIntencoes {
   Outro: number;
 }
 
-// Hook para buscar novos usuários
-export const useNovosUsuarios = (limite = 50) => {
+interface CadastrosDia {
+  dia: string;
+  total: number;
+}
+
+// Hook para buscar novos usuários com filtro de período
+export const useNovosUsuarios = (dias = 7, limite = 50) => {
   return useQuery({
-    queryKey: ['admin-controle-novos', limite],
+    queryKey: ['admin-controle-novos', dias, limite],
     queryFn: async (): Promise<NovoUsuario[]> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('profiles')
         .select('id, nome, email, created_at, dispositivo, device_info, intencao')
         .order('created_at', { ascending: false })
         .limit(limite);
+
+      if (dias > 0) {
+        const dataInicio = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte('created_at', dataInicio);
+      }
       
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    refetchInterval: 30000, // Atualiza a cada 30s
+    refetchInterval: 30000,
   });
 };
 
-// Hook para buscar páginas mais acessadas
+// Hook para buscar páginas mais acessadas via RPC
 export const usePaginasPopulares = (dias = 7) => {
   return useQuery({
     queryKey: ['admin-controle-paginas', dias],
     queryFn: async (): Promise<PaginaPopular[]> => {
-      const dataInicio = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
-      
-      const { data, error } = await supabase
-        .from('page_views')
-        .select('page_path, page_title')
-        .gte('created_at', dataInicio);
+      const { data, error } = await supabase.rpc('get_admin_paginas_populares', {
+        p_dias: dias,
+      });
       
       if (error) throw error;
       
-      // Agrupar e contar no frontend
-      const contagem: Record<string, { path: string; title: string | null; count: number }> = {};
-      
-      (data || []).forEach((item) => {
-        if (!contagem[item.page_path]) {
-          contagem[item.page_path] = {
-            path: item.page_path,
-            title: item.page_title,
-            count: 0,
-          };
-        }
-        contagem[item.page_path].count++;
-      });
-      
-      return Object.values(contagem)
-        .map((item) => ({
-          page_path: item.path,
-          page_title: item.title,
-          count: item.count,
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+      return (data || []).map((item: any) => ({
+        page_path: item.page_path,
+        page_title: item.page_title,
+        count: Number(item.total),
+      }));
     },
-    refetchInterval: 60000, // Atualiza a cada 1 min
+    refetchInterval: 60000,
   });
 };
 
@@ -126,52 +120,38 @@ export const useTermosPesquisados = (limite = 20) => {
   });
 };
 
-// Hook para estatísticas gerais
-export const useEstatisticasGerais = () => {
+// Hook para estatísticas gerais com RPCs
+export const useEstatisticasGerais = (periodoDias = 7) => {
   return useQuery({
-    queryKey: ['admin-controle-stats'],
+    queryKey: ['admin-controle-stats', periodoDias],
     queryFn: async (): Promise<EstatisticasGerais> => {
-      // Usar UTC para garantir consistência com o banco de dados
-      const now = new Date();
-      const hojeUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-      const hojeISO = hojeUTC.toISOString();
-      
-      const ultimos7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const ultimos5Min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      
-      // Total de usuários
-      const { count: totalUsuarios } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      
-      // Novos hoje (usando data UTC)
-      const { count: novosHoje } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', hojeISO);
-      
-      // Ativos últimos 7 dias (usuários únicos com page_views)
-      const { data: ativosData } = await supabase
-        .from('page_views')
-        .select('user_id')
-        .gte('created_at', ultimos7Dias)
-        .not('user_id', 'is', null);
-      
-      const usuariosUnicos = new Set((ativosData || []).map((d) => d.user_id));
-      
-      // Online agora (page_views nos últimos 5 minutos)
-      const { data: onlineData } = await supabase
-        .from('page_views')
-        .select('session_id')
-        .gte('created_at', ultimos5Min);
-      
-      const sessoesUnicas = new Set((onlineData || []).map((d) => d.session_id));
-      
+      // Executar todas as RPCs em paralelo
+      const [
+        totalRes,
+        hojRes,
+        sem7Res,
+        sem30Res,
+        ativosRes,
+        onlineRes,
+        pvRes,
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.rpc('get_admin_novos_por_periodo', { p_dias: 0 }),
+        supabase.rpc('get_admin_novos_por_periodo', { p_dias: 7 }),
+        supabase.rpc('get_admin_novos_por_periodo', { p_dias: 30 }),
+        supabase.rpc('get_admin_ativos_periodo', { p_dias: periodoDias }),
+        supabase.rpc('get_admin_online_count'),
+        supabase.rpc('get_admin_total_pageviews', { p_dias: periodoDias }),
+      ]);
+
       return {
-        totalUsuarios: totalUsuarios || 0,
-        novosHoje: novosHoje || 0,
-        ativosUltimos7Dias: usuariosUnicos.size,
-        onlineAgora: sessoesUnicas.size,
+        totalUsuarios: totalRes.count || 0,
+        novosHoje: hojRes.data || 0,
+        novos7d: sem7Res.data || 0,
+        novos30d: sem30Res.data || 0,
+        ativosNoPeriodo: ativosRes.data || 0,
+        onlineAgora: onlineRes.data || 0,
+        totalPageViews: Number(pvRes.data) || 0,
       };
     },
     refetchInterval: 30000,
@@ -267,12 +247,10 @@ export const useMetricasPremium = () => {
   return useQuery({
     queryKey: ['admin-controle-premium'],
     queryFn: async (): Promise<MetricasPremium> => {
-      // Buscar total de usuários
       const { count: totalUsuarios } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
       
-      // Buscar subscriptions com status authorized (únicos por user_id)
       const { data: subscriptions, error } = await supabase
         .from('subscriptions')
         .select('user_id, created_at, status')
@@ -280,20 +258,16 @@ export const useMetricasPremium = () => {
       
       if (error) throw error;
       
-      // Calcular únicos por user_id
       const usuariosPremium = new Set((subscriptions || []).map(s => s.user_id));
       const totalPremium = usuariosPremium.size;
       
-      // Taxa de conversão
       const taxaConversao = totalUsuarios && totalUsuarios > 0 
         ? (totalPremium / totalUsuarios) * 100 
         : 0;
       
-      // Calcular média de dias até virar premium
       let mediaDiasAtePremium: number | null = null;
       
       if (subscriptions && subscriptions.length > 0) {
-        // Buscar profiles dos usuários premium para calcular dias até conversão
         const userIds = [...usuariosPremium];
         
         const { data: profiles } = await supabase
@@ -357,7 +331,6 @@ export const useListaAssinantesPremium = () => {
 
       if (error) throw error;
 
-      // Agrupar por email único, mantendo a assinatura mais recente
       const emailMap = new Map<string, AssinantePremium>();
 
       (data || []).forEach((sub: any) => {
@@ -384,21 +357,17 @@ export const useListaAssinantesPremium = () => {
   });
 };
 
-// Hook para Online Agora com Supabase Realtime
+// Hook para Online Agora com Supabase Realtime + RPC
 export const useOnlineAgoraRealtime = () => {
   const [onlineAgora, setOnlineAgora] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchOnline = useCallback(async () => {
     try {
-      const ultimos5Min = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data } = await supabase
-        .from('page_views')
-        .select('session_id')
-        .gte('created_at', ultimos5Min);
-      
-      const sessoesUnicas = new Set((data || []).map(d => d.session_id));
-      setOnlineAgora(sessoesUnicas.size);
+      const { data, error } = await supabase.rpc('get_admin_online_count');
+      if (!error && data != null) {
+        setOnlineAgora(data);
+      }
     } catch (error) {
       console.error('Erro ao buscar online agora:', error);
     } finally {
@@ -407,25 +376,19 @@ export const useOnlineAgoraRealtime = () => {
   }, []);
 
   useEffect(() => {
-    // Buscar valor inicial
     fetchOnline();
 
-    // Escutar novas inserções em tempo real
     const channel = supabase
       .channel('online-agora-realtime')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'page_views' },
         () => {
-          console.log('Nova page_view detectada - atualizando contador');
           fetchOnline();
         }
       )
-      .subscribe((status) => {
-        console.log('Status do canal online-agora:', status);
-      });
+      .subscribe();
 
-    // Polling backup a cada 30s
     const interval = setInterval(fetchOnline, 30000);
 
     return () => {
@@ -435,4 +398,24 @@ export const useOnlineAgoraRealtime = () => {
   }, [fetchOnline]);
 
   return { onlineAgora, isLoading, refetch: fetchOnline };
+};
+
+// Hook para cadastros por dia (gráfico de evolução)
+export const useCadastrosPorDia = (dias = 30) => {
+  return useQuery({
+    queryKey: ['admin-controle-cadastros-dia', dias],
+    queryFn: async (): Promise<CadastrosDia[]> => {
+      const { data, error } = await supabase.rpc('get_admin_cadastros_por_dia', {
+        p_dias: dias,
+      });
+
+      if (error) throw error;
+
+      return (data || []).map((item: any) => ({
+        dia: item.dia,
+        total: Number(item.total),
+      }));
+    },
+    refetchInterval: 60000,
+  });
 };
