@@ -425,101 +425,99 @@ const Auth: React.FC = () => {
       
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'signup' && (
-            <div className="space-y-2">
-              <Label htmlFor="nome" className="text-sm font-medium">
-                Nome
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="nome"
-                  name="nome"
-                  type="text"
-                  placeholder="Seu nome completo"
-                  value={formData.nome}
-                  onChange={handleInputChange}
-                  className={`pl-10 ${errors.nome ? 'border-destructive' : ''}`}
-                  disabled={isLoading}
-                />
-              </div>
-              {errors.nome && (
-                <p className="text-xs text-destructive">{errors.nome}</p>
-              )}
-            </div>
-          )}
-
-          {mode !== 'reset' && (
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
-                  disabled={isLoading}
-                />
-              </div>
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
-              )}
-            </div>
-          )}
-
-          {/* Campo de senha - animado no modo login */}
-          <AnimatePresence mode="wait">
-            {((mode === 'login' && emailEntered) || mode === 'signup' || mode === 'reset') && (
-              <motion.div
-                key="password-field"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="space-y-2"
-                style={{ overflow: 'visible' }}
-              >
-                <Label htmlFor="password" className="text-sm font-medium">
-                  {mode === 'reset' ? 'Nova senha' : 'Senha'}
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
-                    disabled={isLoading}
-                    autoFocus={mode === 'login' && emailEntered}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="space-y-4"
+            >
+              {mode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="nome" className="text-sm font-medium">
+                    Nome
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="nome"
+                      name="nome"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={formData.nome}
+                      onChange={handleInputChange}
+                      className={`pl-10 ${errors.nome ? 'border-destructive' : ''}`}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {errors.nome && (
+                    <p className="text-xs text-destructive">{errors.nome}</p>
+                  )}
                 </div>
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password}</p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+
+              {mode !== 'reset' && (
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-xs text-destructive">{errors.email}</p>
+                  )}
+                </div>
+              )}
+
+              {((mode === 'login' && emailEntered) || mode === 'signup' || mode === 'reset') && (
+                <div className="space-y-2" style={{ overflow: 'visible' }}>
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    {mode === 'reset' ? 'Nova senha' : 'Senha'}
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
+                      disabled={isLoading}
+                      autoFocus={mode === 'login' && emailEntered}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-destructive">{errors.password}</p>
+                  )}
+                </div>
+              )}
 
           {(mode === 'signup' || mode === 'reset') && (
             <div className="space-y-2">
@@ -588,7 +586,6 @@ const Auth: React.FC = () => {
             )}
           </Button>
 
-
           {(mode === 'forgot' || mode === 'reset') && (
             <button
               type="button"
@@ -599,6 +596,8 @@ const Auth: React.FC = () => {
               ← Voltar para o login
             </button>
           )}
+            </motion.div>
+          </AnimatePresence>
         </form>
       </CardContent>
     </Card>
