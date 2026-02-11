@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useTrialStatus } from "@/hooks/useTrialStatus";
+
 import AssinaturaGerenciamento from "@/components/AssinaturaGerenciamento";
 import PixPaymentScreen from "@/components/assinatura/PixPaymentScreen";
 import { useMercadoPagoPix, type PlanType } from "@/hooks/use-mercadopago-pix";
@@ -69,7 +69,7 @@ const Assinatura = () => {
   
   const { user } = useAuth();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
-  const { trialExpired } = useTrialStatus();
+  
 
   const [loadingPlano, setLoadingPlano] = useState<PlanType | null>(null);
   const [modalPlano, setModalPlano] = useState<PlanType | null>(null);
@@ -153,31 +153,22 @@ const Assinatura = () => {
       <div className="fixed bottom-20 right-1/4 w-[400px] h-[400px] bg-amber-600/5 rounded-full blur-[100px] pointer-events-none opacity-30" />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-zinc-800/20 rounded-full blur-[150px] pointer-events-none" />
       
-      {/* Banner de trial expirado */}
-      {trialExpired && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-600 text-white text-center py-3 px-4">
-          <p className="text-sm font-semibold">⚠️ Seu período de teste encerrou!</p>
-          <p className="text-xs opacity-90">Escolha um plano abaixo para continuar acessando o app.</p>
-        </div>
-      )}
 
-      {/* Botão Voltar no topo - esconder se trial expirado */}
-      {!trialExpired && (
-        <div className="fixed top-4 left-4 z-50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white border border-white/10"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-        </div>
-      )}
+      {/* Botão Voltar no topo */}
+      <div className="fixed top-4 left-4 z-50">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white border border-white/10"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
+      </div>
       
       {/* Conteúdo principal */}
-      <div className={`relative z-10 ${trialExpired ? 'pt-14' : ''}`}>
+      <div className="relative z-10">
         {/* Hero Image - sem animação de entrada */}
         <AssinaturaHeroImage imageUrl={heroImage} loading={imagesLoading} />
 
