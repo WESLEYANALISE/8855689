@@ -35,14 +35,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/welcome" state={{ from: location }} replace />;
   }
 
-  // Redireciona para escolha de plano se ainda não escolheu
-  if (!skipOnboardingCheck && !isComplete && !planChosen && location.pathname !== '/escolher-plano') {
-    return <Navigate to="/escolher-plano" replace />;
+  // Redireciona para onboarding (perfil) se não estiver completo
+  if (!skipOnboardingCheck && !isComplete && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
-  // Redireciona para onboarding se não estiver completo (mas já escolheu plano)
-  if (!skipOnboardingCheck && !isComplete && planChosen && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
+  // Redireciona para escolha de plano se onboarding completo mas plano não escolhido
+  if (!skipOnboardingCheck && isComplete && !planChosen && location.pathname !== '/escolher-plano') {
+    return <Navigate to="/escolher-plano" replace />;
   }
 
   // Redireciona para assinatura se o período de teste expirou

@@ -123,13 +123,13 @@ const Onboarding = () => {
 
       if (error) throw error;
 
-      // Marcar onboarding e plano como completo
+      // Marcar onboarding como completo
       if (user?.id) {
         markOnboardingComplete(user.id);
-        markPlanChosen(user.id);
       }
 
-      navigate('/', { replace: true });
+      // Ir para escolha de plano
+      navigate('/escolher-plano', { replace: true });
     } catch (error: any) {
       console.error('Erro ao salvar perfil:', error);
       toast.error('Erro ao salvar perfil. Tente novamente.');
