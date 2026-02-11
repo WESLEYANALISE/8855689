@@ -25,9 +25,7 @@ interface TermoPesquisado {
 
 interface EstatisticasGerais {
   totalUsuarios: number;
-  novosHoje: number;
-  novos7d: number;
-  novos30d: number;
+  novosNoPeriodo: number;
   ativosNoPeriodo: number;
   onlineAgora: number;
   totalPageViews: number;
@@ -51,6 +49,19 @@ interface DistribuicaoIntencoes {
 interface CadastrosDia {
   dia: string;
   total: number;
+}
+
+export interface UsuarioDetalhe {
+  user_id: string;
+  nome: string | null;
+  email: string | null;
+  telefone: string | null;
+  dispositivo: string | null;
+  intencao?: string | null;
+  page_path?: string | null;
+  total_views?: number;
+  last_seen?: string;
+  created_at?: string;
 }
 
 // Hook para buscar novos usuários com filtro de período
@@ -120,25 +131,20 @@ export const useTermosPesquisados = (limite = 20) => {
   });
 };
 
-// Hook para estatísticas gerais com RPCs
+// Hook para estatísticas gerais - agora com período dinâmico
 export const useEstatisticasGerais = (periodoDias = 7) => {
   return useQuery({
     queryKey: ['admin-controle-stats', periodoDias],
     queryFn: async (): Promise<EstatisticasGerais> => {
-      // Executar todas as RPCs em paralelo
       const [
         totalRes,
-        hojRes,
-        sem7Res,
-        sem30Res,
+        novosRes,
         ativosRes,
         onlineRes,
         pvRes,
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.rpc('get_admin_novos_por_periodo', { p_dias: 0 }),
-        supabase.rpc('get_admin_novos_por_periodo', { p_dias: 7 }),
-        supabase.rpc('get_admin_novos_por_periodo', { p_dias: 30 }),
+        supabase.rpc('get_admin_novos_por_periodo', { p_dias: periodoDias }),
         supabase.rpc('get_admin_ativos_periodo', { p_dias: periodoDias }),
         supabase.rpc('get_admin_online_count'),
         supabase.rpc('get_admin_total_pageviews', { p_dias: periodoDias }),
@@ -146,9 +152,7 @@ export const useEstatisticasGerais = (periodoDias = 7) => {
 
       return {
         totalUsuarios: totalRes.count || 0,
-        novosHoje: hojRes.data || 0,
-        novos7d: sem7Res.data || 0,
-        novos30d: sem30Res.data || 0,
+        novosNoPeriodo: novosRes.data || 0,
         ativosNoPeriodo: ativosRes.data || 0,
         onlineAgora: onlineRes.data || 0,
         totalPageViews: Number(pvRes.data) || 0,
@@ -240,12 +244,17 @@ interface MetricasPremium {
   totalPremium: number;
   taxaConversao: number;
   mediaDiasAtePremium: number | null;
+  receitaTotal: number;
+  receitaMensal: number;
+  receitaAnual: number;
+  receitaVitalicio: number;
+  novosPremiumPeriodo: number;
 }
 
-// Hook para métricas de Premium
-export const useMetricasPremium = () => {
+// Hook para métricas de Premium com receita
+export const useMetricasPremium = (periodoDias = 7) => {
   return useQuery({
-    queryKey: ['admin-controle-premium'],
+    queryKey: ['admin-controle-premium', periodoDias],
     queryFn: async (): Promise<MetricasPremium> => {
       const { count: totalUsuarios } = await supabase
         .from('profiles')
@@ -253,7 +262,7 @@ export const useMetricasPremium = () => {
       
       const { data: subscriptions, error } = await supabase
         .from('subscriptions')
-        .select('user_id, created_at, status')
+        .select('user_id, created_at, status, plan_type, amount, payment_method')
         .eq('status', 'authorized');
       
       if (error) throw error;
@@ -265,6 +274,32 @@ export const useMetricasPremium = () => {
         ? (totalPremium / totalUsuarios) * 100 
         : 0;
       
+      // Receita
+      let receitaTotal = 0;
+      let receitaMensal = 0;
+      let receitaAnual = 0;
+      let receitaVitalicio = 0;
+      let novosPremiumPeriodo = 0;
+
+      const dataLimite = periodoDias === 0 
+        ? new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }).split(',')[0]).toISOString()
+        : new Date(Date.now() - periodoDias * 24 * 60 * 60 * 1000).toISOString();
+
+      (subscriptions || []).forEach(sub => {
+        const amount = sub.amount || 0;
+        receitaTotal += amount;
+        
+        const planId = (sub.plan_type || '').toLowerCase();
+        if (planId.includes('mensal') || planId.includes('monthly')) receitaMensal += amount;
+        else if (planId.includes('anual') || planId.includes('yearly')) receitaAnual += amount;
+        else receitaVitalicio += amount;
+
+        if (sub.created_at >= dataLimite) {
+          novosPremiumPeriodo++;
+        }
+      });
+
+      // Média de dias até premium
       let mediaDiasAtePremium: number | null = null;
       
       if (subscriptions && subscriptions.length > 0) {
@@ -303,6 +338,11 @@ export const useMetricasPremium = () => {
         totalPremium,
         taxaConversao: Math.round(taxaConversao * 100) / 100,
         mediaDiasAtePremium,
+        receitaTotal,
+        receitaMensal,
+        receitaAnual,
+        receitaVitalicio,
+        novosPremiumPeriodo,
       };
     },
     refetchInterval: 60000,
@@ -312,11 +352,14 @@ export const useMetricasPremium = () => {
 // Interface para assinante premium
 export interface AssinantePremium {
   email: string;
+  nome: string | null;
+  telefone: string | null;
   plano: string;
   valor: number;
   data: string;
   status: string;
   intencao: string | null;
+  payment_method: string | null;
 }
 
 // Hook para listar assinantes premium únicos
@@ -326,13 +369,14 @@ export const useListaAssinantesPremium = () => {
     queryFn: async (): Promise<AssinantePremium[]> => {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('mp_payer_email, plan_type, amount, created_at, status')
+        .select('user_id, mp_payer_email, plan_type, amount, created_at, status, payment_method')
         .eq('status', 'authorized')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const emailMap = new Map<string, AssinantePremium>();
+      const userIds: string[] = [];
 
       (data || []).forEach((sub: any) => {
         const email = sub.mp_payer_email || 'Email não disponível';
@@ -344,26 +388,31 @@ export const useListaAssinantesPremium = () => {
 
           emailMap.set(email, {
             email,
+            nome: null,
+            telefone: null,
             plano,
             valor: sub.amount || 0,
             data: sub.created_at,
             status: sub.status,
             intencao: null,
+            payment_method: sub.payment_method || null,
           });
+          if (sub.user_id) userIds.push(sub.user_id);
         }
       });
 
-      // Fetch intencao from profiles for each email
-      const emails = Array.from(emailMap.keys());
-      if (emails.length > 0) {
+      // Fetch profile details
+      if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('email, intencao')
-          .in('email', emails);
+          .select('email, nome, telefone, intencao')
+          .in('id', userIds);
 
         (profiles || []).forEach((p: any) => {
           const existing = emailMap.get(p.email);
           if (existing) {
+            existing.nome = p.nome;
+            existing.telefone = p.telefone;
             existing.intencao = p.intencao;
           }
         });
@@ -416,6 +465,69 @@ export const useOnlineAgoraRealtime = () => {
   }, [fetchOnline]);
 
   return { onlineAgora, isLoading, refetch: fetchOnline };
+};
+
+// Hook para detalhes dos usuários online agora
+export const useOnlineDetails = () => {
+  return useQuery({
+    queryKey: ['admin-controle-online-details'],
+    queryFn: async (): Promise<UsuarioDetalhe[]> => {
+      const { data, error } = await supabase.rpc('get_admin_online_details');
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        user_id: item.user_id,
+        nome: item.nome,
+        email: item.email,
+        telefone: item.telefone,
+        dispositivo: item.dispositivo,
+        page_path: item.page_path,
+        last_seen: item.last_seen,
+      }));
+    },
+    refetchInterval: 15000,
+  });
+};
+
+// Hook para detalhes dos usuários ativos no período
+export const useAtivosDetalhes = (dias = 7) => {
+  return useQuery({
+    queryKey: ['admin-controle-ativos-details', dias],
+    queryFn: async (): Promise<UsuarioDetalhe[]> => {
+      const { data, error } = await supabase.rpc('get_admin_ativos_detalhes', { p_dias: dias });
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        user_id: item.user_id,
+        nome: item.nome,
+        email: item.email,
+        telefone: item.telefone,
+        dispositivo: item.dispositivo,
+        total_views: Number(item.total_views),
+        last_seen: item.last_seen,
+      }));
+    },
+    refetchInterval: 30000,
+  });
+};
+
+// Hook para detalhes dos novos usuários no período
+export const useNovosDetalhes = (dias = 7) => {
+  return useQuery({
+    queryKey: ['admin-controle-novos-details', dias],
+    queryFn: async (): Promise<UsuarioDetalhe[]> => {
+      const { data, error } = await supabase.rpc('get_admin_novos_detalhes', { p_dias: dias });
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        user_id: item.user_id,
+        nome: item.nome,
+        email: item.email,
+        telefone: item.telefone,
+        dispositivo: item.dispositivo,
+        intencao: item.intencao,
+        created_at: item.created_at,
+      }));
+    },
+    refetchInterval: 30000,
+  });
 };
 
 // Hook para cadastros por dia (gráfico de evolução)

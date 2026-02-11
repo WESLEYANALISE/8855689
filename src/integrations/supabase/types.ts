@@ -19845,6 +19845,18 @@ export type Database = {
           video_titulo: string
         }[]
       }
+      get_admin_ativos_detalhes: {
+        Args: { p_dias?: number }
+        Returns: {
+          dispositivo: string
+          email: string
+          last_seen: string
+          nome: string
+          telefone: string
+          total_views: number
+          user_id: string
+        }[]
+      }
       get_admin_ativos_periodo: { Args: { p_dias?: number }; Returns: number }
       get_admin_cadastros_por_dia: {
         Args: { p_dias?: number }
@@ -19853,11 +19865,35 @@ export type Database = {
           total: number
         }[]
       }
+      get_admin_novos_detalhes: {
+        Args: { p_dias?: number }
+        Returns: {
+          created_at: string
+          dispositivo: string
+          email: string
+          intencao: string
+          nome: string
+          telefone: string
+          user_id: string
+        }[]
+      }
       get_admin_novos_por_periodo: {
         Args: { p_dias?: number }
         Returns: number
       }
       get_admin_online_count: { Args: never; Returns: number }
+      get_admin_online_details: {
+        Args: never
+        Returns: {
+          dispositivo: string
+          email: string
+          last_seen: string
+          nome: string
+          page_path: string
+          telefone: string
+          user_id: string
+        }[]
+      }
       get_admin_paginas_populares: {
         Args: { p_dias?: number }
         Returns: {
