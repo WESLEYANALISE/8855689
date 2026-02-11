@@ -26,16 +26,28 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Buscar assinatura mais recente do usuário
-    const { data: subscription, error: fetchError } = await supabase
+    // Buscar assinatura ativa primeiro (authorized), senão a mais recente
+    const { data: activeSubscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'authorized')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Se não encontrar ativa, buscar a mais recente (qualquer status)
+    const { data: latestSubscription } = activeSubscription ? { data: activeSubscription } : await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !subscription) {
+    const subscription = activeSubscription || latestSubscription;
+
+    if (!subscription) {
       return new Response(
         JSON.stringify({ 
           isPremium: false,
