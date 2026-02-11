@@ -793,6 +793,17 @@ const Auth: React.FC = () => {
             transition={{ duration: 0.6, ease: 'easeOut' }}
             className="w-full max-w-md"
           >
+            {/* Título "Sua jornada" acima do formulário - mobile/tablet */}
+            <div className="mb-4">
+              <h1 className="text-xl sm:text-2xl font-bold text-white font-playfair leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                Sua jornada jurídica<br />
+                <span className="text-red-500">começa aqui</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-white/70 mt-2 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                Acesse todas as ferramentas que você precisa para seus estudos jurídicos.
+              </p>
+            </div>
+
             {formContent}
 
             {mode === 'signup' && (
