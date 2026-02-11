@@ -5,7 +5,15 @@ const config: CapacitorConfig = {
   appName: 'Direito Premium',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    allowNavigation: ['*'],
+    cleartext: true
+  },
+  android: {
+    allowMixedContent: true
+  },
+  ios: {
+    limitsNavigationsToAppBoundDomains: false
   },
   plugins: {
     SplashScreen: {
