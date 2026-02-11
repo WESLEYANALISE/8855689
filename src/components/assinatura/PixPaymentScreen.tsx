@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Check, Clock, QrCode, Shield, Loader2, Smartphone, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppLifecycle } from '@/hooks/use-app-lifecycle';
+import { useFacebookPixel } from '@/hooks/useFacebookPixel';
 import PremiumSuccessCard from '@/components/PremiumSuccessCard';
 import type { PlanType } from '@/hooks/use-mercadopago-pix';
 
@@ -38,6 +39,8 @@ const PixPaymentScreen: React.FC<PixPaymentScreenProps> = ({
   onPaymentApproved
 }) => {
   const { isPremium, refreshSubscription } = useSubscription();
+  const { trackEvent } = useFacebookPixel();
+  const purchaseTrackedRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -81,11 +84,17 @@ const PixPaymentScreen: React.FC<PixPaymentScreenProps> = ({
 
   // Mostrar sucesso quando isPremium mudar e parar o áudio
   useEffect(() => {
-    if (isPremium) {
+    if (isPremium && !purchaseTrackedRef.current) {
+      purchaseTrackedRef.current = true;
+      trackEvent('Purchase', {
+        content_name: 'Plano Vitalício',
+        currency: 'BRL',
+        value: amount,
+      });
       onPaymentApproved?.();
       setShowSuccess(true);
     }
-  }, [isPremium, onPaymentApproved]);
+  }, [isPremium, onPaymentApproved, amount, trackEvent]);
 
   // Timer de expiração do PIX
   useEffect(() => {

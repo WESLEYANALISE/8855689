@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CreditCard, Lock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useFacebookPixel } from '@/hooks/useFacebookPixel';
 import PremiumSuccessCard from '@/components/PremiumSuccessCard';
 
 // Mercado Pago Public Key - pode ficar no código pois é pública
@@ -38,6 +39,7 @@ export function CheckoutCartao({
   onError,
   onCancel 
 }: CheckoutCartaoProps) {
+  const { trackEvent } = useFacebookPixel();
   const [loading, setLoading] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
   const [cardholderName, setCardholderName] = useState('');
@@ -210,6 +212,11 @@ export function CheckoutCartao({
 
       if (data?.success) {
         if (data.status === 'approved') {
+          trackEvent('Purchase', {
+            content_name: `Plano ${planLabel}`,
+            currency: 'BRL',
+            value: amount,
+          });
           toast.success('Pagamento aprovado! Sua assinatura foi ativada.');
           setShowSuccess(true);
         } else if (data.status === 'pending') {

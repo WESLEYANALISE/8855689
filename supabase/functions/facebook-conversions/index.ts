@@ -19,7 +19,7 @@ serve(async (req) => {
       throw new Error("FACEBOOK_CONVERSIONS_API_TOKEN não configurado");
     }
 
-    const { event_name, event_time, user_data, custom_data, event_source_url, action_source } = await req.json();
+    const { event_name, event_id, event_time, user_data, custom_data, event_source_url, action_source } = await req.json();
 
     if (!event_name) {
       throw new Error("event_name é obrigatório");
@@ -48,6 +48,7 @@ serve(async (req) => {
       data: [
         {
           event_name,
+          event_id: event_id || undefined,
           event_time: event_time || Math.floor(Date.now() / 1000),
           action_source: action_source || "website",
           event_source_url: event_source_url || undefined,
