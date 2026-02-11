@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Check, X, Crown, Loader2, Star, ChevronDown } from 'lucide-react';
+import { Check, X, Crown, Loader2, Star, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
+import { useAssinaturaBackgroundAudio } from '@/hooks/useAssinaturaBackgroundAudio';
 import PixPaymentScreen from '@/components/assinatura/PixPaymentScreen';
+import themisFull from '@/assets/themis-full.webp';
 import themisFaceCloseup from '@/assets/themis-face-closeup.webp';
+import capaGratuito from '@/assets/capa-plano-gratuito.webp';
 
 const PLAN_CHOSEN_KEY = 'plan_chosen';
 
@@ -38,7 +40,7 @@ const LIFETIME_FEATURES = [
   { label: 'Dicionário Jurídico', included: true },
   { label: 'Vade Mecum completo (+50 leis)', included: true },
   { label: 'Todos os códigos e estatutos', included: true },
-  { label: 'Notícias + Análise', included: true },
+  { label: 'Notícias + Análise especializada', included: true },
   { label: 'Todas as videoaulas', included: true },
   { label: '+30.000 questões OAB', included: true },
   { label: 'Mapas mentais', included: true },
@@ -53,6 +55,10 @@ const LIFETIME_FEATURES = [
   { label: 'Suporte prioritário', included: true },
 ];
 
+const FREE_ABOUT = `O plano Gratuito é perfeito para quem está começando no Direito e quer conhecer a plataforma. Você terá acesso ao Chat Jurídico com limite diário, flashcards para fixar conceitos, o Dicionário Jurídico completo, a Constituição Federal, os Códigos Civil e Penal, além de notícias jurídicas atualizadas e 2 videoaulas de degustação.\n\nÉ a porta de entrada para explorar o universo jurídico sem compromisso. Quando estiver pronto para desbloquear todo o potencial, você pode fazer o upgrade a qualquer momento.`;
+
+const LIFETIME_ABOUT = `O plano Vitalício é o acesso completo e definitivo à maior plataforma de estudos jurídicos do Brasil. Com um único pagamento de R$ 89,90, você desbloqueia TUDO — para sempre.\n\nSão mais de 30.000 questões OAB, o Vade Mecum mais completo com +50 leis, trilhas de estudo personalizadas, mapas mentais, resumos inteligentes, simulados, audioaulas, videoaulas exclusivas, petições, contratos e a biblioteca jurídica mais completa do país.\n\nAlém disso, você ganha acesso à Evelyn, sua assistente jurídica 24h no WhatsApp, análises especializadas de notícias e suporte prioritário. Tudo sem anúncios e sem mensalidades — pague uma vez, use para sempre.`;
+
 const COMPACT_VISIBLE = 4;
 
 export const markPlanChosen = (userId: string) => {
@@ -63,28 +69,15 @@ export const hasPlanChosen = (userId: string): boolean => {
   return localStorage.getItem(`${PLAN_CHOSEN_KEY}_${userId}`) === 'true';
 };
 
-const FullFeatureList = ({ features, amber }: { features: typeof FREE_FEATURES; amber?: boolean }) => (
-  <div className="space-y-2">
-    {features.map((f, i) => (
-      <div key={i} className="flex items-start gap-2 text-sm">
-        {f.included ? (
-          <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-        ) : (
-          <X className="w-4 h-4 text-zinc-700 flex-shrink-0 mt-0.5" />
-        )}
-        <span className={f.included ? 'text-zinc-300' : 'text-zinc-600 line-through'}>
-          {f.label}
-        </span>
-      </div>
-    ))}
-  </div>
-);
-
 const EscolherPlano: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [detailPlan, setDetailPlan] = useState<'free' | 'lifetime' | null>(null);
+  const [detailTab, setDetailTab] = useState<'funcoes' | 'sobre'>('funcoes');
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
+
+  // Áudio de fundo imersivo
+  useAssinaturaBackgroundAudio(true);
 
   const handleFree = () => {
     if (user?.id) markPlanChosen(user.id);
@@ -105,11 +98,13 @@ const EscolherPlano: React.FC = () => {
   };
 
   const handleConfirm = () => {
-    if (detailPlan === 'free') {
-      handleFree();
-    } else if (detailPlan === 'lifetime') {
-      handleLifetime();
-    }
+    if (detailPlan === 'free') handleFree();
+    else if (detailPlan === 'lifetime') handleLifetime();
+  };
+
+  const openDetail = (plan: 'free' | 'lifetime') => {
+    setDetailTab('funcoes');
+    setDetailPlan(plan);
   };
 
   if (pixData && user) {
@@ -128,11 +123,151 @@ const EscolherPlano: React.FC = () => {
     );
   }
 
+  // Detail full-screen view
+  if (detailPlan) {
+    const isLifetime = detailPlan === 'lifetime';
+    const features = isLifetime ? LIFETIME_FEATURES : FREE_FEATURES;
+    const aboutText = isLifetime ? LIFETIME_ABOUT : FREE_ABOUT;
+    const coverImg = isLifetime ? themisFaceCloseup : capaGratuito;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-black text-foreground"
+      >
+        {/* Cover */}
+        <div className="relative w-full h-56 sm:h-72">
+          <img src={coverImg} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+          
+          {/* Back button */}
+          <button
+            onClick={() => setDetailPlan(null)}
+            className="absolute top-4 left-4 z-20 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          {/* Plan info overlay */}
+          <div className="absolute bottom-4 left-4 z-10">
+            {isLifetime && <Crown className="w-6 h-6 text-amber-400 mb-1" />}
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-white">
+              {isLifetime ? 'Plano Vitalício' : 'Plano Gratuito'}
+            </h1>
+            <p className={`text-sm font-bold ${isLifetime ? 'text-amber-400' : 'text-zinc-300'}`}>
+              {isLifetime ? 'R$ 89,90 — Pagamento único' : 'R$ 0 — Para sempre'}
+            </p>
+          </div>
+        </div>
+
+        {/* Confirm button right below cover */}
+        <div className="px-4 py-4 max-w-lg mx-auto">
+          {isLifetime ? (
+            <Button
+              onClick={handleConfirm}
+              disabled={pixLoading}
+              className="w-full h-12 text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25"
+            >
+              {pixLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Crown className="w-4 h-4 mr-2" />
+              )}
+              Confirmar escolha
+            </Button>
+          ) : (
+            <Button
+              onClick={handleConfirm}
+              variant="outline"
+              className="w-full h-12 text-sm border-zinc-600 text-zinc-300 hover:bg-zinc-800 font-semibold"
+            >
+              Confirmar escolha
+            </Button>
+          )}
+        </div>
+
+        {/* Toggle tabs */}
+        <div className="px-4 max-w-lg mx-auto">
+          <div className="flex bg-zinc-900 rounded-lg p-1 mb-4">
+            <button
+              onClick={() => setDetailTab('funcoes')}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                detailTab === 'funcoes'
+                  ? (isLifetime ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-700 text-white')
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Funções
+            </button>
+            <button
+              onClick={() => setDetailTab('sobre')}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                detailTab === 'sobre'
+                  ? (isLifetime ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-700 text-white')
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Sobre
+            </button>
+          </div>
+
+          {/* Tab content */}
+          <AnimatePresence mode="wait">
+            {detailTab === 'funcoes' ? (
+              <motion.div
+                key="funcoes"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="pb-8"
+              >
+                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-4 font-medium">
+                  Tudo que está incluso
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {features.map((f, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm">
+                      {f.included ? (
+                        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <X className="w-4 h-4 text-zinc-700 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className={f.included ? 'text-zinc-300' : 'text-zinc-600 line-through'}>
+                        {f.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="sobre"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="pb-8"
+              >
+                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-4 font-medium">
+                  Sobre o plano
+                </p>
+                <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                  {aboutText}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative text-foreground overflow-x-hidden">
-      {/* Background Themis */}
+      {/* Background Themis vermelha (same as Auth) */}
       <div className="absolute inset-0 z-0">
-        <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover" />
+        <img src={themisFull} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/90" />
       </div>
 
@@ -163,11 +298,12 @@ const EscolherPlano: React.FC = () => {
           >
             <div className="flex">
               <div className="w-28 sm:w-36 relative overflow-hidden flex-shrink-0">
-                <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center] brightness-50 saturate-50" />
+                <img src={capaGratuito} alt="" className="w-full h-full object-cover brightness-75" />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/80" />
               </div>
               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between gap-2">
-                <div className="space-y-1.5">
+                <h2 className="text-sm font-bold text-white">Gratuito</h2>
+                <div className="space-y-1">
                   {FREE_FEATURES.slice(0, COMPACT_VISIBLE).map((f, i) => (
                     <div key={i} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
                       <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
@@ -181,7 +317,7 @@ const EscolherPlano: React.FC = () => {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => setDetailPlan('free')}
+                  onClick={() => openDetail('free')}
                   className="w-full h-9 text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-800"
                 >
                   Escolher esse
@@ -210,7 +346,11 @@ const EscolherPlano: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/60" />
               </div>
               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between gap-2">
-                <div className="space-y-1.5">
+                <h2 className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5" />
+                  Vitalício
+                </h2>
+                <div className="space-y-1">
                   {LIFETIME_FEATURES.slice(0, COMPACT_VISIBLE).map((f, i) => (
                     <div key={i} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
                       <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
@@ -219,12 +359,11 @@ const EscolherPlano: React.FC = () => {
                   ))}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Crown className="w-4 h-4 text-amber-400" />
                   <span className="text-lg font-bold text-amber-400">R$ 89,90</span>
                   <span className="text-[10px] text-amber-300/60">Pagamento único</span>
                 </div>
                 <Button
-                  onClick={() => setDetailPlan('lifetime')}
+                  onClick={() => openDetail('lifetime')}
                   className="w-full h-9 text-xs bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25"
                 >
                   Escolher esse
@@ -234,68 +373,6 @@ const EscolherPlano: React.FC = () => {
           </motion.div>
         </div>
       </div>
-
-      {/* Detail Dialog */}
-      <Dialog open={detailPlan !== null} onOpenChange={(open) => !open && setDetailPlan(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-zinc-900 border-zinc-700 max-h-[85vh] overflow-y-auto">
-          <DialogTitle className="sr-only">
-            {detailPlan === 'free' ? 'Plano Gratuito' : 'Plano Vitalício'}
-          </DialogTitle>
-          {/* Extended cover */}
-          <div className="h-48 w-full relative overflow-hidden">
-            <img
-              src={themisFaceCloseup}
-              alt=""
-              className={`w-full h-full object-cover object-[30%_center] ${detailPlan === 'free' ? 'brightness-50 saturate-50' : ''}`}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
-            <div className="absolute bottom-4 left-4">
-              {detailPlan === 'lifetime' && <Crown className="w-5 h-5 text-amber-400 mb-1" />}
-              <h2 className="text-xl font-serif font-bold text-white">
-                {detailPlan === 'free' ? 'Plano Gratuito' : 'Plano Vitalício'}
-              </h2>
-              <p className={`text-sm font-bold ${detailPlan === 'lifetime' ? 'text-amber-400' : 'text-white'}`}>
-                {detailPlan === 'free' ? 'R$ 0 — Para sempre' : 'R$ 89,90 — Pagamento único'}
-              </p>
-            </div>
-          </div>
-
-          {/* Full feature list */}
-          <div className="px-5 py-4">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-medium">Tudo que está incluso</p>
-            <FullFeatureList
-              features={detailPlan === 'free' ? FREE_FEATURES : LIFETIME_FEATURES}
-              amber={detailPlan === 'lifetime'}
-            />
-          </div>
-
-          {/* Confirm button */}
-          <div className="px-5 pb-5">
-            {detailPlan === 'free' ? (
-              <Button
-                onClick={handleConfirm}
-                variant="outline"
-                className="w-full h-12 text-sm border-zinc-600 text-zinc-300 hover:bg-zinc-800 font-semibold"
-              >
-                Confirmar escolha
-              </Button>
-            ) : (
-              <Button
-                onClick={handleConfirm}
-                disabled={pixLoading}
-                className="w-full h-12 text-sm bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold shadow-lg shadow-amber-500/25"
-              >
-                {pixLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Crown className="w-4 h-4 mr-2" />
-                )}
-                Confirmar escolha
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
