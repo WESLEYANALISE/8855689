@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
 import { 
   BookOpen, Video, Library, ClipboardList, MessageCircle, Sparkles,
-  ChevronRight, X, Brain, Scale, GraduationCap, Gavel
+  ChevronRight, X, Brain, Scale, GraduationCap, Gavel, Volume2, VolumeX, Loader2
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Imagens de fundo
 import capaFaculdade from '@/assets/landing/welcome-1.png';
@@ -68,6 +69,103 @@ const swipeThreshold = 50;
 const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [audioUrls, setAudioUrls] = useState<Record<number, string>>({});
+  const [audioLoading, setAudioLoading] = useState<Record<number, boolean>>({});
+  const [muted, setMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fetch all cached audio URLs on mount
+  useEffect(() => {
+    const fetchAudioUrls = async () => {
+      const { data } = await supabase
+        .from('intro_carousel_narrations')
+        .select('slide_index, audio_url')
+        .not('audio_url', 'is', null);
+
+      if (data) {
+        const urls: Record<number, string> = {};
+        data.forEach((row: any) => {
+          if (row.audio_url) urls[row.slide_index] = row.audio_url;
+        });
+        setAudioUrls(urls);
+      }
+    };
+    fetchAudioUrls();
+  }, []);
+
+  // Generate narration for current slide if not cached
+  useEffect(() => {
+    const generateIfNeeded = async () => {
+      if (audioUrls[current] || audioLoading[current]) return;
+
+      setAudioLoading(prev => ({ ...prev, [current]: true }));
+      try {
+        const { data, error } = await supabase.functions.invoke('gerar-narracao-intro', {
+          body: { slideIndex: current },
+        });
+
+        if (data?.audio_url) {
+          setAudioUrls(prev => ({ ...prev, [current]: data.audio_url }));
+        }
+      } catch (err) {
+        console.error('Erro ao gerar narração:', err);
+      } finally {
+        setAudioLoading(prev => ({ ...prev, [current]: false }));
+      }
+    };
+
+    generateIfNeeded();
+  }, [current, audioUrls, audioLoading]);
+
+  // Play audio when slide changes or audio becomes available
+  useEffect(() => {
+    if (muted) return;
+
+    // Stop previous audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    const url = audioUrls[current];
+    if (url) {
+      const audio = new Audio(url);
+      audio.volume = 0.8;
+      audioRef.current = audio;
+      audio.play().catch(() => {});
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [current, audioUrls[current], muted]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted(prev => {
+      const newMuted = !prev;
+      if (audioRef.current) {
+        if (newMuted) {
+          audioRef.current.pause();
+        } else {
+          audioRef.current.play().catch(() => {});
+        }
+      }
+      return newMuted;
+    });
+  }, []);
 
   const paginate = useCallback((newDirection: number) => {
     const next = current + newDirection;
@@ -84,6 +182,7 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
   const slide = slides[current];
   const isLast = current === slides.length - 1;
   const SlideIcon = slide.icon;
+  const isLoadingAudio = audioLoading[current];
 
   const variants = {
     enter: (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -98,16 +197,33 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[9999] bg-black flex flex-col overflow-hidden"
     >
-      {/* Skip button */}
-      {!isLast && (
+      {/* Top controls */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        {/* Audio toggle */}
         <button
-          onClick={onComplete}
-          className="absolute top-4 right-4 z-50 flex items-center gap-1 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/80 text-sm font-medium hover:bg-white/20 transition-colors"
+          onClick={toggleMute}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 transition-colors"
         >
-          Pular
-          <X className="w-4 h-4" />
+          {isLoadingAudio ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : muted ? (
+            <VolumeX className="w-4 h-4" />
+          ) : (
+            <Volume2 className="w-4 h-4" />
+          )}
         </button>
-      )}
+
+        {/* Skip button */}
+        {!isLast && (
+          <button
+            onClick={onComplete}
+            className="flex items-center gap-1 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white/80 text-sm font-medium hover:bg-white/20 transition-colors"
+          >
+            Pular
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       {/* Slide content */}
       <AnimatePresence initial={false} custom={direction} mode="wait">
@@ -171,6 +287,28 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
                   </span>
                 ))}
               </div>
+
+              {/* Audio indicator */}
+              {!muted && audioUrls[current] && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-2 text-white/50 text-xs"
+                >
+                  <Volume2 className="w-3 h-3" />
+                  <span>Narração ativa</span>
+                  <div className="flex gap-0.5">
+                    {[0, 1, 2].map(i => (
+                      <motion.div
+                        key={i}
+                        className="w-0.5 bg-red-400 rounded-full"
+                        animate={{ height: [4, 12, 4] }}
+                        transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </div>
         </motion.div>
