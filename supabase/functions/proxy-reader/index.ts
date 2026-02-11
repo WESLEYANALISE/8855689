@@ -41,26 +41,43 @@ serve(async (req) => {
       },
     });
 
-    // Copy response headers but remove X-Frame-Options
-    const headers = new Headers(corsHeaders);
-    response.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      if (lower !== 'x-frame-options' && lower !== 'content-security-policy') {
-        headers.set(key, value);
-      }
-    });
+    // Read response as text
+    const bodyText = await response.text();
+    const looksLikeHtml = bodyText.trimStart().startsWith('<!') || bodyText.trimStart().toLowerCase().startsWith('<html');
 
-    // Ensure content type is set
-    const contentType = response.headers.get('content-type');
-    if (contentType) {
-      headers.set('Content-Type', contentType);
+    if (looksLikeHtml) {
+      // Inject <base> tag so relative resources (JS, CSS, images) load from the original domain
+      const basePath = targetUrl.endsWith('/') ? targetUrl : targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+      const baseTag = `<base href="${basePath}">`;
+
+      let html = bodyText;
+      if (html.includes('<head>')) {
+        html = html.replace('<head>', `<head>${baseTag}`);
+      } else if (html.includes('<head ')) {
+        html = html.replace(/<head\s[^>]*>/, `$&${baseTag}`);
+      } else {
+        html = baseTag + html;
+      }
+
+      return new Response(html, {
+        status: response.status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/html; charset=utf-8',
+          // Must explicitly set CSP to allow content rendering - Supabase adds restrictive sandbox CSP by default
+          'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;",
+        },
+      });
     }
 
-    const body = await response.arrayBuffer();
-
-    return new Response(body, {
+    // Non-HTML content: return as-is
+    const originalContentType = response.headers.get('content-type') || 'application/octet-stream';
+    return new Response(bodyText, {
       status: response.status,
-      headers,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': originalContentType,
+      },
     });
   } catch (error) {
     console.error('Proxy error:', error);
