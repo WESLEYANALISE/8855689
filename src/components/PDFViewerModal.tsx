@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
-import { useCapacitorPlatform } from "@/hooks/use-capacitor-platform";
+
 
 interface PDFViewerModalProps {
   isOpen: boolean;
@@ -31,7 +31,6 @@ type TextWidth = 60 | 80 | 100;
 const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title, viewMode = 'normal' }: PDFViewerModalProps) => {
   const isMobile = useIsMobile();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { isNative, isWeb } = useCapacitorPlatform();
   
   // Estados para recursos premium (apenas modo vertical)
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -45,19 +44,11 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
   const urlToUse = viewMode === 'normal' ? normalModeUrl : verticalModeUrl;
   const isDriveUrl = isGoogleDriveUrl(urlToUse);
   
-  // Para URLs externas (FlipHTML5) no web: abrir em nova aba pois X-Frame-Options bloqueia iframe
-  // No nativo (Capacitor): WebView ignora X-Frame-Options, então iframe funciona direto
+  // Para Google Drive: usar URL de preview otimizada
+  // Para URLs externas (FlipHTML5): usar direto no iframe (como o código de incorporação oficial)
   const processedUrl = isDriveUrl 
     ? processDriveUrl(urlToUse, viewMode)
-    : urlToUse; // No nativo usa direto; no web será aberto em nova aba
-  
-  // Se for URL externa no web, abrir em nova aba e fechar o modal
-  useEffect(() => {
-    if (isOpen && !isDriveUrl && isWeb) {
-      window.open(urlToUse, '_blank');
-      onClose();
-    }
-  }, [isOpen, isDriveUrl, isWeb, urlToUse, onClose]);
+    : urlToUse;
   
   
   // Carregar bookmarks salvos
@@ -350,8 +341,12 @@ const PDFViewerModal = ({ isOpen, onClose, normalModeUrl, verticalModeUrl, title
                 src={processedUrl}
                 className="w-full h-full"
                 title={title}
+                seamless
+                scrolling="no"
+                frameBorder="0"
                 allow="autoplay; encrypted-media"
                 allowFullScreen
+                allowTransparency
                 style={{
                   touchAction: 'pan-y pinch-zoom',
                   border: 'none',
