@@ -2,12 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Video, Brain, Library, Scale, FileText, Globe, 
-  ChevronRight, Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 import themisFull from '@/assets/themis-full.webp';
 import welcome1 from '@/assets/landing/welcome-1.png';
@@ -33,20 +31,18 @@ const features = [
 
 const Welcome = () => {
   const navigate = useNavigate();
-  const autoplayPlugin = useRef(Autoplay({ delay: 2500, stopOnInteraction: false }));
-  const [emblaRef] = useEmblaCarousel(
-    { loop: true, align: 'start', slidesToScroll: 1 },
-    [autoplayPlugin.current]
-  );
 
   const handleAcessar = useCallback(() => {
     navigate('/auth');
   }, [navigate]);
 
+  // Duplicate screenshots for seamless infinite loop
+  const doubledScreenshots = [...screenshots, ...screenshots];
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
+      <section className="relative min-h-[75vh] flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img src={themisFull} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-background" />
@@ -80,36 +76,33 @@ const Welcome = () => {
         </div>
       </section>
 
-      {/* Carrossel de Screenshots - 2.5 visíveis */}
-      <section className="py-16 px-0">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center px-6">
-            <Sparkles className="inline h-6 w-6 text-primary mr-2" />
-            Conheça o App
-          </h2>
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex">
-              {screenshots.map((img, i) => (
-                <div
-                  key={i}
-                  className="flex-[0_0_40%] min-w-0 pl-3 first:pl-4"
-                >
-                  <img
-                    src={img}
-                    alt={`Screenshot ${i + 1} do app`}
-                    className="rounded-xl border border-border shadow-lg w-full object-contain"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
+      {/* Carrossel contínuo de Screenshots */}
+      <section className="py-8 bg-card/50">
+        <div className="overflow-hidden">
+          <div
+            className="flex gap-3 w-max"
+            style={{
+              animation: 'scroll-carousel 40s linear infinite',
+            }}
+          >
+            {doubledScreenshots.map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`Screenshot ${(i % screenshots.length) + 1} do app`}
+                className="rounded-xl border border-border shadow-lg h-[280px] w-auto object-contain flex-shrink-0"
+                loading="lazy"
+              />
+            ))}
           </div>
-        </motion.div>
+        </div>
+
+        <style>{`
+          @keyframes scroll-carousel {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        `}</style>
       </section>
 
       {/* Funcionalidades */}
