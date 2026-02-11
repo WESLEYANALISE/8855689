@@ -1,50 +1,49 @@
 
-## Ajustes na Pagina de Planos, Tutorial e Cards Flutuantes
 
-### 1. Pagina Escolher Plano (`src/pages/EscolherPlano.tsx`)
+## Redesign da Pagina Escolher Plano
 
-**Layout vertical**: Trocar `grid-cols-2` por coluna unica (`flex flex-col`), com os cards empilhados (Gratuito em cima, Vitalicio embaixo).
+### Mudancas
 
-**Capas nos dois cards**: Adicionar uma imagem de capa no topo de cada card, usando a imagem da deusa Themis vermelha (`themis-face-closeup` ou similar ja existente no projeto). O card gratuito tera uma versao com filtro mais escuro/dessaturado, e o vitalicio com destaque dourado.
+**Arquivo: `src/pages/EscolherPlano.tsx`**
 
-**Remover mencoes a IA**: Trocar "Resumos com IA" por "Resumos inteligentes" e "Noticias + Analise IA" por "Noticias + Analise" nas listas de features.
+1. **Remover secao "Bonus exclusivo"** (o card verde com Evelyn) -- linhas 347-393 inteiras removidas
 
-**Manter "Ver mais"**: O componente FeatureList com botao "Ver mais" continua funcionando em ambos os cards.
+2. **Imagem de fundo Themis**: Adicionar a imagem `themis-face-closeup` como background da pagina inteira (similar ao Auth), com overlay escuro para legibilidade
 
-### 2. Tutorial IntroCarousel (`src/components/onboarding/IntroCarousel.tsx`)
+3. **Titulo melhorado**: Trocar a fonte do "Como voce quer comecar?" para `font-serif` (Playfair Display, mesmo estilo do Auth) e centralizar melhor os cards com `max-w-md` e `items-center justify-center`
 
-**Slide "Ferramentas inteligentes de estudo"** (slide 2): Trocar a feature "Resumos com IA" por "Resumos inteligentes" na lista de features.
+4. **Botao unico "Escolher esse"**: Remover os botoes "Comecar Gratis"/"Assinar" e "Ver mais" de cada card. Substituir por um unico botao "Escolher esse" em cada card
 
-### 3. Remover Cards Flutuantes (`src/components/Layout.tsx`)
+5. **Fluxo de detalhes em duas etapas**:
+   - Ao clicar "Escolher esse", abre o Dialog de detalhes (ja existente) com:
+     - Capa estendida preenchendo o topo
+     - Lista COMPLETA de features
+     - Botao "Confirmar escolha" no final
+   - Ao clicar "Confirmar escolha", executa a acao (navegar para onboarding no gratuito, ou gerar Pix no vitalicio)
 
-**Remover completamente**:
-- A renderizacao do `PremiumWelcomeCard`
-- A renderizacao do `RateAppFloatingCard`
-- Os imports correspondentes
-
-Os arquivos dos componentes em si serao mantidos no projeto (nao deletados), apenas removidos do Layout.
-
-### 4. Corrigir erro de build
-
-O erro de build mencionado sera resolvido com as edicoes acima, ja que as mudancas nao introduzem novos problemas.
+6. **Centralizar cards**: Usar `min-h-screen flex flex-col items-center justify-center` para posicionar os cards no centro vertical da tela
 
 ### Detalhes Tecnicos
 
 ```text
-Arquivos modificados:
-1. src/pages/EscolherPlano.tsx
-   - grid-cols-2 → flex flex-col gap-4
-   - Adicionar imagem de capa (themis) no topo de cada card
-   - max-w-md mx-auto para centralizar os cards
-   - Trocar "Resumos com IA" → "Resumos inteligentes"
-   - Trocar "Noticias + Analise IA" → "Noticias + Analise"
+Arquivo: src/pages/EscolherPlano.tsx
 
-2. src/components/onboarding/IntroCarousel.tsx
-   - features slide 2: "Resumos com IA" → "Resumos inteligentes"
+REMOVER:
+- Secao Bonus Evelyn (linhas 347-393) e Dialog do video bonus (linhas 380-393)
+- Estado showBonusVideo
+- Botoes "Ver mais" e "Comecar Gratis"/"Assinar" separados
+- Import de Gift, MessageCircle, Play, Eye
 
-3. src/components/Layout.tsx
-   - Remover imports de PremiumWelcomeCard e RateAppFloatingCard
-   - Remover renderizacao dos dois componentes (linhas 575-579)
+ADICIONAR:
+- Background image com overlay (themis-face-closeup + bg-gradient)
+- font-serif no titulo principal
+- Botao unico "Escolher esse" em cada card
+- No Dialog: botao "Confirmar escolha" que executa handleFree ou handleLifetime
+- min-h-screen com centralizacao vertical
+
+FLUXO:
+Card compacto (4 features + preco + "Escolher esse")
+  → Click → Dialog com capa estendida + todas features
+    → "Confirmar escolha" → executa acao (onboarding ou pix)
 ```
 
-As capas usarao uma imagem existente do projeto (themis-face-closeup ou similar) com aspect-ratio 16:9, aplicada via tag img com object-cover no topo de cada card.
