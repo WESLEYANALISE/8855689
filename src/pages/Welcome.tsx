@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   BookOpen, Video, Brain, Library, Scale, FileText, Globe, 
   ChevronRight
@@ -36,8 +35,8 @@ const Welcome = () => {
     navigate('/auth');
   }, [navigate]);
 
-  // Duplicate screenshots for seamless infinite loop
-  const doubledScreenshots = [...screenshots, ...screenshots];
+  // Triple screenshots for seamless infinite loop
+  const tripledScreenshots = [...screenshots, ...screenshots, ...screenshots];
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -49,21 +48,23 @@ const Welcome = () => {
         </div>
         
         <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+          <h2 
+            className="text-primary font-serif text-lg md:text-xl mb-4 tracking-widest uppercase opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_forwards]"
           >
-            <h2 className="text-primary font-serif text-lg md:text-xl mb-4 tracking-widest uppercase">
-              Direito Premium
-            </h2>
-            <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4">
-              Tudo que você precisa para{' '}
-              <span className="text-primary">dominar o Direito</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-6 leading-relaxed">
-              A ferramenta completa para estudar Direito: aulas, leis, flashcards, IA e muito mais.
-            </p>
+            Direito Premium
+          </h2>
+          <h1 
+            className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4 opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_0.2s_forwards]"
+          >
+            Tudo que você precisa para{' '}
+            <span className="text-primary">dominar o Direito</span>
+          </h1>
+          <p 
+            className="text-lg md:text-xl text-muted-foreground mb-6 leading-relaxed opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_0.4s_forwards]"
+          >
+            A ferramenta completa para estudar Direito: aulas, leis, flashcards, IA e muito mais.
+          </p>
+          <div className="opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_0.6s_forwards]">
             <Button 
               size="lg" 
               onClick={handleAcessar}
@@ -72,15 +73,8 @@ const Welcome = () => {
               Acessar
               <ChevronRight className="ml-1 h-5 w-5 animate-[bounce-right_1s_ease-in-out_infinite]" />
             </Button>
-          </motion.div>
+          </div>
         </div>
-
-        <style>{`
-          @keyframes bounce-right {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(5px); }
-          }
-        `}</style>
       </section>
 
       {/* Carrossel contínuo de Screenshots */}
@@ -89,54 +83,43 @@ const Welcome = () => {
           <div
             className="flex gap-3 w-max"
             style={{
-              animation: 'scroll-carousel 40s linear infinite',
+              animation: 'scroll-carousel 60s linear infinite',
+              willChange: 'transform',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden',
             }}
           >
-            {doubledScreenshots.map((img, i) => (
+            {tripledScreenshots.map((img, i) => (
               <img
                 key={i}
                 src={img}
                 alt={`Screenshot ${(i % screenshots.length) + 1} do app`}
                 className="rounded-xl border border-border shadow-lg h-[280px] w-auto object-contain flex-shrink-0"
-                loading="lazy"
+                fetchPriority="high"
+                decoding="async"
               />
             ))}
           </div>
         </div>
-
-        <style>{`
-          @keyframes scroll-carousel {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-        `}</style>
       </section>
 
       {/* Funcionalidades */}
       <section className="py-16 px-6">
         <div className="max-w-3xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-2xl md:text-3xl font-bold text-center mb-12"
-          >
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 opacity-0 animate-[welcomeFadeUp_0.6s_ease-out_forwards]">
             Tudo que você precisa
-          </motion.h2>
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {features.map((f, i) => (
-              <motion.div
+              <div
                 key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-                className="flex flex-col items-center text-center p-4 rounded-xl bg-card border border-border"
+                className="flex flex-col items-center text-center p-4 rounded-xl bg-card border border-border opacity-0 animate-[welcomeFadeUp_0.4s_ease-out_forwards]"
+                style={{ animationDelay: `${i * 100}ms` }}
               >
                 <f.icon className="h-8 w-8 text-primary mb-3" />
                 <h3 className="font-semibold text-sm">{f.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1">{f.desc}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -144,12 +127,7 @@ const Welcome = () => {
 
       {/* CTA Final */}
       <section className="py-20 px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
+        <div>
           <Button
             size="lg"
             onClick={handleAcessar}
@@ -160,8 +138,29 @@ const Welcome = () => {
           <p className="text-muted-foreground mt-4 text-sm">
             Cadastro rápido e gratuito
           </p>
-        </motion.div>
+        </div>
       </section>
+
+      <style>{`
+        @keyframes bounce-right {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(5px); }
+        }
+        @keyframes scroll-carousel {
+          0% { transform: translateZ(0) translateX(0); }
+          100% { transform: translateZ(0) translateX(-33.333%); }
+        }
+        @keyframes welcomeFadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
