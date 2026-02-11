@@ -326,7 +326,7 @@ export const useListaAssinantesPremium = () => {
     queryFn: async (): Promise<AssinantePremium[]> => {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('user_email, plan_id, amount, created_at, status')
+        .select('mp_payer_email, plan_type, amount, created_at, status')
         .eq('status', 'authorized')
         .order('created_at', { ascending: false });
 
@@ -335,9 +335,9 @@ export const useListaAssinantesPremium = () => {
       const emailMap = new Map<string, AssinantePremium>();
 
       (data || []).forEach((sub: any) => {
-        const email = sub.user_email || 'Email não disponível';
+        const email = sub.mp_payer_email || 'Email não disponível';
         if (!emailMap.has(email)) {
-          const planId = (sub.plan_id || '').toLowerCase();
+          const planId = (sub.plan_type || '').toLowerCase();
           let plano = 'Vitalício';
           if (planId.includes('mensal') || planId.includes('monthly')) plano = 'Mensal';
           else if (planId.includes('anual') || planId.includes('yearly')) plano = 'Anual';
