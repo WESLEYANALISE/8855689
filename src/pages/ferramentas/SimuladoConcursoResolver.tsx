@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,7 @@ const SimuladoConcursoResolver = () => {
             </p>
             <div 
               className="text-sm leading-relaxed whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: enunciadoProcessado }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enunciadoProcessado) }}
             />
             {/* Imagem se houver [IMAGEM] no enunciado */}
             {temImagemNoEnunciado && questaoAtualData.Imagem && (

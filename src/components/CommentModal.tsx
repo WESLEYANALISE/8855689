@@ -1,4 +1,5 @@
 import React from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -100,7 +101,7 @@ export const CommentModal = ({ isOpen, onClose, comment }: CommentModalProps) =>
         <p 
           key={index} 
           className="text-foreground/90 leading-relaxed text-sm mb-4"
-          dangerouslySetInnerHTML={{ __html: boldText }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(boldText) }}
         />
       );
     });

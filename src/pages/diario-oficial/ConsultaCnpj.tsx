@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Building2, Search, Users, MapPin, Calendar, Loader2, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -275,7 +276,7 @@ const ConsultaCnpj = () => {
                               </p>
                               {gazette.excerpts?.[0] && (
                                 <p className="text-sm mt-2 line-clamp-2" dangerouslySetInnerHTML={{ 
-                                  __html: gazette.excerpts[0].replace(/<\/?em>/g, (m) => m === '<em>' ? '<mark class="bg-yellow-200 dark:bg-yellow-800">' : '</mark>')
+                                  __html: sanitizeHtml(gazette.excerpts[0].replace(/<\/?em>/g, (m) => m === '<em>' ? '<mark class="bg-yellow-200 dark:bg-yellow-800">' : '</mark>'))
                                 }} />
                               )}
                             </div>

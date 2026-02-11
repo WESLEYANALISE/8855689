@@ -4,6 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -172,7 +173,7 @@ export const VagaDetalhesModal = ({
             <h3 className="text-lg font-semibold mb-3">Descrição da Vaga</h3>
             <div 
               className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: vaga.descricao }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(vaga.descricao) }}
             />
           </div>
 

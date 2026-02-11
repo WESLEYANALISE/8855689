@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Minus, Plus, BookOpen, Loader2, Sparkles, List, ImageIcon } from "lucide-react";
@@ -1406,13 +1407,13 @@ const LeituraInterativa = ({
                   <div 
                     className="prose prose-lg dark:prose-invert max-w-none leitura-content"
                     style={{ fontSize: `${fontSize}px` }}
-                    dangerouslySetInnerHTML={{ __html: limparConteudoHtml(conteudoFormatado) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(limparConteudoHtml(conteudoFormatado)) }}
                   />
                 ) : paginaConteudo?.Livro ? (
                   <div 
                     className="prose prose-lg dark:prose-invert max-w-none leitura-content"
                     style={{ fontSize: `${fontSize}px` }}
-                    dangerouslySetInnerHTML={{ __html: formatarTextoBasico(paginaConteudo.Livro) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatarTextoBasico(paginaConteudo.Livro)) }}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-64 text-muted-foreground">

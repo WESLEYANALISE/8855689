@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -320,7 +321,7 @@ export const VadeMecumDetailPanel = ({
             className="prose prose-lg prose-invert max-w-none article-content leading-relaxed whitespace-pre-line"
             style={{ fontSize: '16px', lineHeight: '1.8' }}
             dangerouslySetInnerHTML={{ 
-              __html: formatTextWithUppercase(conteudo) 
+              __html: sanitizeHtml(formatTextWithUppercase(conteudo)) 
             }}
           />
 
