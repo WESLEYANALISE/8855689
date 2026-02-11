@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, BookOpen, Footprints, Crown, Loader2, ImagePlus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import dominandoHeroThemis from "@/assets/dominando-hero-themis.webp";
@@ -11,6 +12,8 @@ export default function DominandoTrilhas() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generatingId, setGeneratingId] = useState<number | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'wn7corporation@gmail.com';
 
   // Buscar áreas do Dominando
   const { data: areas, isLoading } = useQuery({
@@ -224,23 +227,27 @@ export default function DominandoTrilhas() {
                               </>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                                <button
-                                  onClick={(e) => handleGerarCapa(area.id, area.nome, e)}
-                                  disabled={isGenerating}
-                                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-50 bg-red-600/80 hover:bg-red-600"
-                                >
-                                  {isGenerating ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Gerando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ImagePlus className="w-4 h-4" />
-                                      Gerar Capa
-                                    </>
-                                  )}
-                                </button>
+                                {isAdmin ? (
+                                  <button
+                                    onClick={(e) => handleGerarCapa(area.id, area.nome, e)}
+                                    disabled={isGenerating}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-50 bg-red-600/80 hover:bg-red-600"
+                                  >
+                                    {isGenerating ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Gerando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ImagePlus className="w-4 h-4" />
+                                        Gerar Capa
+                                      </>
+                                    )}
+                                  </button>
+                                ) : (
+                                  <Crown className="w-8 h-8 text-gray-600" />
+                                )}
                               </div>
                             )}
                             

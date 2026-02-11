@@ -11,6 +11,7 @@ import bgAreasOab from "@/assets/bg-areas-oab.webp";
 import { getOptimizedImageUrl } from "@/lib/imageOptimizer";
 import { Input } from "@/components/ui/input";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 import { PremiumBadge } from "@/components/PremiumBadge";
 
@@ -56,6 +57,8 @@ export default function TrilhasAprovacao() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isPremium, loading: loadingSubscription } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'wn7corporation@gmail.com';
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -415,8 +418,8 @@ export default function TrilhasAprovacao() {
                                   <PremiumBadge position="top-right" size="md" />
                                 )}
                                 
-                                {/* Botão Regenerar Capa - apenas para Premium */}
-                                {isPremium && (
+                                {/* Botão Regenerar Capa - apenas para admin */}
+                                {isAdmin && (
                                   <button
                                     onClick={(e) => handleGerarCapa(materia.id, e)}
                                     disabled={isGenerating}
@@ -433,23 +436,27 @@ export default function TrilhasAprovacao() {
                               </>
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                                <button
-                                  onClick={(e) => handleGerarCapa(materia.id, e)}
-                                  disabled={isGenerating}
-                                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-50 bg-red-600/80 hover:bg-red-600"
-                                >
-                                  {isGenerating ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Gerando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ImagePlus className="w-4 h-4" />
-                                      Gerar Capa
-                                    </>
-                                  )}
-                                </button>
+                                {isAdmin ? (
+                                  <button
+                                    onClick={(e) => handleGerarCapa(materia.id, e)}
+                                    disabled={isGenerating}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-50 bg-red-600/80 hover:bg-red-600"
+                                  >
+                                    {isGenerating ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Gerando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ImagePlus className="w-4 h-4" />
+                                        Gerar Capa
+                                      </>
+                                    )}
+                                  </button>
+                                ) : (
+                                  <Scale className="w-8 h-8 text-gray-600" />
+                                )}
                               </div>
                             )}
                             

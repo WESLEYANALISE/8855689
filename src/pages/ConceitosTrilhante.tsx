@@ -12,6 +12,7 @@ import { FloatingScrollButton } from "@/components/ui/FloatingScrollButton";
 import { LockedTimelineCard } from "@/components/LockedTimelineCard";
 
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Matérias gratuitas: "História do Direito" e "Introdução ao Estudo do Direito"
 const FREE_MATERIA_NAMES = [
@@ -27,6 +28,8 @@ const ConceitosTrilhante = () => {
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   
   const { isPremium } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'wn7corporation@gmail.com';
 
   // Buscar todas as matérias do Trilhante
   const { data: materias, isLoading } = useQuery({
@@ -287,23 +290,27 @@ const ConceitosTrilhante = () => {
                               </>
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                                <button
-                                  onClick={(e) => handleGerarCapa(materia.id, e)}
-                                  disabled={isGenerating}
-                                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-medium transition-colors disabled:opacity-50"
-                                >
-                                  {isGenerating ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Gerando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ImagePlus className="w-4 h-4" />
-                                      Gerar Capa
-                                    </>
-                                  )}
-                                </button>
+                                {isAdmin ? (
+                                  <button
+                                    onClick={(e) => handleGerarCapa(materia.id, e)}
+                                    disabled={isGenerating}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-medium transition-colors disabled:opacity-50"
+                                  >
+                                    {isGenerating ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Gerando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ImagePlus className="w-4 h-4" />
+                                        Gerar Capa
+                                      </>
+                                    )}
+                                  </button>
+                                ) : (
+                                  <GraduationCap className="w-8 h-8 text-gray-600" />
+                                )}
                               </div>
                             )}
                             
