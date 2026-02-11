@@ -21,6 +21,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Welcome from "./pages/Welcome";
+import EscolherPlano from "./pages/EscolherPlano";
 
 // ALL PAGES - Direct imports for instant loading
 import Index from "./pages/Index";
@@ -592,6 +593,11 @@ const App = () => {
             <Routes>
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/escolher-plano" element={
+                <ProtectedRoute skipOnboardingCheck>
+                  <EscolherPlano />
+                </ProtectedRoute>
+              } />
               <Route path="/onboarding" element={
                 <ProtectedRoute skipOnboardingCheck>
                   <Onboarding />
