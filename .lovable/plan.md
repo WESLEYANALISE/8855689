@@ -1,49 +1,56 @@
 
 
-## Corrigir 3 Problemas: Animacao Premium, Tela de Plano e Botao de Capa Admin
+## Carrossel de Boas-Vindas para Novos Usuarios
 
-### Problema 1: Animacao de sucesso apos pagamento
+### O que sera criado
 
-A animacao com confetti (PremiumSuccessCard) ja existe e esta integrada nos componentes de pagamento (PaymentMonitor, PixPaymentScreen, CheckoutCartao). Porem, pode nao estar aparecendo corretamente se o estado do pagamento nao for detectado a tempo. Sera verificado e garantido que a animacao apareca imediatamente apos a confirmacao do pagamento.
+Um carrossel fullscreen com 6 slides animados que aparece **apenas na primeira vez** que o usuario acessa o app (apos o onboarding de perfil). Cada slide tera uma imagem de fundo tematica, titulo persuasivo, descricao curta e animacoes suaves. O ultimo slide apresenta a Evelyn (assistente IA no WhatsApp).
 
-**Acao**: Revisar o fluxo nos 3 componentes de pagamento para garantir que o PremiumSuccessCard apareca de forma confiavel quando `isPremium` mudar para `true`.
+### Estrutura dos 6 slides
 
----
+| Slide | Tema | Imagem de fundo | Conteudo |
+|---|---|---|---|
+| 1 | Boas-vindas | `capa-faculdade-opt.webp` | "Sua jornada juridica comeca agora" - Apresentacao do Direito Premium como plataforma completa |
+| 2 | Ferramentas de Estudo | `estudos-section.webp` | Flashcards, Mapas Mentais, Resumos IA, Dicionario Juridico |
+| 3 | Videoaulas e OAB | `oab-section.webp` | Videoaulas, Trilhas OAB, Questoes comentadas |
+| 4 | Biblioteca e Vade Mecum | `biblioteca-section-opt.webp` | Acervo juridico, legislacao atualizada, sumulas |
+| 5 | Questoes e Simulados | `concurso-section.webp` | Banco de questoes, simulados OAB, pratica diaria |
+| 6 | Evelyn - IA no WhatsApp | `evelyn-ai-section.webp` | Assistente juridica 24h, tira duvidas, ajuda nos estudos |
 
-### Problema 2: Botao "Premium" no menu nao mostra o plano
+### Como vai funcionar
 
-O botao "Premium" no sidebar navega para `/assinatura`. Para usuarios Premium, a pagina renderiza o componente `AssinaturaGerenciamento`, que mostra detalhes do plano (nome, valor, validade, suporte). Porem, existe um `useEffect` que redireciona usuarios Premium para a home quando a pagina e carregada, impedindo que vejam a tela de gerenciamento.
+1. Apos o onboarding (selecao de perfil), o usuario e redirecionado para `/` (Home)
+2. Na Home, um check no `localStorage` verifica se `intro_carousel_seen_{userId}` existe
+3. Se nao existir, exibe o carrossel fullscreen com overlay escuro
+4. O usuario navega com swipe/botoes entre os slides
+5. No ultimo slide, o botao "Comecar a Usar" fecha o carrossel e marca como visto no localStorage
+6. O usuario pode pular a qualquer momento com "Pular" no canto superior
 
-**Acao**: Remover o redirecionamento automatico de usuarios Premium na pagina `/assinatura` (linhas 74-82 de `Assinatura.tsx`). Assim, ao clicar em "Premium" no menu, o usuario vera seus detalhes do plano: tipo vitalicio, data do pagamento, e-mail de suporte, etc.
+### Detalhes Tecnicos
 
-Tambem sera adicionada a **data do pagamento** ao `AssinaturaGerenciamento`, que atualmente nao exibe essa informacao.
+**Novo componente: `src/components/onboarding/IntroCarousel.tsx`**
+- Carrossel fullscreen usando `framer-motion` para animacoes de transicao entre slides
+- Cada slide: imagem de fundo com `object-cover`, overlay gradiente escuro, conteudo centralizado
+- Indicadores de progresso (dots) na parte inferior
+- Botao "Pular" no topo direito
+- Botao "Proximo" / "Comecar a Usar" (ultimo slide)
+- Suporte a swipe com drag do framer-motion
+- Controle via `localStorage` com chave `intro_carousel_seen_{userId}`
+- Utiliza imagens ja existentes em `src/assets/landing/`
 
-**Arquivo**: `src/pages/Assinatura.tsx` - remover useEffect de redirecionamento
+**Arquivo modificado: `src/pages/Index.tsx`**
+- Importar `IntroCarousel`
+- Adicionar estado `showIntro` baseado no localStorage
+- Renderizar o carrossel como overlay quando `showIntro === true`
+- Callback `onComplete` para fechar e marcar como visto
 
-**Arquivo**: `src/components/AssinaturaGerenciamento.tsx` - adicionar card com data do pagamento (usando `subscription.createdAt`)
+### Design Visual
 
----
-
-### Problema 3: Botao "Gerar Capa" aparece para todos os Premium (deve ser so admin)
-
-Nas paginas OAB Trilhas, Conceitos e Dominando, o botao "Gerar Capa" / "Regenerar Capa" aparece para qualquer usuario Premium (`isPremium`). Deve aparecer apenas para o admin (`wn7corporation@gmail.com`).
-
-**Arquivos afetados**:
-- `src/pages/oab/TrilhasAprovacao.tsx` - trocar `isPremium` por `isAdmin` no botao de gerar/regenerar capa
-- `src/pages/ConceitosTrilhante.tsx` - trocar logica para `isAdmin`
-- `src/pages/DominandoTrilhas.tsx` - trocar logica para `isAdmin`
-
-Em cada arquivo, sera adicionada a verificacao `const isAdmin = user?.email === 'wn7corporation@gmail.com'` e substituidas as condicoes `isPremium` por `isAdmin` nos botoes de geracao de capa.
-
----
-
-### Resumo das mudancas
-
-| Arquivo | Mudanca |
-|---|---|
-| `src/pages/Assinatura.tsx` | Remover redirecionamento automatico de Premium |
-| `src/components/AssinaturaGerenciamento.tsx` | Adicionar data do pagamento ao card |
-| `src/pages/oab/TrilhasAprovacao.tsx` | Botao "Gerar Capa" so para admin |
-| `src/pages/ConceitosTrilhante.tsx` | Botao "Gerar Capa" so para admin |
-| `src/pages/DominandoTrilhas.tsx` | Botao "Gerar Capa" so para admin |
+- Fundo: imagem fullscreen com blur leve + overlay escuro (70%)
+- Texto: branco, titulos grandes (text-3xl bold), descricoes em text-lg com opacidade
+- Icones tematicos para cada slide (lucide-react)
+- Animacao de entrada: fade + slide de baixo para cima
+- Transicao entre slides: slide horizontal com framer-motion
+- Dots de progresso com cor primaria (vermelho)
+- CTA final com gradiente vermelho e animacao pulsante
 
