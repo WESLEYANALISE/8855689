@@ -142,6 +142,12 @@ const Welcome = () => {
 
   const scrollToVideo = useCallback(() => {
     videoSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Auto-play after scroll
+    setTimeout(() => {
+      if (playerRef.current && playerRef.current.playVideo) {
+        playerRef.current.playVideo();
+      }
+    }, 800);
   }, []);
 
   const handleComecar = useCallback(() => {
@@ -158,7 +164,7 @@ const Welcome = () => {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden">
+      <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img src={themisFull} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-background" />
@@ -195,7 +201,7 @@ const Welcome = () => {
       </section>
 
       {/* Demonstrativo - YouTube Video */}
-      <section ref={videoSectionRef} className="py-16 px-6">
+      <section ref={videoSectionRef} className="pt-4 pb-16 px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
