@@ -71,7 +71,6 @@ const Assinatura = () => {
   const { isPremium, loading: subscriptionLoading } = useSubscription();
   const { trialExpired } = useTrialStatus();
 
-  // Redirecionamento removido - Premium pode ver tela de gerenciamento
   const [loadingPlano, setLoadingPlano] = useState<PlanType | null>(null);
   const [modalPlano, setModalPlano] = useState<PlanType | null>(null);
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
@@ -80,8 +79,20 @@ const Assinatura = () => {
   // Áudio de fundo imersivo - só toca se NÃO for premium
   const { stopAudio } = useAssinaturaBackgroundAudio(!isPremium);
 
+  // Enquanto carrega a assinatura, mostrar loader para evitar flash de conteúdo errado
+  if (subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+          <p className="text-zinc-400 text-sm">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Se for premium, mostrar tela de gerenciamento
-  if (!subscriptionLoading && isPremium) {
+  if (isPremium) {
     return <AssinaturaGerenciamento />;
   }
 
