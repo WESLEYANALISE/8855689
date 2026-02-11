@@ -31,7 +31,7 @@ const slides = [
     icon: Brain,
     title: 'Ferramentas inteligentes de estudo',
     description: 'Aprenda de forma eficiente com tecnologia de ponta aplicada ao Direito.',
-    features: ['Flashcards', 'Mapas Mentais', 'Resumos com IA', 'Dicionário Jurídico'],
+    features: ['Flashcards', 'Mapas Mentais', 'Resumos inteligentes', 'Dicionário Jurídico'],
   },
   {
     image: oabSection,

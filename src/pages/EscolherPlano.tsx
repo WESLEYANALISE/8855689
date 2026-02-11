@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
 import PixPaymentScreen from '@/components/assinatura/PixPaymentScreen';
+import themisFaceCloseup from '@/assets/themis-face-closeup.webp';
 
 const PLAN_CHOSEN_KEY = 'plan_chosen';
 
@@ -20,7 +21,7 @@ const FREE_FEATURES = [
   { label: 'Videoaulas (2 grátis)', included: true },
   { label: '+30.000 questões OAB', included: false },
   { label: 'Mapas mentais', included: false },
-  { label: 'Resumos com IA', included: false },
+  { label: 'Resumos inteligentes', included: false },
   { label: 'Simulados OAB', included: false },
   { label: 'Petições e contratos', included: false },
   { label: 'Audioaulas', included: false },
@@ -37,11 +38,11 @@ const LIFETIME_FEATURES = [
   { label: 'Dicionário Jurídico', included: true },
   { label: 'Vade Mecum completo (+50 leis)', included: true },
   { label: 'Todos os códigos e estatutos', included: true },
-  { label: 'Notícias + Análise IA', included: true },
+  { label: 'Notícias + Análise', included: true },
   { label: 'Todas as videoaulas', included: true },
   { label: '+30.000 questões OAB', included: true },
   { label: 'Mapas mentais', included: true },
-  { label: 'Resumos com IA', included: true },
+  { label: 'Resumos inteligentes', included: true },
   { label: 'Simulados OAB', included: true },
   { label: 'Petições e contratos', included: true },
   { label: 'Audioaulas', included: true },
@@ -169,7 +170,7 @@ const EscolherPlano: React.FC = () => {
         </motion.div>
 
         {/* Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 mb-6 sm:mb-8">
+        <div className="flex flex-col gap-4 max-w-md mx-auto mb-6 sm:mb-8">
           {/* Free Card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -177,9 +178,14 @@ const EscolherPlano: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="rounded-2xl border border-zinc-700/60 overflow-hidden flex flex-col bg-zinc-900/80"
           >
-            <div className="bg-gradient-to-r from-zinc-700 to-zinc-600 px-3 py-3 sm:py-4 text-center">
-              <p className="text-[10px] sm:text-xs text-zinc-300 uppercase tracking-wider font-medium">Plano</p>
-              <h2 className="text-base sm:text-2xl font-bold text-white">Gratuito</h2>
+            {/* Cover image */}
+            <div className="h-32 w-full relative overflow-hidden">
+              <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center] brightness-50 saturate-50" />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
+              <div className="absolute bottom-3 left-3">
+                <p className="text-[10px] sm:text-xs text-zinc-300 uppercase tracking-wider font-medium">Plano</p>
+                <h2 className="text-lg sm:text-2xl font-bold text-white">Gratuito</h2>
+              </div>
             </div>
 
             <div className="text-center py-3 sm:py-4 border-b border-zinc-800">
@@ -216,12 +222,16 @@ const EscolherPlano: React.FC = () => {
               </span>
             </div>
 
-            <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 px-3 py-3 sm:py-4 text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent_60%)]" />
-              <div className="relative">
-                <Crown className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-black mx-auto mb-0.5" />
-                <p className="text-[10px] sm:text-xs text-black/70 uppercase tracking-wider font-medium">Acesso</p>
-                <h2 className="text-base sm:text-2xl font-bold text-black">Vitalício + Bônus</h2>
+            {/* Cover image */}
+            <div className="h-32 w-full relative overflow-hidden">
+              <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-amber-500/20" />
+              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-400" />
+                <div>
+                  <p className="text-[10px] sm:text-xs text-amber-300/80 uppercase tracking-wider font-medium">Acesso</p>
+                  <h2 className="text-lg sm:text-2xl font-bold text-white">Vitalício + Bônus</h2>
+                </div>
               </div>
             </div>
 
