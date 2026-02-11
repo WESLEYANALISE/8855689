@@ -8078,6 +8078,33 @@ export type Database = {
         }
         Relationships: []
       }
+      intro_carousel_narrations: {
+        Row: {
+          audio_url: string | null
+          created_at: string | null
+          id: number
+          slide_index: number
+          texto_narracao: string
+          updated_at: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string | null
+          id?: number
+          slide_index: number
+          texto_narracao: string
+          updated_at?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string | null
+          id?: number
+          slide_index?: number
+          texto_narracao?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       jogos_juridicos: {
         Row: {
           area: string
