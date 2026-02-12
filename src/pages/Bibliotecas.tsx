@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Book, Scale, Mic, Users, Briefcase, BookOpen, Languages, Library, Gavel, ChevronRight } from "lucide-react";
+import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
 import { useState, useEffect, memo } from "react";
 import type { ElementType } from "react";
 import heroBibliotecas from "@/assets/biblioteca-office-sunset.jpg";
@@ -365,6 +366,7 @@ const Bibliotecas = () => {
           </div>
         </div>
       </div>
+      <BibliotecaBottomNav activeTab="acervo" />
     </div>
   );
 };
