@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Target, BookOpen, MessageSquare, Trash2, ChevronRight, Loader2, Plus, Search, X } from "lucide-react";
+import { Target, BookOpen, MessageSquare, Trash2, ChevronRight, Loader2, Plus, Search, X, ArrowLeft, Star, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type StatusType = "quero_ler" | "lendo" | "concluido";
 
@@ -18,6 +20,12 @@ const STATUS_LABELS: Record<StatusType, string> = {
   quero_ler: "Quero Ler",
   lendo: "Lendo",
   concluido: "Concluído",
+};
+
+const STATUS_EMOJI: Record<StatusType, string> = {
+  quero_ler: "📋",
+  lendo: "📖",
+  concluido: "✅",
 };
 
 const BIBLIOTECAS = [
@@ -88,6 +96,17 @@ const BibliotecaPlanoLeitura = () => {
     });
   }, [livrosBiblioteca, bibConfig, searchTerm]);
 
+  // Stats
+  const stats = useMemo(() => {
+    if (!items) return { total: 0, lendo: 0, concluido: 0, quero_ler: 0, progressoGeral: 0 };
+    const total = items.length;
+    const lendo = items.filter((i: any) => i.status === "lendo").length;
+    const concluido = items.filter((i: any) => i.status === "concluido").length;
+    const quero_ler = items.filter((i: any) => i.status === "quero_ler").length;
+    const progressoGeral = total > 0 ? Math.round((concluido / total) * 100) : 0;
+    return { total, lendo, concluido, quero_ler, progressoGeral };
+  }, [items]);
+
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       const { error } = await supabase
@@ -123,7 +142,6 @@ const BibliotecaPlanoLeitura = () => {
       const titulo = livro[bibConfig.fields.titulo] || "Sem título";
       const capaUrl = bibConfig.fields.capa ? (livro[bibConfig.fields.capa] || null) : null;
       
-      // Check if already exists
       const { data: existing } = await supabase
         .from("biblioteca_plano_leitura" as any)
         .select("id")
@@ -173,14 +191,19 @@ const BibliotecaPlanoLeitura = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="bg-gradient-to-b from-amber-950/30 to-background px-4 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
               <Target className="w-5 h-5 text-amber-500" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">Plano de Leitura</h1>
-              <p className="text-xs text-muted-foreground">Organize suas leituras jurídicas</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.total > 0 
+                  ? `${stats.concluido} de ${stats.total} concluídos`
+                  : "Organize suas leituras jurídicas"
+                }
+              </p>
             </div>
           </div>
           <Button
@@ -190,11 +213,22 @@ const BibliotecaPlanoLeitura = () => {
               setSelectedBiblioteca(null);
               setSearchTerm("");
             }}
-            className="bg-amber-500 hover:bg-amber-600 text-white"
+            className="bg-amber-600 hover:bg-amber-700 text-white"
           >
             <Plus className="w-4 h-4 mr-1" /> Adicionar
           </Button>
         </div>
+
+        {/* Progress bar geral */}
+        {stats.total > 0 && (
+          <div className="mb-3 px-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+              <span>Progresso geral</span>
+              <span>{stats.progressoGeral}%</span>
+            </div>
+            <Progress value={stats.progressoGeral} className="h-2" />
+          </div>
+        )}
 
         {/* Status Tabs */}
         <div className="flex gap-1 bg-card rounded-xl p-1 border border-border/30">
@@ -206,11 +240,11 @@ const BibliotecaPlanoLeitura = () => {
                 onClick={() => setActiveStatus(status)}
                 className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
                   activeStatus === status
-                    ? "bg-amber-500 text-white shadow-sm"
+                    ? "bg-amber-600 text-white shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {STATUS_LABELS[status]} ({count})
+                {STATUS_EMOJI[status]} {STATUS_LABELS[status]} ({count})
               </button>
             );
           })}
@@ -236,20 +270,31 @@ const BibliotecaPlanoLeitura = () => {
           {filtered.map((item: any) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 cursor-pointer hover:border-amber-500/30 transition-colors"
+              onClick={() => {
+                setEditItem(item);
+                setComentario(item.comentario || "");
+                setProgresso(item.progresso || 0);
+              }}
             >
               {item.capa_url ? (
-                <img src={item.capa_url} alt={item.titulo} className="w-12 h-16 rounded-md object-cover flex-shrink-0" />
+                <img src={item.capa_url} alt={item.titulo} className="w-14 h-20 rounded-lg object-cover flex-shrink-0 shadow-md" />
               ) : (
-                <div className="w-12 h-16 rounded-md bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                  <BookOpen className="w-5 h-5 text-amber-500/50" />
+                <div className="w-14 h-20 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-6 h-6 text-amber-500/50" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground line-clamp-1">{item.titulo}</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-sm font-medium text-foreground line-clamp-2">{item.titulo}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
                   {item.biblioteca_tabela?.replace("BIBLIOTECA-", "").replace("BIBILIOTECA-", "")}
                 </p>
+                {item.created_at && (
+                  <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 mt-0.5">
+                    <Calendar className="w-3 h-3" />
+                    Adicionado em {format(parseISO(item.created_at), "dd/MM/yy", { locale: ptBR })}
+                  </p>
+                )}
                 {item.comentario && (
                   <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5 flex items-center gap-1">
                     <MessageSquare className="w-3 h-3" /> {item.comentario}
@@ -262,18 +307,7 @@ const BibliotecaPlanoLeitura = () => {
                   </div>
                 )}
               </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => {
-                    setEditItem(item);
-                    setComentario(item.comentario || "");
-                    setProgresso(item.progresso || 0);
-                  }}
-                  className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </div>
           ))}
         </div>
@@ -283,7 +317,12 @@ const BibliotecaPlanoLeitura = () => {
       <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base">{editItem?.titulo}</DialogTitle>
+            <DialogTitle className="text-base line-clamp-2">{editItem?.titulo}</DialogTitle>
+            {editItem?.created_at && (
+              <p className="text-[11px] text-muted-foreground">
+                Adicionado em {format(parseISO(editItem.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </p>
+            )}
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -297,11 +336,11 @@ const BibliotecaPlanoLeitura = () => {
                     }}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       editItem?.status === s
-                        ? "bg-amber-500 text-white"
+                        ? "bg-amber-600 text-white"
                         : "bg-card border border-border text-muted-foreground"
                     }`}
                   >
-                    {STATUS_LABELS[s]}
+                    {STATUS_EMOJI[s]} {STATUS_LABELS[s]}
                   </button>
                 ))}
               </div>
@@ -318,7 +357,7 @@ const BibliotecaPlanoLeitura = () => {
                   max="100"
                   value={progresso}
                   onChange={(e) => setProgresso(Number(e.target.value))}
-                  className="w-full accent-amber-500"
+                  className="w-full accent-amber-600"
                 />
               </div>
             )}
@@ -346,7 +385,7 @@ const BibliotecaPlanoLeitura = () => {
             </Button>
             <Button
               size="sm"
-              className="bg-amber-500 hover:bg-amber-600"
+              className="bg-amber-600 hover:bg-amber-700"
               onClick={() => {
                 updateMutation.mutate({
                   id: editItem.id,
@@ -362,56 +401,57 @@ const BibliotecaPlanoLeitura = () => {
 
       {/* Add Book Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              {selectedBiblioteca ? "Selecione um livro" : "Escolha a biblioteca"}
-            </DialogTitle>
-          </DialogHeader>
-
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col overflow-hidden">
           {!selectedBiblioteca ? (
-            // Step 1: Select library
-            <ScrollArea className="flex-1 -mx-2">
-              <div className="space-y-1 px-2">
-                {BIBLIOTECAS.map((bib) => (
-                  <button
-                    key={bib.key}
-                    onClick={() => {
-                      setSelectedBiblioteca(bib.key);
-                      setSearchTerm("");
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="w-5 h-5 text-amber-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{bib.label}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Escolha a biblioteca
+                </DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="flex-1 -mx-2">
+                <div className="space-y-1 px-2">
+                  {BIBLIOTECAS.map((bib) => (
+                    <button
+                      key={bib.key}
+                      onClick={() => {
+                        setSelectedBiblioteca(bib.key);
+                        setSearchTerm("");
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">{bib.label}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </>
           ) : (
-            // Step 2: Select book from library
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex items-center gap-2 mb-3">
+            <>
+              {/* Back button header - destacado */}
+              <div className="flex items-center gap-3 pb-3 border-b border-border/40">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setSelectedBiblioteca(null)}
-                  className="shrink-0"
+                  className="border-amber-600/30 text-amber-600 hover:bg-amber-600/10"
                 >
-                  <X className="w-4 h-4 mr-1" /> Voltar
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
                 </Button>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {bibConfig?.label}
-                </span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{bibConfig?.label}</p>
+                  <p className="text-[10px] text-muted-foreground">Selecione um livro para adicionar</p>
+                </div>
               </div>
               
-              <div className="relative mb-3">
+              <div className="relative my-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar livro..."
@@ -421,7 +461,7 @@ const BibliotecaPlanoLeitura = () => {
                 />
               </div>
 
-              <ScrollArea className="flex-1 -mx-2">
+              <ScrollArea className="h-[60vh] -mx-2">
                 {isLoadingLivros ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
@@ -464,11 +504,11 @@ const BibliotecaPlanoLeitura = () => {
                             <p className="text-sm font-medium text-foreground line-clamp-1">{titulo || "Sem título"}</p>
                             {autor && <p className="text-xs text-muted-foreground line-clamp-1">{autor}</p>}
                             {alreadyAdded && (
-                              <p className="text-[10px] text-amber-500 font-medium mt-0.5">Já adicionado</p>
+                              <p className="text-[10px] text-amber-600 font-medium mt-0.5">✓ Já adicionado</p>
                             )}
                           </div>
                           {!alreadyAdded && (
-                            <Plus className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                            <Plus className="w-4 h-4 text-amber-600 flex-shrink-0" />
                           )}
                         </button>
                       );
@@ -476,7 +516,7 @@ const BibliotecaPlanoLeitura = () => {
                   </div>
                 )}
               </ScrollArea>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
