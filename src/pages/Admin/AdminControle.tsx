@@ -59,6 +59,9 @@ import {
   useRankingAreasAcessadas,
   useRankingFuncoesUtilizadas,
   useRankingFidelidade,
+  useRankingAulas,
+  useRankingUsuarioAulas,
+  useRankingTodosUsuarios,
 } from '@/hooks/useAdminRankings';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -169,6 +172,9 @@ const AdminControle = () => {
   const { data: rankingAreas, isLoading: loadingAreas } = useRankingAreasAcessadas(diasParaQuery);
   const { data: rankingFuncoes, isLoading: loadingFuncoes } = useRankingFuncoesUtilizadas(diasParaQuery);
   const { data: rankingFidelidade, isLoading: loadingFidelidade } = useRankingFidelidade(diasParaQuery);
+  const { data: rankingAulas, isLoading: loadingAulas } = useRankingAulas(diasParaQuery);
+  const { data: rankingUsuarioAulas, isLoading: loadingUsuarioAulas } = useRankingUsuarioAulas(diasParaQuery);
+  const { data: todosUsuarios, isLoading: loadingTodos } = useRankingTodosUsuarios(diasParaQuery);
 
   const handleRefreshAll = () => {
     refetchUsuarios();
@@ -909,7 +915,36 @@ const AdminControle = () => {
 
           {/* Tab Rankings */}
           <TabsContent value="rankings" className="space-y-6">
-            {/* Ranking Tempo de Tela */}
+            
+            {/* Resumo geral */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-muted-foreground">Total Usuários Rastreados</p>
+                  <p className="text-2xl font-bold">{rankingTempo?.length || 0}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-muted-foreground">Todos Cadastrados</p>
+                  <p className="text-2xl font-bold">{todosUsuarios?.length || 0}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-muted-foreground">Aulas Acessadas</p>
+                  <p className="text-2xl font-bold">{rankingAulas?.length || 0}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs text-muted-foreground">Alunos em Aulas</p>
+                  <p className="text-2xl font-bold">{rankingUsuarioAulas?.length || 0}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Ranking Tempo de Tela - COMPLETO */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -926,17 +961,17 @@ const AdminControle = () => {
                     <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : rankingTempo && rankingTempo.length > 0 ? (
-                  <ScrollArea className="max-h-[500px]">
-                    <div className="space-y-3 pr-4">
+                  <ScrollArea className="max-h-[600px]">
+                    <div className="space-y-4 pr-4">
                       {rankingTempo.map((item, index) => {
                         const maxTime = rankingTempo[0]?.tempo_total_min || 1;
                         const pct = (item.tempo_total_min / maxTime) * 100;
                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
                         return (
-                          <div key={item.user_id} className="space-y-1.5">
-                            <div className="flex items-center justify-between text-sm">
+                          <div key={item.user_id} className="p-3 rounded-lg bg-secondary/30 border border-border space-y-2">
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground w-8 text-right">
+                                <span className="text-lg w-8 text-right shrink-0">
                                   {medal || `#${index + 1}`}
                                 </span>
                                 <div className="min-w-0">
@@ -944,12 +979,31 @@ const AdminControle = () => {
                                   <span className="text-xs text-muted-foreground truncate block">{item.email}</span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 shrink-0 ml-2">
-                                <Badge variant="outline" className="text-xs">{item.sessoes} sessões</Badge>
-                                <Badge className="text-xs">{item.tempo_formatado}</Badge>
-                              </div>
+                              <Badge className="text-sm shrink-0 ml-2">{item.tempo_formatado}</Badge>
                             </div>
                             <Progress value={pct} className="h-2" />
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <Badge variant="outline">{item.sessoes} sessões</Badge>
+                              <Badge variant="outline">{item.page_views} views</Badge>
+                              {item.intencao && <Badge variant="outline" className="capitalize">{item.intencao}</Badge>}
+                              {item.telefone && (
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <Phone className="h-3 w-3" />{item.telefone}
+                                </span>
+                              )}
+                            </div>
+                            {item.paginas_mais_vistas.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">Top páginas:</span>{' '}
+                                {item.paginas_mais_vistas.join(', ')}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Último acesso: {formatDistanceToNow(new Date(item.ultima_atividade), { addSuffix: true, locale: ptBR })}</span>
+                              {item.cadastro && (
+                                <span>Cadastro: {format(new Date(item.cadastro), 'dd/MM/yyyy')}</span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -961,9 +1015,118 @@ const AdminControle = () => {
               </CardContent>
             </Card>
 
+            {/* Ranking Aulas Mais Acessadas */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-primary" />
+                    Aulas Mais Acessadas
+                  </div>
+                  <Badge variant="secondary">{rankingAulas?.length || 0} aulas</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingAulas ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : rankingAulas && rankingAulas.length > 0 ? (
+                  <ScrollArea className="max-h-[500px]">
+                    <div className="space-y-3 pr-4">
+                      {rankingAulas.map((item, index) => {
+                        const maxViews = rankingAulas[0]?.total_views || 1;
+                        const pct = (item.total_views / maxViews) * 100;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                        return (
+                          <div key={item.page_path} className="p-3 rounded-lg bg-secondary/30 border border-border space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-8 text-right shrink-0">{medal || `#${index + 1}`}</span>
+                                <div className="min-w-0">
+                                  <span className="font-medium text-sm block truncate">{item.titulo}</span>
+                                  <span className="text-xs text-muted-foreground">{item.tipo}</span>
+                                </div>
+                              </div>
+                              <Badge className="text-xs shrink-0 ml-2">{item.total_views} views</Badge>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                            <div className="flex gap-2 text-xs">
+                              <Badge variant="outline">{item.usuarios_unicos} usuários</Badge>
+                              <Badge variant="outline">⏱ {item.tempo_formatado}</Badge>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate">{item.page_path}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Nenhum dado</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Ranking Usuários que mais acessam aulas */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-primary" />
+                    Usuários Mais Engajados em Aulas
+                  </div>
+                  <Badge variant="secondary">{rankingUsuarioAulas?.length || 0} alunos</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingUsuarioAulas ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : rankingUsuarioAulas && rankingUsuarioAulas.length > 0 ? (
+                  <ScrollArea className="max-h-[500px]">
+                    <div className="space-y-3 pr-4">
+                      {rankingUsuarioAulas.map((item, index) => {
+                        const maxViews = rankingUsuarioAulas[0]?.total_views_aulas || 1;
+                        const pct = (item.total_views_aulas / maxViews) * 100;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                        return (
+                          <div key={item.user_id} className="p-3 rounded-lg bg-secondary/30 border border-border space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-lg w-8 text-right shrink-0">{medal || `#${index + 1}`}</span>
+                                <div className="min-w-0">
+                                  <span className="font-medium block truncate">{item.nome}</span>
+                                  <span className="text-xs text-muted-foreground truncate block">{item.email}</span>
+                                </div>
+                              </div>
+                              <Badge className="text-xs shrink-0 ml-2">{item.total_views_aulas} views</Badge>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <Badge variant="outline">{item.total_aulas_acessadas} aulas distintas</Badge>
+                              <Badge variant="outline">⏱ {item.tempo_formatado}</Badge>
+                            </div>
+                            {item.aulas_distintas.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">Aulas:</span>{' '}
+                                {item.aulas_distintas.map(a => decodeURIComponent(a)).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Nenhum dado</p>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Grid: Áreas + Funções */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Áreas do Direito */}
+              {/* Áreas Mais Acessadas */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -992,6 +1155,7 @@ const AdminControle = () => {
                                 <span className="font-medium">{item.area}</span>
                               </div>
                               <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">{item.usuarios_unicos} usuários</span>
                                 <span className="text-xs text-muted-foreground">{item.percentual.toFixed(1)}%</span>
                                 <Badge variant="secondary">{item.count.toLocaleString('pt-BR')}</Badge>
                               </div>
@@ -1036,6 +1200,7 @@ const AdminControle = () => {
                                 <span className="font-medium">{item.funcao}</span>
                               </div>
                               <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">{item.usuarios_unicos} usuários</span>
                                 <span className="text-xs text-muted-foreground">{item.percentual.toFixed(1)}%</span>
                                 <Badge variant="secondary">{item.count.toLocaleString('pt-BR')}</Badge>
                               </div>
@@ -1069,17 +1234,17 @@ const AdminControle = () => {
                     <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : rankingFidelidade && rankingFidelidade.length > 0 ? (
-                  <ScrollArea className="max-h-[500px]">
-                    <div className="space-y-3 pr-4">
+                  <ScrollArea className="max-h-[600px]">
+                    <div className="space-y-4 pr-4">
                       {rankingFidelidade.map((item, index) => {
                         const maxDays = rankingFidelidade[0]?.dias_ativos || 1;
                         const pct = (item.dias_ativos / maxDays) * 100;
                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
                         return (
-                          <div key={item.user_id} className="space-y-1.5">
-                            <div className="flex items-center justify-between text-sm">
+                          <div key={item.user_id} className="p-3 rounded-lg bg-secondary/30 border border-border space-y-2">
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground w-8 text-right">
+                                <span className="text-lg w-8 text-right shrink-0">
                                   {medal || `#${index + 1}`}
                                 </span>
                                 <div className="min-w-0">
@@ -1095,6 +1260,21 @@ const AdminControle = () => {
                               </div>
                             </div>
                             <Progress value={pct} className="h-2" />
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <Badge variant="outline">{item.total_page_views} page views</Badge>
+                              {item.intencao && <Badge variant="outline" className="capitalize">{item.intencao}</Badge>}
+                              {item.telefone && (
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <Phone className="h-3 w-3" />{item.telefone}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Última visita: {formatDistanceToNow(new Date(item.ultima_visita), { addSuffix: true, locale: ptBR })}</span>
+                              {item.cadastro && (
+                                <span>Cadastro: {format(new Date(item.cadastro), 'dd/MM/yyyy')}</span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -1102,6 +1282,85 @@ const AdminControle = () => {
                   </ScrollArea>
                 ) : (
                   <p className="text-center text-muted-foreground py-8">Nenhum dado disponível</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Todos os Usuários Cadastrados */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    Todos os Usuários Cadastrados
+                  </div>
+                  <Badge variant="secondary">{todosUsuarios?.length || 0} total</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingTodos ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : todosUsuarios && todosUsuarios.length > 0 ? (
+                  <>
+                    {/* Mobile */}
+                    <ScrollArea className="max-h-[500px] md:hidden">
+                      <div className="space-y-2 pr-4">
+                        {todosUsuarios.map((u) => (
+                          <div key={u.user_id} className="p-3 rounded-lg bg-secondary/30 border border-border space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm truncate">{u.nome}</span>
+                              {u.page_views_periodo > 0 && (
+                                <Badge variant="outline" className="text-[10px]">{u.page_views_periodo} views</Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                            <div className="flex flex-wrap gap-1 text-xs">
+                              {u.intencao && <Badge variant="outline" className="text-[10px] capitalize">{u.intencao}</Badge>}
+                              <Badge variant="outline" className="text-[10px]">{u.dispositivo || '?'}</Badge>
+                              <span className="text-muted-foreground">{format(new Date(u.cadastro), 'dd/MM/yyyy')}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    {/* Desktop */}
+                    <div className="hidden md:block max-h-[500px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Telefone</TableHead>
+                            <TableHead>Perfil</TableHead>
+                            <TableHead>Dispositivo</TableHead>
+                            <TableHead>Views ({periodoLabel})</TableHead>
+                            <TableHead>Cadastro</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {todosUsuarios.map((u) => (
+                            <TableRow key={u.user_id}>
+                              <TableCell className="font-medium text-sm">{u.nome}</TableCell>
+                              <TableCell className="text-sm">{u.email}</TableCell>
+                              <TableCell className="text-sm">{u.telefone || '—'}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs capitalize">{u.intencao || '—'}</Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{u.dispositivo || '—'}</TableCell>
+                              <TableCell className="text-sm font-medium">{u.page_views_periodo || 0}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {format(new Date(u.cadastro), 'dd/MM/yyyy HH:mm')}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Nenhum dado</p>
                 )}
               </CardContent>
             </Card>
