@@ -41,8 +41,9 @@ const PlanoCardNovo = ({
   delay = 0 
 }: PlanoCardNovoProps) => {
   const isFeatured = plan.featured;
-  const isMensal = planKey === 'mensal' || planKey === 'essencial';
+  const isMensal = planKey === 'mensal' || planKey === 'essencial' || planKey === 'pro';
   const isEssencial = planKey === 'essencial';
+  const isPro = planKey === 'pro';
   
   // Calcular parcela para planos que permitem parcelamento
   const installmentValue = isMensal ? null : calculateInstallment(plan.price, 10);
@@ -66,9 +67,11 @@ const PlanoCardNovo = ({
       <div className={`relative overflow-hidden rounded-2xl transition-all duration-300 ${
         isFeatured 
           ? 'bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-zinc-800 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/10' 
-          : isEssencial
-            ? 'bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-zinc-800 border-2 border-blue-500/40 shadow-lg shadow-blue-500/10'
-            : 'bg-gradient-to-br from-zinc-900/90 to-zinc-800/80 border border-zinc-700/50 hover:border-zinc-600'
+          : isPro
+            ? 'bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-zinc-800 border-2 border-violet-500/40 shadow-lg shadow-violet-500/10'
+            : isEssencial
+              ? 'bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-zinc-800 border-2 border-blue-500/40 shadow-lg shadow-blue-500/10'
+              : 'bg-gradient-to-br from-zinc-900/90 to-zinc-800/80 border border-zinc-700/50 hover:border-zinc-600'
       }`}>
         
         {/* Imagem de fundo cobrindo todo o card - lado direito, com gradiente de transparência */}
@@ -94,9 +97,11 @@ const PlanoCardNovo = ({
             <div className={`${
               isFeatured 
                 ? 'bg-gradient-to-r from-amber-500 to-amber-400' 
-                : isEssencial
-                  ? 'bg-gradient-to-r from-blue-500 to-indigo-400'
-                  : 'bg-zinc-700'
+                : isPro
+                  ? 'bg-gradient-to-r from-violet-500 to-purple-400'
+                  : isEssencial
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-400'
+                    : 'bg-zinc-700'
             } text-white text-[10px] sm:text-xs font-bold py-1.5 text-center tracking-wider`}>
               {plan.badge}
             </div>
@@ -121,6 +126,7 @@ const PlanoCardNovo = ({
             <p className="text-zinc-400 text-xs sm:text-sm">
               {planKey === 'mensal' && 'Renovação mensal'}
               {planKey === 'essencial' && 'Renovação mensal • Tudo menos Evelyn'}
+              {planKey === 'pro' && 'Renovação mensal • Tudo + Evelyn'}
               {planKey === 'anual' && 'Acesso por 1 ano completo'}
               {planKey === 'vitalicio' && 'Acesso vitalício + Evelyn IA'}
             </p>
@@ -130,9 +136,11 @@ const PlanoCardNovo = ({
           <div className={`rounded-xl px-4 py-3 mb-5 ${
             isFeatured 
               ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/20' 
-              : isEssencial
-                ? 'bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-transparent border border-blue-500/20'
-                : 'bg-zinc-800/50'
+              : isPro
+                ? 'bg-gradient-to-r from-violet-500/20 via-violet-500/10 to-transparent border border-violet-500/20'
+                : isEssencial
+                  ? 'bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-transparent border border-blue-500/20'
+                  : 'bg-zinc-800/50'
           }`}>
             {/* Preço principal */}
             <div className="flex items-baseline gap-1 mb-1">
@@ -140,9 +148,11 @@ const PlanoCardNovo = ({
               <span className={`font-extrabold ${
                 isFeatured 
                   ? 'text-3xl sm:text-4xl bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent' 
-                  : isEssencial
-                    ? 'text-3xl sm:text-4xl bg-gradient-to-r from-blue-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent'
-                    : 'text-2xl sm:text-3xl text-white'
+                  : isPro
+                    ? 'text-3xl sm:text-4xl bg-gradient-to-r from-violet-300 via-violet-400 to-purple-500 bg-clip-text text-transparent'
+                    : isEssencial
+                      ? 'text-3xl sm:text-4xl bg-gradient-to-r from-blue-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent'
+                      : 'text-2xl sm:text-3xl text-white'
               }`}>
                 {plan.price.toFixed(2).replace('.', ',')}
               </span>
@@ -172,9 +182,11 @@ const PlanoCardNovo = ({
             className={`w-full rounded-xl transition-all duration-300 text-sm font-semibold h-12 group ${
               isFeatured 
                 ? 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black shadow-lg shadow-amber-500/25'
-                : isEssencial
-                  ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white shadow-lg shadow-blue-500/25'
-                  : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600'
+                : isPro
+                  ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white shadow-lg shadow-violet-500/25'
+                  : isEssencial
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white shadow-lg shadow-blue-500/25'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600'
             }`}
           >
             <span>Ver mais detalhes</span>

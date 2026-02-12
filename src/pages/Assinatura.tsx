@@ -35,6 +35,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
   mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false },
   anual: { price: 69.90, label: 'Anual', days: 365, badge: null, pixEnabled: true },
   essencial: { price: 14.99, label: 'Essencial', days: 30, badge: 'MENSAL', pixEnabled: false },
+  pro: { price: 19.90, label: 'Pro', days: 30, badge: 'COM EVELYN', pixEnabled: false },
   vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'MAIS ADQUIRIDO', featured: true, pixEnabled: true }
 };
 
@@ -246,6 +247,16 @@ const Assinatura = () => {
               imagemLoading={imagesLoading}
               onVerMais={() => setModalPlano('essencial')}
               delay={0.1}
+            />
+
+            {/* Plano Pro */}
+            <PlanoCardNovo
+              planKey="pro"
+              plan={PLANS.pro}
+              imagemUrl={planImages.pro}
+              imagemLoading={imagesLoading}
+              onVerMais={() => setModalPlano('pro')}
+              delay={0.15}
             />
 
             {/* Plano Vitalício */}

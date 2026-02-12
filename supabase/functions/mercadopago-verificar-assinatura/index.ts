@@ -65,8 +65,8 @@ serve(async (req) => {
     const isPremium = subscription.status === 'authorized' && 
       (!expirationDate || expirationDate > now);
     
-    // Evelyn access: apenas plano vitalício tem acesso
-    const hasEvelynAccess = isPremium && subscription.plan_type === 'vitalicio';
+    // Evelyn access: plano vitalício e pro têm acesso
+    const hasEvelynAccess = isPremium && (subscription.plan_type === 'vitalicio' || subscription.plan_type === 'pro');
     
     // Calcular dias restantes
     let daysRemaining = null;

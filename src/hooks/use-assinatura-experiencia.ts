@@ -45,7 +45,8 @@ export function useAssinaturaExperiencia(): AssinaturaExperiencia {
     mensal: mensalImage,
     anual: anualImage,
     vitalicio: vitalicioImage,
-    essencial: mensalImage, // Reutilizar imagem mensal para essencial
+    essencial: mensalImage,
+    pro: mensalImage,
   });
   
   // Frase definida imediatamente na inicialização (carregamento instantâneo)
