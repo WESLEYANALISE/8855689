@@ -161,6 +161,15 @@ import AdvogadoContratosModelos from "./pages/AdvogadoContratosModelos";
 import AdvogadoContratosCriar from "./pages/AdvogadoContratosCriar";
 import PeticoesContratosHub from "./pages/PeticoesContratosHub";
 
+// Categorias do Direito
+import CategoriasMateriasPage from "./pages/CategoriasMateriasPage";
+import CategoriasTopicoEstudo from "./pages/CategoriasTopicoEstudo";
+import CategoriasTopicoFlashcards from "./pages/CategoriasTopicoFlashcards";
+import CategoriasTopicoQuestoes from "./pages/CategoriasTopicoQuestoes";
+import CategoriasProgresso from "./pages/CategoriasProgresso";
+import CategoriasHistorico from "./pages/CategoriasHistorico";
+import CategoriasEstatisticas from "./pages/CategoriasEstatisticas";
+
 // Diário Oficial
 import DiarioOficialHub from "./pages/diario-oficial/DiarioOficialHub";
 import BuscaDiarios from "./pages/diario-oficial/BuscaDiarios";
@@ -1115,7 +1124,16 @@ const App = () => {
               <Route path="/tres-poderes/judiciario" element={<TresPoderesJudiciario />} />
               <Route path="/tres-poderes/judiciario/ministro/:nome" element={<TresPoderesBiografia />} />
               
-              {/* Carreiras Jurídicas */}
+               {/* Categorias do Direito */}
+              <Route path="/categorias/:categoria" element={<CategoriasMateriasPage />} />
+              <Route path="/categorias/topico/:id" element={<CategoriasTopicoEstudo />} />
+              <Route path="/categorias/topico/:id/flashcards" element={<CategoriasTopicoFlashcards />} />
+              <Route path="/categorias/topico/:id/questoes" element={<CategoriasTopicoQuestoes />} />
+              <Route path="/categorias/progresso" element={<CategoriasProgresso />} />
+              <Route path="/categorias/historico" element={<CategoriasHistorico />} />
+              <Route path="/categorias/estatisticas" element={<CategoriasEstatisticas />} />
+
+               {/* Carreiras Jurídicas */}
               <Route path="/carreiras-juridicas" element={<CarreirasJuridicas />} />
               <Route path="/estudo-carreira/:carreira" element={<EstudoCarreira />} />
 
