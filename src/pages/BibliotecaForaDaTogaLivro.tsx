@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2, BookOpen, Video, Crown } from "lucide-react";
+import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { useState } from "react";
 import PDFViewerModal from "@/components/PDFViewerModal";
 import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
@@ -102,8 +103,8 @@ const BibliotecaForaDaTogaLivro = () => {
               )}
             </div>
 
-            {livro.link && (
-              <div className="flex justify-center mb-6">
+            <div className="flex justify-center gap-3 mb-6">
+              {livro.link && (
                 <Button
                   onClick={handleReadClick}
                   size="lg"
@@ -112,8 +113,14 @@ const BibliotecaForaDaTogaLivro = () => {
                   <BookOpen className="w-5 h-5 mr-2" />
                   Ler agora
                 </Button>
-              </div>
-            )}
+              )}
+              <BibliotecaFavoritoButton
+                itemId={livro.id}
+                titulo={livro.livro || ""}
+                bibliotecaTabela="BIBLIOTECA-FORA-DA-TOGA"
+                capaUrl={livro["capa-livro"]}
+              />
+            </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-6">

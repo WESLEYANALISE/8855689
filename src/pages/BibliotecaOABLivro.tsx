@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
 import { Download, Loader2, BookOpen, Video, Crown } from "lucide-react";
+import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { useState } from "react";
 import PDFViewerModal from "@/components/PDFViewerModal";
 import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
@@ -106,8 +107,8 @@ const BibliotecaOABLivro = () => {
               )}
             </div>
 
-            {livro.Link && (
-              <div className="flex justify-center mb-6">
+            <div className="flex justify-center gap-3 mb-6">
+              {livro.Link && (
                 <Button
                   onClick={handleReadClick}
                   size="lg"
@@ -116,8 +117,14 @@ const BibliotecaOABLivro = () => {
                   <BookOpen className="w-5 h-5 mr-2" />
                   Ler agora
                 </Button>
-              </div>
-            )}
+              )}
+              <BibliotecaFavoritoButton
+                itemId={livro.id}
+                titulo={livro.Tema || ""}
+                bibliotecaTabela="BIBILIOTECA-OAB"
+                capaUrl={livro["Capa-livro"]}
+              />
+            </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-6">
