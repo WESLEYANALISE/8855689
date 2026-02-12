@@ -65,7 +65,7 @@ export const MobileCategoriasDireito = () => {
   }
 
   return (
-    <div className="relative py-4 flex flex-col items-center">
+    <div className="relative">
       {/* Info Stats */}
       <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-6">
         <div className="flex items-center gap-1.5">

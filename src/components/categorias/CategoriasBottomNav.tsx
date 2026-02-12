@@ -15,7 +15,7 @@ export const CategoriasBottomNav = ({ activeTab }: CategoriasBottomNavProps) => 
 
   const handleTab = (tab: CategoriasBottomNavProps['activeTab']) => {
     const routes: Record<string, string> = {
-      aulas: '/categorias',
+      aulas: '/',
       progresso: '/categorias/progresso',
       historico: '/categorias/historico',
       estatisticas: '/categorias/estatisticas',
