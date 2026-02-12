@@ -961,7 +961,7 @@ const AdminControle = () => {
                     <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : rankingTempo && rankingTempo.length > 0 ? (
-                  <ScrollArea className="max-h-[600px]">
+                  <ScrollArea className="h-[70vh]">
                     <div className="space-y-4 pr-4">
                       {rankingTempo.map((item, index) => {
                         const maxTime = rankingTempo[0]?.tempo_total_min || 1;
