@@ -275,6 +275,10 @@ import BibliotecaPortuguesLivro from "./pages/BibliotecaPortuguesLivro";
 import BibliotecaPesquisaCientifica from "./pages/BibliotecaPesquisaCientifica";
 import BibliotecaPesquisaCientificaLivro from "./pages/BibliotecaPesquisaCientificaLivro";
 import BibliotecaIniciante from "./pages/BibliotecaIniciante";
+import BibliotecaBusca from "./pages/BibliotecaBusca";
+import BibliotecaPlanoLeitura from "./pages/BibliotecaPlanoLeitura";
+import BibliotecaHistorico from "./pages/BibliotecaHistorico";
+import BibliotecaFavoritos from "./pages/BibliotecaFavoritos";
 import AcessoDesktop from "./pages/AcessoDesktop";
 import Analisar from "./pages/Analisar";
 import AnalisarResultado from "./pages/AnalisarResultado";
@@ -753,6 +757,10 @@ const App = () => {
               <Route path="/dicionario/:letra" element={<DicionarioLetra />} />
               <Route path="/bibliotecas" element={<Bibliotecas />} />
               <Route path="/biblioteca-iniciante" element={<BibliotecaIniciante />} />
+              <Route path="/biblioteca/busca" element={<BibliotecaBusca />} />
+              <Route path="/biblioteca/plano-leitura" element={<BibliotecaPlanoLeitura />} />
+              <Route path="/biblioteca/historico" element={<BibliotecaHistorico />} />
+              <Route path="/biblioteca/favoritos" element={<BibliotecaFavoritos />} />
               <Route path="/biblioteca" element={<Navigate to="/bibliotecas" replace />} />
             <Route path="/biblioteca-oab" element={<BibliotecaOAB />} />
             <Route path="/biblioteca-oab/estudos" element={<BibliotecaOABEstudos />} />

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Book, BookOpen, ChevronLeft, ChevronRight, List, LayoutGrid, ChevronRight as ArrowRight, Sparkles } from "lucide-react";
+import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
 import { useState, useEffect, useCallback } from "react";
 import heroBibliotecas from "@/assets/biblioteca-office-sunset.jpg";
 import capaEstudos from "@/assets/capa-estudos-opt.webp";
@@ -523,6 +524,7 @@ const BibliotecaIniciante = () => {
           </div>
         )}
       </div>
+      <BibliotecaBottomNav activeTab="acervo" />
     </div>
   );
 };

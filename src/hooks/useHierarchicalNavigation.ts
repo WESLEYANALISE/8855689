@@ -169,6 +169,10 @@ export const getHierarchicalDestination = (pathname: string, search: string): st
   if (pathname === "/ferramentas") return "/";
 
   // ===== BIBLIOTECAS =====
+  if (pathname === "/biblioteca/busca") return "/bibliotecas";
+  if (pathname === "/biblioteca/plano-leitura") return "/bibliotecas";
+  if (pathname === "/biblioteca/historico") return "/bibliotecas";
+  if (pathname === "/biblioteca/favoritos") return "/bibliotecas";
   if (pathname.match(/^\/biblioteca-[^/]+\/[^/]+\/aula$/)) {
     const parts = pathname.split("/");
     return `/${parts[1]}/${parts[2]}`;
@@ -347,6 +351,10 @@ export const getPreviousPageTitle = (pathname: string, search: string): string =
     "/ferramentas/questoes/temas": "Temas",
     "/ferramentas/simulados": "Simulados",
     "/bibliotecas": "Bibliotecas",
+    "/biblioteca/busca": "Bibliotecas",
+    "/biblioteca/plano-leitura": "Bibliotecas",
+    "/biblioteca/historico": "Bibliotecas",
+    "/biblioteca/favoritos": "Bibliotecas",
     "/simulados": "Simulados",
     "/simulados/realizar": "Realizar Simulado",
     "/oab": "OAB",
