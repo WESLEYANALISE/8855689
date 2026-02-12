@@ -4,6 +4,9 @@ import { Scale, Landmark, Users, Gavel, BookText, HandCoins, FileText, Scroll, C
 import { LeisBottomNav } from "@/components/leis/LeisBottomNav";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumBadge } from "@/components/PremiumBadge";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 // Categorias do Vade Mecum com cores vibrantes (ordem exata do Vade Mecum)
 const categoriasVadeMecum = [
@@ -19,6 +22,8 @@ const categoriasVadeMecum = [
 export const MobileLeisHome = memo(() => {
   const navigate = useNavigate();
   const { isPremium, loading: loadingSubscription } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const [activeTab, setActiveTab] = useState<'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push'>('legislacao');
 
   const handleTabChange = (tab: 'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push') => {
@@ -81,8 +86,8 @@ export const MobileLeisHome = memo(() => {
         })}
       </div>
 
-      {/* Menu de Rodapé */}
-      <LeisBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      {/* Menu de Rodapé - apenas para admin */}
+      {isAdmin && <LeisBottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
     </div>
   );
 });
