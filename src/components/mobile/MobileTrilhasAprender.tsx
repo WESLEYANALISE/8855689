@@ -157,28 +157,30 @@ export const MobileTrilhasAprender = () => {
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </motion.div>
 
-      {/* Chip Carousel - Áreas do Direito */}
-      <div className="w-full mb-5">
-        <div 
-          ref={scrollRef}
-          className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-none"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {AREAS_ORDEM.map((area) => (
-            <button
-              key={area.value}
-              onClick={() => setActiveArea(area.value)}
-              className={`flex-shrink-0 w-28 py-2 rounded-full text-xs font-medium transition-all text-center leading-tight ${
-                activeArea === area.value
-                  ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
-                  : 'bg-gray-700/80 text-white/70 hover:text-white/90'
-              }`}
-            >
-              {area.label}
-            </button>
-          ))}
+      {/* Chip Carousel - Áreas do Direito (apenas admin vê outras áreas) */}
+      {isAdmin && (
+        <div className="w-full mb-5">
+          <div 
+            ref={scrollRef}
+            className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-none"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {AREAS_ORDEM.map((area) => (
+              <button
+                key={area.value}
+                onClick={() => setActiveArea(area.value)}
+                className={`flex-shrink-0 w-28 py-2 rounded-full text-xs font-medium transition-all text-center leading-tight ${
+                  activeArea === area.value
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
+                    : 'bg-gray-700/80 text-white/70 hover:text-white/90'
+                }`}
+              >
+                {area.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Conteúdo da área selecionada */}
       {isConceitos ? (
@@ -332,8 +334,8 @@ export const MobileTrilhasAprender = () => {
         <MobileAreaTrilha area={activeArea} />
       )}
 
-      {/* Menu de rodapé fixo */}
-      <CategoriasBottomNav activeTab="aulas" />
+      {/* Menu de rodapé fixo - apenas admin */}
+      {isAdmin && <CategoriasBottomNav activeTab="aulas" />}
     </div>
   );
 };
