@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Search } from "lucide-react";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,9 +11,10 @@ import { criarCondicoesBusca } from "@/lib/numeroExtenso";
 const VadeMecumBusca = () => {
   const navigate = useNavigate();
   const { goBack } = useHierarchicalNavigation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const query = (searchParams.get("q") || "").trim();
   const [activeTab, setActiveTab] = useState("constituicao");
+  const [searchInput, setSearchInput] = useState(query);
 
   const condicoesBusca = useMemo(() => criarCondicoesBusca(query), [query]);
   
@@ -400,24 +401,110 @@ const VadeMecumBusca = () => {
     return routes[tabela] || "";
   };
 
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (searchInput.trim()) {
+      setSearchParams({ q: searchInput.trim() });
+    }
+  };
+
+  // Tela de busca quando não tem query
+  if (!query) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-4">
+          <div className="flex items-center gap-3">
+            <button onClick={goBack} className="p-2 hover:bg-accent/10 rounded-lg transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl font-bold">Procurar na Legislação</h1>
+          </div>
+        </div>
+        
+        <div className="px-4 py-8 max-w-lg mx-auto">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/15 flex items-center justify-center">
+              <Search className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">Busca Rápida de Leis</h2>
+            <p className="text-sm text-muted-foreground">
+              Digite o número do artigo ou palavras-chave para buscar em toda a legislação
+            </p>
+          </div>
+          
+          <form onSubmit={handleSearch} className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Ex: artigo 5, homicídio, prescrição..."
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500/50 text-base"
+                autoFocus
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!searchInput.trim()}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold disabled:opacity-50 transition-all hover:shadow-lg"
+            >
+              Procurar
+            </button>
+          </form>
+
+          <div className="mt-8 space-y-2">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Sugestões</p>
+            <div className="flex flex-wrap gap-2">
+              {["Art. 5", "Art. 121", "Art. 155", "Furto", "Homicídio", "Prescrição"].map(s => (
+                <button
+                  key={s}
+                  onClick={() => { setSearchInput(s); setSearchParams({ q: s }); }}
+                  className="px-3 py-1.5 rounded-full bg-muted/50 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-4">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <button
             onClick={goBack}
             className="p-2 hover:bg-accent/10 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold">Resultados da Busca</h1>
             <p className="text-sm text-muted-foreground">
               "{query}" - {totalResults} resultado(s) encontrado(s)
             </p>
           </div>
         </div>
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Buscar artigo ou termo..."
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50"
+            />
+          </div>
+          <button type="submit" className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium">
+            Buscar
+          </button>
+        </form>
       </div>
 
       <div className="px-4 py-6">
