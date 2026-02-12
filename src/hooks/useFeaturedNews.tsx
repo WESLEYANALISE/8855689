@@ -461,18 +461,33 @@ export const useFeaturedNews = () => {
     
     const atualizarDaPlanilha = async () => {
       try {
-        console.log('[FeaturedNews] Verificando novas notícias na planilha...');
-        const { data, error } = await supabase.functions.invoke('atualizar-noticias-juridicas');
+        console.log('[FeaturedNews] Verificando novas notícias na planilha (batches)...');
         
-        if (error) {
-          console.error('[FeaturedNews] Erro ao atualizar da planilha:', error);
-          return;
+        let offset = 0;
+        let totalProcessadas = 0;
+        
+        // Process in batches of 5 to avoid edge function timeout
+        while (true) {
+          const { data, error } = await supabase.functions.invoke('atualizar-noticias-juridicas', {
+            body: { offset, batchSize: 5 }
+          });
+          
+          if (error) {
+            console.error('[FeaturedNews] Erro no batch:', error);
+            break;
+          }
+          
+          totalProcessadas += data?.processadas || 0;
+          
+          if (!data?.hasMore || data?.nextOffset == null) break;
+          offset = data.nextOffset;
+          
+          // Small delay between batches
+          await new Promise(r => setTimeout(r, 1000));
         }
         
-        const qtd = data?.noticiasAdicionadas || 0;
-        if (qtd > 0) {
-          console.log(`[FeaturedNews] ✅ ${qtd} novas notícias adicionadas!`);
-          // O Realtime já vai capturar as inserções, mas recarrega para garantir
+        if (totalProcessadas > 0) {
+          console.log(`[FeaturedNews] ✅ ${totalProcessadas} notícias processadas!`);
           await loadFreshData();
         } else {
           console.log('[FeaturedNews] Nenhuma notícia nova encontrada');
