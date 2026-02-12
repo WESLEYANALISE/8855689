@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,10 @@ import { motion } from "framer-motion";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { LockedTimelineCard } from "@/components/LockedTimelineCard";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { MobileCategoriasDireito } from "./MobileCategoriasDireito";
+
+const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 // Matérias gratuitas: "História do Direito" e "Introdução ao Estudo do Direito"
 const FREE_MATERIA_NAMES = [
@@ -18,6 +23,9 @@ const FREE_MATERIA_NAMES = [
 export const MobileTrilhasAprender = () => {
   const navigate = useNavigate();
   const { isPremium } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
+  const [activeTab, setActiveTab] = useState<'conceitos' | 'categorias'>('conceitos');
 
   // Buscar todas as matérias do Trilhante
   const { data: materias, isLoading } = useQuery({

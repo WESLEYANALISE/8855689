@@ -2767,6 +2767,220 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_materias: {
+        Row: {
+          ativo: boolean | null
+          capa_url: string | null
+          categoria: string
+          created_at: string | null
+          descricao: string | null
+          id: number
+          nome: string
+          ordem: number | null
+          pdf_url: string | null
+          status_processamento: string | null
+          temas_identificados: Json | null
+          total_paginas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          capa_url?: string | null
+          categoria: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: number
+          nome: string
+          ordem?: number | null
+          pdf_url?: string | null
+          status_processamento?: string | null
+          temas_identificados?: Json | null
+          total_paginas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          capa_url?: string | null
+          categoria?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: number
+          nome?: string
+          ordem?: number | null
+          pdf_url?: string | null
+          status_processamento?: string | null
+          temas_identificados?: Json | null
+          total_paginas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      categorias_progresso: {
+        Row: {
+          created_at: string | null
+          flashcards_concluidos: boolean | null
+          id: string
+          leitura_concluida: boolean | null
+          materia_id: number | null
+          questoes_concluidas: boolean | null
+          topico_id: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          flashcards_concluidos?: boolean | null
+          id?: string
+          leitura_concluida?: boolean | null
+          materia_id?: number | null
+          questoes_concluidas?: boolean | null
+          topico_id?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          flashcards_concluidos?: boolean | null
+          id?: string
+          leitura_concluida?: boolean | null
+          materia_id?: number | null
+          questoes_concluidas?: boolean | null
+          topico_id?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_progresso_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_materias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorias_progresso_topico_id_fkey"
+            columns: ["topico_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_topicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categorias_topico_paginas: {
+        Row: {
+          conteudo: string | null
+          created_at: string | null
+          id: number
+          pagina: number
+          topico_id: number
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: number
+          pagina: number
+          topico_id: number
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: number
+          pagina?: number
+          topico_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_topico_paginas_topico_id_fkey"
+            columns: ["topico_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_topicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categorias_topicos: {
+        Row: {
+          capa_url: string | null
+          capa_versao: number | null
+          conteudo_gerado: Json | null
+          created_at: string | null
+          descricao: string | null
+          exemplos: Json | null
+          flashcards: Json | null
+          id: number
+          materia_id: number
+          ordem: number | null
+          pagina_final: number | null
+          pagina_inicial: number | null
+          posicao_fila: number | null
+          progresso: number | null
+          questoes: Json | null
+          status: string | null
+          subtopicos: Json | null
+          tentativas: number | null
+          termos: Json | null
+          titulo: string
+          updated_at: string | null
+          url_narracao: string | null
+        }
+        Insert: {
+          capa_url?: string | null
+          capa_versao?: number | null
+          conteudo_gerado?: Json | null
+          created_at?: string | null
+          descricao?: string | null
+          exemplos?: Json | null
+          flashcards?: Json | null
+          id?: number
+          materia_id: number
+          ordem?: number | null
+          pagina_final?: number | null
+          pagina_inicial?: number | null
+          posicao_fila?: number | null
+          progresso?: number | null
+          questoes?: Json | null
+          status?: string | null
+          subtopicos?: Json | null
+          tentativas?: number | null
+          termos?: Json | null
+          titulo: string
+          updated_at?: string | null
+          url_narracao?: string | null
+        }
+        Update: {
+          capa_url?: string | null
+          capa_versao?: number | null
+          conteudo_gerado?: Json | null
+          created_at?: string | null
+          descricao?: string | null
+          exemplos?: Json | null
+          flashcards?: Json | null
+          id?: number
+          materia_id?: number
+          ordem?: number | null
+          pagina_final?: number | null
+          pagina_inicial?: number | null
+          posicao_fila?: number | null
+          progresso?: number | null
+          questoes?: Json | null
+          status?: string | null
+          subtopicos?: Json | null
+          tentativas?: number | null
+          termos?: Json | null
+          titulo?: string
+          updated_at?: string | null
+          url_narracao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_topicos_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       "CBA Código Brasileiro de Aeronáutica": {
         Row: {
           Artigo: string | null
