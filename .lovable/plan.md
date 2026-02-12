@@ -1,62 +1,101 @@
 
 
-# Correcao do WebView - CSP bloqueando iframes
+# Menu de Rodape Exclusivo para Biblioteca Juridica
 
-## Problema raiz
+## Visao Geral
 
-O `index.html` tem uma Content-Security-Policy com `frame-src` restritivo:
+Criar um menu de rodape (bottom nav) exclusivo para a Biblioteca Juridica, seguindo o mesmo padrao visual do `LeisBottomNav`, com 5 funcoes e botao central elevado de "Procurar". Sera necessario criar novas tabelas no Supabase para plano de leitura e favoritos.
 
-```
-frame-src 'self' https://www.youtube.com https://youtube.com https://player.vimeo.com;
-```
+## As 5 Funcoes do Menu
 
-Isso bloqueia **todos** os iframes de FlipHTML5 (`online.fliphtml5.com`) e Google Drive (`drive.google.com`). Esse e o motivo pelo qual nem os PDFs do Drive nem as paginas do FlipHTML5 aparecem.
+1. **Acervo** (icone: BookOpen) -- Tela principal da biblioteca (ja existe)
+2. **Plano de Leitura** (icone: Target) -- Gerenciar livros que esta lendo/quer ler com comentarios
+3. **Procurar** (icone: Search, botao central elevado) -- Busca exclusiva nos livros de todas as bibliotecas
+4. **Historico** (icone: Clock) -- Livros acessados recentemente (usa tabela `bibliotecas_acessos` ja existente)
+5. **Favoritos** (icone: Heart) -- Livros marcados como favoritos
 
-## Solucao
+## Novas Tabelas no Supabase
 
-### 1. Atualizar CSP no `index.html` (linha 12)
+### `biblioteca_plano_leitura`
+- `id` UUID (PK, default gen_random_uuid())
+- `user_id` UUID (not null)
+- `biblioteca_tabela` TEXT (qual biblioteca: BIBLIOTECA-ESTUDOS, etc.)
+- `item_id` INTEGER (id do livro)
+- `titulo` TEXT
+- `capa_url` TEXT
+- `status` TEXT (quero_ler, lendo, concluido)
+- `comentario` TEXT (anotacao pessoal)
+- `progresso` INTEGER (0-100, default 0)
+- `created_at` TIMESTAMPTZ (default now())
+- `updated_at` TIMESTAMPTZ (default now())
 
-Adicionar os dominios necessarios ao `frame-src`:
+### `biblioteca_favoritos`
+- `id` UUID (PK, default gen_random_uuid())
+- `user_id` UUID (not null)
+- `biblioteca_tabela` TEXT
+- `item_id` INTEGER
+- `titulo` TEXT
+- `capa_url` TEXT
+- `created_at` TIMESTAMPTZ (default now())
 
-```
-frame-src 'self' https://www.youtube.com https://youtube.com https://player.vimeo.com https://drive.google.com https://*.google.com https://online.fliphtml5.com https://*.fliphtml5.com;
-```
+Ambas com RLS habilitado: usuarios so acessam seus proprios dados.
 
-### 2. Atualizar `capacitor.config.ts`
+## Novos Arquivos
 
-Adicionar configuracoes que melhoram compatibilidade do WebView nativo:
+### 1. `src/components/biblioteca/BibliotecaBottomNav.tsx`
+Componente do menu de rodape, identico ao LeisBottomNav em estrutura, mas com cores amber/dourado (seguindo a paleta da biblioteca) e as 5 abas: Acervo, Plano, Procurar (central), Historico, Favoritos.
 
-- `server.allowNavigation: ['*']` -- permite navegacao para qualquer dominio dentro do WebView
-- `android.allowMixedContent: true` -- permite conteudo HTTP e HTTPS misturados
-- Manter configuracoes existentes (SplashScreen, StatusBar)
+### 2. `src/pages/BibliotecaBusca.tsx`
+Pagina de busca exclusiva nos livros. Busca em todas as tabelas de biblioteca (BIBLIOTECA-ESTUDOS, BIBLIOTECA-CLASSICOS, BIBLIOTECA-FORA-DA-TOGA, etc.) por titulo e area. Interface com campo de busca, sugestoes rapidas e resultados agrupados por biblioteca.
 
-### 3. Nenhuma mudanca no `PDFViewerModal.tsx`
+### 3. `src/pages/BibliotecaPlanoLeitura.tsx`
+Pagina para gerenciar plano de leitura com 3 abas: "Quero Ler", "Lendo" e "Concluido". O usuario pode adicionar comentarios, atualizar progresso e mover livros entre status.
 
-O iframe simplificado (sem `scrolling="no"`, sem `seamless`) ja esta correto. O problema era exclusivamente o CSP bloqueando os dominios.
+### 4. `src/pages/BibliotecaHistorico.tsx`
+Pagina de historico mostrando livros acessados recentemente, agrupados por data (hoje, ontem, esta semana, etc.), usando dados da tabela `bibliotecas_acessos` ja existente.
 
-## Resumo
+### 5. `src/pages/BibliotecaFavoritos.tsx`
+Pagina listando livros favoritados, com opcao de remover favoritos.
 
-A unica mudanca critica e adicionar `drive.google.com` e `fliphtml5.com` ao `frame-src` do CSP no `index.html`. Sem isso, o navegador bloqueia silenciosamente o carregamento dos iframes.
+## Arquivos Modificados
 
-## Detalhes tecnicos
+### `src/pages/BibliotecaIniciante.tsx`
+Adicionar o `BibliotecaBottomNav` no final do componente, com `activeTab="acervo"`.
 
-### index.html - CSP atualizado (linha 12)
+### `src/App.tsx`
+Adicionar rotas:
+- `/biblioteca/busca` -- BibliotecaBusca
+- `/biblioteca/plano-leitura` -- BibliotecaPlanoLeitura
+- `/biblioteca/historico` -- BibliotecaHistorico
+- `/biblioteca/favoritos` -- BibliotecaFavoritos
 
-Alterar apenas a diretiva `frame-src` dentro do Content-Security-Policy existente para incluir:
-- `https://drive.google.com` -- para PDFs do Google Drive
-- `https://*.google.com` -- para preview do Google Drive
-- `https://online.fliphtml5.com` -- para livros FlipHTML5
-- `https://*.fliphtml5.com` -- para sub-recursos FlipHTML5
+### `src/hooks/useHierarchicalNavigation.ts`
+Adicionar navegacao de volta para as novas rotas, apontando para `/bibliotecas`.
 
-### capacitor.config.ts
+## Detalhes Tecnicos
 
-Adicionar ao objeto `server`:
-- `allowNavigation: ['*']`
-- `cleartext: true`
+### BibliotecaBottomNav
+- Cores: `amber-500` para itens ativos (seguindo paleta dourada da biblioteca)
+- Botao central: gradiente `from-amber-500 to-amber-700` com sombra dourada
+- Estrutura identica ao LeisBottomNav (grid 5 colunas, botao central elevado com -mt-6)
 
-Adicionar secao `android`:
-- `allowMixedContent: true`
+### BibliotecaBusca
+- Busca paralela em todas as tabelas de biblioteca usando `Promise.allSettled`
+- Cada tabela e buscada com `.ilike('Tema', '%query%')` ou campo equivalente
+- Resultados agrupados por biblioteca com contagem
 
-Adicionar secao `ios`:
-- `limitsNavigationsToAppBoundDomains: false`
+### Plano de Leitura
+- Requer autenticacao (usuario logado)
+- ToggleGroup com 3 opcoes: Quero Ler / Lendo / Concluido
+- Card de cada livro mostra capa, titulo, comentario e barra de progresso (para "Lendo")
+- Dialog para adicionar comentario e atualizar progresso
+
+### Historico
+- Consulta `bibliotecas_acessos` filtrando por `user_id` ou `session_id`
+- Agrupa por data usando `date-fns`
+- Mostra titulo do livro, biblioteca de origem e data/hora
+
+### Favoritos
+- Botao de coracao nos cards de livros (a ser adicionado nas paginas individuais de biblioteca futuramente)
+- Lista simples com capa, titulo e opcao de remover
 
