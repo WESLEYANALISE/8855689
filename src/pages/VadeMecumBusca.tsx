@@ -412,15 +412,6 @@ const VadeMecumBusca = () => {
   if (!query) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-4">
-          <div className="flex items-center gap-3">
-            <button onClick={goBack} className="p-2 hover:bg-accent/10 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold">Procurar na Legislação</h1>
-          </div>
-        </div>
-        
         <div className="px-4 py-8 max-w-lg mx-auto">
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/15 flex items-center justify-center">
@@ -474,22 +465,11 @@ const VadeMecumBusca = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-4">
-        <div className="flex items-center gap-3 mb-3">
-          <button
-            onClick={goBack}
-            className="p-2 hover:bg-accent/10 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">Resultados da Busca</h1>
-            <p className="text-sm text-muted-foreground">
-              "{query}" - {totalResults} resultado(s) encontrado(s)
-            </p>
-          </div>
-        </div>
+      {/* Search bar */}
+      <div className="sticky top-0 z-10 bg-background border-b border-border/30 px-4 py-3">
+        <p className="text-sm text-muted-foreground mb-2">
+          "{query}" — {totalResults} resultado(s)
+        </p>
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -498,10 +478,10 @@ const VadeMecumBusca = () => {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar artigo ou termo..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
-          <button type="submit" className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium">
+          <button type="submit" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">
             Buscar
           </button>
         </form>

@@ -5,8 +5,8 @@ export const getHierarchicalDestination = (pathname: string, search: string): st
   const params = new URLSearchParams(search);
 
   // ===== VADE MECUM =====
-  if (pathname === "/vade-mecum/busca") return "/";
-  if (pathname === "/leis/explicacoes") return "/";
+  if (pathname === "/vade-mecum/busca") return "/?tab=leis";
+  if (pathname === "/leis/explicacoes") return "/?tab=leis";
   if (pathname === "/vade-mecum/sobre") return "/vade-mecum";
   if (pathname === "/vade-mecum") return "/";
   if (pathname.startsWith("/codigo/")) return "/codigos";
