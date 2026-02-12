@@ -1,85 +1,168 @@
 
+# Categorias do Direito - Nova aba na Jornada de Estudos
 
-# Melhorias na Biblioteca: Plano de Leitura, Historico e Favoritos
+## Visao Geral
 
-## Problemas identificados
-
-1. **Plano de Leitura - Dialog nao rola**: O `ScrollArea` no step 2 (lista de livros) nao tem altura fixa definida, impedindo scroll
-2. **Botao Voltar mal posicionado**: Dentro do dialog, o botao "Voltar" esta pequeno e misturado com o conteudo
-3. **Amarelo sem contraste**: O amber-500 (#f59e0b) nao contrasta bem com texto branco
-4. **Favoritos sem capa**: Registros antigos tem `capa_url: null` no banco. Precisa buscar a capa dinamicamente da tabela original como fallback
-5. **Historico vazio e simples**: Nao mostra detalhes como tempo, categoria, capa grande
-6. **Todas as paginas precisam de mais detalhes e funcionalidades**
+Criar uma segunda aba ("Categorias") na secao "Jornada de Estudos" (aba Aulas da home), que exibe areas do Direito baseadas nos titulos da Biblioteca de Estudos (ex: Direito Penal, Direito Civil, etc.). Cada categoria abre uma lista de materias/temas onde PDFs podem ser adicionados para geracao de conteudo, seguindo 100% o pipeline do OAB Trilhas. Tudo visivel apenas para o admin inicialmente.
 
 ---
 
-## Mudancas planejadas
+## Estrutura do Plano
 
-### 1. Plano de Leitura (`BibliotecaPlanoLeitura.tsx`)
+### 1. Database - Novas tabelas
 
-**Correcao do scroll:**
-- Adicionar `h-[60vh]` ao `ScrollArea` do step 2 (selecao de livros) para garantir que a lista role
+Criar duas tabelas espelhando a estrutura do OAB Trilhas (`oab_trilhas_materias` e `oab_trilhas_topicos`):
 
-**Botao Voltar destacado:**
-- Mover para uma barra fixa no topo do dialog, com icone de seta e nome da biblioteca selecionada, fundo contrastante
+**`categorias_materias`** (equivalente a `oab_trilhas_materias`)
+- `id` SERIAL PRIMARY KEY
+- `categoria` TEXT (ex: "Direito Penal", "Direito Civil" - vem de BIBLIOTECA-ESTUDOS."Area")
+- `nome` TEXT (nome da materia/tema dentro da categoria)
+- `descricao` TEXT
+- `ordem` INTEGER
+- `capa_url` TEXT
+- `pdf_url` TEXT
+- `ativo` BOOLEAN DEFAULT true
+- `status_processamento` TEXT DEFAULT 'pendente'
+- `total_paginas` INTEGER
+- `temas_identificados` JSONB
+- `created_at`, `updated_at` TIMESTAMPTZ
 
-**Contraste do amarelo:**
-- Trocar `bg-amber-500` por `bg-amber-600` nos botoes de acao e tabs ativos para melhor contraste com texto branco
+**`categorias_topicos`** (equivalente a `oab_trilhas_topicos`)
+- `id` SERIAL PRIMARY KEY
+- `materia_id` INTEGER REFERENCES categorias_materias(id)
+- `ordem` INTEGER
+- `titulo` TEXT
+- `descricao` TEXT
+- `conteudo_gerado` TEXT
+- `exemplos` JSONB, `termos` JSONB, `flashcards` JSONB, `questoes` JSONB
+- `capa_url` TEXT, `url_narracao` TEXT
+- `status` TEXT DEFAULT 'pendente'
+- `pagina_inicial` INTEGER, `pagina_final` INTEGER
+- `subtopicos` JSONB
+- `progresso` INTEGER DEFAULT 0
+- `posicao_fila` INTEGER, `tentativas` INTEGER DEFAULT 0
+- `capa_versao` INTEGER DEFAULT 0
+- `created_at`, `updated_at` TIMESTAMPTZ
 
-**Mais funcionalidades:**
-- Mostrar contagem total de livros no plano e estatisticas (ex: "3 livros concluidos de 10")
-- Barra de progresso geral do plano
-- Na lista de livros, mostrar data de adicao
-- No card do livro em "Lendo", exibir quando comecou a ler
-- Melhorar dialog de edicao: adicionar opcao de avaliar (1-5 estrelas) e data de conclusao
+**`categorias_progresso`** (progresso do usuario)
+- `id` UUID DEFAULT gen_random_uuid()
+- `user_id` UUID REFERENCES auth.users(id)
+- `materia_id` INTEGER REFERENCES categorias_materias(id)
+- `topico_id` INTEGER REFERENCES categorias_topicos(id)
+- `leitura_concluida` BOOLEAN DEFAULT false
+- `flashcards_concluidos` BOOLEAN DEFAULT false
+- `questoes_concluidas` BOOLEAN DEFAULT false
+- `created_at`, `updated_at` TIMESTAMPTZ
 
-### 2. Favoritos (`BibliotecaFavoritos.tsx`)
+RLS: Leitura publica para materias e topicos, progresso restrito ao usuario.
 
-**Correcao da capa:**
-- Para favoritos com `capa_url` nulo, fazer uma query paralela na tabela original do livro para buscar a capa dinamicamente
-- Criar um hook `useFavoritosComCapas` que enriquece os favoritos com capas faltantes
+### 2. Menu de Alternancia na Home (Aba Aulas)
 
-**Mais detalhes:**
-- Mostrar data em que foi favoritado
-- Cards maiores com capa mais visivel (w-14 h-20 em vez de w-12 h-16)
-- Mostrar autor quando disponivel
-- Botao para ir direto ao livro mais evidente
-- Contador por categoria no header do grupo
+**Arquivo: `src/components/mobile/MobileTrilhasAprender.tsx`** (EDITAR)
 
-### 3. Historico (`BibliotecaHistorico.tsx`)
+Adicionar um menu toggle abaixo do subtitulo "Fundamentos do Direito", com duas opcoes:
+- **Conceitos** (atual - mostra a trilha de materias existente)
+- **Categorias** (nova - mostra categorias do Direito)
 
-**Mais detalhes:**
-- Mostrar tempo estimado de leitura por sessao (calcular diferenca entre acessos consecutivos do mesmo livro)
-- Cards clicaveis que levam ao livro
-- Capas maiores e mais destacadas
-- Badge com a categoria/biblioteca
-- Mostrar quantas vezes o livro foi acessado (agrupando acessos repetidos do mesmo livro)
-- Estatisticas no header: "X livros lidos esta semana", "Y minutos de leitura"
+O menu segue o mesmo estilo dos toggles existentes no app (botoes pill lado a lado). A aba "Categorias" so aparece para o admin (`user?.email === ADMIN_EMAIL`).
+
+### 3. Tela de Categorias na Home
+
+**Arquivo: `src/components/mobile/MobileCategoriasDireito.tsx`** (CRIAR)
+
+Componente que exibe um grid/lista de cards com as categorias do Direito (Direito Penal, Direito Civil, etc.), obtidas da tabela BIBLIOTECA-ESTUDOS (campo "Area"). Cada card mostra:
+- Nome da categoria
+- Quantidade de materias cadastradas
+- Progresso geral (se houver)
+
+Ao clicar, navega para `/categorias/:categoria`.
+
+### 4. Pagina de Materias da Categoria
+
+**Arquivo: `src/pages/CategoriasMateriasPage.tsx`** (CRIAR)
+
+Timeline identica ao `OABTrilhasMateria.tsx`:
+- Lista de materias/temas cadastrados na categoria
+- Botao de upload de PDF (admin only)
+- Auto-geracao de conteudo ao processar PDF
+- Capas, progresso, status de geracao
+
+### 5. Paginas de Estudo (Topicos, Flashcards, Questoes)
+
+**Reutilizar componentes existentes** - As paginas de estudo, flashcards e questoes seguem o mesmo padrao do OAB Trilhas. Criar paginas wrapper:
+
+- `src/pages/CategoriasTopicoEstudo.tsx` - Estudo/leitura de slides
+- `src/pages/CategoriasTopicoFlashcards.tsx` - Flashcards
+- `src/pages/CategoriasTopicoQuestoes.tsx` - Questoes
+
+Esses componentes serao muito similares aos do OAB Trilhas, alterando apenas as tabelas consultadas de `oab_trilhas_*` para `categorias_*`.
+
+### 6. Edge Function de Geracao de Conteudo
+
+**Arquivo: `supabase/functions/gerar-conteudo-categorias/index.ts`** (CRIAR)
+
+100% baseada na `gerar-conteudo-oab-trilhas`, com as seguintes diferencas:
+- Tabelas: `categorias_topicos` e `categorias_materias`
+- Prompt: Em vez de mencionar OAB, foca em "estudo aprofundado da area"
+- Mantem o estilo "Cafe com Professor", estrutura de slides, flashcards e questoes
+
+### 7. Menu de Rodape da Jornada de Estudos
+
+**Arquivo: `src/components/categorias/CategoriasBottomNav.tsx`** (CRIAR)
+
+Menu de rodape semelhante ao `BibliotecaBottomNav.tsx`, com tons de vermelho/escarlate (diferenciando da biblioteca em amber):
+- **Aulas** - Lista de categorias/materias (pagina principal)
+- **Progresso** - Visao geral do progresso por area
+- **Historico** - Ultima aula acessada
+- **Estatisticas** - Areas de maior interesse, tempo de estudo
+- **Material** - Material de apoio e recursos
+
+### 8. Rotas
+
+**Arquivo: `src/App.tsx`** (EDITAR)
+
+Adicionar rotas:
+- `/categorias` - Lista de categorias
+- `/categorias/:categoria` - Materias de uma categoria
+- `/categorias/materia/:materiaId` - Topicos de uma materia
+- `/categorias/topico/:topicoId/estudo` - Estudo de slides
+- `/categorias/topico/:topicoId/flashcards` - Flashcards
+- `/categorias/topico/:topicoId/questoes` - Questoes
+- `/categorias/progresso` - Tela de progresso
+- `/categorias/historico` - Historico de estudo
+- `/categorias/estatisticas` - Estatisticas
+
+### 9. Restricao de Acesso (Admin Only)
+
+Em todos os componentes novos, verificar `user?.email === "wn7corporation@gmail.com"`. Se nao for admin:
+- A aba "Categorias" nao aparece no toggle da home
+- As rotas redirecionam para home
 
 ---
 
-## Detalhes tecnicos
+## Resumo de Arquivos
 
-### Arquivo 1: `src/pages/BibliotecaPlanoLeitura.tsx` (EDITAR)
-- Linha 365: `DialogContent` - adicionar `overflow-hidden` e ajustar flex layout
-- Linha 424: `ScrollArea` - adicionar `h-[60vh]` para forcar altura e permitir scroll
-- Tabs: trocar `bg-amber-500` por `bg-amber-600` em todos os botoes ativos
-- Botao Voltar: mover para header do dialog com estilo destacado (bg-amber-600/10, borda, tamanho maior)
-- Adicionar estatisticas gerais no header (total de livros, barra de progresso geral)
+| Acao | Arquivo |
+|------|---------|
+| CRIAR | `supabase/migrations/categorias_tables.sql` |
+| EDITAR | `src/components/mobile/MobileTrilhasAprender.tsx` |
+| EDITAR | `src/components/desktop/DesktopTrilhasAprender.tsx` |
+| CRIAR | `src/components/mobile/MobileCategoriasDireito.tsx` |
+| CRIAR | `src/pages/CategoriasMateriasPage.tsx` |
+| CRIAR | `src/pages/CategoriasTopicoEstudo.tsx` |
+| CRIAR | `src/pages/CategoriasTopicoFlashcards.tsx` |
+| CRIAR | `src/pages/CategoriasTopicoQuestoes.tsx` |
+| CRIAR | `src/pages/CategoriasProgresso.tsx` |
+| CRIAR | `src/pages/CategoriasHistorico.tsx` |
+| CRIAR | `src/pages/CategoriasEstatisticas.tsx` |
+| CRIAR | `src/components/categorias/CategoriasBottomNav.tsx` |
+| CRIAR | `src/hooks/useCategoriasAutoGeneration.ts` |
+| CRIAR | `supabase/functions/gerar-conteudo-categorias/index.ts` |
+| EDITAR | `src/App.tsx` (adicionar rotas) |
 
-### Arquivo 2: `src/pages/BibliotecaFavoritos.tsx` (EDITAR)
-- Criar logica para buscar capas faltantes: para cada favorito sem `capa_url`, fazer query na tabela `biblioteca_tabela` correspondente usando `item_id`
-- Usar `useQuery` com `select` para buscar apenas a coluna de capa
-- Mapear campos de capa por biblioteca (mesmo mapeamento de `BIBLIOTECAS` do PlanoLeitura)
-- Melhorar UI dos cards com mais informacoes
+## Observacoes
 
-### Arquivo 3: `src/pages/BibliotecaHistorico.tsx` (EDITAR)
-- Adicionar navegacao ao clicar no item (usando mesmo `BIBLIOTECA_ROUTE_MAP` dos favoritos)
-- Calcular e exibir tempo estimado de permanencia entre acessos consecutivos
-- Agrupar acessos repetidos do mesmo livro mostrando contagem
-- Adicionar estatisticas no header
-- Melhorar visual dos cards com capas maiores
-
-### Arquivo 4: `src/components/biblioteca/BibliotecaFavoritoButton.tsx` (EDITAR)
-- Nenhuma mudanca estrutural, mas garantir que todas as paginas de livro passem `capaUrl` corretamente (ja esta feito para Estudos, verificar demais)
-
+- A geracao de conteudo usa o mesmo prompt "Cafe com Professor" do OAB Trilhas, adaptado para estudo generico
+- As categorias sao derivadas dos titulos unicos da coluna "Area" da tabela BIBLIOTECA-ESTUDOS (27 areas disponiveis)
+- O pipeline de PDF (upload, extracao, identificacao de temas, geracao) reutiliza a mesma logica do OAB Trilhas
+- Tudo fica restrito ao admin ate aprovacao para liberacao geral
