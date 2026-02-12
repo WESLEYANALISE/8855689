@@ -1,83 +1,110 @@
 
 
-# Adicionar Plano Pro (R$19,90/mes) ao Sistema de Assinaturas
+# Painel de Rankings e Engajamento Detalhado
 
-## Visao Geral
+## O que sera criado
 
-O sistema passara a ter 4 opcoes:
+Uma nova aba **"Rankings"** dentro da pagina AdminControle, com secoes dedicadas para visualizar em detalhes o engajamento dos usuarios. Tudo baseado nos dados ja capturados na tabela `page_views` (10.400+ registros, 2.750+ sessoes, 377 usuarios identificados).
 
-1. **Gratuito** -- R$0
-2. **Essencial** -- R$14,99/mes (tudo menos Evelyn)
-3. **Pro** -- R$19,90/mes (tudo + Evelyn)
-4. **Vitalicio** -- R$89,90 pagamento unico (tudo + Evelyn, para sempre)
+---
 
-## Mudancas
+## Secoes do Ranking
 
-### 1. Backend: `supabase/functions/mercadopago-criar-assinatura/index.ts`
-- Adicionar bloco para `planType === 'pro'` com Preapproval recorrente de R$19,90/mes
-- Mesmo padrao do bloco `essencial`, mas com `transaction_amount: 19.90` e `reason: 'Direito Premium - Plano Pro'`
-- Salvar no banco com `plan_type: 'pro'` e `amount: 19.90`
+### 1. Ranking de Tempo de Tela (Usuarios que ficam mais tempo)
+- Calcula o tempo estimado de sessao de cada usuario baseado no intervalo entre page views consecutivas de uma mesma sessao
+- Exibe: Nome, email, tempo total estimado, numero de sessoes, ultima atividade
+- Ordenado por tempo total (maior primeiro)
 
-### 2. Backend: `supabase/functions/mercadopago-verificar-assinatura/index.ts`
-- Atualizar logica de `hasEvelynAccess`: retornar `true` para `vitalicio` **e** `pro`
-- Linha atual: `subscription.plan_type === 'vitalicio'`
-- Nova logica: `subscription.plan_type === 'vitalicio' || subscription.plan_type === 'pro'`
+### 2. Areas do Direito Mais Acessadas
+- Agrupa page_views por categorias de area juridica (baseado no page_path)
+- Mapeia rotas como `/vade-mecum`, `/constituicao`, `/codigos`, `/flashcards`, `/oab-trilhas`, etc. para areas tematicas
+- Exibe barra de progresso com quantidade e percentual
 
-### 3. Frontend: `src/hooks/use-mercadopago-pix.ts`
-- Adicionar `'pro'` ao tipo `PlanType`: `'mensal' | 'anual' | 'vitalicio' | 'essencial' | 'pro'`
+### 3. Funcoes Mais Utilizadas
+- Agrupa por funcionalidade: Flashcards, Questoes, Videoaulas, Mapas Mentais, Resumos, Evelyn, Vade Mecum, etc.
+- Baseado no mapeamento de page_path para funcionalidade
+- Ranking com barras visuais
 
-### 4. Frontend: `src/hooks/usePlanAnalytics.ts`
-- Adicionar `'pro'` ao tipo `PlanType` local
+### 4. Ranking de Fidelidade (quem volta todo dia)
+- Calcula quantos dias distintos cada usuario acessou o app no periodo
+- Exibe: Nome, email, dias ativos, streak (dias consecutivos), ultima visita
+- Ordenado por dias ativos (maior primeiro)
 
-### 5. Frontend: `src/hooks/use-assinatura-experiencia.ts`
-- Adicionar `pro: mensalImage` ao record `planImages`
+### 5. Paginas Mais Populares (detalhado)
+- Ja existe parcialmente, sera enriquecido com informacoes de usuarios unicos por pagina
 
-### 6. Frontend: `src/pages/EscolherPlano.tsx`
-- Adicionar constante `PRO_FEATURES` (igual ao `LIFETIME_FEATURES` -- tudo incluso, incluindo Evelyn)
-- Adicionar constante `PRO_ABOUT` descrevendo o plano
-- Expandir tipo do `detailPlan` para incluir `'pro'`
-- Adicionar card do Pro entre Essencial e Vitalicio, estilo roxo/violet para diferenciar
-- Adicionar handler `handlePro` que chama `mercadopago-criar-assinatura` com `planType: 'pro'`
-- Preco exibido: R$19,90/mes
+---
 
-### 7. Frontend: `src/pages/Assinatura.tsx`
-- Adicionar `pro` ao `PLANS` Record com `price: 19.90, label: 'Pro', days: 30, badge: 'COM EVELYN', pixEnabled: false`
+## Implementacao Tecnica
 
-### 8. Frontend: `src/components/assinatura/PlanoCardNovo.tsx`
-- Suportar plan type `pro` com estilo proprio (roxo/violet)
+### Arquivo 1: `src/hooks/useAdminRankings.ts` (NOVO)
+Hooks de dados com React Query:
 
-### 9. Frontend: `src/components/AssinaturaGerenciamento.tsx`
-- Suportar exibicao do plano Pro (mensal, R$19,90, opcao de cancelar)
+- **`useRankingTempoTela(dias)`** -- Consulta page_views agrupando por user_id/session_id, calcula intervalo entre page views consecutivas (max 30min gap = mesma sessao), soma tempo total por usuario. Faz JOIN com profiles para nome/email.
 
-### 10. Frontend: `src/components/assinatura/PlanoDetalhesModal.tsx`
-- Suportar detalhes do plano Pro
+- **`useRankingAreasAcessadas(dias)`** -- Consulta page_views, mapeia page_path para areas do direito usando um dicionario local, agrega contagens.
 
-## Detalhes Tecnicos
+- **`useRankingFuncoesUtilizadas(dias)`** -- Similar ao anterior mas mapeando para funcionalidades (Flashcards, Questoes, Evelyn, etc).
 
-### Tipo PlanType atualizado
+- **`useRankingFidelidade(dias)`** -- Conta dias distintos de acesso por user_id, calcula streak de dias consecutivos, ordena por mais fiel.
+
+- **`useRankingPesquisas(dias)`** -- Usa dados de `cache_pesquisas` para termos mais buscados por area.
+
+Todas as queries serao feitas client-side com consultas diretas ao Supabase (mesmo padrao dos hooks existentes), sem necessidade de criar novas RPC functions.
+
+### Arquivo 2: `src/pages/Admin/AdminControle.tsx` (EDITAR)
+- Adicionar nova aba "Rankings" ao TabsList (5 tabs no total)
+- Nova TabsContent com as 5 secoes do ranking, cada uma em um Card
+- Cada ranking tera: titulo, badge com total, lista ordenada com posicao (#1, #2...), barras de progresso, e badges informativos
+- Layout responsivo: cards empilhados no mobile, grid no desktop
+
+### Detalhes visuais
+- Medalhas para top 3 (ouro, prata, bronze)
+- Barras de progresso relativas ao primeiro colocado
+- Cards com gradientes sutis
+- Scroll area para listas longas (max 20 itens por ranking)
+- Filtro de periodo compartilhado com o resto do dashboard (Hoje, 7d, 30d, 90d)
+
+### Logica de calculo de tempo de tela
 ```text
-'mensal' | 'anual' | 'vitalicio' | 'essencial' | 'pro'
+Para cada sessao (session_id):
+  1. Ordenar page_views por created_at
+  2. Para cada par consecutivo, calcular diferenca
+  3. Se diferenca < 30 minutos, somar ao tempo da sessao
+  4. Se diferenca >= 30 minutos, iniciar nova "sub-sessao"
+  5. Adicionar 1 minuto para a ultima page view (tempo estimado de leitura)
+  
+Agrupar por user_id e somar todas as sessoes
 ```
 
-### Logica de acesso Evelyn
+### Mapeamento de rotas para areas
 ```text
-hasEvelynAccess = isPremium AND (plan_type = 'vitalicio' OR plan_type = 'pro')
+Penal: /codigos (penal), /flashcards (penal)
+Civil: /codigos (civil), /flashcards (civil)
+Constitucional: /constituicao, /flashcards (constitucional)
+OAB: /oab-trilhas, /ferramentas/questoes
+Trabalhista: /codigos (trabalho)
+Administrativo: /codigos (administrativo)
+Geral: /vade-mecum, /bibliotecas, /resumos-juridicos
 ```
 
-### Cores por plano
+### Mapeamento de rotas para funcoes
 ```text
-Gratuito: zinc (cinza)
-Essencial: blue/indigo (azul)
-Pro: violet/purple (roxo)
-Vitalicio: amber/yellow (dourado)
+Flashcards: /flashcards
+Questoes: /ferramentas/questoes
+Videoaulas: /videoaulas
+Vade Mecum: /vade-mecum
+Constituicao: /constituicao
+Codigos e Leis: /codigos
+Evelyn IA: /evelyn, /ferramentas/evelyn
+Bibliotecas: /bibliotecas
+Resumos: /resumos-juridicos
+Mapas Mentais: /mapas-mentais
+OAB Trilhas: /oab-trilhas
+Sumulas: /sumulas
+Audio Aulas: /audio-aulas
 ```
 
-### Sequencia de implementacao
-1. Atualizar edge functions (criar-assinatura + verificar-assinatura)
-2. Atualizar PlanType em todos os hooks
-3. Atualizar use-assinatura-experiencia com imagem do Pro
-4. Atualizar EscolherPlano com 4 cards
-5. Atualizar Assinatura (landing page)
-6. Atualizar PlanoCardNovo e PlanoDetalhesModal
-7. Atualizar AssinaturaGerenciamento
-8. Deploy das edge functions
+## Sequencia de implementacao
+1. Criar `useAdminRankings.ts` com todos os hooks
+2. Editar `AdminControle.tsx` para adicionar aba Rankings com as 5 secoes
