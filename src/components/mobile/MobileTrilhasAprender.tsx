@@ -168,7 +168,7 @@ export const MobileTrilhasAprender = () => {
             <button
               key={area.value}
               onClick={() => setActiveArea(area.value)}
-              className={`flex-shrink-0 w-24 py-1.5 rounded-full text-[11px] font-medium transition-all text-center leading-tight ${
+              className={`flex-shrink-0 w-28 py-2 rounded-full text-xs font-medium transition-all text-center leading-tight ${
                 activeArea === area.value
                   ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
                   : 'bg-gray-700/80 text-white/70 hover:text-white/90'
