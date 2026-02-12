@@ -342,14 +342,80 @@ const EscolherPlano: React.FC = () => {
                       {f.included ? (
                         <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                       ) : (
-                        <X className="w-4 h-4 text-zinc-700 flex-shrink-0 mt-0.5" />
+                        <X className="w-4 h-4 text-red-500/70 flex-shrink-0 mt-0.5" />
                       )}
-                      <span className={f.included ? 'text-zinc-300' : 'text-zinc-600 line-through'}>
+                      <span className={f.included ? 'text-zinc-300' : 'text-zinc-500 line-through'}>
                         {f.label}
                       </span>
                     </div>
                   ))}
                 </div>
+
+                {/* Evelyn section for Essencial (not included) */}
+                {isEssencial && (
+                  <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <X className="w-4 h-4 text-red-400" />
+                      <span className="text-sm font-semibold text-red-400">Evelyn IA não inclusa neste plano</span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mb-3">
+                      A Evelyn é sua professora de Direito com IA, disponível 24h no WhatsApp. Para ter acesso, escolha o plano Pro ou Vitalício.
+                    </p>
+                    <a
+                      href="https://www.youtube.com/watch?v=EVELYN_VIDEO_ID"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Ver vídeo: Conheça a Evelyn →
+                    </a>
+                  </div>
+                )}
+
+                {/* Evelyn section for Pro (included) */}
+                {isPro && (
+                  <div className="mt-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-violet-400" />
+                      <span className="text-sm font-semibold text-violet-400">Evelyn IA inclusa!</span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mb-3">
+                      Sua professora de Direito com IA, disponível 24h no WhatsApp para tirar dúvidas, explicar artigos e ajudar nos estudos.
+                    </p>
+                    <a
+                      href="https://www.youtube.com/watch?v=EVELYN_VIDEO_ID"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Ver vídeo: Conheça a Evelyn →
+                    </a>
+                  </div>
+                )}
+
+                {/* Evelyn section for Vitalício (included + everything) */}
+                {isLifetime && (
+                  <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-semibold text-amber-400">Acesso completo para sempre</span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mb-3">
+                      Tudo incluso: app completo + Evelyn IA 24h + suporte prioritário. Pague uma vez, use para sempre.
+                    </p>
+                    <a
+                      href="https://www.youtube.com/watch?v=EVELYN_VIDEO_ID"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Ver vídeo: Conheça a Evelyn →
+                    </a>
+                  </div>
+                )}
               </motion.div>
             ) : (
               <motion.div
