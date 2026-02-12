@@ -58,14 +58,14 @@ export const DesktopTopNav = () => {
           >
             <img 
               src="/logo.webp" 
-              alt="Direito X - Estudos Jurídicos" 
+              alt="Juridiquê - Estudos Jurídicos" 
               className="w-12 h-12 rounded-xl object-cover shadow-lg ring-2 ring-white/20"
               loading="eager"
               decoding="sync"
             />
             <div className="flex flex-col text-left">
               <span className="text-2xl font-bold text-white tracking-tight font-playfair">
-                DIREITO X
+                JURIDIQUÊ
               </span>
               <span className="text-xs text-white/70 tracking-widest uppercase">
                 Estudos Jurídicos

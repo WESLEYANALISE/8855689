@@ -155,7 +155,7 @@ export const WelcomeAudioPlayer = () => {
                     Bem-vindo, {userName}! 🎉
                   </p>
                   <p className="text-xs text-white/80">
-                    {isPlaying ? 'Ouvindo mensagem de boas-vindas...' : 'Seja bem-vindo ao Direito X!'}
+                    {isPlaying ? 'Ouvindo mensagem de boas-vindas...' : 'Seja bem-vindo ao Juridiquê!'}
                   </p>
                 </div>
               </div>
