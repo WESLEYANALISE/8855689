@@ -266,7 +266,7 @@ const Index = () => {
 
       <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] py-[2px]" style={{ zIndex: 2 }}>
         {/* Notícias em Destaque - sempre visível no mobile, acima da busca e abas */}
-        <div className="md:hidden space-y-4 mt-4">
+        <div className="md:hidden space-y-4 mt-4 relative z-10">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-500/20 rounded-xl">
@@ -304,7 +304,7 @@ const Index = () => {
         <div 
           data-tutorial="busca-principal"
           onClick={() => navigate('/pesquisar')} 
-          className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg"
+          className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg relative z-10"
         >
           <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
             <Search className="w-5 h-5 text-red-400" />
