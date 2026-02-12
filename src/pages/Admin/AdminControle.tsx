@@ -22,6 +22,11 @@ import {
   Monitor,
   X,
   UserPlus,
+  Trophy,
+  Timer,
+  Flame,
+  Heart,
+  Zap,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +54,12 @@ import {
   useNovosDetalhes,
   type UsuarioDetalhe,
 } from '@/hooks/useAdminControleStats';
+import {
+  useRankingTempoTela,
+  useRankingAreasAcessadas,
+  useRankingFuncoesUtilizadas,
+  useRankingFidelidade,
+} from '@/hooks/useAdminRankings';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import {
@@ -152,6 +163,12 @@ const AdminControle = () => {
   const { data: onlineDetails } = useOnlineDetails();
   const { data: ativosDetails } = useAtivosDetalhes(diasParaQuery);
   const { data: novosDetails } = useNovosDetalhes(diasFiltro);
+
+  // Rankings hooks
+  const { data: rankingTempo, isLoading: loadingTempo } = useRankingTempoTela(diasParaQuery);
+  const { data: rankingAreas, isLoading: loadingAreas } = useRankingAreasAcessadas(diasParaQuery);
+  const { data: rankingFuncoes, isLoading: loadingFuncoes } = useRankingFuncoesUtilizadas(diasParaQuery);
+  const { data: rankingFidelidade, isLoading: loadingFidelidade } = useRankingFidelidade(diasParaQuery);
 
   const handleRefreshAll = () => {
     refetchUsuarios();
@@ -643,7 +660,7 @@ const AdminControle = () => {
 
         {/* Tabs de Análise */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-5 w-full max-w-3xl">
             <TabsTrigger value="usuarios" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
@@ -659,6 +676,10 @@ const AdminControle = () => {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
               <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="rankings" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              <span className="hidden sm:inline">Rankings</span>
             </TabsTrigger>
           </TabsList>
 
@@ -884,6 +905,206 @@ const AdminControle = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Tab Rankings */}
+          <TabsContent value="rankings" className="space-y-6">
+            {/* Ranking Tempo de Tela */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-5 w-5 text-primary" />
+                    Ranking de Tempo de Tela
+                  </div>
+                  <Badge variant="secondary">{rankingTempo?.length || 0} usuários</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingTempo ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : rankingTempo && rankingTempo.length > 0 ? (
+                  <ScrollArea className="max-h-[500px]">
+                    <div className="space-y-3 pr-4">
+                      {rankingTempo.map((item, index) => {
+                        const maxTime = rankingTempo[0]?.tempo_total_min || 1;
+                        const pct = (item.tempo_total_min / maxTime) * 100;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                        return (
+                          <div key={item.user_id} className="space-y-1.5">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground w-8 text-right">
+                                  {medal || `#${index + 1}`}
+                                </span>
+                                <div className="min-w-0">
+                                  <span className="font-medium block truncate">{item.nome}</span>
+                                  <span className="text-xs text-muted-foreground truncate block">{item.email}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <Badge variant="outline" className="text-xs">{item.sessoes} sessões</Badge>
+                                <Badge className="text-xs">{item.tempo_formatado}</Badge>
+                              </div>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Nenhum dado disponível</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Grid: Áreas + Funções */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Áreas do Direito */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-primary" />
+                      Áreas Mais Acessadas
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingAreas ? (
+                    <div className="flex justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : rankingAreas && rankingAreas.length > 0 ? (
+                    <div className="space-y-3">
+                      {rankingAreas.map((item, index) => {
+                        const maxCount = rankingAreas[0]?.count || 1;
+                        const pct = (item.count / maxCount) * 100;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                        return (
+                          <div key={item.area} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 text-right">{medal || `#${index + 1}`}</span>
+                                <span className="font-medium">{item.area}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">{item.percentual.toFixed(1)}%</span>
+                                <Badge variant="secondary">{item.count.toLocaleString('pt-BR')}</Badge>
+                              </div>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">Nenhum dado</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Funções Mais Utilizadas */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Flame className="h-5 w-5 text-primary" />
+                      Funções Mais Utilizadas
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingFuncoes ? (
+                    <div className="flex justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : rankingFuncoes && rankingFuncoes.length > 0 ? (
+                    <div className="space-y-3">
+                      {rankingFuncoes.map((item, index) => {
+                        const maxCount = rankingFuncoes[0]?.count || 1;
+                        const pct = (item.count / maxCount) * 100;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                        return (
+                          <div key={item.funcao} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 text-right">{medal || `#${index + 1}`}</span>
+                                <span className="font-medium">{item.funcao}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">{item.percentual.toFixed(1)}%</span>
+                                <Badge variant="secondary">{item.count.toLocaleString('pt-BR')}</Badge>
+                              </div>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">Nenhum dado</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Ranking Fidelidade */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-primary" />
+                    Ranking de Fidelidade
+                  </div>
+                  <Badge variant="secondary">{rankingFidelidade?.length || 0} usuários</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingFidelidade ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : rankingFidelidade && rankingFidelidade.length > 0 ? (
+                  <ScrollArea className="max-h-[500px]">
+                    <div className="space-y-3 pr-4">
+                      {rankingFidelidade.map((item, index) => {
+                        const maxDays = rankingFidelidade[0]?.dias_ativos || 1;
+                        const pct = (item.dias_ativos / maxDays) * 100;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+                        return (
+                          <div key={item.user_id} className="space-y-1.5">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground w-8 text-right">
+                                  {medal || `#${index + 1}`}
+                                </span>
+                                <div className="min-w-0">
+                                  <span className="font-medium block truncate">{item.nome}</span>
+                                  <span className="text-xs text-muted-foreground truncate block">{item.email}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                {item.streak > 1 && (
+                                  <Badge variant="outline" className="text-xs">🔥 {item.streak}d streak</Badge>
+                                )}
+                                <Badge className="text-xs">{item.dias_ativos} dias</Badge>
+                              </div>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Nenhum dado disponível</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
