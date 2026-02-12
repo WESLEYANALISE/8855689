@@ -1,101 +1,107 @@
 
 
-# Menu de Rodape Exclusivo para Biblioteca Juridica
+# Adicionar Plano Essencial (R$14,99/mes) ao Sistema de Assinaturas
 
 ## Visao Geral
 
-Criar um menu de rodape (bottom nav) exclusivo para a Biblioteca Juridica, seguindo o mesmo padrao visual do `LeisBottomNav`, com 5 funcoes e botao central elevado de "Procurar". Sera necessario criar novas tabelas no Supabase para plano de leitura e favoritos.
+Adicionar um novo plano **Essencial** de R$14,99/mes (recorrente via cartao) que da acesso a tudo EXCETO a Evelyn. O sistema passara a ter 3 opcoes:
 
-## As 5 Funcoes do Menu
+1. **Gratuito** -- R$0
+2. **Essencial** -- R$14,99/mes (tudo menos Evelyn)
+3. **Vitalicio** -- R$89,90 pagamento unico (tudo incluindo Evelyn)
 
-1. **Acervo** (icone: BookOpen) -- Tela principal da biblioteca (ja existe)
-2. **Plano de Leitura** (icone: Target) -- Gerenciar livros que esta lendo/quer ler com comentarios
-3. **Procurar** (icone: Search, botao central elevado) -- Busca exclusiva nos livros de todas as bibliotecas
-4. **Historico** (icone: Clock) -- Livros acessados recentemente (usa tabela `bibliotecas_acessos` ja existente)
-5. **Favoritos** (icone: Heart) -- Livros marcados como favoritos
+## Mudancas no Backend (Edge Functions)
 
-## Novas Tabelas no Supabase
+### 1. `supabase/functions/mercadopago-criar-assinatura/index.ts`
+- Atualizar o plano **mensal** para R$14,99 (atualmente R$21,90) e renomear internamente para "essencial"
+- Ou criar um novo planType `essencial` que usa Preapproval do Mercado Pago a R$14,99/mes
+- Manter `back_url` e `external_reference` com o novo tipo
 
-### `biblioteca_plano_leitura`
-- `id` UUID (PK, default gen_random_uuid())
-- `user_id` UUID (not null)
-- `biblioteca_tabela` TEXT (qual biblioteca: BIBLIOTECA-ESTUDOS, etc.)
-- `item_id` INTEGER (id do livro)
-- `titulo` TEXT
-- `capa_url` TEXT
-- `status` TEXT (quero_ler, lendo, concluido)
-- `comentario` TEXT (anotacao pessoal)
-- `progresso` INTEGER (0-100, default 0)
-- `created_at` TIMESTAMPTZ (default now())
-- `updated_at` TIMESTAMPTZ (default now())
+### 2. `supabase/functions/mercadopago-criar-pix/index.ts`
+- Adicionar plano `essencial` como opcao de pagamento avulso (primeiro mes via PIX, se desejado) OU manter apenas cartao para o essencial (recorrente)
+- Decisao: como e recorrente, PIX nao se aplica -- manter apenas cartao
 
-### `biblioteca_favoritos`
-- `id` UUID (PK, default gen_random_uuid())
-- `user_id` UUID (not null)
-- `biblioteca_tabela` TEXT
-- `item_id` INTEGER
-- `titulo` TEXT
-- `capa_url` TEXT
-- `created_at` TIMESTAMPTZ (default now())
+### 3. `supabase/functions/mercadopago-verificar-assinatura/index.ts`
+- Retornar o campo `planType` na resposta (ja faz isso)
+- Adicionar campo `hasEvelynAccess` baseado no plan_type:
+  - `vitalicio` -> `hasEvelynAccess: true`
+  - `essencial` -> `hasEvelynAccess: false`
+  - Qualquer outro plan_type ativo -> verificar caso a caso
 
-Ambas com RLS habilitado: usuarios so acessam seus proprios dados.
+## Mudancas no Frontend
 
-## Novos Arquivos
+### 4. `src/contexts/SubscriptionContext.tsx`
+- Adicionar `hasEvelynAccess: boolean` ao contexto
+- Preencher baseado na resposta do backend (`subscription.planType === 'vitalicio'`)
 
-### 1. `src/components/biblioteca/BibliotecaBottomNav.tsx`
-Componente do menu de rodape, identico ao LeisBottomNav em estrutura, mas com cores amber/dourado (seguindo a paleta da biblioteca) e as 5 abas: Acervo, Plano, Procurar (central), Historico, Favoritos.
+### 5. `src/hooks/use-mercadopago-pix.ts`
+- Adicionar `'essencial'` ao tipo `PlanType`
 
-### 2. `src/pages/BibliotecaBusca.tsx`
-Pagina de busca exclusiva nos livros. Busca em todas as tabelas de biblioteca (BIBLIOTECA-ESTUDOS, BIBLIOTECA-CLASSICOS, BIBLIOTECA-FORA-DA-TOGA, etc.) por titulo e area. Interface com campo de busca, sugestoes rapidas e resultados agrupados por biblioteca.
+### 6. `src/pages/EscolherPlano.tsx`
+- Adicionar card intermediario "Essencial" entre Gratuito e Vitalicio
+- Funcionalidades do Essencial: tudo marcado como incluso EXCETO "Professora IA Evelyn disponivel 24h"
+- Preco: R$14,99/mes
+- Ao clicar "Confirmar escolha", chamar a edge function `mercadopago-criar-assinatura` com planType `essencial`
+- Estilo do card: borda e cores em azul/indigo para diferenciar do dourado do Vitalicio
 
-### 3. `src/pages/BibliotecaPlanoLeitura.tsx`
-Pagina para gerenciar plano de leitura com 3 abas: "Quero Ler", "Lendo" e "Concluido". O usuario pode adicionar comentarios, atualizar progresso e mover livros entre status.
+### 7. `src/pages/Assinatura.tsx` (Landing page de vendas)
+- Adicionar o plano Essencial ao `PLANS` com preco R$14,99
+- Exibir card do Essencial ao lado do Vitalicio
+- Atualizar beneficios do marquee para diferenciar os planos
 
-### 4. `src/pages/BibliotecaHistorico.tsx`
-Pagina de historico mostrando livros acessados recentemente, agrupados por data (hoje, ontem, esta semana, etc.), usando dados da tabela `bibliotecas_acessos` ja existente.
+### 8. `src/components/assinatura/PlanoCardNovo.tsx`
+- Suportar o novo plan type `essencial` com estilo proprio (azul/indigo)
 
-### 5. `src/pages/BibliotecaFavoritos.tsx`
-Pagina listando livros favoritados, com opcao de remover favoritos.
+### 9. Controle de Acesso da Evelyn
+Arquivos que verificam acesso a Evelyn e precisam usar `hasEvelynAccess` em vez de `isPremium`:
+- `src/pages/Evelyn.tsx` -- Tela principal da Evelyn
+- `src/pages/ferramentas/EvelynWhatsApp.tsx` -- WhatsApp da Evelyn
+- Qualquer outro componente que gate Evelyn
 
-## Arquivos Modificados
+### 10. `src/components/AssinaturaGerenciamento.tsx`
+- Mostrar informacoes corretas para o plano Essencial (mensal, R$14,99, opcao de cancelar)
 
-### `src/pages/BibliotecaIniciante.tsx`
-Adicionar o `BibliotecaBottomNav` no final do componente, com `activeTab="acervo"`.
+## Listas de Funcionalidades por Plano
 
-### `src/App.tsx`
-Adicionar rotas:
-- `/biblioteca/busca` -- BibliotecaBusca
-- `/biblioteca/plano-leitura` -- BibliotecaPlanoLeitura
-- `/biblioteca/historico` -- BibliotecaHistorico
-- `/biblioteca/favoritos` -- BibliotecaFavoritos
+### Gratuito
+- Chat Juridico (limitado)
+- Flashcards (3 por dia)
+- Dicionario Juridico
+- Constituicao Federal
+- Codigo Civil e Penal
+- Noticias Juridicas
+- Videoaulas (2 gratis)
 
-### `src/hooks/useHierarchicalNavigation.ts`
-Adicionar navegacao de volta para as novas rotas, apontando para `/bibliotecas`.
+### Essencial (R$14,99/mes)
+- Tudo do Gratuito +
+- Chat Juridico ilimitado
+- Flashcards ilimitados
+- Vade Mecum completo (+50 leis)
+- +30.000 questoes OAB
+- Mapas mentais
+- Resumos inteligentes
+- Simulados OAB
+- Peticoes e contratos
+- Audioaulas
+- Sumulas vinculantes
+- Trilhas OAB completas
+- Biblioteca completa
+- Sem anuncios
+- ~~Evelyn (NAO inclusa)~~
 
-## Detalhes Tecnicos
+### Vitalicio (R$89,90)
+- Tudo do Essencial +
+- Evelyn IA 24h no WhatsApp
+- Acesso vitalicio para sempre
+- Suporte prioritario
 
-### BibliotecaBottomNav
-- Cores: `amber-500` para itens ativos (seguindo paleta dourada da biblioteca)
-- Botao central: gradiente `from-amber-500 to-amber-700` com sombra dourada
-- Estrutura identica ao LeisBottomNav (grid 5 colunas, botao central elevado com -mt-6)
+## Sequencia de Implementacao
 
-### BibliotecaBusca
-- Busca paralela em todas as tabelas de biblioteca usando `Promise.allSettled`
-- Cada tabela e buscada com `.ilike('Tema', '%query%')` ou campo equivalente
-- Resultados agrupados por biblioteca com contagem
-
-### Plano de Leitura
-- Requer autenticacao (usuario logado)
-- ToggleGroup com 3 opcoes: Quero Ler / Lendo / Concluido
-- Card de cada livro mostra capa, titulo, comentario e barra de progresso (para "Lendo")
-- Dialog para adicionar comentario e atualizar progresso
-
-### Historico
-- Consulta `bibliotecas_acessos` filtrando por `user_id` ou `session_id`
-- Agrupa por data usando `date-fns`
-- Mostra titulo do livro, biblioteca de origem e data/hora
-
-### Favoritos
-- Botao de coracao nos cards de livros (a ser adicionado nas paginas individuais de biblioteca futuramente)
-- Lista simples com capa, titulo e opcao de remover
+1. Atualizar edge functions (verificar assinatura, criar assinatura)
+2. Atualizar SubscriptionContext com `hasEvelynAccess`
+3. Atualizar PlanType
+4. Atualizar EscolherPlano com 3 cards
+5. Atualizar pagina Assinatura
+6. Atualizar controle de acesso da Evelyn
+7. Deploy das edge functions
 
