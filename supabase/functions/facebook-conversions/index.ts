@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createHash } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +6,14 @@ const corsHeaders = {
 };
 
 const PIXEL_ID = "2069588673817892";
+
+async function hashSHA256(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value.toLowerCase().trim());
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -19,29 +26,42 @@ serve(async (req) => {
       throw new Error("FACEBOOK_CONVERSIONS_API_TOKEN não configurado");
     }
 
-    const { event_name, event_id, event_time, user_data, custom_data, event_source_url, action_source, test_event_code } = await req.json();
+    const { event_name, event_id, user_data, custom_data, event_source_url, action_source, test_event_code } = await req.json();
 
     if (!event_name) {
       throw new Error("event_name é obrigatório");
     }
 
-    // Hash user data fields for privacy (Facebook requires SHA256)
+    // Get client IP from request headers
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 
+      || req.headers.get("cf-connecting-ip") 
+      || req.headers.get("x-real-ip")
+      || "unknown";
+
+    // Build user_data with required parameters
     const hashedUserData: Record<string, string> = {};
+    const hashableFields = ["em", "ph", "fn", "ln", "ct", "st", "zp", "country", "db", "ge"];
+    
     if (user_data) {
       for (const [key, value] of Object.entries(user_data)) {
         if (value && typeof value === "string") {
-          // Facebook expects pre-hashed or we hash here
-          if (["em", "ph", "fn", "ln", "ct", "st", "zp", "country", "db", "ge"].includes(key)) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode((value as string).toLowerCase().trim());
-            const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            hashedUserData[key] = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+          if (hashableFields.includes(key)) {
+            hashedUserData[key] = await hashSHA256(value);
           } else {
-            hashedUserData[key] = value as string;
+            hashedUserData[key] = value;
           }
         }
       }
+    }
+
+    // Always include client_ip_address (required by Facebook for better matching)
+    if (clientIp && clientIp !== "unknown") {
+      hashedUserData.client_ip_address = clientIp;
+    }
+
+    // Ensure client_user_agent is present
+    if (!hashedUserData.client_user_agent) {
+      hashedUserData.client_user_agent = req.headers.get("user-agent") || "unknown";
     }
 
     const eventData = {

@@ -54,13 +54,25 @@ export const useFacebookPixel = () => {
       if (user?.email) {
         userData.em = user.email;
       }
+      if (user?.id) {
+        userData.external_id = user.id;
+      }
+
+      // Get fbp and fbc cookies for better matching
+      const getCookie = (name: string) => {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : undefined;
+      };
+      const fbp = getCookie('_fbp');
+      const fbc = getCookie('_fbc');
+      if (fbp) userData.fbp = fbp;
+      if (fbc) userData.fbc = fbc;
 
       supabase.functions
         .invoke('facebook-conversions', {
           body: {
             event_name: eventName,
             event_id: eventId,
-            event_time: Math.floor(Date.now() / 1000),
             event_source_url: window.location.href,
             action_source: 'website',
             user_data: {
