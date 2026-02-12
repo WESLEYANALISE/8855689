@@ -14,6 +14,7 @@ import LivroResumoPlayer from "@/components/biblioteca/LivroResumoPlayer";
 import { toast } from "sonner";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 const BibliotecaLiderancaLivro = () => {
   const { livroId } = useParams();
@@ -28,6 +29,7 @@ const BibliotecaLiderancaLivro = () => {
   const [resumoData, setResumoData] = useState<any>(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isPremium } = useSubscription();
+  const { registrarAcesso } = useBibliotecaAcesso();
 
   const { data: livro, isLoading, refetch } = useQuery({
     queryKey: ["biblioteca-lideranca-livro", livroId],
@@ -274,6 +276,7 @@ const BibliotecaLiderancaLivro = () => {
           setViewMode(mode);
           setShowModeSelector(false);
           setShowPDF(true);
+          if (livro) registrarAcesso("BIBLIOTECA-LIDERANÇA", livro.id, livro.area, livro.livro, livro.imagem);
         }}
         bookTitle={livro?.livro || ''}
       />

@@ -10,6 +10,7 @@ import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 interface BibliotecaItem {
   id: number;
@@ -33,6 +34,7 @@ const BibliotecaPesquisaCientificaLivro = () => {
   const [activeTab, setActiveTab] = useState("sobre");
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isPremium } = useSubscription();
+  const { registrarAcesso } = useBibliotecaAcesso();
 
   const { data: livro, isLoading } = useQuery({
     queryKey: ["biblioteca-pesquisa-livro", livroId],
@@ -226,6 +228,7 @@ const BibliotecaPesquisaCientificaLivro = () => {
           setViewMode(mode);
           setShowModeSelector(false);
           setShowPDF(true);
+          if (livro) registrarAcesso("BIBLIOTECA-PESQUISA-CIENTIFICA", livro.id, livro.area, livro.livro, livro.imagem);
         }}
         bookTitle={livro?.livro || ''}
       />

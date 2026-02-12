@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VideoPlayer from "@/components/VideoPlayer";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 const BibliotecaForaDaTogaLivro = () => {
   const { livroId } = useParams();
@@ -21,6 +22,7 @@ const BibliotecaForaDaTogaLivro = () => {
   const [activeTab, setActiveTab] = useState("sobre");
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isPremium } = useSubscription();
+  const { registrarAcesso } = useBibliotecaAcesso();
 
   const { data: livro, isLoading } = useQuery({
     queryKey: ["biblioteca-fora-da-toga-livro", livroId],
@@ -201,6 +203,7 @@ const BibliotecaForaDaTogaLivro = () => {
           setViewMode(mode);
           setShowModeSelector(false);
           setShowPDF(true);
+          if (livro) registrarAcesso("BIBLIOTECA-FORA-DA-TOGA", livro.id, livro.area, livro.livro, livro["capa-livro"]);
         }}
         bookTitle={livro?.livro || ''}
       />

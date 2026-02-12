@@ -10,6 +10,7 @@ import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 const BibliotecaEstudosLivro = () => {
   const { livroId } = useParams();
@@ -21,6 +22,7 @@ const BibliotecaEstudosLivro = () => {
   const [activeTab, setActiveTab] = useState("sobre");
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const { isPremium } = useSubscription();
+  const { registrarAcesso } = useBibliotecaAcesso();
 
   const { data: livro, isLoading, refetch } = useQuery({
     queryKey: ["biblioteca-estudos-livro", livroId],
@@ -257,6 +259,7 @@ const BibliotecaEstudosLivro = () => {
           setViewMode(mode);
           setShowModeSelector(false);
           setShowPDF(true);
+          if (livro) registrarAcesso("BIBLIOTECA-ESTUDOS", livro.id, livro["Área"], livro.Tema, livro.url_capa_gerada || livro["Capa-livro"]);
         }}
         bookTitle={livro?.Tema || ''}
       />

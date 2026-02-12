@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Target, BookOpen, MessageSquare, Trash2, ChevronRight, Loader2 } from "lucide-react";
+import { Target, BookOpen, MessageSquare, Trash2, ChevronRight, Loader2, Plus, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 type StatusType = "quero_ler" | "lendo" | "concluido";
@@ -18,6 +20,18 @@ const STATUS_LABELS: Record<StatusType, string> = {
   concluido: "Concluído",
 };
 
+const BIBLIOTECAS = [
+  { key: "BIBLIOTECA-CLASSICOS", label: "Clássicos", fields: { titulo: "livro", autor: "autor", capa: "imagem" } },
+  { key: "BIBLIOTECA-LIDERANÇA", label: "Liderança", fields: { titulo: "livro", autor: "autor", capa: "imagem" } },
+  { key: "BIBLIOTECA-ORATORIA", label: "Oratória", fields: { titulo: "livro", autor: "autor", capa: "imagem" } },
+  { key: "BIBLIOTECA-POLITICA", label: "Política", fields: { titulo: "livro", autor: "autor", capa: "imagem" } },
+  { key: "BIBLIOTECA-PORTUGUES", label: "Português", fields: { titulo: "livro", autor: "autor", capa: "imagem" } },
+  { key: "BIBLIOTECA-PESQUISA-CIENTIFICA", label: "Pesquisa Científica", fields: { titulo: "livro", autor: "autor", capa: "imagem" } },
+  { key: "BIBLIOTECA-FORA-DA-TOGA", label: "Fora da Toga", fields: { titulo: "livro", autor: "autor", capa: "capa-livro" } },
+  { key: "BIBILIOTECA-OAB", label: "OAB", fields: { titulo: "Tema", autor: null, capa: "Capa-livro" } },
+  { key: "BIBLIOTECA-ESTUDOS", label: "Estudos", fields: { titulo: "Tema", autor: null, capa: "url_capa_gerada" } },
+];
+
 const BibliotecaPlanoLeitura = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -25,6 +39,9 @@ const BibliotecaPlanoLeitura = () => {
   const [editItem, setEditItem] = useState<any>(null);
   const [comentario, setComentario] = useState("");
   const [progresso, setProgresso] = useState(0);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedBiblioteca, setSelectedBiblioteca] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["biblioteca-plano-leitura", user?.id],
@@ -40,6 +57,36 @@ const BibliotecaPlanoLeitura = () => {
     },
     enabled: !!user,
   });
+
+  // Buscar livros da biblioteca selecionada
+  const { data: livrosBiblioteca, isLoading: isLoadingLivros } = useQuery({
+    queryKey: ["biblioteca-livros-selector", selectedBiblioteca],
+    queryFn: async () => {
+      if (!selectedBiblioteca) return [];
+      const { data, error } = await (supabase as any)
+        .from(selectedBiblioteca)
+        .select("*")
+        .order("id");
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!selectedBiblioteca,
+  });
+
+  const bibConfig = useMemo(() => 
+    BIBLIOTECAS.find(b => b.key === selectedBiblioteca),
+    [selectedBiblioteca]
+  );
+
+  const livrosFiltrados = useMemo(() => {
+    if (!livrosBiblioteca || !bibConfig) return [];
+    return livrosBiblioteca.filter((l: any) => {
+      const titulo = l[bibConfig.fields.titulo] || "";
+      const autor = bibConfig.fields.autor ? (l[bibConfig.fields.autor] || "") : "";
+      const term = searchTerm.toLowerCase();
+      return titulo.toLowerCase().includes(term) || autor.toLowerCase().includes(term);
+    });
+  }, [livrosBiblioteca, bibConfig, searchTerm]);
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
@@ -70,6 +117,45 @@ const BibliotecaPlanoLeitura = () => {
     },
   });
 
+  const addMutation = useMutation({
+    mutationFn: async (livro: any) => {
+      if (!user || !bibConfig || !selectedBiblioteca) return;
+      const titulo = livro[bibConfig.fields.titulo] || "Sem título";
+      const capaUrl = bibConfig.fields.capa ? (livro[bibConfig.fields.capa] || null) : null;
+      
+      // Check if already exists
+      const { data: existing } = await supabase
+        .from("biblioteca_plano_leitura" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("biblioteca_tabela", selectedBiblioteca)
+        .eq("item_id", livro.id)
+        .maybeSingle();
+      
+      if (existing) {
+        toast.info("Este livro já está no seu plano!");
+        return;
+      }
+
+      const { error } = await (supabase as any)
+        .from("biblioteca_plano_leitura")
+        .insert({
+          user_id: user.id,
+          item_id: livro.id,
+          titulo,
+          biblioteca_tabela: selectedBiblioteca,
+          capa_url: capaUrl,
+          status: "quero_ler",
+          progresso: 0,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["biblioteca-plano-leitura"] });
+      toast.success("Adicionado ao plano de leitura!");
+    },
+  });
+
   const filtered = items?.filter((i: any) => i.status === activeStatus) || [];
 
   if (!user) {
@@ -87,14 +173,27 @@ const BibliotecaPlanoLeitura = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="bg-gradient-to-b from-amber-950/30 to-background px-4 pt-6 pb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-            <Target className="w-5 h-5 text-amber-500" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <Target className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">Plano de Leitura</h1>
+              <p className="text-xs text-muted-foreground">Organize suas leituras jurídicas</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Plano de Leitura</h1>
-            <p className="text-xs text-muted-foreground">Organize suas leituras jurídicas</p>
-          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setShowAddDialog(true);
+              setSelectedBiblioteca(null);
+              setSearchTerm("");
+            }}
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            <Plus className="w-4 h-4 mr-1" /> Adicionar
+          </Button>
         </div>
 
         {/* Status Tabs */}
@@ -129,7 +228,7 @@ const BibliotecaPlanoLeitura = () => {
           <div className="text-center py-12">
             <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">Nenhum livro em "{STATUS_LABELS[activeStatus]}"</p>
-            <p className="text-muted-foreground/60 text-xs mt-1">Adicione livros ao seu plano nas páginas das bibliotecas</p>
+            <p className="text-muted-foreground/60 text-xs mt-1">Toque em "Adicionar" para incluir livros ao plano</p>
           </div>
         )}
 
@@ -148,6 +247,9 @@ const BibliotecaPlanoLeitura = () => {
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground line-clamp-1">{item.titulo}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {item.biblioteca_tabela?.replace("BIBLIOTECA-", "").replace("BIBILIOTECA-", "")}
+                </p>
                 {item.comentario && (
                   <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5 flex items-center gap-1">
                     <MessageSquare className="w-3 h-3" /> {item.comentario}
@@ -255,6 +357,127 @@ const BibliotecaPlanoLeitura = () => {
               Salvar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Book Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              {selectedBiblioteca ? "Selecione um livro" : "Escolha a biblioteca"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {!selectedBiblioteca ? (
+            // Step 1: Select library
+            <ScrollArea className="flex-1 -mx-2">
+              <div className="space-y-1 px-2">
+                {BIBLIOTECAS.map((bib) => (
+                  <button
+                    key={bib.key}
+                    onClick={() => {
+                      setSelectedBiblioteca(bib.key);
+                      setSearchTerm("");
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors text-left"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{bib.label}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            // Step 2: Select book from library
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex items-center gap-2 mb-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedBiblioteca(null)}
+                  className="shrink-0"
+                >
+                  <X className="w-4 h-4 mr-1" /> Voltar
+                </Button>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {bibConfig?.label}
+                </span>
+              </div>
+              
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar livro..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <ScrollArea className="flex-1 -mx-2">
+                {isLoadingLivros ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                  </div>
+                ) : livrosFiltrados.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground text-sm">Nenhum livro encontrado</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1 px-2">
+                    {livrosFiltrados.map((livro: any) => {
+                      const titulo = bibConfig ? livro[bibConfig.fields.titulo] : "";
+                      const autor = bibConfig?.fields.autor ? livro[bibConfig.fields.autor] : null;
+                      const capaUrl = bibConfig?.fields.capa ? livro[bibConfig.fields.capa] : null;
+                      const alreadyAdded = items?.some(
+                        (i: any) => i.biblioteca_tabela === selectedBiblioteca && i.item_id === livro.id
+                      );
+
+                      return (
+                        <button
+                          key={livro.id}
+                          onClick={() => {
+                            if (!alreadyAdded) addMutation.mutate(livro);
+                          }}
+                          disabled={alreadyAdded || addMutation.isPending}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left ${
+                            alreadyAdded
+                              ? "opacity-50 cursor-not-allowed bg-accent/30"
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          {capaUrl ? (
+                            <img src={capaUrl} alt={titulo} className="w-10 h-14 rounded-md object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-14 rounded-md bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-4 h-4 text-amber-500/50" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground line-clamp-1">{titulo || "Sem título"}</p>
+                            {autor && <p className="text-xs text-muted-foreground line-clamp-1">{autor}</p>}
+                            {alreadyAdded && (
+                              <p className="text-[10px] text-amber-500 font-medium mt-0.5">Já adicionado</p>
+                            )}
+                          </div>
+                          {!alreadyAdded && (
+                            <Plus className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

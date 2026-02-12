@@ -14,6 +14,7 @@ import LeituraDinamicaReader from "@/components/biblioteca/LeituraDinamicaReader
 import LeituraDinamicaSetup from "@/components/biblioteca/LeituraDinamicaSetup";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
@@ -23,6 +24,7 @@ const BibliotecaClassicosLivro = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const { registrarAcesso } = useBibliotecaAcesso();
   const [showPDF, setShowPDF] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'vertical'>('normal');
@@ -439,6 +441,7 @@ const BibliotecaClassicosLivro = () => {
           } else {
             setViewMode(mode);
             setShowPDF(true);
+            if (livro) registrarAcesso("BIBLIOTECA-CLASSICOS", livro.id, livro.area, livro.livro, livro.imagem);
           }
         }}
         bookTitle={livro?.livro || ''}
