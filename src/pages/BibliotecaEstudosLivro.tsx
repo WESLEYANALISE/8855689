@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2, BookOpen, Monitor, Sparkles, Crown } from "lucide-react";
+import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { useState } from "react";
 import PDFViewerModal from "@/components/PDFViewerModal";
 import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
@@ -154,6 +155,12 @@ const BibliotecaEstudosLivro = () => {
                   Ler agora
                 </Button>
               )}
+              <BibliotecaFavoritoButton
+                itemId={livro.id}
+                titulo={livro.Tema || ""}
+                bibliotecaTabela="BIBLIOTECA-ESTUDOS"
+                capaUrl={livro["Capa-livro"]}
+              />
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

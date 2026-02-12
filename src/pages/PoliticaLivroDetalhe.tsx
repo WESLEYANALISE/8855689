@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Book, BookOpen, Monitor, Download, Crown, Lock } from 'lucide-react';
+import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { buscarDetalhesLivro } from '@/lib/googleBooksApi';
 import PDFViewerModal from '@/components/PDFViewerModal';
 import PDFReaderModeSelector from '@/components/PDFReaderModeSelector';
@@ -151,7 +152,7 @@ export default function PoliticaLivroDetalhe() {
         </div>
 
         {/* Botão Ler Agora - Premium Only */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center gap-3 mb-6">
           {temLinkLeitura && (
             isPremium ? (
               <Button
@@ -173,6 +174,12 @@ export default function PoliticaLivroDetalhe() {
               </Button>
             )
           )}
+          <BibliotecaFavoritoButton
+            itemId={livro.id}
+            titulo={livro.livro || ""}
+            bibliotecaTabela="BIBLIOTECA-POLITICA"
+            capaUrl={livro.imagem}
+          />
         </div>
 
         {/* Tabs: Sobre, Desktop, Download */}

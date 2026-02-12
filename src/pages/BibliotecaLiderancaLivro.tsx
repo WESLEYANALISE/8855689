@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useHierarchicalNavigation } from "@/hooks/useHierarchicalNavigation";
 import { Download, Loader2, BookOpen, Video, FileText, Crown } from "lucide-react";
+import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { useState } from "react";
 import PDFViewerModal from "@/components/PDFViewerModal";
 import PDFReaderModeSelector from "@/components/PDFReaderModeSelector";
@@ -166,6 +167,12 @@ const BibliotecaLiderancaLivro = () => {
                   Ler agora
                 </Button>
               )}
+              <BibliotecaFavoritoButton
+                itemId={livro.id}
+                titulo={livro.livro || ""}
+                bibliotecaTabela="BIBLIOTECA-LIDERANÇA"
+                capaUrl={livro.imagem}
+              />
               <Button
                 onClick={handleOpenResumo}
                 size="lg"
