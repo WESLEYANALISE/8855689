@@ -19,36 +19,36 @@ const FREE_MATERIA_NAMES = [
   "introducao ao estudo do direito"
 ];
 
-// Ordem cronológica/lógica das áreas do Direito
-const AREAS_ORDEM = [
-  "Conceitos", // primeiro item especial
-  "Direito Constitucional",
-  "Direito Civil",
-  "Direito Penal",
-  "Direito Processual Civil",
-  "Direito Processual Penal",
-  "Direito Administrativo",
-  "Direito Do Trabalho",
-  "Direito Processual Do Trabalho",
-  "Direito Tributario",
-  "Direito Empresarial",
-  "Direito Financeiro",
-  "Direito Previndenciario",
-  "Direito Ambiental",
-  "Direito Internacional Público",
-  "Direito Internacional Privado",
-  "Direito Concorrencial",
-  "Direito Desportivo",
-  "Direito Urbanistico",
-  "Direitos Humanos",
-  "Lei Penal Especial",
-  "Teoria E Filosofia Do Direito",
-  "Politicas Publicas",
-  "Pratica Profissional",
-  "Portugues",
-  "Pesquisa Científica",
-  "Formação Complementar",
-  "Revisão Oab",
+// label curto para exibição, value completo para query no banco
+const AREAS_ORDEM: { label: string; value: string }[] = [
+  { label: "Conceitos", value: "Conceitos" },
+  { label: "Constitucional", value: "Direito Constitucional" },
+  { label: "Civil", value: "Direito Civil" },
+  { label: "Penal", value: "Direito Penal" },
+  { label: "Proc. Civil", value: "Direito Processual Civil" },
+  { label: "Proc. Penal", value: "Direito Processual Penal" },
+  { label: "Administrativo", value: "Direito Administrativo" },
+  { label: "Trabalho", value: "Direito Do Trabalho" },
+  { label: "Proc. Trabalho", value: "Direito Processual Do Trabalho" },
+  { label: "Tributário", value: "Direito Tributario" },
+  { label: "Empresarial", value: "Direito Empresarial" },
+  { label: "Financeiro", value: "Direito Financeiro" },
+  { label: "Previdenciário", value: "Direito Previndenciario" },
+  { label: "Ambiental", value: "Direito Ambiental" },
+  { label: "Int. Público", value: "Direito Internacional Público" },
+  { label: "Int. Privado", value: "Direito Internacional Privado" },
+  { label: "Concorrencial", value: "Direito Concorrencial" },
+  { label: "Desportivo", value: "Direito Desportivo" },
+  { label: "Urbanístico", value: "Direito Urbanistico" },
+  { label: "Dir. Humanos", value: "Direitos Humanos" },
+  { label: "Lei Penal Esp.", value: "Lei Penal Especial" },
+  { label: "Filosofia", value: "Teoria E Filosofia Do Direito" },
+  { label: "Políticas Púb.", value: "Politicas Publicas" },
+  { label: "Prática Prof.", value: "Pratica Profissional" },
+  { label: "Português", value: "Portugues" },
+  { label: "Pesq. Científica", value: "Pesquisa Científica" },
+  { label: "Form. Compl.", value: "Formação Complementar" },
+  { label: "Revisão OAB", value: "Revisão Oab" },
 ];
 
 export const MobileTrilhasAprender = () => {
@@ -165,15 +165,15 @@ export const MobileTrilhasAprender = () => {
         >
           {AREAS_ORDEM.map((area) => (
             <button
-              key={area}
-              onClick={() => setActiveArea(area)}
+              key={area.value}
+              onClick={() => setActiveArea(area.value)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                activeArea === area
+                activeArea === area.value
                   ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
                   : 'bg-white/5 text-white/60 hover:text-white/80 border border-white/10'
               }`}
             >
-              {area}
+              {area.label}
             </button>
           ))}
         </div>
