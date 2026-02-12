@@ -14,7 +14,7 @@ const BibliotecaHistorico = () => {
     queryKey: ["biblioteca-historico", user?.id, sessionId],
     queryFn: async () => {
       let query = supabase
-        .from("bibliotecas_acessos")
+        .from("bibliotecas_acessos" as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100);
@@ -29,13 +29,13 @@ const BibliotecaHistorico = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 
   // Agrupar por data
-  const grouped: Record<string, typeof acessos> = {};
-  acessos?.forEach((a) => {
+  const grouped: Record<string, any[]> = {};
+  acessos?.forEach((a: any) => {
     const date = parseISO(a.created_at!);
     let label: string;
     if (isToday(date)) label = "Hoje";
@@ -80,14 +80,22 @@ const BibliotecaHistorico = () => {
           <div key={label} className="mb-5">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</h2>
             <div className="space-y-2">
-              {items?.map((item) => (
+              {items?.map((item: any) => (
                 <div
                   key={item.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-4 h-4 text-amber-500/50" />
-                  </div>
+                  {item.capa_url ? (
+                    <img 
+                      src={item.capa_url} 
+                      alt={item.livro || "Livro"} 
+                      className="w-10 h-14 rounded-md object-cover flex-shrink-0" 
+                    />
+                  ) : (
+                    <div className="w-10 h-14 rounded-md bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-4 h-4 text-amber-500/50" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground line-clamp-1">
                       {item.livro || item.area || "Livro acessado"}

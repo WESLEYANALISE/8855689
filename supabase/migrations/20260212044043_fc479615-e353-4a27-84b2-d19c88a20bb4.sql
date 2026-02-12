@@ -1,0 +1,1 @@
+ALTER TABLE public.bibliotecas_acessos ADD COLUMN IF NOT EXISTS capa_url text;

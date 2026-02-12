@@ -1904,6 +1904,7 @@ export type Database = {
         Row: {
           area: string | null
           biblioteca_tabela: string
+          capa_url: string | null
           created_at: string | null
           id: string
           item_id: number
@@ -1914,6 +1915,7 @@ export type Database = {
         Insert: {
           area?: string | null
           biblioteca_tabela: string
+          capa_url?: string | null
           created_at?: string | null
           id?: string
           item_id: number
@@ -1924,6 +1926,7 @@ export type Database = {
         Update: {
           area?: string | null
           biblioteca_tabela?: string
+          capa_url?: string | null
           created_at?: string | null
           id?: string
           item_id?: number

@@ -13,6 +13,7 @@ import LivroResumoPlayer from "@/components/biblioteca/LivroResumoPlayer";
 import { toast } from "sonner";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 const BibliotecaOratoriaLivro = () => {
   const { livroId } = useParams();
@@ -26,6 +27,7 @@ const BibliotecaOratoriaLivro = () => {
   const [resumoData, setResumoData] = useState<any>(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isPremium } = useSubscription();
+  const { registrarAcesso } = useBibliotecaAcesso();
 
   const { data: livro, isLoading, refetch } = useQuery({
     queryKey: ["biblioteca-oratoria-livro", livroId],
@@ -272,6 +274,7 @@ const BibliotecaOratoriaLivro = () => {
           setViewMode(mode);
           setShowModeSelector(false);
           setShowPDF(true);
+          if (livro) registrarAcesso("BIBLIOTECA-ORATORIA", livro.id, livro.area, livro.livro, livro.imagem);
         }}
         bookTitle={livro?.livro || ''}
       />

@@ -15,7 +15,8 @@ export const useBibliotecaAcesso = () => {
     bibliotecaTabela: string,
     itemId: number,
     area?: string,
-    livro?: string
+    livro?: string,
+    capaUrl?: string | null
   ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,6 +28,7 @@ export const useBibliotecaAcesso = () => {
         livro: livro || null,
         user_id: user?.id || null,
         session_id: getSessionId(),
+        capa_url: capaUrl || null,
       });
     } catch (error) {
       // Silently fail - não bloquear UX por tracking

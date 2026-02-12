@@ -13,12 +13,14 @@ import PDFReaderModeSelector from '@/components/PDFReaderModeSelector';
 import { toast } from 'sonner';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { PremiumUpgradeModal } from '@/components/PremiumUpgradeModal';
+import { useBibliotecaAcesso } from "@/hooks/useBibliotecaAcesso";
 
 export default function PoliticaLivroDetalhe() {
   const { livroId } = useParams<{ livroId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { isPremium } = useSubscription();
+  const { registrarAcesso } = useBibliotecaAcesso();
   const [activeTab, setActiveTab] = useState('sobre');
   
   // Verificar se é acesso gratuito (primeiro livro - não pode baixar)
@@ -83,6 +85,7 @@ export default function PoliticaLivroDetalhe() {
       }
       setViewMode('vertical');
       setShowPDF(true);
+      if (livro) registrarAcesso("BIBLIOTECA-POLITICA", livro.id, livro.area, livro.livro, livro.imagem);
     }
   };
 
