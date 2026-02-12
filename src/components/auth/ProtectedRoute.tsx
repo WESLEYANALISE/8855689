@@ -40,10 +40,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Redireciona para escolha de plano se onboarding completo mas plano não escolhido
-  if (!skipOnboardingCheck && isComplete && !planChosen && location.pathname !== '/escolher-plano') {
-    return <Navigate to="/escolher-plano" replace />;
-  }
 
 
   return <>{children}</>;
