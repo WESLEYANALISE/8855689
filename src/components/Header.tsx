@@ -562,10 +562,10 @@ export const Header = () => {
       <header className="relative w-full overflow-hidden z-20 bg-transparent">
         <div className="relative flex h-16 md:h-14 items-center justify-between px-4 md:px-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-3 md:gap-2">
-            <img src="/logo.webp" alt="Direito X - Aprovar OAB" className="w-10 h-10 md:w-8 md:h-8 rounded-lg object-cover" loading="eager" fetchPriority="high" decoding="sync" />
+            <img src="/logo.webp" alt="Juridiquê - Estudos Jurídicos" className="w-10 h-10 md:w-8 md:h-8 rounded-lg object-cover" loading="eager" fetchPriority="high" decoding="sync" />
             <div className="flex flex-col">
               <span className="text-lg font-bold text-white tracking-tight font-playfair">
-                DIREITO X
+                JURIDIQUÊ
               </span>
               <span className="text-[10px] text-white/70 tracking-widest uppercase -mt-1">
                 Estudos Jurídicos

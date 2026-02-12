@@ -178,7 +178,7 @@ const Onboarding = () => {
 
             <div className="space-y-3">
               <h1 className="text-3xl font-bold text-foreground">
-                Bem-vindo ao <span className="text-primary">Direito X</span>
+                Bem-vindo ao <span className="text-primary">Juridiquê</span>
               </h1>
               <p className="text-muted-foreground text-lg max-w-md">
                 Estudos Jurídicos

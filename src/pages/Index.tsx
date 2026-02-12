@@ -250,7 +250,7 @@ const Index = () => {
       <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
         <img 
           src={heroImage}
-          alt="Direito X"
+          alt="Juridiquê"
           className="absolute inset-0 w-full h-full object-cover object-top opacity-85"
           loading="eager"
           fetchPriority="high"
