@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { CategoriasBottomNav } from "@/components/categorias/CategoriasBottomNav";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -142,7 +143,7 @@ export const MobileTrilhasAprender = () => {
   }
 
   return (
-    <div className="relative py-4 flex flex-col items-center">
+    <div className="relative py-4 pb-24 flex flex-col items-center">
       {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -330,6 +331,9 @@ export const MobileTrilhasAprender = () => {
       ) : (
         <MobileAreaTrilha area={activeArea} />
       )}
+
+      {/* Menu de rodapé fixo */}
+      <CategoriasBottomNav activeTab="aulas" />
     </div>
   );
 };
