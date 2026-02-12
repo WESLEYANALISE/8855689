@@ -9,6 +9,7 @@ import { LockedTimelineCard } from "@/components/LockedTimelineCard";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { MobileCategoriasDireito } from "./MobileCategoriasDireito";
+import { CategoriasBottomNav } from "@/components/categorias/CategoriasBottomNav";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
@@ -163,7 +164,10 @@ export const MobileTrilhasAprender = () => {
 
       {/* Se aba Categorias selecionada, renderizar componente */}
       {activeTab === 'categorias' && isAdmin ? (
-        <MobileCategoriasDireito />
+        <div className="pb-24">
+          <MobileCategoriasDireito />
+          <CategoriasBottomNav activeTab="aulas" />
+        </div>
       ) : (
       <>
       {/* Info Stats */}
