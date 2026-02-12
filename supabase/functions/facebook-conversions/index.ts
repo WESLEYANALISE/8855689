@@ -49,12 +49,7 @@ serve(async (req) => {
         {
           event_name,
           event_id: event_id || undefined,
-          event_time: (() => {
-            let t = event_time || Math.floor(Date.now() / 1000);
-            // If timestamp is in milliseconds (13+ digits), convert to seconds
-            if (t > 9999999999) t = Math.floor(t / 1000);
-            return t;
-          })(),
+          event_time: Math.floor(Date.now() / 1000),
           action_source: action_source || "website",
           event_source_url: event_source_url || undefined,
           user_data: hashedUserData,
