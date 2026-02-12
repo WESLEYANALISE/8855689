@@ -24,10 +24,10 @@ export const MobileLeisHome = memo(() => {
 
   const handleTabChange = (tab: 'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push') => {
     setActiveTab(tab);
-    if (tab === 'procurar') navigate('/pesquisar?tipo=artigos');
+    if (tab === 'procurar') navigate('/vade-mecum/busca');
     else if (tab === 'resenha') navigate('/vade-mecum/resenha-diaria');
     else if (tab === 'push') navigate('/vade-mecum/push-legislacao');
-    else if (tab === 'explicacao') navigate('/resumos-juridicos/artigos-lei');
+    else if (tab === 'explicacao') navigate('/leis/explicacoes');
   };
 
   return (

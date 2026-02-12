@@ -243,6 +243,7 @@ import AssistentePessoal from "./pages/AssistentePessoal";
 import NoticiaWebView from "./components/NoticiaWebView";
 import JurisprudenciaWebView from "./components/JurisprudenciaWebView";
 import VadeMecumBusca from "./pages/VadeMecumBusca";
+import LeisExplicacoes from "./pages/LeisExplicacoes";
 import VadeMecumSobre from "./pages/VadeMecumSobre";
 import NoticiasOAB from "./pages/oab/NoticiasOAB";
 import NoticiaOABDetalhe from "./pages/oab/NoticiaOABDetalhe";
@@ -627,6 +628,7 @@ const App = () => {
               <Route path="/aprenda-seu-jeito/:id" element={<AprendaSeuJeitoEstudo />} />
               <Route path="/vade-mecum" element={<VadeMecumTodas />} />
               <Route path="/vade-mecum/busca" element={<VadeMecumBusca />} />
+              <Route path="/leis/explicacoes" element={<LeisExplicacoes />} />
               <Route path="/vade-mecum/sobre" element={<VadeMecumSobre />} />
               <Route path="/vade-mecum/legislacao" element={<VadeMecumLegislacao />} />
               <Route path="/vade-mecum/resenha-diaria" element={<VadeMecumResenhaDiaria />} />
