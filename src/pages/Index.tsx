@@ -315,8 +315,8 @@ const Index = () => {
 
         {/* Menu de Alternância Principal - Apenas mobile */}
         <div className="flex gap-1.5 md:hidden mb-6 relative z-20 h-[44px]">
-          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
+          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
         </div>
 
