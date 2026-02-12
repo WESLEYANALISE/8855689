@@ -1,110 +1,85 @@
 
 
-# Painel de Rankings e Engajamento Detalhado
+# Melhorias na Biblioteca: Plano de Leitura, Historico e Favoritos
 
-## O que sera criado
+## Problemas identificados
 
-Uma nova aba **"Rankings"** dentro da pagina AdminControle, com secoes dedicadas para visualizar em detalhes o engajamento dos usuarios. Tudo baseado nos dados ja capturados na tabela `page_views` (10.400+ registros, 2.750+ sessoes, 377 usuarios identificados).
-
----
-
-## Secoes do Ranking
-
-### 1. Ranking de Tempo de Tela (Usuarios que ficam mais tempo)
-- Calcula o tempo estimado de sessao de cada usuario baseado no intervalo entre page views consecutivas de uma mesma sessao
-- Exibe: Nome, email, tempo total estimado, numero de sessoes, ultima atividade
-- Ordenado por tempo total (maior primeiro)
-
-### 2. Areas do Direito Mais Acessadas
-- Agrupa page_views por categorias de area juridica (baseado no page_path)
-- Mapeia rotas como `/vade-mecum`, `/constituicao`, `/codigos`, `/flashcards`, `/oab-trilhas`, etc. para areas tematicas
-- Exibe barra de progresso com quantidade e percentual
-
-### 3. Funcoes Mais Utilizadas
-- Agrupa por funcionalidade: Flashcards, Questoes, Videoaulas, Mapas Mentais, Resumos, Evelyn, Vade Mecum, etc.
-- Baseado no mapeamento de page_path para funcionalidade
-- Ranking com barras visuais
-
-### 4. Ranking de Fidelidade (quem volta todo dia)
-- Calcula quantos dias distintos cada usuario acessou o app no periodo
-- Exibe: Nome, email, dias ativos, streak (dias consecutivos), ultima visita
-- Ordenado por dias ativos (maior primeiro)
-
-### 5. Paginas Mais Populares (detalhado)
-- Ja existe parcialmente, sera enriquecido com informacoes de usuarios unicos por pagina
+1. **Plano de Leitura - Dialog nao rola**: O `ScrollArea` no step 2 (lista de livros) nao tem altura fixa definida, impedindo scroll
+2. **Botao Voltar mal posicionado**: Dentro do dialog, o botao "Voltar" esta pequeno e misturado com o conteudo
+3. **Amarelo sem contraste**: O amber-500 (#f59e0b) nao contrasta bem com texto branco
+4. **Favoritos sem capa**: Registros antigos tem `capa_url: null` no banco. Precisa buscar a capa dinamicamente da tabela original como fallback
+5. **Historico vazio e simples**: Nao mostra detalhes como tempo, categoria, capa grande
+6. **Todas as paginas precisam de mais detalhes e funcionalidades**
 
 ---
 
-## Implementacao Tecnica
+## Mudancas planejadas
 
-### Arquivo 1: `src/hooks/useAdminRankings.ts` (NOVO)
-Hooks de dados com React Query:
+### 1. Plano de Leitura (`BibliotecaPlanoLeitura.tsx`)
 
-- **`useRankingTempoTela(dias)`** -- Consulta page_views agrupando por user_id/session_id, calcula intervalo entre page views consecutivas (max 30min gap = mesma sessao), soma tempo total por usuario. Faz JOIN com profiles para nome/email.
+**Correcao do scroll:**
+- Adicionar `h-[60vh]` ao `ScrollArea` do step 2 (selecao de livros) para garantir que a lista role
 
-- **`useRankingAreasAcessadas(dias)`** -- Consulta page_views, mapeia page_path para areas do direito usando um dicionario local, agrega contagens.
+**Botao Voltar destacado:**
+- Mover para uma barra fixa no topo do dialog, com icone de seta e nome da biblioteca selecionada, fundo contrastante
 
-- **`useRankingFuncoesUtilizadas(dias)`** -- Similar ao anterior mas mapeando para funcionalidades (Flashcards, Questoes, Evelyn, etc).
+**Contraste do amarelo:**
+- Trocar `bg-amber-500` por `bg-amber-600` nos botoes de acao e tabs ativos para melhor contraste com texto branco
 
-- **`useRankingFidelidade(dias)`** -- Conta dias distintos de acesso por user_id, calcula streak de dias consecutivos, ordena por mais fiel.
+**Mais funcionalidades:**
+- Mostrar contagem total de livros no plano e estatisticas (ex: "3 livros concluidos de 10")
+- Barra de progresso geral do plano
+- Na lista de livros, mostrar data de adicao
+- No card do livro em "Lendo", exibir quando comecou a ler
+- Melhorar dialog de edicao: adicionar opcao de avaliar (1-5 estrelas) e data de conclusao
 
-- **`useRankingPesquisas(dias)`** -- Usa dados de `cache_pesquisas` para termos mais buscados por area.
+### 2. Favoritos (`BibliotecaFavoritos.tsx`)
 
-Todas as queries serao feitas client-side com consultas diretas ao Supabase (mesmo padrao dos hooks existentes), sem necessidade de criar novas RPC functions.
+**Correcao da capa:**
+- Para favoritos com `capa_url` nulo, fazer uma query paralela na tabela original do livro para buscar a capa dinamicamente
+- Criar um hook `useFavoritosComCapas` que enriquece os favoritos com capas faltantes
 
-### Arquivo 2: `src/pages/Admin/AdminControle.tsx` (EDITAR)
-- Adicionar nova aba "Rankings" ao TabsList (5 tabs no total)
-- Nova TabsContent com as 5 secoes do ranking, cada uma em um Card
-- Cada ranking tera: titulo, badge com total, lista ordenada com posicao (#1, #2...), barras de progresso, e badges informativos
-- Layout responsivo: cards empilhados no mobile, grid no desktop
+**Mais detalhes:**
+- Mostrar data em que foi favoritado
+- Cards maiores com capa mais visivel (w-14 h-20 em vez de w-12 h-16)
+- Mostrar autor quando disponivel
+- Botao para ir direto ao livro mais evidente
+- Contador por categoria no header do grupo
 
-### Detalhes visuais
-- Medalhas para top 3 (ouro, prata, bronze)
-- Barras de progresso relativas ao primeiro colocado
-- Cards com gradientes sutis
-- Scroll area para listas longas (max 20 itens por ranking)
-- Filtro de periodo compartilhado com o resto do dashboard (Hoje, 7d, 30d, 90d)
+### 3. Historico (`BibliotecaHistorico.tsx`)
 
-### Logica de calculo de tempo de tela
-```text
-Para cada sessao (session_id):
-  1. Ordenar page_views por created_at
-  2. Para cada par consecutivo, calcular diferenca
-  3. Se diferenca < 30 minutos, somar ao tempo da sessao
-  4. Se diferenca >= 30 minutos, iniciar nova "sub-sessao"
-  5. Adicionar 1 minuto para a ultima page view (tempo estimado de leitura)
-  
-Agrupar por user_id e somar todas as sessoes
-```
+**Mais detalhes:**
+- Mostrar tempo estimado de leitura por sessao (calcular diferenca entre acessos consecutivos do mesmo livro)
+- Cards clicaveis que levam ao livro
+- Capas maiores e mais destacadas
+- Badge com a categoria/biblioteca
+- Mostrar quantas vezes o livro foi acessado (agrupando acessos repetidos do mesmo livro)
+- Estatisticas no header: "X livros lidos esta semana", "Y minutos de leitura"
 
-### Mapeamento de rotas para areas
-```text
-Penal: /codigos (penal), /flashcards (penal)
-Civil: /codigos (civil), /flashcards (civil)
-Constitucional: /constituicao, /flashcards (constitucional)
-OAB: /oab-trilhas, /ferramentas/questoes
-Trabalhista: /codigos (trabalho)
-Administrativo: /codigos (administrativo)
-Geral: /vade-mecum, /bibliotecas, /resumos-juridicos
-```
+---
 
-### Mapeamento de rotas para funcoes
-```text
-Flashcards: /flashcards
-Questoes: /ferramentas/questoes
-Videoaulas: /videoaulas
-Vade Mecum: /vade-mecum
-Constituicao: /constituicao
-Codigos e Leis: /codigos
-Evelyn IA: /evelyn, /ferramentas/evelyn
-Bibliotecas: /bibliotecas
-Resumos: /resumos-juridicos
-Mapas Mentais: /mapas-mentais
-OAB Trilhas: /oab-trilhas
-Sumulas: /sumulas
-Audio Aulas: /audio-aulas
-```
+## Detalhes tecnicos
 
-## Sequencia de implementacao
-1. Criar `useAdminRankings.ts` com todos os hooks
-2. Editar `AdminControle.tsx` para adicionar aba Rankings com as 5 secoes
+### Arquivo 1: `src/pages/BibliotecaPlanoLeitura.tsx` (EDITAR)
+- Linha 365: `DialogContent` - adicionar `overflow-hidden` e ajustar flex layout
+- Linha 424: `ScrollArea` - adicionar `h-[60vh]` para forcar altura e permitir scroll
+- Tabs: trocar `bg-amber-500` por `bg-amber-600` em todos os botoes ativos
+- Botao Voltar: mover para header do dialog com estilo destacado (bg-amber-600/10, borda, tamanho maior)
+- Adicionar estatisticas gerais no header (total de livros, barra de progresso geral)
+
+### Arquivo 2: `src/pages/BibliotecaFavoritos.tsx` (EDITAR)
+- Criar logica para buscar capas faltantes: para cada favorito sem `capa_url`, fazer query na tabela `biblioteca_tabela` correspondente usando `item_id`
+- Usar `useQuery` com `select` para buscar apenas a coluna de capa
+- Mapear campos de capa por biblioteca (mesmo mapeamento de `BIBLIOTECAS` do PlanoLeitura)
+- Melhorar UI dos cards com mais informacoes
+
+### Arquivo 3: `src/pages/BibliotecaHistorico.tsx` (EDITAR)
+- Adicionar navegacao ao clicar no item (usando mesmo `BIBLIOTECA_ROUTE_MAP` dos favoritos)
+- Calcular e exibir tempo estimado de permanencia entre acessos consecutivos
+- Agrupar acessos repetidos do mesmo livro mostrando contagem
+- Adicionar estatisticas no header
+- Melhorar visual dos cards com capas maiores
+
+### Arquivo 4: `src/components/biblioteca/BibliotecaFavoritoButton.tsx` (EDITAR)
+- Nenhuma mudanca estrutural, mas garantir que todas as paginas de livro passem `capaUrl` corretamente (ja esta feito para Estudos, verificar demais)
+
