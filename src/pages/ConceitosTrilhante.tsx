@@ -200,11 +200,11 @@ const ConceitosTrilhante = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <Footprints className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
-              <span>{totalTopicos} tópicos</span>
+              <span>{totalTopicos} aulas</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Scale className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
-              <span>{totalPaginas || 0} páginas</span>
+              <span>{totalPaginas || 0} tópicos</span>
             </div>
           </div>
         </div>
@@ -335,7 +335,7 @@ const ConceitosTrilhante = () => {
                               {/* Contagem de tópicos */}
                               <div className="flex items-center gap-1 mt-2">
                                 <BookOpen className="w-3 h-3 text-yellow-400" />
-                                <span className="text-xs text-yellow-400 font-medium">{topicos} tópicos</span>
+                                <span className="text-xs text-yellow-400 font-medium">{topicos} aulas</span>
                               </div>
                             </div>
                             
