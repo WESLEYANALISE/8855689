@@ -14,6 +14,7 @@ interface SubscriptionData {
 
 interface SubscriptionContextType {
   isPremium: boolean;
+  hasEvelynAccess: boolean;
   subscription: SubscriptionData | null;
   daysRemaining: number | null;
   loading: boolean;
@@ -22,6 +23,7 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   isPremium: false,
+  hasEvelynAccess: false,
   subscription: null,
   daysRemaining: null,
   loading: true,
@@ -39,6 +41,7 @@ export const useSubscription = () => {
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
+  const [hasEvelynAccess, setHasEvelynAccess] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +49,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const checkSubscription = useCallback(async () => {
     if (!user?.id) {
       setIsPremium(false);
+      setHasEvelynAccess(false);
       setSubscription(null);
       setDaysRemaining(null);
       setLoading(false);
@@ -60,16 +64,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) {
         console.error('Erro ao verificar assinatura:', error);
         setIsPremium(false);
+        setHasEvelynAccess(false);
         setSubscription(null);
         setDaysRemaining(null);
       } else {
         setIsPremium(data?.isPremium || false);
+        setHasEvelynAccess(data?.hasEvelynAccess || false);
         setSubscription(data?.subscription || null);
         setDaysRemaining(data?.daysRemaining || null);
       }
     } catch (error) {
       console.error('Erro ao verificar assinatura:', error);
       setIsPremium(false);
+      setHasEvelynAccess(false);
       setSubscription(null);
       setDaysRemaining(null);
     } finally {
@@ -87,7 +94,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [checkSubscription]);
 
   return (
-    <SubscriptionContext.Provider value={{ isPremium, subscription, daysRemaining, loading, refreshSubscription }}>
+    <SubscriptionContext.Provider value={{ isPremium, hasEvelynAccess, subscription, daysRemaining, loading, refreshSubscription }}>
       {children}
     </SubscriptionContext.Provider>
   );

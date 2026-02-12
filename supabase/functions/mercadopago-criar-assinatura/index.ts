@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,19 +35,19 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // PLANO MENSAL: R$ 21,90/mês - Preapproval (Assinatura recorrente)
-    if (planType === 'mensal') {
-      console.log('Criando assinatura recorrente (Preapproval) para plano mensal...');
+    // PLANO ESSENCIAL: R$ 14,99/mês - Preapproval (Assinatura recorrente)
+    if (planType === 'essencial') {
+      console.log('Criando assinatura recorrente (Preapproval) para plano essencial...');
       console.log('Email do pagador:', userEmail);
       
       const preapprovalBody = {
-        reason: 'Direito Premium - Plano Mensal',
-        external_reference: `${userId}|mensal`,
+        reason: 'Direito Premium - Plano Essencial',
+        external_reference: `${userId}|essencial`,
         payer_email: userEmail,
         auto_recurring: {
           frequency: 1,
           frequency_type: 'months',
-          transaction_amount: 21.90,
+          transaction_amount: 14.99,
           currency_id: 'BRL'
         },
         back_url: `${baseUrl}/assinatura/callback`,
@@ -67,7 +66,7 @@ serve(async (req) => {
       });
 
       const mpData = await mpResponse.json();
-      console.log('Resposta do Mercado Pago (Preapproval Mensal):', JSON.stringify(mpData));
+      console.log('Resposta do Mercado Pago (Preapproval Essencial):', JSON.stringify(mpData));
 
       if (!mpResponse.ok) {
         console.error('Erro do Mercado Pago:', mpData);
@@ -77,7 +76,67 @@ serve(async (req) => {
         );
       }
 
-      // Salvar assinatura pendente no banco
+      const { error: dbError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: userId,
+          mp_preapproval_id: mpData.id,
+          mp_payer_email: userEmail,
+          status: 'pending',
+          plan_type: 'essencial',
+          amount: 14.99
+        });
+
+      if (dbError) {
+        console.error('Erro ao salvar assinatura no banco:', dbError);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          init_point: mpData.init_point,
+          preapproval_id: mpData.id
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // PLANO MENSAL (legacy): R$ 21,90/mês
+    if (planType === 'mensal') {
+      console.log('Criando assinatura recorrente (Preapproval) para plano mensal...');
+      
+      const preapprovalBody = {
+        reason: 'Direito Premium - Plano Mensal',
+        external_reference: `${userId}|mensal`,
+        payer_email: userEmail,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: 21.90,
+          currency_id: 'BRL'
+        },
+        back_url: `${baseUrl}/assinatura/callback`,
+        status: 'pending'
+      };
+
+      const mpResponse = await fetch('https://api.mercadopago.com/preapproval', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${mpAccessToken}`
+        },
+        body: JSON.stringify(preapprovalBody)
+      });
+
+      const mpData = await mpResponse.json();
+
+      if (!mpResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: 'Erro ao criar assinatura no Mercado Pago', details: mpData }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { error: dbError } = await supabase
         .from('subscriptions')
         .insert({
@@ -103,10 +162,9 @@ serve(async (req) => {
       );
     }
 
-    // PLANO ANUAL: R$ 179,90 em 12x de R$ 14,99 - Checkout Pro com parcelamento
+    // PLANO ANUAL (legacy)
     if (planType === 'anual') {
       console.log('Criando pagamento parcelado (Checkout Pro) para plano anual...');
-      console.log('Email do pagador:', userEmail);
       
       const preferenceBody = {
         items: [{
@@ -116,14 +174,12 @@ serve(async (req) => {
           currency_id: 'BRL',
           description: 'Acesso premium anual - 12x R$ 14,99'
         }],
-        payer: {
-          email: userEmail
-        },
+        payer: { email: userEmail },
         payment_methods: {
           excluded_payment_types: [
-            { id: "ticket" }, // Exclui boleto
-            { id: "debit_card" }, // Exclui débito
-            { id: "bank_transfer" } // Exclui PIX
+            { id: "ticket" },
+            { id: "debit_card" },
+            { id: "bank_transfer" }
           ],
           default_installments: 12,
           installments: 12
@@ -138,8 +194,6 @@ serve(async (req) => {
         statement_descriptor: 'DIREITO PREMIUM'
       };
 
-      console.log('Preference body:', JSON.stringify(preferenceBody));
-
       const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
@@ -150,17 +204,14 @@ serve(async (req) => {
       });
 
       const mpData = await mpResponse.json();
-      console.log('Resposta do Mercado Pago (Preference Anual):', JSON.stringify(mpData));
 
       if (!mpResponse.ok) {
-        console.error('Erro do Mercado Pago:', mpData);
         return new Response(
           JSON.stringify({ error: 'Erro ao criar pagamento no Mercado Pago', details: mpData }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Salvar assinatura pendente no banco
       const { error: dbError } = await supabase
         .from('subscriptions')
         .insert({
@@ -186,9 +237,8 @@ serve(async (req) => {
       );
     }
 
-    // Tipo de plano inválido
     return new Response(
-      JSON.stringify({ error: 'Tipo de plano inválido. Use "mensal" ou "anual".' }),
+      JSON.stringify({ error: 'Tipo de plano inválido. Use "essencial", "mensal" ou "anual".' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

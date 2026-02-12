@@ -44,7 +44,8 @@ export function useAssinaturaExperiencia(): AssinaturaExperiencia {
   const [planImages] = useState<Record<PlanType, string | null>>({
     mensal: mensalImage,
     anual: anualImage,
-    vitalicio: vitalicioImage
+    vitalicio: vitalicioImage,
+    essencial: mensalImage, // Reutilizar imagem mensal para essencial
   });
   
   // Frase definida imediatamente na inicialização (carregamento instantâneo)

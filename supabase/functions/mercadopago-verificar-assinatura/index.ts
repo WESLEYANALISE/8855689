@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -51,6 +50,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           isPremium: false,
+          hasEvelynAccess: false,
           subscription: null
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -65,6 +65,9 @@ serve(async (req) => {
     const isPremium = subscription.status === 'authorized' && 
       (!expirationDate || expirationDate > now);
     
+    // Evelyn access: apenas plano vitalício tem acesso
+    const hasEvelynAccess = isPremium && subscription.plan_type === 'vitalicio';
+    
     // Calcular dias restantes
     let daysRemaining = null;
     if (expirationDate && isPremium) {
@@ -74,14 +77,17 @@ serve(async (req) => {
     console.log('Verificação de assinatura:', {
       userId,
       status: subscription.status,
+      planType: subscription.plan_type,
       expirationDate: subscription.expiration_date,
       isPremium,
+      hasEvelynAccess,
       daysRemaining
     });
 
     return new Response(
       JSON.stringify({ 
         isPremium,
+        hasEvelynAccess,
         daysRemaining,
         subscription: {
           id: subscription.id,
