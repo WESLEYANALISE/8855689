@@ -9,7 +9,6 @@ import { LegislacaoBackground } from "@/components/LegislacaoBackground";
 import { GerenciadorBackgroundModal } from "@/components/GerenciadorBackgroundModal";
 import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
-import { LeiFavoritaButton } from "@/components/LeiFavoritaButton";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumBadge } from "@/components/PremiumBadge";
@@ -78,8 +77,12 @@ const Estatutos = () => {
     return result;
   }, [searchQuery, filterMode, favoritas, recentes]);
 
+  // Primeiros 2 estatutos são gratuitos
+  const FREE_ESTATUTOS = ['oab', 'cidade'];
+  const isFreeEstatuto = (id: string) => FREE_ESTATUTOS.includes(id);
+
   const handleCardClick = (estatuto: EstatutoCard) => {
-    if (!isPremium && !loadingSubscription) {
+    if (!isPremium && !loadingSubscription && !isFreeEstatuto(estatuto.id)) {
       setPremiumModalOpen(true);
       return;
     }
@@ -88,14 +91,6 @@ const Estatutos = () => {
     });
     navigate(`/estatuto/${estatuto.id}`);
   };
-
-  const handleFavoritaClick = (e: React.MouseEvent, estatuto: EstatutoCard) => {
-    e.stopPropagation();
-    const isFavorita = favoritas.some(f => f.lei_id === estatuto.id);
-    toggleFavorita({ lei_id: estatuto.id, titulo: estatuto.title, sigla: estatuto.abbr, cor: estatuto.color, route: `/estatuto/${estatuto.id}` }, isFavorita);
-  };
-
-  const isLocked = !isPremium && !loadingSubscription;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -133,7 +128,7 @@ const Estatutos = () => {
           ) : (
             filteredEstatutos.map((estatuto, index) => {
               const Icon = estatuto.icon;
-              const isFavorita = favoritas.some(f => f.lei_id === estatuto.id);
+              const isLocked = !isPremium && !loadingSubscription && !isFreeEstatuto(estatuto.id);
               return (
                 <div
                   key={estatuto.id}
@@ -151,12 +146,8 @@ const Estatutos = () => {
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{estatuto.title}</p>
                     </div>
-                    <LeiFavoritaButton isFavorita={isFavorita} isLoading={isTogglingFavorita} onClick={(e) => handleFavoritaClick(e, estatuto)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100" />
-                    {isLocked ? (
-                      <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    )}
+                    {isLocked && <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />}
+                    {!isLocked && <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />}
                   </div>
                 </div>
               );

@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import brasaoRepublica from "@/assets/brasao-republica.png";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
-import { LeiFavoritaButton } from "@/components/LeiFavoritaButton";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumBadge } from "@/components/PremiumBadge";
@@ -82,22 +81,18 @@ const LegislacaoPenalEspecial = () => {
     return result;
   }, [searchQuery, filterMode, favoritas, recentes]);
 
+  // Primeiras 2 leis são gratuitas (LCD e LAA)
+  const FREE_LEIS = ['crimes-democraticos', 'abuso-autoridade'];
+  const isFreeLei = (id: string) => FREE_LEIS.includes(id);
+
   const handleCardClick = (lei: LeiCard) => {
-    if (!isPremium && !loadingSubscription) {
+    if (!isPremium && !loadingSubscription && !isFreeLei(lei.id)) {
       setPremiumModalOpen(true);
       return;
     }
     registrarAcesso.mutate({ lei_id: lei.id, titulo: lei.titulo, sigla: lei.sigla, cor: lei.color, route: lei.route });
     navigate(lei.route);
   };
-
-  const handleFavoritaClick = (e: React.MouseEvent, lei: LeiCard) => {
-    e.stopPropagation();
-    const isFavorita = favoritas.some(f => f.lei_id === lei.id);
-    toggleFavorita({ lei_id: lei.id, titulo: lei.titulo, sigla: lei.sigla, cor: lei.color, route: lei.route }, isFavorita);
-  };
-
-  const isLocked = !isPremium && !loadingSubscription;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -130,7 +125,7 @@ const LegislacaoPenalEspecial = () => {
           ) : (
             filteredLeis.map((lei, index) => {
               const Icon = lei.icon;
-              const isFavorita = favoritas.some(f => f.lei_id === lei.id);
+              const isLocked = !isPremium && !loadingSubscription && !isFreeLei(lei.id);
               return (
                 <div
                   key={lei.id}
@@ -149,12 +144,8 @@ const LegislacaoPenalEspecial = () => {
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{lei.titulo}</p>
                     </div>
-                    <LeiFavoritaButton isFavorita={isFavorita} isLoading={isTogglingFavorita} onClick={(e) => handleFavoritaClick(e, lei)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100" />
-                    {isLocked ? (
-                      <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    )}
+                    {isLocked && <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />}
+                    {!isLocked && <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />}
                   </div>
                 </div>
               );
