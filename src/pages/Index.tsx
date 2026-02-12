@@ -38,6 +38,7 @@ import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { WelcomeAudioPlayer } from "@/components/WelcomeAudioPlayer";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import SearchBarAnimatedText from "@/components/SearchBarAnimatedText";
 import { preloadImages } from "@/hooks/useInstantCache";
 import IntroCarousel from "@/components/onboarding/IntroCarousel";
 import PremiumCelebration from "@/components/onboarding/PremiumCelebration";
@@ -308,9 +309,7 @@ const Index = () => {
           <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
             <Search className="w-5 h-5 text-red-400" />
           </div>
-          <span className="text-muted-foreground text-sm group-hover:text-foreground/80 transition-colors">
-            O que você quer buscar?
-          </span>
+          <SearchBarAnimatedText />
         </div>
 
         {/* Menu de Alternância Principal - Apenas mobile */}
