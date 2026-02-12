@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFacebookPixel } from '@/hooks/useFacebookPixel';
-import { Check, X, Crown, Loader2, Star, ArrowLeft, ChevronRight, Zap } from 'lucide-react';
+import { Check, X, Crown, Loader2, Star, ArrowLeft, ChevronRight, Zap, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMercadoPagoPix } from '@/hooks/use-mercadopago-pix';
 import { useAssinaturaBackgroundAudio } from '@/hooks/useAssinaturaBackgroundAudio';
@@ -48,6 +48,24 @@ const ESSENCIAL_FEATURES = [
   { label: 'Suporte prioritário', included: false },
 ];
 
+const PRO_FEATURES = [
+  { label: 'Chat Jurídico ilimitado', included: true },
+  { label: 'Flashcards ilimitados', included: true },
+  { label: 'Vade Mecum completo (+50 leis)', included: true },
+  { label: '+30.000 questões OAB', included: true },
+  { label: 'Mapas mentais', included: true },
+  { label: 'Resumos inteligentes', included: true },
+  { label: 'Simulados OAB', included: true },
+  { label: 'Petições e contratos', included: true },
+  { label: 'Audioaulas', included: true },
+  { label: 'Súmulas vinculantes', included: true },
+  { label: 'Trilhas OAB completas', included: true },
+  { label: 'Biblioteca completa', included: true },
+  { label: 'Sem anúncios', included: true },
+  { label: 'Evelyn IA 24h no WhatsApp', included: true },
+  { label: 'Suporte prioritário', included: true },
+];
+
 const LIFETIME_FEATURES = [
   { label: 'Chat Jurídico (ilimitado)', included: true },
   { label: 'Flashcards ilimitados', included: true },
@@ -72,7 +90,9 @@ const LIFETIME_FEATURES = [
 
 const FREE_ABOUT = `O plano Gratuito é perfeito para quem está começando no Direito e quer conhecer a plataforma. Você terá acesso ao Chat Jurídico com limite diário, flashcards para fixar conceitos, o Dicionário Jurídico completo, a Constituição Federal, os Códigos Civil e Penal, além de notícias jurídicas atualizadas e 2 videoaulas de degustação.\n\nÉ a porta de entrada para explorar o universo jurídico sem compromisso. Quando estiver pronto para desbloquear todo o potencial, você pode fazer o upgrade a qualquer momento.`;
 
-const ESSENCIAL_ABOUT = `O plano Essencial é ideal para quem quer acesso completo à plataforma por um valor acessível. Por apenas R$ 14,99/mês, você desbloqueia todas as ferramentas de estudo: Chat Jurídico ilimitado, Vade Mecum completo com +50 leis, +30.000 questões OAB, mapas mentais, resumos inteligentes, simulados, audioaulas, trilhas de estudo e a biblioteca jurídica completa.\n\nTudo sem anúncios e com renovação mensal — cancele quando quiser. A única diferença para o Vitalício é o acesso à Evelyn, a assistente IA no WhatsApp, que é exclusiva do plano Vitalício.`;
+const ESSENCIAL_ABOUT = `O plano Essencial é ideal para quem quer acesso completo à plataforma por um valor acessível. Por apenas R$ 14,99/mês, você desbloqueia todas as ferramentas de estudo: Chat Jurídico ilimitado, Vade Mecum completo com +50 leis, +30.000 questões OAB, mapas mentais, resumos inteligentes, simulados, audioaulas, trilhas de estudo e a biblioteca jurídica completa.\n\nTudo sem anúncios e com renovação mensal — cancele quando quiser. A diferença para o Pro é o acesso à Evelyn, a assistente IA no WhatsApp.`;
+
+const PRO_ABOUT = `O plano Pro é a escolha perfeita para quem quer o melhor da plataforma com a Evelyn, sua professora IA 24h no WhatsApp. Por R$ 19,90/mês, você tem acesso a TUDO: Chat Jurídico ilimitado, Vade Mecum completo, +30.000 questões OAB, mapas mentais, resumos, simulados, audioaulas, trilhas de estudo, biblioteca completa e a Evelyn disponível a qualquer hora para tirar suas dúvidas.\n\nRenovação mensal, cancele quando quiser. Se preferir pagar uma vez e ter acesso para sempre, considere o plano Vitalício.`;
 
 const LIFETIME_ABOUT = `O plano Vitalício é o acesso completo e definitivo à maior plataforma de estudos jurídicos do Brasil. Com um único pagamento de R$ 89,90, você desbloqueia TUDO — para sempre.\n\nSão mais de 30.000 questões OAB, o Vade Mecum mais completo com +50 leis, trilhas de estudo personalizadas, mapas mentais, resumos inteligentes, simulados, audioaulas, videoaulas exclusivas, petições, contratos e a biblioteca jurídica mais completa do país.\n\nAlém disso, você ganha acesso à Evelyn, sua assistente jurídica 24h no WhatsApp, análises especializadas de notícias e suporte prioritário. Tudo sem anúncios e sem mensalidades — pague uma vez, use para sempre.`;
 
@@ -90,11 +110,11 @@ const EscolherPlano: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { trackEvent } = useFacebookPixel();
-  const [detailPlan, setDetailPlan] = useState<'free' | 'essencial' | 'lifetime' | null>(null);
+  const [detailPlan, setDetailPlan] = useState<'free' | 'essencial' | 'pro' | 'lifetime' | null>(null);
   const [detailTab, setDetailTab] = useState<'funcoes' | 'sobre'>('funcoes');
   const { pixData, loading: pixLoading, createPix, copyPixCode, reset: resetPix } = useMercadoPagoPix();
   const [essencialLoading, setEssencialLoading] = useState(false);
-
+  const [proLoading, setProLoading] = useState(false);
   useEffect(() => {
     trackEvent('ViewContent', {
       content_name: 'Escolher Plano',
@@ -144,6 +164,36 @@ const EscolherPlano: React.FC = () => {
     }
   };
 
+  const handlePro = async () => {
+    if (!user) return;
+    setProLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mercadopago-criar-assinatura', {
+        body: { planType: 'pro', userEmail: user.email || '', userId: user.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.init_point) {
+        window.open(data.init_point, '_blank');
+        if (user.id) markPlanChosen(user.id);
+        toast({
+          title: "Redirecionando para pagamento",
+          description: "Complete o pagamento no Mercado Pago para ativar seu plano Pro.",
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao criar assinatura pro:', err);
+      toast({
+        title: "Erro ao processar",
+        description: "Tente novamente em instantes.",
+        variant: "destructive"
+      });
+    } finally {
+      setProLoading(false);
+    }
+  };
+
   const handlePaymentApproved = () => {
     if (user?.id) {
       markPlanChosen(user.id);
@@ -153,10 +203,11 @@ const EscolherPlano: React.FC = () => {
   const handleConfirm = () => {
     if (detailPlan === 'free') handleFree();
     else if (detailPlan === 'essencial') handleEssencial();
+    else if (detailPlan === 'pro') handlePro();
     else if (detailPlan === 'lifetime') handleLifetime();
   };
 
-  const openDetail = (plan: 'free' | 'essencial' | 'lifetime') => {
+  const openDetail = (plan: 'free' | 'essencial' | 'pro' | 'lifetime') => {
     setDetailTab('funcoes');
     setDetailPlan(plan);
   };
@@ -181,12 +232,13 @@ const EscolherPlano: React.FC = () => {
   if (detailPlan) {
     const isLifetime = detailPlan === 'lifetime';
     const isEssencial = detailPlan === 'essencial';
-    const features = isLifetime ? LIFETIME_FEATURES : isEssencial ? ESSENCIAL_FEATURES : FREE_FEATURES;
-    const aboutText = isLifetime ? LIFETIME_ABOUT : isEssencial ? ESSENCIAL_ABOUT : FREE_ABOUT;
-    const coverImg = isLifetime ? themisFaceCloseup : capaGratuito;
-    const isLoading = isLifetime ? pixLoading : isEssencial ? essencialLoading : false;
+    const isPro = detailPlan === 'pro';
+    const features = isLifetime ? LIFETIME_FEATURES : isPro ? PRO_FEATURES : isEssencial ? ESSENCIAL_FEATURES : FREE_FEATURES;
+    const aboutText = isLifetime ? LIFETIME_ABOUT : isPro ? PRO_ABOUT : isEssencial ? ESSENCIAL_ABOUT : FREE_ABOUT;
+    const coverImg = isLifetime || isPro ? themisFaceCloseup : capaGratuito;
+    const isLoading = isLifetime ? pixLoading : isPro ? proLoading : isEssencial ? essencialLoading : false;
 
-    const accentColor = isLifetime ? 'amber' : isEssencial ? 'blue' : 'zinc';
+    const accentColor = isLifetime ? 'amber' : isPro ? 'violet' : isEssencial ? 'blue' : 'zinc';
 
     return (
       <motion.div
@@ -209,12 +261,13 @@ const EscolherPlano: React.FC = () => {
 
           <div className="absolute bottom-4 left-4 z-10">
             {isLifetime && <Crown className="w-6 h-6 text-amber-400 mb-1" />}
+            {isPro && <Sparkles className="w-6 h-6 text-violet-400 mb-1" />}
             {isEssencial && <Zap className="w-6 h-6 text-blue-400 mb-1" />}
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-white">
-              {isLifetime ? 'Plano Vitalício' : isEssencial ? 'Plano Essencial' : 'Plano Gratuito'}
+              {isLifetime ? 'Plano Vitalício' : isPro ? 'Plano Pro' : isEssencial ? 'Plano Essencial' : 'Plano Gratuito'}
             </h1>
-            <p className={`text-sm font-bold ${isLifetime ? 'text-amber-400' : isEssencial ? 'text-blue-400' : 'text-zinc-300'}`}>
-              {isLifetime ? 'R$ 89,90 — Pagamento único' : isEssencial ? 'R$ 14,99/mês — Cartão de crédito' : 'R$ 0 — Para sempre'}
+            <p className={`text-sm font-bold ${isLifetime ? 'text-amber-400' : isPro ? 'text-violet-400' : isEssencial ? 'text-blue-400' : 'text-zinc-300'}`}>
+              {isLifetime ? 'R$ 89,90 — Pagamento único' : isPro ? 'R$ 19,90/mês — Cartão de crédito' : isEssencial ? 'R$ 14,99/mês — Cartão de crédito' : 'R$ 0 — Para sempre'}
             </p>
           </div>
         </div>
@@ -225,15 +278,19 @@ const EscolherPlano: React.FC = () => {
             onClick={handleConfirm}
             disabled={isLoading}
             className={`w-full h-12 text-sm font-bold shadow-lg group ${
-              isEssencial 
-                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-blue-500/25'
-                : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black shadow-amber-500/25'
+              isPro
+                ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-violet-500/25'
+                : isEssencial 
+                  ? 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-blue-500/25'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black shadow-amber-500/25'
             }`}
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : isLifetime ? (
               <Crown className="w-4 h-4 mr-2" />
+            ) : isPro ? (
+              <Sparkles className="w-4 h-4 mr-2" />
             ) : isEssencial ? (
               <Zap className="w-4 h-4 mr-2" />
             ) : null}
@@ -249,7 +306,7 @@ const EscolherPlano: React.FC = () => {
               onClick={() => setDetailTab('funcoes')}
               className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
                 detailTab === 'funcoes'
-                  ? (isLifetime ? 'bg-amber-500/20 text-amber-400' : isEssencial ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-700 text-white')
+                  ? (isLifetime ? 'bg-amber-500/20 text-amber-400' : isPro ? 'bg-violet-500/20 text-violet-400' : isEssencial ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-700 text-white')
                   : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
@@ -259,7 +316,7 @@ const EscolherPlano: React.FC = () => {
               onClick={() => setDetailTab('sobre')}
               className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
                 detailTab === 'sobre'
-                  ? (isLifetime ? 'bg-amber-500/20 text-amber-400' : isEssencial ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-700 text-white')
+                  ? (isLifetime ? 'bg-amber-500/20 text-amber-400' : isPro ? 'bg-violet-500/20 text-violet-400' : isEssencial ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-700 text-white')
                   : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
@@ -410,6 +467,45 @@ const EscolherPlano: React.FC = () => {
                 <Button
                   onClick={() => openDetail('essencial')}
                   className="w-full h-9 text-xs bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/25"
+                >
+                  Escolher esse
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Pro Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="rounded-2xl border-2 border-violet-500/50 overflow-hidden relative bg-zinc-900/80 backdrop-blur-sm shadow-[0_0_20px_-5px_rgba(139,92,246,0.15)]"
+          >
+            <div className="flex">
+              <div className="w-28 sm:w-36 relative overflow-hidden flex-shrink-0">
+                <img src={themisFaceCloseup} alt="" className="w-full h-full object-cover object-[30%_center] brightness-75" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/80" />
+              </div>
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between gap-2">
+                <h2 className="text-sm font-bold text-violet-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Pro + Evelyn
+                </h2>
+                <div className="space-y-1">
+                  {PRO_FEATURES.slice(0, COMPACT_VISIBLE).map((f, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] sm:text-xs">
+                      <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                      <span className="text-zinc-300">{f.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-bold text-violet-400">R$ 19,90</span>
+                  <span className="text-[10px] text-violet-300/60">/mês</span>
+                </div>
+                <Button
+                  onClick={() => openDetail('pro')}
+                  className="w-full h-9 text-xs bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-bold shadow-lg shadow-violet-500/25"
                 >
                   Escolher esse
                 </Button>

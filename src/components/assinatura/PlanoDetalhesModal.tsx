@@ -20,7 +20,8 @@ const CAPAS_HORIZONTAIS_ESTATICAS: Record<PlanType, string> = {
   mensal: assinaturaMensalHorizontal,
   anual: assinaturaAnualHorizontal,
   vitalicio: assinaturaVitalicioHorizontal,
-  essencial: assinaturaMensalHorizontal, // Reutilizar capa mensal para essencial
+  essencial: assinaturaMensalHorizontal,
+  pro: assinaturaMensalHorizontal,
 };
 
 interface PlanConfig {
@@ -195,8 +196,8 @@ const PlanoDetalhesModal = ({
   // Aba de conteúdo: funções ou sobre
   const [contentTab, setContentTab] = useState<"funcoes" | "sobre">("funcoes");
 
-  // Plano mensal só aceita cartão
-  const showPixOption = plano !== 'mensal' && plano !== 'essencial';
+  // Planos recorrentes só aceitam cartão
+  const showPixOption = plano !== 'mensal' && plano !== 'essencial' && plano !== 'pro';
   
   // Método de pagamento: pix ou cartao (mensal força cartão)
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao">(showPixOption ? "pix" : "cartao");

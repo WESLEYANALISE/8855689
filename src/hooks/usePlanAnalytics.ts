@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 type PlanActionType = "view_more" | "open_modal" | "select_pix" | "select_card" | "payment_initiated";
-type PlanType = "mensal" | "anual" | "vitalicio" | "essencial";
+type PlanType = "mensal" | "anual" | "vitalicio" | "essencial" | "pro";
 
 const detectDevice = (): string => {
   if (typeof window === 'undefined') return 'unknown';

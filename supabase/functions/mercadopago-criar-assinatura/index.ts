@@ -237,8 +237,74 @@ serve(async (req) => {
       );
     }
 
+    // PLANO PRO: R$ 19,90/mês - Preapproval (Assinatura recorrente com Evelyn)
+    if (planType === 'pro') {
+      console.log('Criando assinatura recorrente (Preapproval) para plano pro...');
+      console.log('Email do pagador:', userEmail);
+      
+      const preapprovalBody = {
+        reason: 'Direito Premium - Plano Pro',
+        external_reference: `${userId}|pro`,
+        payer_email: userEmail,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: 19.90,
+          currency_id: 'BRL'
+        },
+        back_url: `${baseUrl}/assinatura/callback`,
+        status: 'pending'
+      };
+
+      console.log('Preapproval body:', JSON.stringify(preapprovalBody));
+
+      const mpResponse = await fetch('https://api.mercadopago.com/preapproval', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${mpAccessToken}`
+        },
+        body: JSON.stringify(preapprovalBody)
+      });
+
+      const mpData = await mpResponse.json();
+      console.log('Resposta do Mercado Pago (Preapproval Pro):', JSON.stringify(mpData));
+
+      if (!mpResponse.ok) {
+        console.error('Erro do Mercado Pago:', mpData);
+        return new Response(
+          JSON.stringify({ error: 'Erro ao criar assinatura no Mercado Pago', details: mpData }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: dbError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: userId,
+          mp_preapproval_id: mpData.id,
+          mp_payer_email: userEmail,
+          status: 'pending',
+          plan_type: 'pro',
+          amount: 19.90
+        });
+
+      if (dbError) {
+        console.error('Erro ao salvar assinatura no banco:', dbError);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          init_point: mpData.init_point,
+          preapproval_id: mpData.id
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Tipo de plano inválido. Use "essencial", "mensal" ou "anual".' }),
+      JSON.stringify({ error: 'Tipo de plano inválido. Use "essencial", "pro", "mensal" ou "anual".' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

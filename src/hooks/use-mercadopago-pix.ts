@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-export type PlanType = 'mensal' | 'anual' | 'vitalicio' | 'essencial';
+export type PlanType = 'mensal' | 'anual' | 'vitalicio' | 'essencial' | 'pro';
 
 interface PixData {
   paymentId: string;
