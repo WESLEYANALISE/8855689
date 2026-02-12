@@ -129,8 +129,7 @@ export const MobileCategoriasDireito = () => {
                     <div className="w-full">
                       <motion.div
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate(`/categorias/${encodeURIComponent(cat.nome)}`)}
-                        className="cursor-pointer rounded-2xl bg-[#12121a]/90 backdrop-blur-sm border border-white/10 hover:border-red-500/50 transition-all overflow-hidden min-h-[140px] flex flex-col"
+                        className="rounded-2xl bg-[#12121a]/90 backdrop-blur-sm border border-white/10 hover:border-red-500/50 transition-all overflow-hidden min-h-[180px] flex flex-col"
                       >
                         {/* Capa */}
                         <div className="h-16 w-full overflow-hidden relative flex-shrink-0">
@@ -142,26 +141,47 @@ export const MobileCategoriasDireito = () => {
                           ) : (
                             <div className="w-full h-full bg-gradient-to-br from-red-800 to-red-900" />
                           )}
+                          <div className="absolute bottom-1 left-2">
+                            <p className="text-[10px] text-red-400 font-semibold drop-shadow-lg">
+                              Área {index + 1}
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Info */}
-                        <div className="p-2.5 flex-1 flex flex-col">
-                          <h3 className="font-medium text-xs leading-snug text-white line-clamp-2">
-                            {cat.nome}
-                          </h3>
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <BookOpen className="w-3 h-3 text-yellow-400" />
-                            <span className="text-[10px] text-yellow-400 font-medium">
-                              {materias} matéria{materias !== 1 ? 's' : ''}
-                            </span>
+                        {/* Conteúdo clicável */}
+                        <button
+                          onClick={() => navigate(`/categorias/${encodeURIComponent(cat.nome)}`)}
+                          className="flex-1 p-2.5 text-left flex flex-col"
+                        >
+                          <div className="flex-1">
+                            <h3 className="font-medium text-xs leading-snug text-white line-clamp-2">
+                              {cat.nome}
+                            </h3>
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <BookOpen className="w-3 h-3 text-yellow-400" />
+                              <span className="text-[10px] text-yellow-400 font-medium">
+                                {materias} matéria{materias !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Scale className="w-3 h-3 text-gray-500" />
+                              <span className="text-[10px] text-gray-500">
+                                {cat.count} livro{cat.count !== 1 ? 's' : ''} na biblioteca
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Scale className="w-3 h-3 text-gray-500" />
-                            <span className="text-[10px] text-gray-500">
-                              {cat.count} livro{cat.count !== 1 ? 's' : ''} na biblioteca
-                            </span>
+
+                          {/* Barra de progresso */}
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[9px] text-gray-500">Progresso</span>
+                              <span className="text-[9px] text-green-400 font-medium">0%</span>
+                            </div>
+                            <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" style={{ width: '0%' }} />
+                            </div>
                           </div>
-                        </div>
+                        </button>
                       </motion.div>
                     </div>
                   </motion.div>
