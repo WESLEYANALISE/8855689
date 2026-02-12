@@ -157,20 +157,16 @@ export const MobileCategoriasDireito = () => {
                             <h3 className="font-medium text-xs leading-snug text-white line-clamp-2">
                               {cat.nome}
                             </h3>
+                            
+                            {/* Contagem de matérias */}
                             <div className="flex items-center gap-1 mt-1.5">
                               <BookOpen className="w-3 h-3 text-yellow-400" />
                               <span className="text-[10px] text-yellow-400 font-medium">
                                 {materias} matéria{materias !== 1 ? 's' : ''}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <Scale className="w-3 h-3 text-gray-500" />
-                              <span className="text-[10px] text-gray-500">
-                                {cat.count} livro{cat.count !== 1 ? 's' : ''} na biblioteca
-                              </span>
-                            </div>
                           </div>
-
+                          
                           {/* Barra de progresso */}
                           <div className="mt-2">
                             <div className="flex items-center justify-between mb-0.5">
