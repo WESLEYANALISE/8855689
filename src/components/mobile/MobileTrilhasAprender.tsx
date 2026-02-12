@@ -135,6 +135,37 @@ export const MobileTrilhasAprender = () => {
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </motion.div>
 
+      {/* Toggle Conceitos / Categorias (admin only) */}
+      {isAdmin && (
+        <div className="flex items-center bg-white/5 rounded-full p-1 mb-5 border border-white/10">
+          <button
+            onClick={() => setActiveTab('conceitos')}
+            className={`px-5 py-1.5 rounded-full text-xs font-medium transition-all ${
+              activeTab === 'conceitos'
+                ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Conceitos
+          </button>
+          <button
+            onClick={() => setActiveTab('categorias')}
+            className={`px-5 py-1.5 rounded-full text-xs font-medium transition-all ${
+              activeTab === 'categorias'
+                ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Categorias
+          </button>
+        </div>
+      )}
+
+      {/* Se aba Categorias selecionada, renderizar componente */}
+      {activeTab === 'categorias' && isAdmin ? (
+        <MobileCategoriasDireito />
+      ) : (
+      <>
       {/* Info Stats */}
       <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-6">
         <div className="flex items-center gap-1.5">
@@ -298,6 +329,8 @@ export const MobileTrilhasAprender = () => {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
