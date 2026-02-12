@@ -196,13 +196,14 @@ const PlanoDetalhesModal = ({
   // Aba de conteúdo: funções ou sobre
   const [contentTab, setContentTab] = useState<"funcoes" | "sobre">("funcoes");
 
-  // Planos recorrentes só aceitam cartão
-  const showPixOption = plano !== 'mensal' && plano !== 'essencial' && plano !== 'pro';
+  // Planos recorrentes (essencial, pro, mensal) só aceitam cartão; PIX apenas vitalício/anual
+  const showPixOption = plano === 'vitalicio' || plano === 'anual';
   
-  // Método de pagamento: pix ou cartao (mensal força cartão)
+  // Método de pagamento: pix ou cartao
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao">(showPixOption ? "pix" : "cartao");
   const [showCardModal, setShowCardModal] = useState(false);
-  const [selectedInstallments, setSelectedInstallments] = useState(plano === 'mensal' ? 1 : 10);
+  const isRecurring = plano === 'mensal' || plano === 'essencial' || plano === 'pro';
+  const [selectedInstallments, setSelectedInstallments] = useState(isRecurring ? 1 : 10);
 
   // Usar capa estática diretamente
   const staticCover = plano ? CAPAS_HORIZONTAIS_ESTATICAS[plano] : null;
@@ -219,10 +220,10 @@ const PlanoDetalhesModal = ({
   useEffect(() => {
     if (open && plano) {
       setContentTab("funcoes");
-      // Mensal só aceita cartão
-      const canUsePix = plano !== 'mensal';
+      const canUsePix = plano === 'vitalicio' || plano === 'anual';
       setPaymentMethod(canUsePix ? "pix" : "cartao");
-      setSelectedInstallments(plano === 'mensal' ? 1 : 10);
+      const recurring = plano === 'mensal' || plano === 'essencial' || plano === 'pro';
+      setSelectedInstallments(recurring ? 1 : 10);
       // Track modal open
       trackPlanClick(plano, "open_modal");
       // Facebook AddToCart event
@@ -382,34 +383,46 @@ const PlanoDetalhesModal = ({
                 exit={{ opacity: 0, y: -10 }}
                 className="mb-4"
               >
-                {/* Seletor de parcelas */}
-                <div className="bg-zinc-900/80 border border-zinc-700 rounded-xl p-3 space-y-2">
-                  <p className="text-zinc-400 text-xs font-medium mb-2">Escolha as parcelas:</p>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                      const { total, perInstallment } = calculateInstallment(num);
-                      const isSelected = selectedInstallments === num;
-                      return (
-                        <button
-                          key={num}
-                          onClick={() => setSelectedInstallments(num)}
-                          className={`w-full flex items-center justify-between p-2 rounded-lg text-sm transition-all ${
-                            isSelected 
-                              ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400' 
-                              : 'bg-zinc-800/50 border border-transparent text-zinc-300 hover:bg-zinc-800'
-                          }`}
-                        >
-                          <span className="font-medium">
-                            {num}x de R$ {perInstallment.toFixed(2).replace('.', ',')}
-                          </span>
-                          <span className="text-xs text-zinc-500">
-                            {num === 1 ? '(sem juros)' : `(total: R$ ${total.toFixed(2).replace('.', ',')})`}
-                          </span>
-                        </button>
-                      );
-                    })}
+                {isRecurring ? (
+                  /* Planos recorrentes: valor fixo mensal, sem parcelas */
+                  <div className="bg-zinc-900/80 border border-zinc-700 rounded-xl p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-300 text-sm font-medium">
+                        R$ {planConfig?.price.toFixed(2).replace('.', ',')}/mês
+                      </span>
+                      <span className="text-xs text-zinc-500">Cobrança mensal no cartão</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Planos únicos: seletor de parcelas */
+                  <div className="bg-zinc-900/80 border border-zinc-700 rounded-xl p-3 space-y-2">
+                    <p className="text-zinc-400 text-xs font-medium mb-2">Escolha as parcelas:</p>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                        const { total, perInstallment } = calculateInstallment(num);
+                        const isSelected = selectedInstallments === num;
+                        return (
+                          <button
+                            key={num}
+                            onClick={() => setSelectedInstallments(num)}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg text-sm transition-all ${
+                              isSelected 
+                                ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400' 
+                                : 'bg-zinc-800/50 border border-transparent text-zinc-300 hover:bg-zinc-800'
+                            }`}
+                          >
+                            <span className="font-medium">
+                              {num}x de R$ {perInstallment.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-xs text-zinc-500">
+                              {num === 1 ? '(sem juros)' : `(total: R$ ${total.toFixed(2).replace('.', ',')})`}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
