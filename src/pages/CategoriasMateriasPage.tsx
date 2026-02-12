@@ -326,11 +326,15 @@ const CategoriasMateriasPage = () => {
       <CategoriasBottomNav activeTab="aulas" />
 
       {showPdfModal && (
-      <OABPdfProcessorModal
+        <OABPdfProcessorModal
           open={showPdfModal}
-          onClose={() => setShowPdfModal(false)}
-          onProcessed={handlePdfProcessed}
-          materiaName={categoriaDecoded}
+          onOpenChange={(open) => setShowPdfModal(open)}
+          materiaId={0}
+          materiaNome={categoriaDecoded}
+          onComplete={async () => {
+            setShowPdfModal(false);
+            queryClient.invalidateQueries({ queryKey: ["categorias-materias", categoriaDecoded] });
+          }}
         />
       )}
     </div>

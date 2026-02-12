@@ -2,3 +2,6 @@ project_id = "izspjvegxdfgkgibpyst"
 
 [functions.proxy-reader]
 verify_jwt = false
+
+[functions.gerar-conteudo-categorias]
+verify_jwt = false
