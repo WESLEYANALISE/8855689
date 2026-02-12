@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, Gavel, Briefcase, Vote, Shield, FileCheck, FileText, Building2, Search, CheckCircle } from "lucide-react";
+import { Scale, Gavel, Search, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,7 +9,6 @@ import { LegislacaoBackground } from "@/components/LegislacaoBackground";
 import { GerenciadorBackgroundModal } from "@/components/GerenciadorBackgroundModal";
 import { useBackgroundImage } from "@/hooks/useBackgroundImage";
 import { LeisToggleMenu, FilterMode } from "@/components/LeisToggleMenu";
-import { LeiFavoritaButton } from "@/components/LeiFavoritaButton";
 import { useLeisFavoritas, useLeisRecentes, useToggleFavorita, useRegistrarAcesso } from "@/hooks/useLeisFavoritasRecentes";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumBadge } from "@/components/PremiumBadge";
@@ -29,13 +28,7 @@ interface SumulaCard {
 const sumulas: SumulaCard[] = [
   { id: "vinculantes", abbr: "SV", title: "Súmulas Vinculantes STF", description: "Efeito vinculante obrigatório para todos os tribunais", icon: Scale, color: "#f59e0b", iconBg: "bg-amber-500", available: true },
   { id: "stf", abbr: "STF", title: "Súmulas do Supremo Tribunal Federal", description: "Jurisprudência consolidada do STF", icon: Gavel, color: "#ef4444", iconBg: "bg-red-500", available: true },
-  { id: "stj", abbr: "STJ", title: "Súmulas do Superior Tribunal de Justiça", description: "Jurisprudência consolidada do STJ", icon: Gavel, color: "#3b82f6", iconBg: "bg-blue-500", available: true },
-  { id: "tst", abbr: "TST", title: "Súmulas do Tribunal Superior do Trabalho", description: "Súmulas trabalhistas e relações de trabalho", icon: Briefcase, color: "#8b5cf6", iconBg: "bg-violet-500", available: false },
-  { id: "tse", abbr: "TSE", title: "Súmulas do Tribunal Superior Eleitoral", description: "Súmulas eleitorais e direito eleitoral", icon: Vote, color: "#10b981", iconBg: "bg-emerald-500", available: false },
-  { id: "tcu", abbr: "TCU", title: "Súmulas do Tribunal de Contas da União", description: "Súmulas de controle e fiscalização de contas públicas", icon: FileCheck, color: "#06b6d4", iconBg: "bg-cyan-500", available: false },
-  { id: "stm", abbr: "STM", title: "Súmulas do Superior Tribunal Militar", description: "Súmulas de justiça militar", icon: Shield, color: "#22c55e", iconBg: "bg-green-500", available: false },
-  { id: "cnmp", abbr: "CNMP", title: "Enunciados do CNMP", description: "Enunciados sobre atuação do Ministério Público", icon: FileText, color: "#ec4899", iconBg: "bg-pink-500", available: false },
-  { id: "cnj", abbr: "CNJ", title: "Enunciados do CNJ", description: "Enunciados sobre organização judiciária", icon: Building2, color: "#a855f7", iconBg: "bg-purple-500", available: false }
+  { id: "stj", abbr: "STJ", title: "Súmulas do Superior Tribunal de Justiça", description: "Jurisprudência consolidada do STJ", icon: Gavel, color: "#3b82f6", iconBg: "bg-blue-500", available: true }
 ];
 
 const CATEGORIA = 'sumulas' as const;
@@ -83,7 +76,7 @@ const Sumulas = () => {
 
   const handleCardClick = (sumula: SumulaCard) => {
     if (!sumula.available) return;
-    if (!isPremium && !loadingSubscription) {
+    if (!isPremium && !loadingSubscription && !isFreeSumula(sumula.id)) {
       setPremiumModalOpen(true);
       return;
     }
@@ -93,18 +86,9 @@ const Sumulas = () => {
     navigate(`/sumula/${sumula.id}`);
   };
 
-  const handleFavoritaClick = (e: React.MouseEvent, sumula: SumulaCard) => {
-    e.stopPropagation();
-    if (!sumula.available) return;
-    const isFavorita = favoritas.some(f => f.lei_id === sumula.id);
-    toggleFavorita({
-      lei_id: sumula.id,
-      titulo: sumula.title,
-      sigla: sumula.abbr,
-      cor: sumula.color,
-      route: `/sumula/${sumula.id}`,
-    }, isFavorita);
-  };
+  // Primeiras 2 súmulas são gratuitas
+  const FREE_SUMULAS = ['vinculantes', 'stf'];
+  const isFreeSumula = (id: string) => FREE_SUMULAS.includes(id);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -177,18 +161,14 @@ const Sumulas = () => {
           ) : (
             filteredSumulas.map((sumula, index) => {
               const Icon = sumula.icon;
-              const isFavorita = favoritas.some(f => f.lei_id === sumula.id);
+              const isLocked = !isPremium && !loadingSubscription && !isFreeSumula(sumula.id);
               return (
                 <div
                   key={sumula.id}
                   onClick={() => handleCardClick(sumula)}
-                  className={`bg-card rounded-xl p-4 transition-all border-l-4 group shadow-lg ${
-                    sumula.available 
-                      ? "cursor-pointer hover:bg-accent/10 hover:scale-[1.02]" 
-                      : "opacity-60 cursor-not-allowed"
-                  }`}
+                  className="bg-card rounded-xl p-4 cursor-pointer hover:bg-accent/10 hover:scale-[1.02] transition-all border-l-4 group shadow-lg"
                   style={{ 
-                    borderLeftColor: sumula.available ? sumula.color : "hsl(var(--muted-foreground))",
+                    borderLeftColor: sumula.color,
                     opacity: 0,
                     transform: 'translateY(-20px) translateZ(0)',
                     animation: `slideDown 0.5s ease-out ${index * 0.08}s forwards`,
@@ -196,35 +176,17 @@ const Sumulas = () => {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`${sumula.available ? sumula.iconBg : "bg-muted"} rounded-lg p-2.5 shrink-0`}>
-                      <Icon className={`w-5 h-5 ${sumula.available ? "text-white" : "text-muted-foreground"}`} />
+                    <div className={`${sumula.iconBg} rounded-lg p-2.5 shrink-0`}>
+                      <Icon className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-foreground">{sumula.abbr}</h3>
-                        {!sumula.available && (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/20 text-primary">
-                            Em Breve
-                          </span>
-                        )}
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{sumula.title}</p>
                     </div>
-                    {sumula.available && (
-                      <>
-                        <LeiFavoritaButton
-                          isFavorita={isFavorita}
-                          isLoading={isTogglingFavorita}
-                          onClick={(e) => handleFavoritaClick(e, sumula)}
-                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                        />
-                        {!isPremium && !loadingSubscription ? (
-                          <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />
-                        ) : (
-                          <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        )}
-                      </>
-                    )}
+                    {isLocked && <PremiumBadge position="top-right" size="sm" className="relative top-auto right-auto" />}
+                    {!isLocked && <CheckCircle className="w-5 h-5 text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />}
                   </div>
                 </div>
               );

@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, Landmark, Users, Gavel, BookText, HandCoins, FileText, FilePlus, Scroll, ChevronRight } from "lucide-react";
+import { Scale, Landmark, Users, Gavel, BookText, HandCoins, FileText, Scroll, ChevronRight } from "lucide-react";
 import { LeisBottomNav } from "@/components/leis/LeisBottomNav";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumBadge } from "@/components/PremiumBadge";
@@ -14,7 +14,6 @@ const categoriasVadeMecum = [
   { id: "previdenciario", title: "Previdenciário", icon: HandCoins, route: "/previdenciario", color: "from-emerald-500 to-emerald-700", free: false },
   { id: "sumulas", title: "Súmulas", icon: BookText, route: "/sumulas", color: "from-slate-500 to-slate-700", free: false },
   { id: "leis-ordinarias", title: "Leis Ordinárias", icon: FileText, route: "/leis-ordinarias", color: "from-cyan-500 to-cyan-700", free: false },
-  { id: "pec", title: "PEC", icon: FilePlus, route: "/novas-leis", color: "from-rose-500 to-rose-700", free: false },
 ];
 
 export const MobileLeisHome = memo(() => {
