@@ -168,10 +168,10 @@ export const MobileTrilhasAprender = () => {
             <button
               key={area.value}
               onClick={() => setActiveArea(area.value)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+              className={`flex-shrink-0 w-24 py-1.5 rounded-full text-[11px] font-medium transition-all text-center leading-tight ${
                 activeArea === area.value
                   ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
-                  : 'bg-white/5 text-white/60 hover:text-white/80 border border-white/10'
+                  : 'bg-gray-700/80 text-white/70 hover:text-white/90'
               }`}
             >
               {area.label}
