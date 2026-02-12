@@ -992,7 +992,7 @@ const AdminControle = () => {
                                 </span>
                               )}
                             </div>
-                            {item.paginas_mais_vistas.length > 0 && (
+                            {item.paginas_mais_vistas && item.paginas_mais_vistas.length > 0 && (
                               <div className="text-xs text-muted-foreground">
                                 <span className="font-medium">Top páginas:</span>{' '}
                                 {item.paginas_mais_vistas.join(', ')}
@@ -1107,7 +1107,7 @@ const AdminControle = () => {
                               <Badge variant="outline">{item.total_aulas_acessadas} aulas distintas</Badge>
                               <Badge variant="outline">⏱ {item.tempo_formatado}</Badge>
                             </div>
-                            {item.aulas_distintas.length > 0 && (
+                            {item.aulas_distintas && item.aulas_distintas.length > 0 && (
                               <div className="text-xs text-muted-foreground">
                                 <span className="font-medium">Aulas:</span>{' '}
                                 {item.aulas_distintas.map(a => decodeURIComponent(a)).join(', ')}
