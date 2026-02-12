@@ -1,12 +1,39 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Heart, BookOpen, Loader2, Trash2 } from "lucide-react";
+import { Heart, BookOpen, Loader2, Trash2, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
 import { toast } from "sonner";
 
+// Mapa de tabela -> rota do livro
+const BIBLIOTECA_ROUTE_MAP: Record<string, string> = {
+  "BIBLIOTECA-ESTUDOS": "/biblioteca-estudos",
+  "BIBILIOTECA-OAB": "/biblioteca-oab",
+  "BIBLIOTECA-CLASSICOS": "/biblioteca-classicos",
+  "BIBLIOTECA-FORA-DA-TOGA": "/biblioteca-fora-da-toga",
+  "BIBLIOTECA-LIDERANÇA": "/biblioteca-lideranca",
+  "BIBLIOTECA-ORATORIA": "/biblioteca-oratoria",
+  "BIBLIOTECA-PORTUGUES": "/biblioteca-portugues",
+  "BIBLIOTECA-PESQUISA-CIENTIFICA": "/biblioteca-pesquisa-cientifica",
+  "BIBLIOTECA-POLITICA": "/biblioteca-politica",
+};
+
+const BIBLIOTECA_LABEL_MAP: Record<string, string> = {
+  "BIBLIOTECA-ESTUDOS": "📚 Estudos Jurídicos",
+  "BIBILIOTECA-OAB": "⚖️ OAB",
+  "BIBLIOTECA-CLASSICOS": "📖 Clássicos",
+  "BIBLIOTECA-FORA-DA-TOGA": "🌎 Fora da Toga",
+  "BIBLIOTECA-LIDERANÇA": "🏆 Liderança",
+  "BIBLIOTECA-ORATORIA": "🎤 Oratória",
+  "BIBLIOTECA-PORTUGUES": "🇧🇷 Português",
+  "BIBLIOTECA-PESQUISA-CIENTIFICA": "🔬 Pesquisa Científica",
+  "BIBLIOTECA-POLITICA": "🏛️ Política",
+};
+
 const BibliotecaFavoritos = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: favoritos, isLoading } = useQuery({
@@ -38,6 +65,21 @@ const BibliotecaFavoritos = () => {
     },
   });
 
+  const handleNavigate = (item: any) => {
+    const baseRoute = BIBLIOTECA_ROUTE_MAP[item.biblioteca_tabela];
+    if (baseRoute) {
+      navigate(`${baseRoute}/${item.item_id}`);
+    }
+  };
+
+  // Agrupar por biblioteca
+  const grouped = (favoritos || []).reduce((acc: Record<string, any[]>, item: any) => {
+    const key = item.biblioteca_tabela || "OUTROS";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center pb-24">
@@ -59,7 +101,9 @@ const BibliotecaFavoritos = () => {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground">Favoritos</h1>
-            <p className="text-xs text-muted-foreground">Seus livros salvos</p>
+            <p className="text-xs text-muted-foreground">
+              {favoritos?.length || 0} livros salvos
+            </p>
           </div>
         </div>
       </div>
@@ -79,34 +123,49 @@ const BibliotecaFavoritos = () => {
           </div>
         )}
 
-        <div className="space-y-2">
-          {favoritos?.map((item: any) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30"
-            >
-              {item.capa_url ? (
-                <img src={item.capa_url} alt={item.titulo} className="w-10 h-14 rounded-md object-cover flex-shrink-0" />
-              ) : (
-                <div className="w-10 h-14 rounded-md bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                  <BookOpen className="w-4 h-4 text-amber-500/50" />
+        {Object.entries(grouped).map(([tabela, items]) => (
+          <div key={tabela} className="mb-5">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
+              {BIBLIOTECA_LABEL_MAP[tabela] || tabela.replace("BIBLIOTECA-", "")}
+            </h2>
+            <div className="space-y-2">
+              {(items as any[]).map((item: any) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 cursor-pointer hover:border-amber-500/30 transition-colors group"
+                  onClick={() => handleNavigate(item)}
+                >
+                  {item.capa_url ? (
+                    <img
+                      src={item.capa_url}
+                      alt={item.titulo}
+                      className="w-12 h-16 rounded-lg object-cover flex-shrink-0 shadow-md"
+                    />
+                  ) : (
+                    <div className="w-12 h-16 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-5 h-5 text-amber-500/50" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground line-clamp-2">{item.titulo}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeMutation.mutate(item.id);
+                      }}
+                      className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                  </div>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground line-clamp-1">{item.titulo}</p>
-                <p className="text-xs text-muted-foreground">
-                  {item.biblioteca_tabela?.replace("BIBLIOTECA-", "").replace("BIBILIOTECA-", "")}
-                </p>
-              </div>
-              <button
-                onClick={() => removeMutation.mutate(item.id)}
-                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       <BibliotecaBottomNav activeTab="favoritos" />
