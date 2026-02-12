@@ -161,7 +161,7 @@ const BibliotecaEstudosLivro = () => {
                 itemId={livro.id}
                 titulo={livro.Tema || ""}
                 bibliotecaTabela="BIBLIOTECA-ESTUDOS"
-                capaUrl={livro["Capa-livro"]}
+                capaUrl={livro.url_capa_gerada || livro["Capa-livro"] || livro["Capa-area"]}
               />
             </div>
 

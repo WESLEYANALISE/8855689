@@ -120,7 +120,7 @@ const BibliotecaForaDaTogaLivro = () => {
                 itemId={livro.id}
                 titulo={livro.livro || ""}
                 bibliotecaTabela="BIBLIOTECA-FORA-DA-TOGA"
-                capaUrl={livro["capa-livro"]}
+                capaUrl={livro["capa-livro"] || livro["capa-area"]}
               />
             </div>
 

@@ -124,7 +124,7 @@ const BibliotecaOABLivro = () => {
                 itemId={livro.id}
                 titulo={livro.Tema || ""}
                 bibliotecaTabela="BIBILIOTECA-OAB"
-                capaUrl={livro["Capa-livro"]}
+                capaUrl={livro["Capa-livro"] || livro["Capa-area"]}
               />
             </div>
 
