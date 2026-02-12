@@ -133,7 +133,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  const MAX_DURATION_MS = 50000; // 50s safety margin (limit is ~60s)
+
+  function isTimingOut() {
+    return Date.now() - startTime > MAX_DURATION_MS;
+  }
+
   try {
+    let body: any = {};
+    try { body = await req.json(); } catch { /* empty body ok */ }
+    
+    const batchSize = body.batchSize || 5;
+    const offset = body.offset || 0;
+
     const GEMINI_KEY_1 = Deno.env.get('GEMINI_KEY_1');
     const GEMINI_KEY_2 = Deno.env.get('GEMINI_KEY_2');
     const GEMINI_KEY_3 = Deno.env.get('GEMINI_KEY_3');
@@ -147,131 +160,140 @@ serve(async (req) => {
       throw new Error('Nenhuma chave Gemini configurada');
     }
 
-    console.log(`🔑 ${GEMINI_KEYS.length} chaves Gemini disponíveis`);
-
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    console.log('🔍 Iniciando atualização de notícias (TOP 20 mais recentes)...');
+    console.log(`🔍 Batch offset=${offset}, size=${batchSize}`);
 
-    // 1. LIMPEZA: Deletar notícias com mais de 7 dias
-    const seteDiasAtras = new Date();
-    seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-    
-    const { data: deletedJuridicasData } = await supabase
-      .from('noticias_juridicas_cache')
-      .delete()
-      .lt('data_publicacao', seteDiasAtras.toISOString())
-      .select('id');
-    
-    const deletedJuridicas = deletedJuridicasData?.length || 0;
-    
-    const { data: deletedConcursosData } = await supabase
-      .from('noticias_concursos_cache')
-      .delete()
-      .lt('data_publicacao', seteDiasAtras.toISOString())
-      .select('id');
-    
-    const deletedConcursos = deletedConcursosData?.length || 0;
-    
-    console.log(`🧹 Limpeza: ${deletedJuridicas || 0} jurídicas + ${deletedConcursos || 0} concursos antigos removidos`);
+    // Limpeza apenas no primeiro batch
+    if (offset === 0) {
+      const seteDiasAtras = new Date();
+      seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+      
+      const { data: dj } = await supabase
+        .from('noticias_juridicas_cache')
+        .delete()
+        .lt('data_publicacao', seteDiasAtras.toISOString())
+        .select('id');
+      
+      const { data: dc } = await supabase
+        .from('noticias_concursos_cache')
+        .delete()
+        .lt('data_publicacao', seteDiasAtras.toISOString())
+        .select('id');
+      
+      console.log(`🧹 Limpeza: ${dj?.length || 0} jurídicas + ${dc?.length || 0} concursos removidos`);
+    }
 
-    // 2. Buscar todas as notícias da planilha
+    // Buscar notícias
     const todasNoticias = await buscarNoticiasDoSheets();
     
     if (todasNoticias.length === 0) {
-      console.log('Nenhuma notícia encontrada na planilha');
       return new Response(
-        JSON.stringify({ success: true, noticiasProcessadas: 0, message: 'Nenhuma notícia na planilha' }),
+        JSON.stringify({ success: true, noticiasProcessadas: 0, message: 'Nenhuma notícia' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 3. Ordenar por data (mais recente primeiro) e pegar APENAS as 20 mais recentes
+    // Ordenar e pegar batch
     const noticiasOrdenadas = todasNoticias.sort((a, b) => 
       new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
     );
     
     const top20 = noticiasOrdenadas.slice(0, 20);
+    const batch = top20.slice(offset, offset + batchSize);
+    const hasMore = offset + batchSize < top20.length;
     
-    // Separar por tipo
-    const top20Direito = top20.filter(n => n.tipoCategoria === 'direito');
-    const top20Concurso = top20.filter(n => n.tipoCategoria === 'concurso');
-    
-    console.log(`📰 TOP 20: ${top20Direito.length} Direito | ${top20Concurso.length} Concurso`);
+    console.log(`📰 Processando ${batch.length} notícias (${offset}-${offset + batch.length} de ${top20.length})`);
 
-    let juridicasProcessadas = 0;
-    let concursosProcessados = 0;
+    let processadas = 0;
 
-    // 4. Processar notícias de DIREITO (usar UPSERT)
-    for (const noticia of top20Direito) {
+    for (const noticia of batch) {
+      if (isTimingOut()) {
+        console.log('⏱️ Timeout próximo, parando batch');
+        break;
+      }
+
       try {
-        console.log(`📝 [Direito] Processando: ${noticia.titulo.substring(0, 50)}...`);
+        const isDireito = noticia.tipoCategoria === 'direito';
+        const tabela = isDireito ? 'noticias_juridicas_cache' : 'noticias_concursos_cache';
+        
+        console.log(`📝 [${isDireito ? 'Direito' : 'Concurso'}] ${noticia.titulo.substring(0, 50)}...`);
 
         // Gerar análise com IA
         let analiseIA: any = null;
         let conteudoFormatado = '';
         let termosJson: any[] = [];
 
-        try {
-          const prompt = `Analise esta notícia jurídica e retorne JSON:
+        const prompt = isDireito
+          ? `Analise esta notícia jurídica e retorne JSON:
 TÍTULO: ${noticia.titulo}
 PORTAL: ${noticia.portal}
 
 Retorne APENAS JSON válido:
 {
-  "conteudo_formatado": "Resumo jornalístico completo da notícia em 4-6 parágrafos. Separe cada parágrafo com \\n\\n (quebra de linha dupla). Seja detalhado.",
+  "conteudo_formatado": "Resumo jornalístico completo em 4-6 parágrafos. Separe com \\n\\n.",
   "analise_ia": {
-    "resumoExecutivo": "Resumo DETALHADO em 4-5 parágrafos para profissionais do Direito. IMPORTANTE: Separe cada parágrafo com \\n\\n (duas quebras de linha). Cubra: contexto, fatos, argumentos jurídicos, precedentes relevantes e implicações.",
-    "resumoFacil": "Explicação simples em 3-4 parágrafos para leigos. Separe parágrafos com \\n\\n. Use linguagem acessível.",
-    "pontosPrincipais": ["Ponto 1 detalhado", "Ponto 2 detalhado", "Ponto 3 detalhado", "Ponto 4 detalhado"],
-    "impactoJuridico": "Impacto detalhado na prática jurídica em 2-3 parágrafos. Separe com \\n\\n."
+    "resumoExecutivo": "Resumo DETALHADO em 4-5 parágrafos. Separe com \\n\\n.",
+    "resumoFacil": "Explicação simples em 3-4 parágrafos. Separe com \\n\\n.",
+    "pontosPrincipais": ["Ponto 1", "Ponto 2", "Ponto 3", "Ponto 4"],
+    "impactoJuridico": "Impacto na prática jurídica em 2-3 parágrafos."
   },
-  "termos_json": [{"termo": "Termo jurídico", "significado": "Definição clara e didática"}]
+  "termos_json": [{"termo": "Termo", "significado": "Definição"}]
+}`
+          : `Analise esta notícia de concurso público e retorne JSON:
+TÍTULO: ${noticia.titulo}
+PORTAL: ${noticia.portal}
+
+Retorne APENAS JSON válido:
+{
+  "conteudo_formatado": "RESUMO em 3-5 parágrafos. Separe com \\n\\n.",
+  "analise_ia": {
+    "resumoExecutivo": "Análise técnica em 3-4 frases.",
+    "resumoFacil": "Explicação em 2-3 frases simples.",
+    "pontosPrincipais": ["Órgão", "Vagas", "Salário", "Requisitos", "Prazo"],
+    "impactoJuridico": "Relevância para concurseiros."
+  },
+  "termos_json": [{"termo": "Termo", "significado": "Definição"}]
 }`;
 
-          for (let keyIndex = 0; keyIndex < GEMINI_KEYS.length; keyIndex++) {
-            const apiKey = GEMINI_KEYS[keyIndex];
-            try {
-              const geminiResponse = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.4, maxOutputTokens: 4000 },
-                  }),
-                }
-              );
-
-              if (geminiResponse.ok) {
-                const geminiData = await geminiResponse.json();
-                const resposta = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (resposta) {
-                  const resultado = extractJsonFromText(resposta);
-                  if (resultado) {
-                    conteudoFormatado = resultado.conteudo_formatado || '';
-                    analiseIA = resultado.analise_ia || null;
-                    termosJson = Array.isArray(resultado.termos_json) ? resultado.termos_json : [];
-                    break;
-                  }
-                }
-              } else if (geminiResponse.status === 429) {
-                console.warn(`⚠️ Rate limit na chave ${keyIndex + 1}`);
-                continue;
+        for (let keyIndex = 0; keyIndex < GEMINI_KEYS.length; keyIndex++) {
+          if (isTimingOut()) break;
+          try {
+            const geminiResponse = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEYS[keyIndex]}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { temperature: 0.4, maxOutputTokens: 3000 },
+                }),
               }
-            } catch (keyError) {
-              console.error(`Erro com chave ${keyIndex + 1}:`, keyError);
+            );
+
+            if (geminiResponse.ok) {
+              const geminiData = await geminiResponse.json();
+              const resposta = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (resposta) {
+                const resultado = extractJsonFromText(resposta);
+                if (resultado) {
+                  conteudoFormatado = resultado.conteudo_formatado || '';
+                  analiseIA = resultado.analise_ia || null;
+                  termosJson = Array.isArray(resultado.termos_json) ? resultado.termos_json : [];
+                  break;
+                }
+              }
+            } else if (geminiResponse.status === 429) {
+              continue;
             }
+          } catch (keyError) {
+            console.error(`Erro chave ${keyIndex + 1}:`, keyError);
           }
-        } catch (analiseError) {
-          console.error('Erro na análise IA:', analiseError);
         }
 
-        // Converter imagem para WebP
+        // Converter imagem para WebP (skip if timing out)
         let imagemFinal = noticia.capa || null;
-        if (imagemFinal && !imagemFinal.includes('.webp') && !imagemFinal.includes('supabase')) {
+        if (!isTimingOut() && imagemFinal && !imagemFinal.includes('.webp') && !imagemFinal.includes('supabase')) {
           try {
             const webpResponse = await fetch(`${SUPABASE_URL}/functions/v1/converter-imagem-webp`, {
               method: 'POST',
@@ -281,21 +303,15 @@ Retorne APENAS JSON válido:
               },
               body: JSON.stringify({ imageUrl: imagemFinal })
             });
-            
             if (webpResponse.ok) {
               const webpData = await webpResponse.json();
-              if (webpData.success && webpData.url) {
-                imagemFinal = webpData.url;
-              }
+              if (webpData.success && webpData.url) imagemFinal = webpData.url;
             }
-          } catch (webpError) {
-            console.warn('Erro ao converter imagem:', webpError);
-          }
+          } catch { /* skip */ }
         }
 
-        // UPSERT - Inserir ou atualizar se existir
         const { error: upsertError } = await supabase
-          .from('noticias_juridicas_cache')
+          .from(tabela)
           .upsert({
             titulo: noticia.titulo,
             descricao: `${noticia.portal} - ${noticia.categoria}`,
@@ -303,169 +319,39 @@ Retorne APENAS JSON válido:
             imagem: noticia.capa || null,
             imagem_webp: imagemFinal,
             fonte: noticia.portal,
-            categoria: 'Direito',
+            categoria: isDireito ? 'Direito' : 'Concurso',
             data_publicacao: noticia.dataHora,
             conteudo_formatado: conteudoFormatado || null,
             analise_ia: analiseIA ? JSON.stringify(analiseIA) : null,
             termos_json: termosJson.length > 0 ? termosJson : null,
             analise_gerada_em: analiseIA ? new Date().toISOString() : null,
-          }, { 
-            onConflict: 'link'
-          });
+          }, { onConflict: 'link' });
 
         if (!upsertError) {
-          juridicasProcessadas++;
-          console.log(`✅ [Direito] Processada: ${noticia.titulo.substring(0, 40)}...`);
+          processadas++;
+          console.log(`✅ Processada: ${noticia.titulo.substring(0, 40)}...`);
         } else {
-          console.error(`❌ Erro ao processar jurídica: ${upsertError.message}`);
+          console.error(`❌ Erro: ${upsertError.message}`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Small delay between items
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (noticiaError) {
-        console.error('Erro ao processar notícia jurídica:', noticiaError);
+        console.error('Erro ao processar notícia:', noticiaError);
       }
     }
 
-    // 5. Processar notícias de CONCURSO (usar UPSERT)
-    for (const noticia of top20Concurso) {
-      try {
-        console.log(`📝 [Concurso] Processando: ${noticia.titulo.substring(0, 50)}...`);
-
-        let analiseIA: any = null;
-        let conteudoFormatado = '';
-        let termosJson: any[] = [];
-
-        try {
-          const prompt = `Analise esta notícia de concurso público e retorne JSON:
-TÍTULO: ${noticia.titulo}
-PORTAL: ${noticia.portal}
-
-Retorne APENAS JSON válido:
-{
-  "conteudo_formatado": "RESUMO da notícia em 3-5 parágrafos curtos, com SUAS PRÓPRIAS PALAVRAS. NÃO copie o texto original. Explique os fatos principais de forma objetiva e didática. Separe cada parágrafo com \\n\\n.",
-  "analise_ia": {
-    "resumoExecutivo": "Análise técnica em 3-4 frases SEM Markdown. Informações do concurso: órgão, vagas, salários, requisitos, datas importantes.",
-    "resumoFacil": "Explicação em 2-3 frases BEM SIMPLES, sem Markdown. O que é o concurso? Quem pode participar? Qual o salário?",
-    "pontosPrincipais": ["Órgão/instituição responsável", "Número de vagas oferecidas", "Faixa salarial", "Requisitos principais", "Prazo de inscrição"],
-    "impactoJuridico": "Relevância para concurseiros: nível de concorrência esperado, dicas de preparação, comparação com concursos similares."
-  },
-  "termos_json": [{"termo": "Termo técnico de concursos", "significado": "Definição clara e didática"}]
-}
-
-IMPORTANTE:
-- conteudo_formatado: NÃO copie o texto original - faça um RESUMO próprio com 3-5 parágrafos
-- NÃO use asteriscos, hífens ou Markdown nos resumos
-- termos_json: inclua 3-5 termos específicos de concursos (edital, nomeação, posse, provimento, etc)`;
-
-          for (let keyIndex = 0; keyIndex < GEMINI_KEYS.length; keyIndex++) {
-            const apiKey = GEMINI_KEYS[keyIndex];
-            try {
-              const geminiResponse = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.4, maxOutputTokens: 3000 },
-                  }),
-                }
-              );
-
-              if (geminiResponse.ok) {
-                const geminiData = await geminiResponse.json();
-                const resposta = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (resposta) {
-                  const resultado = extractJsonFromText(resposta);
-                  if (resultado) {
-                    conteudoFormatado = resultado.conteudo_formatado || '';
-                    analiseIA = resultado.analise_ia || null;
-                    termosJson = Array.isArray(resultado.termos_json) ? resultado.termos_json : [];
-                    break;
-                  }
-                }
-              } else if (geminiResponse.status === 429) {
-                continue;
-              }
-            } catch (keyError) {
-              console.error(`Erro com chave ${keyIndex + 1}:`, keyError);
-            }
-          }
-        } catch (analiseError) {
-          console.error('Erro na análise IA:', analiseError);
-        }
-
-        // Converter imagem para WebP
-        let imagemFinal = noticia.capa || null;
-        if (imagemFinal && !imagemFinal.includes('.webp') && !imagemFinal.includes('supabase')) {
-          try {
-            const webpResponse = await fetch(`${SUPABASE_URL}/functions/v1/converter-imagem-webp`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-              },
-              body: JSON.stringify({ imageUrl: imagemFinal })
-            });
-            
-            if (webpResponse.ok) {
-              const webpData = await webpResponse.json();
-              if (webpData.success && webpData.url) {
-                imagemFinal = webpData.url;
-              }
-            }
-          } catch (webpError) {
-            console.warn('Erro ao converter imagem:', webpError);
-          }
-        }
-
-        // UPSERT - Inserir ou atualizar se existir
-        const { error: upsertError } = await supabase
-          .from('noticias_concursos_cache')
-          .upsert({
-            titulo: noticia.titulo,
-            descricao: `${noticia.portal} - ${noticia.categoria}`,
-            link: noticia.link,
-            imagem: noticia.capa || null,
-            imagem_webp: imagemFinal,
-            fonte: noticia.portal,
-            categoria: 'Concurso',
-            data_publicacao: noticia.dataHora,
-            conteudo_formatado: conteudoFormatado || null,
-            analise_ia: analiseIA ? JSON.stringify(analiseIA) : null,
-            termos_json: termosJson.length > 0 ? termosJson : null,
-            analise_gerada_em: analiseIA ? new Date().toISOString() : null,
-          }, { 
-            onConflict: 'link'
-          });
-
-        if (!upsertError) {
-          concursosProcessados++;
-          console.log(`✅ [Concurso] Processada: ${noticia.titulo.substring(0, 40)}...`);
-        } else {
-          console.error(`❌ Erro ao processar concurso: ${upsertError.message}`);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      } catch (noticiaError) {
-        console.error('Erro ao processar notícia de concurso:', noticiaError);
-      }
-    }
-
-    console.log(`✨ Concluído: ${juridicasProcessadas} Direito + ${concursosProcessados} Concurso processadas`);
+    console.log(`✨ Batch concluído: ${processadas} processadas`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        juridicasProcessadas,
-        concursosProcessados,
-        limpeza: {
-          juridicasRemovidas: deletedJuridicas || 0,
-          concursosRemovidos: deletedConcursos || 0
-        },
-        fonte: 'Google Sheets (TOP 20)',
-        message: `${juridicasProcessadas} Direito + ${concursosProcessados} Concurso processadas`
+        processadas,
+        offset,
+        nextOffset: hasMore ? offset + batchSize : null,
+        hasMore,
+        total: top20.length,
+        message: `${processadas} notícias processadas (batch ${offset}-${offset + batch.length})`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
