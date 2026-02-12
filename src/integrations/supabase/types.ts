@@ -1300,6 +1300,36 @@ export type Database = {
         }
         Relationships: []
       }
+      biblioteca_favoritos: {
+        Row: {
+          biblioteca_tabela: string
+          capa_url: string | null
+          created_at: string
+          id: string
+          item_id: number
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          biblioteca_tabela: string
+          capa_url?: string | null
+          created_at?: string
+          id?: string
+          item_id: number
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          biblioteca_tabela?: string
+          capa_url?: string | null
+          created_at?: string
+          id?: string
+          item_id?: number
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       biblioteca_iniciante: {
         Row: {
           area: string | null
@@ -1339,6 +1369,48 @@ export type Database = {
           ordem?: number | null
           titulo?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      biblioteca_plano_leitura: {
+        Row: {
+          biblioteca_tabela: string
+          capa_url: string | null
+          comentario: string | null
+          created_at: string
+          id: string
+          item_id: number
+          progresso: number
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          biblioteca_tabela: string
+          capa_url?: string | null
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          item_id: number
+          progresso?: number
+          status?: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          biblioteca_tabela?: string
+          capa_url?: string | null
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          item_id?: number
+          progresso?: number
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
