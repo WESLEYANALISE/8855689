@@ -32,8 +32,9 @@ interface PlanConfig {
 }
 
 const PLANS: Record<PlanType, PlanConfig> = {
-  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false }, // Mantido para compatibilidade mas não exibido
-  anual: { price: 69.90, label: 'Anual', days: 365, badge: null, pixEnabled: true }, // Mantido para compatibilidade mas não exibido
+  mensal: { price: 17.99, label: 'Mensal', days: 30, badge: null, pixEnabled: false },
+  anual: { price: 69.90, label: 'Anual', days: 365, badge: null, pixEnabled: true },
+  essencial: { price: 14.99, label: 'Essencial', days: 30, badge: 'MENSAL', pixEnabled: false },
   vitalicio: { price: 89.90, label: 'Vitalício', days: 36500, badge: 'MAIS ADQUIRIDO', featured: true, pixEnabled: true }
 };
 
@@ -235,15 +236,26 @@ const Assinatura = () => {
             </div>
           </div>
 
-          {/* Card do Plano Vitalício - único */}
+          {/* Cards dos Planos */}
           <div className="max-w-md mx-auto px-2 space-y-4">
+            {/* Plano Essencial */}
+            <PlanoCardNovo
+              planKey="essencial"
+              plan={PLANS.essencial}
+              imagemUrl={planImages.essencial}
+              imagemLoading={imagesLoading}
+              onVerMais={() => setModalPlano('essencial')}
+              delay={0.1}
+            />
+
+            {/* Plano Vitalício */}
             <PlanoCardNovo
               planKey="vitalicio"
               plan={PLANS.vitalicio}
               imagemUrl={planImages.vitalicio}
               imagemLoading={imagesLoading}
               onVerMais={() => setModalPlano('vitalicio')}
-              delay={0.1}
+              delay={0.2}
             />
           </div>
 

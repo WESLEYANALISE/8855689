@@ -116,7 +116,7 @@ const atualizacoesEvelyn = [
 
 const Evelyn = () => {
   const { user } = useAuth();
-  const { isPremium } = useSubscription();
+  const { isPremium, hasEvelynAccess } = useSubscription();
   const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -292,7 +292,7 @@ const Evelyn = () => {
                 Tudo pelo WhatsApp, 24 horas por dia!
               </p>
               
-              {isPremium ? (
+              {hasEvelynAccess ? (
                 <Button 
                   onClick={abrirWhatsApp}
                   className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-6 py-3 h-12"
@@ -308,11 +308,11 @@ const Evelyn = () => {
                     className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg px-6 py-3 h-12"
                   >
                     <Crown className="w-5 h-5 mr-2" />
-                    Seja Premium para acessar
+                    {isPremium ? 'Upgrade para Vitalício' : 'Seja Premium para acessar'}
                     <Lock className="w-4 h-4 ml-2" />
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Funcionalidade exclusiva para assinantes Premium
+                    {isPremium ? 'Evelyn é exclusiva do plano Vitalício' : 'Funcionalidade exclusiva para assinantes Premium'}
                   </p>
                 </div>
               )}

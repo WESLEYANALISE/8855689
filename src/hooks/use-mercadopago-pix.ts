@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-export type PlanType = 'mensal' | 'anual' | 'vitalicio';
+export type PlanType = 'mensal' | 'anual' | 'vitalicio' | 'essencial';
 
 interface PixData {
   paymentId: string;
@@ -93,7 +93,6 @@ export const useMercadoPagoPix = (): UseMercadoPagoPixReturn => {
         description: "Cole no app do seu banco para pagar",
       });
     } catch (err) {
-      // Fallback para dispositivos que não suportam clipboard API
       const textArea = document.createElement('textarea');
       textArea.value = pixData.qrCode;
       textArea.style.position = 'fixed';
