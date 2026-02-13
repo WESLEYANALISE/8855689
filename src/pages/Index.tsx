@@ -68,11 +68,11 @@ const CARREIRAS_IMAGES = [
   carreiraPromotor, carreiraPrf, carreiraPf
 ];
 
-const HERO_IMAGES = [
-  '/hero-banner-themis-advogado-v2.webp',
-  '/hero-banner-themis-chorando.webp',
-  '/hero-banner-tribunal.webp'
-];
+const HERO_IMAGES: Record<string, string> = {
+  ferramentas: '/hero-banner-themis-advogado-v2.webp',
+  leis: '/hero-banner-themis-chorando.webp',
+  destaques: '/hero-banner-tribunal.webp',
+};
 
 type MainTab = 'ferramentas' | 'destaques' | 'leis';
 type FaculdadeSubTab = 'estudos' | 'ferramentas';
@@ -183,37 +183,7 @@ const Index = () => {
     };
   }, [isDesktop, mainTab]);
   
-  // Hero image changes only once per hour
-  const heroImage = useMemo(() => {
-    const ONE_HOUR_MS = 60 * 60 * 1000;
-    const now = Date.now();
-    
-    const saved = localStorage.getItem('heroImageData');
-    let currentIndex = 0;
-    let lastChanged = 0;
-    
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        currentIndex = data.index ?? 0;
-        lastChanged = data.changedAt ?? 0;
-      } catch {
-        // Fallback if corrupted
-      }
-    }
-    
-    // Change image only if 1 hour has passed
-    if (now - lastChanged >= ONE_HOUR_MS) {
-      const nextIndex = saved ? (currentIndex + 1) % HERO_IMAGES.length : 0;
-      localStorage.setItem('heroImageData', JSON.stringify({
-        index: nextIndex,
-        changedAt: now
-      }));
-      return HERO_IMAGES[nextIndex];
-    }
-    
-    return HERO_IMAGES[currentIndex];
-  }, []);
+  const heroImage = HERO_IMAGES[mainTab] || HERO_IMAGES.ferramentas;
 
   const {
     featuredNews,
