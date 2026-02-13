@@ -3,7 +3,7 @@ import { Heart, BookOpen, Loader2, Trash2, ChevronRight, Calendar } from "lucide
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
+import { BibliotecaTopNav } from "@/components/biblioteca/BibliotecaTopNav";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -145,13 +145,14 @@ const BibliotecaFavoritos = () => {
           <Heart className="w-12 h-12 text-amber-500/30 mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">Faça login para ver seus favoritos</p>
         </div>
-        <BibliotecaBottomNav activeTab="favoritos" />
+        <BibliotecaTopNav activeTab="favoritos" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-8">
+      <BibliotecaTopNav activeTab="favoritos" />
       <div className="bg-gradient-to-b from-amber-950/30 to-background px-4 pt-6 pb-4">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
@@ -241,7 +242,7 @@ const BibliotecaFavoritos = () => {
         ))}
       </div>
 
-      <BibliotecaBottomNav activeTab="favoritos" />
+      
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, BookOpen, Loader2, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
+import { BibliotecaTopNav } from "@/components/biblioteca/BibliotecaTopNav";
 
 interface ResultItem {
   id: number;
@@ -84,7 +84,8 @@ const BibliotecaBusca = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-8">
+      <BibliotecaTopNav activeTab="acervo" />
       {/* Header */}
       <div className="bg-gradient-to-b from-amber-950/30 to-background px-4 pt-6 pb-4">
         <div className="flex items-center gap-2 mb-4">
@@ -189,7 +190,7 @@ const BibliotecaBusca = () => {
         ))}
       </div>
 
-      <BibliotecaBottomNav activeTab="procurar" />
+      
     </div>
   );
 };

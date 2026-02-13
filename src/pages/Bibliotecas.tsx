@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Book, Scale, Mic, Users, Briefcase, BookOpen, Languages, Library, ChevronRight } from "lucide-react";
-import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
+import { BibliotecaTopNav } from "@/components/biblioteca/BibliotecaTopNav";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useState, useEffect, memo } from "react";
 import type { ElementType } from "react";
 import heroBibliotecas from "@/assets/biblioteca-office-sunset.webp";
@@ -213,6 +215,12 @@ BibliotecaGridCard.displayName = 'BibliotecaGridCard';
 
 const Bibliotecas = () => {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const filteredItems = bibliotecasItems.filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const [imageLoaded, setImageLoaded] = useState(() => {
     if (isImagePreloaded(heroBibliotecas)) return true;
@@ -283,6 +291,8 @@ const Bibliotecas = () => {
       {/* Content */}
       <div className="relative z-10">
         <StandardPageHeader title="Biblioteca Jurídica" position="fixed" backPath="/" />
+        <div className="pt-[env(safe-area-inset-top)]" />
+        <BibliotecaTopNav activeTab="acervo" />
         
         {/* Hero section */}
         <div className="pt-14 pb-2 px-4">
@@ -317,10 +327,23 @@ const Bibliotecas = () => {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="px-4 pb-3">
+          <div className="max-w-4xl mx-auto relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar biblioteca..."
+              className="pl-10 h-10 bg-card/50 border-amber-900/20 focus:border-amber-500/50 rounded-xl"
+            />
+          </div>
+        </div>
+
         {/* Grid Estante de Livros */}
-        <div className="px-3 pb-24 pt-2">
+        <div className="px-3 pb-8 pt-1">
           <div className="max-w-4xl mx-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {bibliotecasItems.map((item, index) => (
+            {filteredItems.map((item, index) => (
               <BibliotecaGridCard
                 key={item.id}
                 item={item}
@@ -332,7 +355,6 @@ const Bibliotecas = () => {
           </div>
         </div>
       </div>
-      <BibliotecaBottomNav activeTab="acervo" />
     </div>
   );
 };
