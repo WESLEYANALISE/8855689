@@ -71,7 +71,7 @@ const CARREIRAS_IMAGES = [
 
 const HERO_IMAGES_STATIC: Record<string, string> = {
   ferramentas: '/hero-banner-themis-advogado-v2.webp',
-  destaques: '/hero-banner-tribunal.webp',
+  destaques: '/hero-banner-themis-chorando.webp',
 };
 
 type MainTab = 'ferramentas' | 'destaques' | 'leis';
@@ -183,7 +183,7 @@ const Index = () => {
     };
   }, [isDesktop, mainTab]);
   
-  const heroImage = mainTab === 'leis' ? heroThemisCrying : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.ferramentas);
+  const heroImage = mainTab === 'leis' ? '/hero-banner-tribunal.webp' : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.ferramentas);
 
   const {
     featuredNews,
