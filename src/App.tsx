@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -396,6 +396,7 @@ import DominandoEstudo from "./pages/DominandoEstudo";
 
 // Dashboard de Aulas
 import AulasDashboard from "./pages/AulasDashboard";
+const AulasPage = lazy(() => import("./pages/AulasPage"));
 
 // Conceitos (Trilhas para Iniciantes)
 import ConceitosInicio from "./pages/ConceitosInicio";
@@ -888,6 +889,7 @@ const App = () => {
               <Route path="/dominando/estudo/:disciplinaId" element={<DominandoEstudo />} />
               
               {/* Dashboard de Aulas */}
+              <Route path="/aulas" element={<AulasPage />} />
               <Route path="/aulas/dashboard" element={<AulasDashboard />} />
               
               {/* Conceitos (Trilhas para Iniciantes) */}

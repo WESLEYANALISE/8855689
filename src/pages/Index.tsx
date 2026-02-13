@@ -67,7 +67,7 @@ const HERO_IMAGES = [
   '/hero-banner-tribunal.webp'
 ];
 
-type MainTab = 'ferramentas' | 'iniciante' | 'leis';
+type MainTab = 'ferramentas' | 'destaques' | 'leis';
 type FaculdadeSubTab = 'estudos' | 'ferramentas';
 
 const Index = () => {
@@ -121,7 +121,7 @@ const Index = () => {
 
   // Atualizar tab quando URL mudar
   useEffect(() => {
-    if (tabFromUrl && ['ferramentas', 'iniciante', 'leis'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['ferramentas', 'destaques', 'leis'].includes(tabFromUrl)) {
       changeMainTab(tabFromUrl);
     }
   }, [tabFromUrl]);
@@ -130,7 +130,7 @@ const Index = () => {
   useEffect(() => {
     const handleHeaderClick = (e: CustomEvent<{ tab: string }>) => {
       const tab = e.detail.tab as MainTab;
-      if (['ferramentas', 'iniciante', 'leis'].includes(tab)) {
+      if (['ferramentas', 'destaques', 'leis'].includes(tab)) {
         setMainTab(tab);
       }
     };
@@ -274,8 +274,8 @@ const Index = () => {
       <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
-          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
+          <TabButton tab="destaques" icon={Sparkles} label="Destaques" />
         </div>
       </div>
 
@@ -285,7 +285,7 @@ const Index = () => {
         {mainTab === 'ferramentas' && (
           <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
             <button
-              onClick={() => changeMainTab('iniciante')}
+              onClick={() => navigate('/aulas')}
               className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-muted"
             >
               <div className="relative h-[70px] overflow-hidden">
@@ -341,9 +341,13 @@ const Index = () => {
             <>
               <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
               <OABHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
-              <PoliticaHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+            </>
+          )}
 
-              {/* Notícias em Destaque - abaixo de Estudos */}
+          {/* ABA DESTAQUES - Mobile */}
+          {mainTab === 'destaques' && (
+            <>
+              {/* Notícias em Destaque */}
               <div className="space-y-4 relative z-10">
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-3">
@@ -377,14 +381,10 @@ const Index = () => {
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
-            </>
-          )}
 
-          {/* ABA AULAS - Mobile */}
-          {mainTab === 'iniciante' && (
-            <div className="relative min-h-[500px]">
-              <MobileTrilhasAprender />
-            </div>
+              {/* Política */}
+              <PoliticaHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+            </>
           )}
 
           {/* ABA LEIS - Mobile */}
@@ -399,30 +399,13 @@ const Index = () => {
         {/* Desktop tabs */}
         <div className="flex gap-1.5 mb-2 relative z-20 h-[44px] mt-4">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
-          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
+          <TabButton tab="destaques" icon={Sparkles} label="Destaques" />
         </div>
 
         {mainTab === 'ferramentas' && <DesktopHomeDestaque />}
 
-        {mainTab === 'iniciante' && (
-          <div className="relative min-h-[70vh]">
-            <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
-              <img 
-                src={themisEstudosDesktop} 
-                alt="Jornada de Estudos"
-                className="w-full h-full object-cover object-top opacity-60"
-                loading="eager"
-                fetchPriority="high"
-                decoding="sync"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
-            </div>
-            <div className="relative z-10">
-              <DesktopTrilhasAprender />
-            </div>
-          </div>
-        )}
+        {mainTab === 'destaques' && <DesktopHomeDestaque />}
 
         {mainTab === 'leis' && (
           <div className="relative min-h-[70vh]">
