@@ -7,8 +7,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useMemo, useEffect } from "react";
 import { criarCondicoesBusca } from "@/lib/numeroExtenso";
+import { useAuth } from "@/contexts/AuthContext";
 
 const VadeMecumBusca = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { goBack } = useHierarchicalNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -408,6 +410,65 @@ const VadeMecumBusca = () => {
     }
   };
 
+  // Buscar histórico de buscas do usuário (mais buscados)
+  const { data: maisBuscados } = useQuery({
+    queryKey: ["busca-leis-historico", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("busca_leis_historico" as any)
+        .select("termo")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error || !data) return [];
+      // Agrupar por termo e contar frequência
+      const freq: Record<string, number> = {};
+      (data as any[]).forEach((item: any) => {
+        const t = item.termo?.toLowerCase?.() || "";
+        if (t) freq[t] = (freq[t] || 0) + 1;
+      });
+      return Object.entries(freq)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([termo, count]) => ({ termo, count }));
+    },
+    enabled: !!user,
+  });
+
+  // Buscar favoritos do usuário
+  const { data: favoritos } = useQuery({
+    queryKey: ["artigos-favoritos-busca", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("artigos_favoritos")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Registrar busca no histórico
+  const registrarBusca = async (termo: string) => {
+    if (!user || !termo.trim()) return;
+    await supabase
+      .from("busca_leis_historico" as any)
+      .insert({ user_id: user.id, termo: termo.trim() } as any);
+  };
+
+  const handleSearchWithHistory = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (searchInput.trim()) {
+      registrarBusca(searchInput.trim());
+      setSearchParams({ q: searchInput.trim() });
+    }
+  };
+
   // Tela de busca quando não tem query
   if (!query) {
     return (
@@ -423,7 +484,7 @@ const VadeMecumBusca = () => {
             </p>
           </div>
           
-          <form onSubmit={handleSearch} className="space-y-4">
+          <form onSubmit={handleSearchWithHistory} className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
@@ -444,20 +505,64 @@ const VadeMecumBusca = () => {
             </button>
           </form>
 
-          <div className="mt-8 space-y-2">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Sugestões</p>
-            <div className="flex flex-wrap gap-2">
-              {["Art. 5", "Art. 121", "Art. 155", "Furto", "Homicídio", "Prescrição"].map(s => (
-                <button
-                  key={s}
-                  onClick={() => { setSearchInput(s); setSearchParams({ q: s }); }}
-                  className="px-3 py-1.5 rounded-full bg-muted/50 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                >
-                  {s}
-                </button>
-              ))}
+          {/* Mais Buscados */}
+          {maisBuscados && maisBuscados.length > 0 && (
+            <div className="mt-8 space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">🔥 Mais Buscados</p>
+              <div className="flex flex-wrap gap-2">
+                {maisBuscados.map(({ termo, count }) => (
+                  <button
+                    key={termo}
+                    onClick={() => { setSearchInput(termo); registrarBusca(termo); setSearchParams({ q: termo }); }}
+                    className="px-3 py-1.5 rounded-full bg-muted/50 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center gap-1.5"
+                  >
+                    {termo}
+                    <span className="text-[10px] bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-full">{count}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Favoritos */}
+          {favoritos && favoritos.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">⭐ Favoritos</p>
+              <div className="space-y-1.5">
+                {favoritos.slice(0, 8).map((fav: any) => (
+                  <button
+                    key={fav.id}
+                    onClick={() => { setSearchInput(fav.numero_artigo); registrarBusca(fav.numero_artigo); setSearchParams({ q: fav.numero_artigo }); }}
+                    className="w-full text-left px-3 py-2 rounded-xl bg-muted/30 hover:bg-red-500/10 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-foreground">{fav.numero_artigo}</span>
+                    <span className="text-xs text-muted-foreground ml-2">({fav.tabela_codigo})</span>
+                    {fav.conteudo_preview && (
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{fav.conteudo_preview}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sugestões (fallback quando não há histórico) */}
+          {(!maisBuscados || maisBuscados.length === 0) && (
+            <div className="mt-8 space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Sugestões</p>
+              <div className="flex flex-wrap gap-2">
+                {["Art. 5", "Art. 121", "Art. 155", "Furto", "Homicídio", "Prescrição"].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => { setSearchInput(s); registrarBusca(s); setSearchParams({ q: s }); }}
+                    className="px-3 py-1.5 rounded-full bg-muted/50 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -470,7 +575,7 @@ const VadeMecumBusca = () => {
         <p className="text-sm text-muted-foreground mb-2">
           "{query}" — {totalResults} resultado(s)
         </p>
-        <form onSubmit={handleSearch} className="flex gap-2">
+        <form onSubmit={handleSearchWithHistory} className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
