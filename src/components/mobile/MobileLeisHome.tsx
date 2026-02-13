@@ -1,10 +1,10 @@
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, Landmark, Users, Gavel, BookText, HandCoins, FileText, Scroll, ChevronRight } from "lucide-react";
-import { LeisBottomNav } from "@/components/leis/LeisBottomNav";
+import { Scale, Landmark, Users, Gavel, BookText, HandCoins, FileText, Scroll, ChevronRight, BookOpen, Search, Newspaper } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumBadge } from "@/components/PremiumBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
@@ -19,23 +19,37 @@ const categoriasVadeMecum = [
   { id: "leis-ordinarias", title: "Leis Ordinárias", icon: FileText, route: "/leis-ordinarias", color: "from-cyan-500 to-cyan-700", free: false },
 ];
 
+const quickActions = [
+  { id: "explicacao", label: "Explicação", icon: BookOpen, route: "/leis/explicacoes" },
+  { id: "procurar", label: "Procurar", icon: Search, route: "/vade-mecum/busca" },
+  { id: "resenha", label: "Resenha", icon: Newspaper, route: "/vade-mecum/resenha-diaria" },
+];
+
 export const MobileLeisHome = memo(() => {
   const navigate = useNavigate();
   const { isPremium, loading: loadingSubscription } = useSubscription();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
-  const [activeTab, setActiveTab] = useState<'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push'>('legislacao');
-
-  const handleTabChange = (tab: 'legislacao' | 'explicacao' | 'procurar' | 'resenha' | 'push') => {
-    setActiveTab(tab);
-    if (tab === 'procurar') navigate('/vade-mecum/busca');
-    else if (tab === 'resenha') navigate('/vade-mecum/resenha-diaria');
-    else if (tab === 'push') navigate('/vade-mecum/push-legislacao');
-    else if (tab === 'explicacao') navigate('/leis/explicacoes');
-  };
 
   return (
     <div className="relative min-h-[500px] pb-32">
+      {/* Ações rápidas */}
+      <div className="flex gap-2 mb-5">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.id}
+              onClick={() => navigate(action.route)}
+              className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-card border border-border/50 shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:bg-accent/50 transition-all"
+            >
+              <Icon className="w-5 h-5 text-red-400" />
+              <span className="text-[11px] font-medium text-foreground">{action.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-amber-500/20 rounded-xl">
@@ -49,7 +63,7 @@ export const MobileLeisHome = memo(() => {
         </div>
       </div>
 
-      {/* Grid de Categorias - Estilo igual ao Estudos */}
+      {/* Grid de Categorias */}
       <div className="grid grid-cols-2 gap-3">
         {categoriasVadeMecum.map((categoria) => {
           const Icon = categoria.icon;
@@ -59,33 +73,23 @@ export const MobileLeisHome = memo(() => {
               onClick={() => navigate(categoria.route)}
               className={`group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-150 hover:scale-[1.02] bg-gradient-to-br ${categoria.color} shadow-lg h-[100px]`}
             >
-              {/* Ícone de fundo decorativo */}
               <div className="absolute -right-3 -bottom-3 opacity-20">
                 <Icon className="w-20 h-20 text-white" />
               </div>
-
-              {/* Premium Badge */}
               {!categoria.free && !isPremium && !loadingSubscription && (
                 <PremiumBadge position="top-right" size="sm" />
               )}
-              
-              {/* Ícone principal */}
               <div className="bg-white/20 rounded-xl p-2 w-fit mb-2 group-hover:bg-white/30 transition-colors">
                 <Icon className="w-5 h-5 text-white" />
               </div>
-              
-              {/* Título */}
               <h3 className="font-semibold text-white text-sm leading-tight pr-6">
                 {categoria.title}
               </h3>
-              
-              {/* Seta */}
               <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
             </button>
           );
         })}
       </div>
-
     </div>
   );
 });
