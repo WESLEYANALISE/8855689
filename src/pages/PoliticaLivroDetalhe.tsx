@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Book, BookOpen, Monitor, Download, Crown, Lock } from 'lucide-react';
+import { ArrowLeft, Book, BookOpen, Download, Crown, Lock } from 'lucide-react';
 import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { buscarDetalhesLivro } from '@/lib/googleBooksApi';
 import PDFViewerModal from '@/components/PDFViewerModal';
@@ -189,7 +189,7 @@ export default function PoliticaLivroDetalhe() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="sobre">Sobre</TabsTrigger>
-            <TabsTrigger value="desktop">Desktop</TabsTrigger>
+            <TabsTrigger value="aula" disabled={!livro.aula}>Aula</TabsTrigger>
             <TabsTrigger value="download" disabled={!livro.download}>Download</TabsTrigger>
           </TabsList>
 
@@ -211,21 +211,24 @@ export default function PoliticaLivroDetalhe() {
             </div>
           </TabsContent>
 
-          <TabsContent value="desktop">
+          <TabsContent value="aula">
             <div className="text-center bg-card/50 backdrop-blur-sm rounded-xl p-8 border border-accent/20">
-              <Monitor className="w-16 h-16 mx-auto mb-4 text-accent" />
-              <h2 className="text-xl font-semibold mb-4">Acesso Desktop</h2>
-              <p className="text-muted-foreground mb-6">
-                Leia este livro diretamente no seu computador através do nosso sistema desktop
-              </p>
-              <Button
-                onClick={() => navigate("/acesso-desktop")}
-                size="lg"
-                className="min-w-[200px]"
-              >
-                <Monitor className="w-5 h-5 mr-2" />
-                Acessar Desktop
-              </Button>
+              <BookOpen className="w-16 h-16 mx-auto mb-4 text-accent" />
+              <h2 className="text-xl font-semibold mb-4">Aula</h2>
+              {livro.aula ? (
+                <Button
+                  onClick={() => window.open(livro.aula!, "_blank")}
+                  size="lg"
+                  className="min-w-[200px]"
+                >
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Assistir Aula
+                </Button>
+              ) : (
+                <p className="text-muted-foreground">
+                  Aula não disponível para este livro
+                </p>
+              )}
             </div>
           </TabsContent>
 

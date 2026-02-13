@@ -329,30 +329,36 @@ const BibliotecaEstudos = () => {
 
         <div className="space-y-4">
           {/* Livros visíveis */}
-          {visibleItems.map((livro, idx) => (
-            <LivroCard 
-              key={livro.id} 
-              titulo={livro.Tema || "Sem título"} 
-              subtitulo={selectedArea} 
-              capaUrl={livro.url_capa_gerada || livro["Capa-livro"]} 
-              sobre={livro.Sobre} 
-              numero={livro.Ordem || idx + 1} 
-              ano={2026} 
-              onClick={() => navigate(`/biblioteca-estudos/${livro.id}`)} 
-            />
-          ))}
+          {visibleItems.map((livro, idx) => {
+            const areaCapa = areaGroups?.[selectedArea]?.capa;
+            return (
+              <LivroCard 
+                key={livro.id} 
+                titulo={livro.Tema || "Sem título"} 
+                subtitulo={selectedArea} 
+                capaUrl={livro.url_capa_gerada || livro["Capa-livro"] || areaCapa} 
+                sobre={livro.Sobre} 
+                numero={livro.Ordem || idx + 1} 
+                ano={2026} 
+                onClick={() => navigate(`/biblioteca-estudos/${livro.id}`)} 
+              />
+            );
+          })}
           
           {/* Livros bloqueados */}
-          {lockedItems.map((livro, index) => (
-            <LockedContentListItem
-              key={livro.id}
-              title={livro.Tema || "Sem título"}
-              subtitle={selectedArea}
-              imageUrl={livro.url_capa_gerada || livro["Capa-livro"] || undefined}
-              sobre={livro.Sobre || undefined}
-              onClick={() => setShowPremiumCard(true)}
-            />
-          ))}
+          {lockedItems.map((livro, index) => {
+            const areaCapa = areaGroups?.[selectedArea]?.capa;
+            return (
+              <LockedContentListItem
+                key={livro.id}
+                title={livro.Tema || "Sem título"}
+                subtitle={selectedArea}
+                imageUrl={livro.url_capa_gerada || livro["Capa-livro"] || areaCapa || undefined}
+                sobre={livro.Sobre || undefined}
+                onClick={() => setShowPremiumCard(true)}
+              />
+            );
+          })}
         </div>
 
         {/* Premium Card */}
