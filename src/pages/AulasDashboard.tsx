@@ -11,25 +11,38 @@ const AulasDashboard = () => {
   const { user } = useAuth();
 
   const { data: progressoConceitos } = useQuery({
-    queryKey: ["dashboard-progresso-conceitos", user?.id],
+    queryKey: ["dashboard-progresso-conceitos-oab", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await supabase
-        .from("conceitos_topicos_progresso")
-        .select("*, conceitos_topicos(titulo, materia_id, conceitos_materias(nome))")
+      const { data: progressoData } = await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .select("id, topico_id, progresso_leitura, leitura_completa, updated_at")
         .eq("user_id", user.id)
         .eq("leitura_completa", false)
-        .gt("progresso_porcentagem", 0)
+        .gt("progresso_leitura", 0)
         .order("updated_at", { ascending: false });
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        nome: item.conceitos_topicos?.titulo || "Tópico",
-        area: "Conceitos",
-        materia: item.conceitos_topicos?.conceitos_materias?.nome || "",
-        progresso: item.progresso_porcentagem || 0,
-        tipo: "conceitos" as const,
-        topicoId: item.topico_id,
-      }));
+      if (!progressoData?.length) return [];
+
+      const topicoIds = progressoData.map(p => p.topico_id);
+      const { data: topicos } = await supabase
+        .from("conceitos_topicos")
+        .select("id, titulo, materia_id, conceitos_materias(nome)")
+        .in("id", topicoIds);
+
+      const topicosMap = new Map((topicos || []).map((t: any) => [t.id, t]));
+
+      return progressoData.map((item: any) => {
+        const topico = topicosMap.get(item.topico_id);
+        return {
+          id: item.id,
+          nome: topico?.titulo || "Tópico",
+          area: "Conceitos",
+          materia: topico?.conceitos_materias?.nome || "",
+          progresso: item.progresso_leitura || 0,
+          tipo: "conceitos" as const,
+          topicoId: item.topico_id,
+        };
+      });
     },
     staleTime: 1000 * 60 * 2,
     enabled: !!user?.id,

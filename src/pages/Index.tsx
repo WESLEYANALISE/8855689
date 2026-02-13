@@ -275,9 +275,8 @@ const Index = () => {
             fetchPriority="high"
             decoding="sync"
             style={{
-              transform: `translateY(${scrollY * 0.3}px) scale(1.1)`,
+              transform: `translateY(${scrollY * 0.25}px) scale(1.1)`,
               willChange: 'transform',
-              transition: 'transform 0.05s linear',
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
