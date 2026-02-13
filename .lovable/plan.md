@@ -1,99 +1,75 @@
 
-# Melhorias no Painel Administrativo "Controle"
+# Redesign Completo da Area de Resumos Juridicos
 
-## Resumo das Mudancas
+## Problema Atual
+A area de resumos juridicos possui multiplas paginas intermediarias com layout de "timeline" (cards alternados esquerda/direita com pegadas animadas) que funciona visualmente mas prejudica a navegacao rapida e a usabilidade no mobile. O fluxo atual exige 4 cliques ate chegar ao conteudo:
+1. Landing (`/resumos-juridicos`) - escolha entre prontos/personalizados
+2. Trilhas (`/resumos-juridicos/prontos`) - areas do direito em timeline
+3. Temas (`/resumos-juridicos/prontos/:area`) - temas em timeline
+4. View (`/resumos-juridicos/prontos/:area/:tema`) - conteudo
 
-O painel sera reestruturado com 4 grandes melhorias: (1) Online Agora + Online 30min, (2) Assinantes Premium em tempo real, (3) remocao do botao "Atualizar" e mais metricas clicaveis, (4) secao de Feedback diario com IA Gemini.
+## Nova Abordagem: Hub Unificado de Acesso Rapido
 
----
+Redesenhar para ser uma experiencia de consulta rapida, organizada e elegante, inspirada na referencia (lista com thumbnails numerados, busca e breadcrumbs).
 
-## 1. Online Agora + Online 30 Minutos
+### Estrutura Proposta
 
-Atualmente so mostra "Online Agora" (ultimos 5 minutos). Sera adicionado um segundo card "Online 30min" que mostra usuarios unicos dos ultimos 30 minutos.
+**Pagina 1 - Hub Principal (`/resumos-juridicos/prontos`)**
+- Header compacto com titulo "Resumos Juridicos" e contador total
+- Barra de busca global (pesquisa por area, tema ou subtema)
+- Tabs: "Por Materia" | "Artigos de Lei" | "Personalizado"
+- Na aba "Por Materia": lista vertical limpa com cards horizontais (thumbnail + nome da area + contagem), sem timeline
+- Na aba "Artigos": categorias em lista (Constituicao, Codigos, etc.)
+- Na aba "Personalizado": opcoes de texto, PDF, imagem
 
-- Criar nova funcao RPC no Supabase: `get_admin_online_30min_count` (conta usuarios distintos com `page_views` nos ultimos 30 minutos)
-- Criar nova funcao RPC: `get_admin_online_30min_details` (lista detalhada dos usuarios dos ultimos 30 minutos)
-- No hook `useAdminControleStats.ts`, adicionar `useOnline30MinRealtime` e `useOnline30MinDetails`
-- Na UI, o card "Online Agora" e "Online 30min" ficarao lado a lado no grid de metricas
-- Ao clicar, abre o dialog mostrando a lista de pessoas com nome, email, pagina atual e quando foram vistos por ultimo
+**Pagina 2 - Temas da Area (`/resumos-juridicos/prontos/:area`)**
+- Breadcrumb: Resumos > [Area]
+- Botao voltar compacto
+- Barra de busca para filtrar temas
+- Ordenacao (cronologica/alfabetica) em pills compactos
+- Lista de temas em cards horizontais com: thumbnail, numero do tema (badge), titulo, contagem de resumos, chevron
 
-## 2. Assinantes Premium em Tempo Real
+**Pagina 3 - Subtemas (`/resumos-juridicos/prontos/:area/:tema`)** (mantem o layout existente da ResumosProntosView)
 
-A lista de assinantes nao atualiza em tempo real. Sera corrigido:
+### Detalhes Tecnicos
 
-- Adicionar canal Supabase Realtime escutando a tabela `subscriptions` (eventos INSERT e UPDATE)
-- Quando detectar mudanca, refaz a query de `useListaAssinantesPremium` automaticamente
-- Reduzir o `refetchInterval` de 60s para 15s como fallback
-- Garantir que a lista mostra TODOS os assinantes (sem limite), ordenados por data mais recente
+**Arquivos a modificar:**
+1. `src/pages/ResumosJuridicosEscolha.tsx` - Substituir por novo hub unificado
+2. `src/pages/ResumosJuridicosTrilhas.tsx` - Pode ser removida/redirecionada, o hub ja exibe as areas
+3. `src/pages/ResumosProntos.tsx` - Redesenhar com layout de lista limpa (inspirado na referencia)
+4. `src/pages/ResumosJuridicosLanding.tsx` - Redirecionar para o hub unificado (eliminar pagina intermediaria)
+5. `src/App.tsx` - Ajustar rota `/resumos-juridicos` para apontar direto ao hub
 
-## 3. Remover Botao "Atualizar" + Mais Metricas Clicaveis
+**Design dos Cards de Lista (mobile-first):**
+- Card horizontal: `flex items-center gap-3`
+- Thumbnail 60x60 com rounded-lg e fallback gradiente
+- Badge numerica (01, 02...) posicionada sobre o thumbnail
+- Titulo em `text-sm font-medium` com `line-clamp-2`
+- Contagem em texto pequeno muted
+- ChevronRight no final
+- Hover/tap com scale sutil e borda highlight
 
-- Remover o botao "Atualizar" do header (os dados ja atualizam automaticamente via realtime + polling)
-- Transformar os cards de Premium (Total Premium, Taxa Conversao, Novos Premium, Receita) em clicaveis
-  - Ao clicar em "Total Premium" ou "Novos Premium", scrolla para a secao de assinantes
-  - Ao clicar em "Receita Total", abre dialog com detalhamento por tipo de plano
-- Cards de Page Views e Media de cadastros tambem clicaveis, abrindo dialog com detalhes
-- Cada card tera visual de hover melhorado para indicar interatividade
+**Busca Global:**
+- Debounce de 300ms
+- Pesquisa simultanea em areas + temas + subtemas
+- Resultados agrupados por tipo com secoes colapsaveis
 
-## 4. Secao de Feedback Diario com IA (Gemini)
+**Performance:**
+- Substituir animacoes Framer Motion por CSS transitions leves
+- Manter React Query com cache agressivo existente
+- Lazy load das thumbnails com placeholder
 
-Nova secao "Feedback do Dia" que usa a API Gemini (mesmas chaves GEMINI_KEY_1/2/3 do chat) para gerar um resumo diario.
+**Paleta de cores:**
+- Manter vermelho como cor principal do modulo
+- Cards com `bg-card` e `border-border/50`
+- Badges numericas em vermelho (`bg-red-600 text-white`)
+- Fundo limpo sem imagem de background pesada
 
-### Como funciona:
-- Novo edge function `admin-daily-feedback` que:
-  1. Busca dados do dia atual: page views, novos usuarios, paginas populares, assinantes novos
-  2. Monta um prompt para Gemini pedindo analise e feedback
-  3. Retorna o texto formatado em markdown
-- Cache no Supabase: nova tabela `admin_daily_feedback` com colunas `id`, `data` (date, unique), `feedback_text`, `created_at`
-  - Se ja tem feedback do dia, retorna do cache
-  - Se nao tem, gera com Gemini e salva
-- Na UI:
-  - Card com icone de IA/cerebro
-  - Mostra o feedback do dia formatado em markdown (react-markdown)
-  - Botao "Regenerar" para forcar nova geracao
-  - Indicador de loading enquanto gera
+### Fluxo Simplificado Final
+1. `/resumos-juridicos` redireciona para `/resumos-juridicos/prontos`
+2. `/resumos-juridicos/prontos` - Hub com tabs (Materia/Artigos/Custom) e lista de areas
+3. `/resumos-juridicos/prontos/:area` - Lista de temas com thumbnails
+4. `/resumos-juridicos/prontos/:area/:tema` - Conteudo (mantem)
 
-### Prompt da Gemini incluira:
-- Total de usuarios online hoje
-- Novos cadastros do dia
-- Paginas mais acessadas do dia
-- Novos assinantes premium do dia
-- Comparacao com dia anterior (se disponivel)
-- A IA retornara porcentagens, insights e recomendacoes
-
----
-
-## Detalhes Tecnicos
-
-### Arquivos a criar:
-- `supabase/functions/admin-daily-feedback/index.ts` - Edge function que busca dados e chama Gemini
-- Migracoes SQL para:
-  - `get_admin_online_30min_count()` - RPC
-  - `get_admin_online_30min_details()` - RPC
-  - `admin_daily_feedback` - tabela de cache
-
-### Arquivos a modificar:
-- `src/hooks/useAdminControleStats.ts` - Adicionar hooks para online 30min, realtime de subscriptions, e feedback diario
-- `src/pages/Admin/AdminControle.tsx` - Reestruturar UI com todas as mudancas acima
-
-### Estrutura dos novos cards (grid superior):
-```text
-+----------------+------------------+
-| Online Agora   | Online 30min     |
-| (5 min)        | (30 min)         |
-+----------------+------------------+
-| Novos (periodo)| Ativos (periodo) |
-+----------------+------------------+
-| Total Usuarios | Page Views       |
-+----------------+------------------+
-```
-
-### Fluxo do Feedback IA:
-```text
-Usuario abre Controle
-  -> Frontend chama edge function admin-daily-feedback
-  -> Edge function verifica cache (tabela admin_daily_feedback)
-  -> Se tem do dia: retorna texto
-  -> Se nao: busca metricas via Supabase, monta prompt, chama Gemini, salva cache, retorna
-  -> Frontend renderiza com react-markdown
-```
+### Correcao do Build Error
+O build error reportado parece ser apenas o output do build (nao um erro real - o log mostra modules transformados e assets). Sera verificado e corrigido se necessario durante a implementacao.
