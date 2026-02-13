@@ -258,7 +258,7 @@ const Index = () => {
         <button
           onClick={() => navigate('/pesquisar')}
           className="md:hidden fixed top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
-          style={{ zIndex: 10 }}
+          style={{ zIndex: 50 }}
         >
           <Search className="w-5 h-5 text-white" />
         </button>
