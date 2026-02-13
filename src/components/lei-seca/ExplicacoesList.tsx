@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Loader2, Sparkles } from "lucide-react";
+import { BookOpen, Loader2, Sparkles, Crown, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
 import ExplicacaoModal from "./ExplicacaoModal";
 
 interface Explicacao {
@@ -24,6 +26,10 @@ const ExplicacoesList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedExplicacao, setSelectedExplicacao] = useState<Explicacao | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { isPremium } = useSubscription();
+  const navigate = useNavigate();
+
+  const FREE_LIMIT = 3;
 
   useEffect(() => {
     fetchExplicacoes();
@@ -45,7 +51,11 @@ const ExplicacoesList = () => {
     }
   };
 
-  const handleExplicacaoClick = (explicacao: Explicacao) => {
+  const handleExplicacaoClick = (explicacao: Explicacao, index: number) => {
+    if (!isPremium && index >= FREE_LIMIT) {
+      navigate("/escolher-plano");
+      return;
+    }
     setSelectedExplicacao(explicacao);
     setModalOpen(true);
   };
@@ -90,7 +100,9 @@ const ExplicacoesList = () => {
 
       {/* Lista de Artigos */}
       <div className="space-y-3">
-        {explicacoes.map((explicacao, index) => (
+        {explicacoes.map((explicacao, index) => {
+          const isLocked = !isPremium && index >= FREE_LIMIT;
+          return (
           <motion.div
             key={explicacao.id}
             initial={{ opacity: 0, y: 20 }}
@@ -98,11 +110,11 @@ const ExplicacoesList = () => {
             transition={{ delay: index * 0.03 }}
           >
             <Card
-              className="cursor-pointer hover:bg-accent/50 transition-colors border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden"
-              onClick={() => handleExplicacaoClick(explicacao)}
+              className={`cursor-pointer transition-colors border-border/50 overflow-hidden ${isLocked ? 'opacity-60' : 'hover:bg-accent/50'} bg-card/80 backdrop-blur-sm`}
+              onClick={() => handleExplicacaoClick(explicacao, index)}
             >
               <CardContent className="p-0">
-                <div className="flex gap-3">
+                <div className="flex gap-3 relative">
                   {/* Thumbnail */}
                   <div className="w-20 h-20 shrink-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center relative overflow-hidden">
                     {explicacao.url_capa ? (
@@ -146,11 +158,19 @@ const ExplicacoesList = () => {
                       </p>
                     )}
                   </div>
+                  {/* Lock overlay */}
+                  {isLocked && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-amber-500/20 px-2 py-1 rounded-full">
+                      <Crown className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-[10px] font-semibold text-amber-400">Premium</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal */}
