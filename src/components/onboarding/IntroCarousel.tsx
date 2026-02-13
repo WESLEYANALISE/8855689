@@ -254,7 +254,7 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
           </div>
 
           {/* Content */}
-          <div className="relative z-10 flex-1 flex flex-col justify-end pb-32 px-6 md:px-12 max-w-2xl mx-auto w-full">
+          <div className="relative z-10 flex-1 flex flex-col justify-end pb-32 px-6 md:px-12 lg:px-16 max-w-2xl lg:max-w-4xl mx-auto w-full lg:justify-center lg:pb-24">
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -267,12 +267,12 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
               </div>
 
               {/* Title */}
-              <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight font-playfair">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight font-playfair">
                 {slide.title}
               </h2>
 
               {/* Description */}
-              <p className="text-base md:text-lg text-white/75 leading-relaxed">
+              <p className="text-base md:text-lg lg:text-xl text-white/75 leading-relaxed">
                 {slide.description}
               </p>
 
@@ -281,7 +281,7 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
                 {slide.features.map((f) => (
                   <span
                     key={f}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/90 backdrop-blur-sm border border-white/10"
+                    className="px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-xs lg:text-sm font-medium bg-white/10 text-white/90 backdrop-blur-sm border border-white/10"
                   >
                     {f}
                   </span>
@@ -315,8 +315,8 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
       </AnimatePresence>
 
       {/* Bottom controls */}
-      <div className="absolute bottom-0 left-0 right-0 z-50 pb-8 px-6 md:px-12">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+      <div className="absolute bottom-0 left-0 right-0 z-50 pb-8 lg:pb-12 px-6 md:px-12 lg:px-16">
+        <div className="max-w-2xl lg:max-w-4xl mx-auto flex items-center justify-between">
           {/* Dots */}
           <div className="flex gap-2">
             {slides.map((_, i) => (
@@ -336,7 +336,7 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
               onClick={onComplete}
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-red-500/30"
+              className="px-6 py-3 lg:px-8 lg:py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold text-sm lg:text-base flex items-center gap-2 shadow-lg shadow-red-500/30"
             >
               <Sparkles className="w-4 h-4" />
               Começar a Usar
@@ -344,7 +344,7 @@ const IntroCarousel = ({ onComplete }: IntroCarouselProps) => {
           ) : (
             <button
               onClick={() => paginate(1)}
-              className="px-5 py-3 rounded-full bg-white/10 backdrop-blur-sm text-white font-medium text-sm flex items-center gap-1.5 hover:bg-white/20 transition-colors"
+              className="px-5 py-3 lg:px-7 lg:py-4 rounded-full bg-white/10 backdrop-blur-sm text-white font-medium text-sm lg:text-base flex items-center gap-1.5 hover:bg-white/20 transition-colors"
             >
               Próximo
               <ChevronRight className="w-4 h-4" />
