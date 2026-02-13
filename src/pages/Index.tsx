@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
+import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -68,9 +69,8 @@ const CARREIRAS_IMAGES = [
   carreiraPromotor, carreiraPrf, carreiraPf
 ];
 
-const HERO_IMAGES: Record<string, string> = {
+const HERO_IMAGES_STATIC: Record<string, string> = {
   ferramentas: '/hero-banner-themis-advogado-v2.webp',
-  leis: '/hero-banner-themis-chorando.webp',
   destaques: '/hero-banner-tribunal.webp',
 };
 
@@ -183,7 +183,7 @@ const Index = () => {
     };
   }, [isDesktop, mainTab]);
   
-  const heroImage = HERO_IMAGES[mainTab] || HERO_IMAGES.ferramentas;
+  const heroImage = mainTab === 'leis' ? heroThemisCrying : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.ferramentas);
 
   const {
     featuredNews,
@@ -247,7 +247,7 @@ const Index = () => {
             fetchPriority="high"
             decoding="sync"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
           {/* Saudação personalizada */}
           {userName && (
             <div className="absolute bottom-24 left-5 pointer-events-auto" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
