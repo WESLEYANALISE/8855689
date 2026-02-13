@@ -103,7 +103,7 @@ export const MobileTrilhasAprender = memo(() => {
         topicoId: item.topico_id,
       }));
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: Infinity,
     enabled: !!user?.id,
   });
 
@@ -128,7 +128,7 @@ export const MobileTrilhasAprender = memo(() => {
         aulaId: item.aula_id,
       }));
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: Infinity,
     enabled: !!user?.id,
   });
 
@@ -273,17 +273,12 @@ export const MobileTrilhasAprender = memo(() => {
       </div>
 
       {/* ========== 2. JORNADA DE ESTUDOS ========== */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="text-center mb-4"
-      >
+      <div className="text-center mb-4">
         <h2 className="font-cinzel text-xl font-bold text-amber-100 mb-1">
           Jornada de Estudos
         </h2>
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
-      </motion.div>
+      </div>
 
       {/* ========== 3. TRILHA DE CONCEITOS + CONCEITOS PARA CONCURSO ========== */}
       <div className="w-full px-3 mb-4">
@@ -293,14 +288,14 @@ export const MobileTrilhasAprender = memo(() => {
             onClick={() => navigate("/conceitos/trilhante")}
             className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
           >
-            <img src={conceitosThumb} alt="Trilha de Conceitos" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <img src={conceitosThumb} alt="Trilhas de Conceitos" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
             <div className="relative z-10 p-3 h-full flex flex-col justify-between">
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
                 <Footprints className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-white text-sm leading-tight">Trilha de Conceitos</h3>
+                <h3 className="font-semibold text-white text-sm leading-tight">Trilhas de Conceitos</h3>
                 <p className="text-white/50 text-[10px] mt-0.5">Iniciante</p>
               </div>
             </div>
@@ -312,14 +307,14 @@ export const MobileTrilhasAprender = memo(() => {
             onClick={() => navigate("/ferramentas/simulados")}
             className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
           >
-            <img src={concursosThumb} alt="Conceitos para Concurso" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <img src={concursosThumb} alt="Trilhas OAB" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
             <div className="relative z-10 p-3 h-full flex flex-col justify-between">
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
                 <Target className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-white text-sm leading-tight">Conceitos para Concurso</h3>
+                <h3 className="font-semibold text-white text-sm leading-tight">Trilhas OAB</h3>
                 <p className="text-white/50 text-[10px] mt-0.5">Preparação</p>
               </div>
             </div>
