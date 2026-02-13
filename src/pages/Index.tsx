@@ -276,8 +276,8 @@ const Index = () => {
             <TabButton tab="leis" icon={Scale} label="Leis" />
           </div>
 
-          {/* Search Bar */}
-          {mainTab !== 'iniciante' && (
+          {/* Search Bar - apenas aba Estudos */}
+          {mainTab === 'ferramentas' && (
             <div 
               data-tutorial="busca-principal"
               onClick={() => navigate('/pesquisar')} 
@@ -293,46 +293,44 @@ const Index = () => {
 
         {/* Conteúdo das abas mobile */}
         <div className="px-2 space-y-6">
-          {/* Notícias em Destaque */}
-          {mainTab !== 'iniciante' && (
-            <div className="space-y-4 relative z-10">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-500/20 rounded-xl">
-                    <Newspaper className="w-5 h-5 text-amber-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">Notícias Jurídicas</h3>
-                    <p className="text-xs text-muted-foreground">Fique atualizado</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/noticias-juridicas')}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
-                >
-                  <span>Ver mais</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              
-              <ScrollArea className="w-full">
-                <div className="flex gap-3 pb-4 touch-pan-x">
-                  {featuredNews.slice(0, 6).map((noticia, index) => (
-                    <NoticiaCarouselCard 
-                      key={noticia.id} 
-                      noticia={noticia} 
-                      priority={index < 3}
-                    />
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            </div>
-          )}
-
           {/* ABA FERRAMENTAS - Mobile */}
           {mainTab === 'ferramentas' && (
             <>
+              {/* Notícias em Destaque - apenas em Estudos */}
+              <div className="space-y-4 relative z-10">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-500/20 rounded-xl">
+                      <Newspaper className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">Notícias Jurídicas</h3>
+                      <p className="text-xs text-muted-foreground">Fique atualizado</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate('/noticias-juridicas')}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
+                  >
+                    <span>Ver mais</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                
+                <ScrollArea className="w-full">
+                  <div className="flex gap-3 pb-4 touch-pan-x">
+                    {featuredNews.slice(0, 6).map((noticia, index) => (
+                      <NoticiaCarouselCard 
+                        key={noticia.id} 
+                        noticia={noticia} 
+                        priority={index < 3}
+                      />
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              </div>
+
               <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
               <OABHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
               <PoliticaHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
