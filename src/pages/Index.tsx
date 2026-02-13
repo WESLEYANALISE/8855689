@@ -248,7 +248,7 @@ const Index = () => {
       <WelcomeAudioPlayer />
       
       {/* Hero Banner Mobile - Imagem fixa atrás do card */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-64 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+      <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
         <img 
           src={heroImage}
           alt="Juridiquê"
@@ -263,7 +263,8 @@ const Index = () => {
       {/* Header com gradiente sutil - Desktop */}
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
-      {/* Tabs sobre a imagem hero - Mobile */}
+      {/* Spacer + Tabs sobre a imagem hero - Mobile */}
+      <div className="md:hidden h-32" style={{ zIndex: 1 }} />
       <div className="md:hidden relative px-4 mb-[-14px]" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
