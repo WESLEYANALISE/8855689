@@ -279,7 +279,7 @@ const Index = () => {
 
       {/* Conteúdo principal - Mobile */}
       <div className="md:hidden bg-background relative min-h-screen pb-20" style={{ zIndex: 2 }}>
-        <div className="px-4 pt-6 pb-2 space-y-4">
+        <div className="px-4 pt-8 pb-2 space-y-5">
           {/* Search Bar - apenas aba Estudos */}
           {mainTab === 'ferramentas' && (
             <div 
