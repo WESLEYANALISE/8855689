@@ -73,7 +73,8 @@ export const useProgressiveArticles = <T = any>({
   const isLoadingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   
-  const { cachedData, isLoadingCache, saveToCache } = useIndexedDBCache<T>(tableName);
+  const { cachedData, isLoadingCache, saveToCache, clearCache } = useIndexedDBCache<T>(tableName);
+  const skipCacheRef = useRef(false);
 
   // Função para ordenar artigos se tiver "Número do Artigo"
   const sortIfNeeded = useCallback((data: T[]): T[] => {
@@ -172,8 +173,8 @@ export const useProgressiveArticles = <T = any>({
     hasInitialized.current = true;
     
     try {
-      // 1. INSTANTÂNEO: Se tem cache, mostrar imediatamente
-      if (cachedData && cachedData.length > 0) {
+      // 1. INSTANTÂNEO: Se tem cache e não estamos pulando, mostrar imediatamente
+      if (!skipCacheRef.current && cachedData && cachedData.length > 0) {
         const sorted = sortIfNeeded(cachedData);
         setArticles(sorted);
         setIsLoadingInitial(false);
@@ -230,17 +231,22 @@ export const useProgressiveArticles = <T = any>({
         .select('*', { count: 'exact', head: true });
       
       if (count && count !== cachedCount) {
-        console.log(`🔄 [${tableName}] Detectada mudança: ${cachedCount} → ${count} artigos`);
-        // Recarregar em background
+        console.log(`🔄 [${tableName}] Detectada mudança: ${cachedCount} → ${count} artigos. Limpando cache...`);
+        // Limpar cache obsoleto e forçar busca do Supabase
+        await clearCache();
+        skipCacheRef.current = true;
         setIsLoadingMore(true);
         hasInitialized.current = false;
         setArticles([]);
-        loadInitial();
+        // Recarregar sem cache
+        setTimeout(() => {
+          loadInitialRef.current();
+        }, 50);
       }
     } catch (err) {
       console.error(`[${tableName}] Erro ao verificar atualizações:`, err);
     }
-  }, [tableName, loadInitial]);
+  }, [tableName, clearCache]);
 
   // Disparar carregamento inicial quando cache terminar de carregar
   const loadInitialRef = useRef(loadInitial);
