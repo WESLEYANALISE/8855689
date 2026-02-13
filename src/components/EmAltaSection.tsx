@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Flame, Library, FileCheck2, Video, Target, ChevronRight, Sparkles, Briefcase } from "lucide-react";
+import { Flame, FileText, FileCheck2, Video, Target, ChevronRight, Sparkles, Briefcase } from "lucide-react";
 
 interface EmAltaSectionProps {
   isDesktop: boolean;
@@ -7,11 +7,11 @@ interface EmAltaSectionProps {
   handleLinkHover: (path: string) => void;
 }
 
-// Itens de ESTUDOS - ordem: Resumos, Bibliotecas, Videoaulas, Flashcards, Questões, Carreiras
+// Itens de ESTUDOS - ordem: Resumos, Videoaulas, Documentos, Flashcards, Questões, Carreiras
 const itensEstudos = [
   { id: "resumos", title: "Resumos", description: "Conteúdo objetivo e direto", icon: FileCheck2, route: "/resumos-juridicos" },
-  { id: "biblioteca", title: "Biblioteca", description: "Acervo completo de livros", icon: Library, route: "/bibliotecas" },
   { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo", icon: Video, route: "/videoaulas" },
+  { id: "documentos", title: "Documentos", description: "Modelos e petições", icon: FileText, route: "/documentos" },
   { id: "flashcards", title: "Flashcards", description: "Memorização eficiente", icon: Sparkles, route: "/flashcards/areas" },
   { id: "questoes", title: "Questões", description: "Pratique com questões reais", icon: Target, route: "/questoes" },
   { id: "carreiras", title: "Carreiras", description: "Explore as carreiras jurídicas", icon: Briefcase, route: "/carreiras-juridicas" },
