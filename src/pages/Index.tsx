@@ -312,11 +312,13 @@ const Index = () => {
         {/* Cards de acesso rápido - Aulas e Biblioteca */}
         {mainTab === 'ferramentas' && (
           <div className="px-4 pt-6 pb-2">
-            <div className="flex items-center gap-2 mb-3">
-              <GraduationCap className="w-5 h-5 text-amber-500" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-amber-500/20 rounded-xl">
+                <Flame className="w-5 h-5 text-amber-100" />
+              </div>
               <div>
-                <h2 className="text-base font-bold text-foreground">Em alta</h2>
-                <p className="text-[11px] text-muted-foreground -mt-0.5">Material de apoio</p>
+                <h2 className="font-playfair text-xl font-bold text-foreground tracking-tight">Em alta</h2>
+                <p className="text-xs text-muted-foreground">Material de apoio</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

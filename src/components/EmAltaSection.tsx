@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Flame, FileText, FileCheck2, Video, Target, ChevronRight, Sparkles, Briefcase } from "lucide-react";
+import { GraduationCap, FileText, FileCheck2, Video, Target, ChevronRight, Sparkles, Briefcase } from "lucide-react";
 
 interface EmAltaSectionProps {
   isDesktop: boolean;
@@ -28,7 +28,7 @@ export const EmAltaSection = memo(({ isDesktop, navigate, handleLinkHover }: EmA
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-amber-500/20 rounded-xl">
-            <Flame className="w-5 h-5 text-amber-100" />
+            <GraduationCap className="w-5 h-5 text-amber-100" />
           </div>
           <div>
             <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">
