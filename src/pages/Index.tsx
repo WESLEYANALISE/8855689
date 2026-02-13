@@ -280,7 +280,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
           {/* Saudação personalizada */}
           {userName && (
-            <div className="absolute bottom-14 left-5 pointer-events-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+            <div className="absolute bottom-16 left-5 pointer-events-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
               <p className="text-2xl font-bold text-white/90 leading-tight">{getGreeting()}</p>
               <p className="text-4xl font-bold text-white leading-tight">{userName}</p>
             </div>
