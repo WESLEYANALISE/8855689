@@ -3,7 +3,7 @@ import { CategoriasBottomNav } from "@/components/categorias/CategoriasBottomNav
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Footprints, Loader2, Scale, Crown, Lock, Gavel, ChevronRight, PlayCircle } from "lucide-react";
+import { BookOpen, Footprints, Loader2, Scale, Crown, Lock, Gavel, ChevronRight, PlayCircle, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { LockedTimelineCard } from "@/components/LockedTimelineCard";
@@ -17,6 +17,7 @@ import conceitosThumb from "@/assets/thumbnails/conceitos-thumb.jpg";
 import areasThumb from "@/assets/thumbnails/areas-thumb.jpg";
 import portuguesThumb from "@/assets/thumbnails/portugues-thumb.jpg";
 import oabThumb from "@/assets/thumbnails/oab-thumb.jpg";
+import concursosThumb from "@/assets/thumbnails/concursos-thumb.jpg";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
@@ -27,11 +28,11 @@ const FREE_MATERIA_NAMES = [
   "introducao ao estudo do direito"
 ];
 
-// Categorias com imagens de fundo
+// Categorias com imagens de fundo (sem Conceitos - agora está no Seu Progresso)
 const categoriasAulas = [
-  { id: "conceitos", title: "Trilha de Conceitos", subtitle: "Iniciante", icon: Footprints, thumb: conceitosThumb },
   { id: "areas", title: "Áreas do Direito", subtitle: "27 áreas", icon: Scale, thumb: areasThumb },
-  { id: "portugues", title: "Português p/ Concurso", subtitle: "Gramática", icon: BookOpen, thumb: portuguesThumb },
+  { id: "concursos", title: "Iniciando em Concursos", subtitle: "Preparação", icon: Target, thumb: concursosThumb },
+  { id: "portugues", title: "Português Jurídico", subtitle: "Gramática", icon: BookOpen, thumb: portuguesThumb },
 ];
 
 const categoriaOAB = { id: "oab", title: "OAB", subtitle: "1ª Fase", icon: Gavel, thumb: oabThumb };
@@ -210,6 +211,10 @@ export const MobileTrilhasAprender = memo(() => {
       navigate("/oab/trilhas-aprovacao");
       return;
     }
+    if (id === "concursos") {
+      navigate("/ferramentas/simulados");
+      return;
+    }
     setActiveCategory(activeCategory === id ? null : id);
   };
 
@@ -232,43 +237,46 @@ export const MobileTrilhasAprender = memo(() => {
           <h3 className="font-semibold text-amber-100 text-sm">Seu Progresso</h3>
         </div>
 
-        {todosProgresso.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-            <BookOpen className="w-8 h-8 text-white/20 mx-auto mb-3" />
-            <p className="text-white/50 text-sm">Você ainda não iniciou nenhuma aula.</p>
-            <p className="text-white/30 text-xs mt-1">Escolha uma categoria abaixo para começar!</p>
-          </div>
-        ) : (
-          <ScrollArea className="w-full">
-            <div className="flex gap-3 pb-2">
-              {todosProgresso.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleContinuar(item)}
-                  className="flex-shrink-0 w-[200px] bg-white/5 border border-white/10 rounded-xl p-3 text-left hover:bg-white/10 transition-colors"
-                >
-                  <p className="text-white text-xs font-medium line-clamp-2 mb-2 min-h-[32px]">
-                    {item.nome}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Progress 
-                      value={item.progresso} 
-                      className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
-                    />
-                    <span className="text-[10px] text-amber-400 font-medium min-w-[28px] text-right">
-                      {item.progresso}%
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-2">
-                    <PlayCircle className="w-3 h-3 text-amber-400" />
-                    <span className="text-[10px] text-amber-400 font-medium">Continuar</span>
-                  </div>
-                </button>
-              ))}
+        {/* Card Trilha de Conceitos */}
+        <button
+          onClick={() => {
+            if (todosProgresso.length > 0) {
+              handleContinuar(todosProgresso[0]);
+            } else {
+              navigate("/conceitos");
+            }
+          }}
+          className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-lg h-[100px]"
+        >
+          <img 
+            src={conceitosThumb} 
+            alt="Trilha de Conceitos"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
+          <div className="relative z-10 p-4 h-full flex items-center gap-4">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2.5">
+              <Footprints className="w-5 h-5 text-white" />
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        )}
+            <div className="flex-1">
+              <h3 className="font-semibold text-white text-sm">Trilha de Conceitos</h3>
+              <p className="text-white/50 text-[10px] mt-0.5">Iniciante • Fundamentos do Direito</p>
+              {todosProgresso.length > 0 && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Progress 
+                    value={todosProgresso[0].progresso} 
+                    className="h-1.5 flex-1 max-w-[120px] bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
+                  />
+                  <span className="text-[10px] text-amber-400 font-medium">
+                    {todosProgresso[0].progresso}%
+                  </span>
+                </div>
+              )}
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
+          </div>
+        </button>
       </div>
 
       {/* Title */}
