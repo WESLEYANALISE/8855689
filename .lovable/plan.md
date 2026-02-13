@@ -1,48 +1,76 @@
 
-# Plano: Reestruturar Peticoes com Hierarquia e Simplificar Contratos
 
-## Problema Atual
+# Reestruturar Biblioteca Juridica - Layout Grid "Estante"
 
-1. **Peticoes mostra categorias "flat"**: A pagina AdvogadoModelos lista todas as ~500+ categorias de forma plana (ex: "01. Trabalhista > 01. Inicial > 01. Assedio moral"), quando deveria mostrar uma hierarquia navegavel com 65 areas principais no primeiro nivel.
+## Por que mudar?
 
-2. **Contratos mostra 2 opcoes**: O hub mostra "Modelos de Contratos" e "Criar Contrato", mas deveria mostrar apenas "Criar Contrato".
+O layout atual de timeline alternada (esquerda/direita) tem problemas:
+- Cards ocupam apenas ~45% da largura da tela, desperdicando espaco
+- Exige muito scroll vertical para ver 8 bibliotecas
+- O padrao alternado dificulta a leitura rapida
+- A timeline (linha central + martelo) e decorativa mas nao agrega valor funcional
 
-## Solucao
+## Nova Estrutura Proposta
 
-### 1. Contratos - Apenas "Criar Contrato"
+### Layout: Grid 2 colunas "Estante de Livros"
 
-Remover o card "Modelos de Contratos" da aba Contratos em `PeticoesContratosHub.tsx`, deixando apenas o card "Criar Contrato" que navega para `/advogado/contratos/criar`.
+```text
++---------------------------+
+|   Biblioteca Juridica     |
+|   8 colecoes - 1236 obras |
++---------------------------+
+| +----------+ +----------+ |
+| |  [CAPA]  | |  [CAPA]  | |
+| |  490     | |  28      | |
+| | Estudos  | | Classicos| |
+| +----------+ +----------+ |
+| +----------+ +----------+ |
+| |  [CAPA]  | |  [CAPA]  | |
+| |  OAB     | | Oratoria | |
+| +----------+ +----------+ |
+| +----------+ +----------+ |
+| |  [CAPA]  | |  [CAPA]  | |
+| | Portugues| | Lideranca| |
+| +----------+ +----------+ |
+| +----------+ +----------+ |
+| |  [CAPA]  | |  [CAPA]  | |
+| |Fora Toga | | Pesquisa | |
+| +----------+ +----------+ |
++---------------------------+
+```
 
-### 2. Peticoes - Navegacao Hierarquica em 3 Niveis
+### Design de cada card:
+- Aspect ratio **3:4** (formato livro) mantido
+- Capa ocupa o card inteiro como background
+- Badge de contagem no canto superior esquerdo (estilo atual)
+- Gradiente escuro na parte inferior com titulo e botao "Acessar"
+- Borda sutil com a cor tematica de cada biblioteca
+- Hover: leve scale + brilho na borda
 
-Reestruturar `AdvogadoModelos.tsx` para navegar pela hierarquia usando o separador ` > ` das categorias:
+### Responsividade:
+- **Mobile**: Grid 2 colunas com gap de 12px
+- **Tablet (md)**: Grid 2 colunas com cards maiores
+- **Desktop (lg)**: Grid 3-4 colunas, centralizado com max-width
 
-- **Nivel 1**: Mostra as 65 areas principais (ex: "01. Trabalhista", "13. Civil", "08. Previdenciario") com contagem total de modelos
-- **Nivel 2**: Ao clicar numa area, mostra as subcategorias (ex: "01. Inicial - reclamatoria trabalhista", "02. Defesa trabalhista")
-- **Nivel 3**: Ao clicar numa subcategoria, mostra as sub-subcategorias ou os modelos diretamente se nao houver mais niveis
+## Vantagens:
+- Capas 2x maiores e mais visiveis
+- Todas as 8 bibliotecas visiveis com menos scroll
+- Layout familiar (tipo Netflix, Kindle, Apple Books)
+- Mais facil de escanear visualmente
+- Melhor aproveitamento do espaco em todas as telas
 
-A logica sera:
-- Extrair niveis da string de categoria usando `split(' > ')`
-- Manter um estado `path` (array de strings) representando o nivel atual de navegacao
-- Filtrar categorias que comecam com o path atual para montar a lista do nivel seguinte
-- Quando nao houver mais subdivisoes, mostrar os modelos finais
+## Detalhes Tecnicos
 
-### Detalhes Tecnicos
+### Arquivo a modificar:
+**`src/pages/Bibliotecas.tsx`**
 
-**Arquivos a modificar:**
+- Remover o componente `BibliotecaCard` com logica de timeline (isLeft, linha central, martelo)
+- Criar novo componente de card simplificado com grid layout
+- Substituir a section de timeline por:
+  ```
+  grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3
+  ```
+- Manter: hero section, stats, imagem de fundo, BibliotecaBottomNav
+- Manter: contagens do Supabase, animacoes fade-in
+- Remover: linha central da timeline, marcador Gavel, logica de alternancia esquerda/direita
 
-1. **`src/pages/PeticoesContratosHub.tsx`**
-   - Remover item "Modelos de Contratos" do array `contratosItems`
-   - Manter apenas "Criar Contrato"
-   - Ajustar layout para card unico centralizado
-
-2. **`src/pages/AdvogadoModelos.tsx`**
-   - Substituir `selectedCategory` (string unica) por `navigationPath` (array de strings)
-   - Criar funcao `getSubcategories(path)` que:
-     - Filtra modelos cujas categorias comecam com o path atual
-     - Extrai o proximo nivel da hierarquia
-     - Agrupa e conta modelos por subcategoria
-   - Atualizar o botao "Voltar" para navegar um nivel acima na hierarquia
-   - Quando uma subcategoria nao tem filhos, mostrar os modelos diretamente
-   - Manter virtualizacao com react-window para a lista de modelos
-   - Manter busca funcionando em todos os niveis
