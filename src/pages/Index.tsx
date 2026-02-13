@@ -227,7 +227,7 @@ const Index = () => {
     return (
       <button
         onClick={() => changeMainTab(tab)}
-        className={`flex-1 min-w-0 basis-0 px-3 md:px-4 py-2.5 md:py-3 rounded-full text-sm md:text-base font-medium transition-all flex items-center justify-center gap-1.5 md:gap-2 ${
+        className={`flex-1 min-w-0 basis-0 px-2 md:px-4 py-2.5 md:py-3 rounded-full text-xs md:text-base font-medium transition-all flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap ${
           isActive
             ? 'bg-red-600 text-white shadow-lg'
             : 'bg-neutral-800/80 hover:bg-neutral-700/80'
@@ -236,13 +236,13 @@ const Index = () => {
         {isActive ? (
           <>
             <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 text-white" />
-            <span className="text-white truncate">{label}</span>
+            <span className="text-white">{label}</span>
           </>
         ) : (
           <>
             <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 animate-icon-shimmer" />
             <span
-              className="animate-shimmer bg-clip-text text-transparent truncate"
+              className="animate-shimmer bg-clip-text text-transparent"
               style={{
                 backgroundImage: 'linear-gradient(90deg, rgb(163 163 163) 40%, rgb(250 250 250) 50%, rgb(163 163 163) 60%)',
                 backgroundSize: '200% 100%',
