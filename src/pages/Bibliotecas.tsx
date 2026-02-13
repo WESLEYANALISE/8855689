@@ -328,14 +328,14 @@ const Bibliotecas = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-4">
           <div className="max-w-4xl mx-auto relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar biblioteca..."
-              className="pl-10 h-10 bg-card/50 border-amber-900/20 focus:border-amber-500/50 rounded-xl"
+              className="pl-11 h-12 text-base bg-card/50 border-amber-900/20 focus:border-amber-500/50 rounded-xl"
             />
           </div>
         </div>
