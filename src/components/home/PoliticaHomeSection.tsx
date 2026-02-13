@@ -129,7 +129,7 @@ export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover 
           onMouseEnter={() => handleLinkHover('/politica')}
           className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
         >
-          <span>Ver tudo</span>
+          <span>Ver mais</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
