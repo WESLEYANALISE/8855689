@@ -70,24 +70,35 @@ export const MobileTrilhasAprender = memo(() => {
   const [activeArea, setActiveArea] = useState("Direito Constitucional");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // === PROGRESSO: buscar tópicos em andamento ===
+  // === PROGRESSO: buscar tópicos em andamento (oab_trilhas_estudo_progresso) ===
   const { data: progressoConceitos } = useQuery({
-    queryKey: ["progresso-conceitos", user?.id],
+    queryKey: ["progresso-conceitos-oab", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from("conceitos_topicos_progresso")
-        .select("*, conceitos_topicos(titulo, materia_id)")
+      // Buscar progresso de leitura em andamento
+      const { data: progressoData, error } = await supabase
+        .from("oab_trilhas_estudo_progresso")
+        .select("id, topico_id, progresso_leitura, leitura_completa, updated_at")
         .eq("user_id", user.id)
         .eq("leitura_completa", false)
-        .gt("progresso_porcentagem", 0)
+        .gt("progresso_leitura", 0)
         .order("updated_at", { ascending: false })
         .limit(10);
-      if (error) return [];
-      return (data || []).map((item: any) => ({
+      if (error || !progressoData?.length) return [];
+
+      // Buscar nomes dos tópicos de conceitos_topicos
+      const topicoIds = progressoData.map(p => p.topico_id);
+      const { data: topicos } = await supabase
+        .from("conceitos_topicos")
+        .select("id, titulo")
+        .in("id", topicoIds);
+
+      const topicosMap = new Map((topicos || []).map((t: any) => [t.id, t.titulo]));
+
+      return progressoData.map((item: any) => ({
         id: item.id,
-        nome: item.conceitos_topicos?.titulo || "Tópico",
-        progresso: item.progresso_porcentagem || 0,
+        nome: topicosMap.get(item.topico_id) || "Tópico",
+        progresso: item.progresso_leitura || 0,
         tipo: "conceitos" as const,
         topicoId: item.topico_id,
       }));

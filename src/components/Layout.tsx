@@ -66,6 +66,7 @@ const HIDE_BOTTOM_NAV_ROUTES = new Set([
   "/ferramentas/questoes/temas",
   "/ferramentas/tcc",
   "/ranking-faculdades",
+  "/aulas",
 ]);
 
 const HIDE_BOTTOM_NAV_PREFIXES = [
@@ -107,6 +108,7 @@ const HIDE_HEADER_ROUTES = new Set([
   "/videoaulas-oab",
   "/estudos",
   "/dominando",
+  "/aulas",
 ]);
 
 const HIDE_HEADER_PREFIXES = [
