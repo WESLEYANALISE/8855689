@@ -288,7 +288,7 @@ const Index = () => {
           {/* Ícone de busca no hero */}
           <button
             onClick={() => navigate('/pesquisar')}
-            className="absolute bottom-16 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 pointer-events-auto hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 pointer-events-auto hover:bg-white/20 transition-colors"
           >
             <Search className="w-5 h-5 text-white" />
           </button>
