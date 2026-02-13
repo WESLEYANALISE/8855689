@@ -14,7 +14,7 @@ import { ImageWithZoom } from "@/components/resumos/ImageWithZoom";
 import { CachedImage } from "@/components/ui/cached-image";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
-import { motion } from "framer-motion";
+
 import { formatForWhatsApp } from "@/lib/formatWhatsApp";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDeviceType } from "@/hooks/use-device-type";
@@ -751,13 +751,10 @@ const ResumosProntosView = () => {
             </div>
             
             {/* Lista no estilo OAB Trilhas */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               {resumosFiltrados.map((resumo, index) => (
-                <motion.button
+                <button
                   key={resumo.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
                   onClick={() => {
                     setResumoSelecionado(resumo);
                     if (!resumosGerados.has(resumo.id) && !gerandoResumoIds.has(resumo.id)) {
@@ -767,46 +764,35 @@ const ResumosProntosView = () => {
                       setShowMobilePreview(true);
                     }
                   }}
-                  className={`w-full text-left bg-neutral-800 rounded-xl border border-white/10 overflow-hidden transition-all group hover:border-amber-500/30 ${
-                    resumoSelecionado?.id === resumo.id && !isMobile ? "ring-2 ring-amber-500 border-amber-500/50" : ""
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 hover:border-red-500/30 hover:bg-accent/30 transition-all duration-200 active:scale-[0.98] group ${
+                    resumoSelecionado?.id === resumo.id && !isMobile ? "ring-2 ring-red-500 border-red-500/50" : ""
                   }`}
                 >
-                  <div className="flex items-center">
-                    {/* Capa/Ícone */}
-                    <div className="w-20 h-20 flex-shrink-0 relative bg-neutral-900 overflow-hidden rounded-l-xl">
-                      {resumo.url_imagem_resumo ? (
-                        <img 
-                          src={resumo.url_imagem_resumo}
-                          alt={resumo.subtema}
-                          className="w-full h-full object-cover"
-                          loading="eager"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900/50 to-orange-900/50">
-                          <Scale className="w-6 h-6 text-amber-500/70" />
-                        </div>
-                      )}
-                      {/* Badge do número */}
-                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-600 text-white">
+                  {/* Ícone vermelho com badge */}
+                  <div className="relative w-12 h-12 rounded-lg bg-red-600/10 flex items-center justify-center shrink-0">
+                    <Scale className="w-6 h-6 text-red-500" />
+                    <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-md bg-red-600 flex items-center justify-center">
+                      <span className="text-[9px] font-bold text-white">
                         {String(index + 1).padStart(2, '0')}
-                      </div>
-                    </div>
-                    
-                    {/* Conteúdo */}
-                    <div className="flex-1 p-3 flex items-center justify-between min-h-[80px]">
-                      <h3 className="font-medium text-white transition-colors text-sm group-hover:text-amber-400">
-                        {resumo.subtema}
-                      </h3>
-                      <div className="flex-shrink-0 ml-2">
-                        {gerandoResumoIds.has(resumo.id) ? (
-                          <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-amber-500/50 group-hover:text-amber-500" />
-                        )}
-                      </div>
+                      </span>
                     </div>
                   </div>
-                </motion.button>
+
+                  {/* Conteúdo */}
+                  <div className="flex-1 text-left min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-red-500 transition-colors">
+                      {resumo.subtema}
+                    </h3>
+                  </div>
+
+                  <div className="shrink-0">
+                    {gerandoResumoIds.has(resumo.id) ? (
+                      <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-red-500 transition-colors" />
+                    )}
+                  </div>
+                </button>
               ))}
             </div>
           </div>}
