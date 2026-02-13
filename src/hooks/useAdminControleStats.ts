@@ -575,15 +575,17 @@ export const useOnline30MinDetails = () => {
     queryFn: async (): Promise<UsuarioDetalhe[]> => {
       const { data, error } = await supabase.rpc('get_admin_online_30min_details');
       if (error) throw error;
-      return (data || []).map((item: any) => ({
-        user_id: item.user_id,
-        nome: item.nome,
-        email: item.email,
-        telefone: item.telefone,
-        dispositivo: item.dispositivo,
-        page_path: item.page_path,
-        last_seen: item.last_seen,
-      }));
+      return (data || [])
+        .filter((item: any) => item.nome && item.nome.trim() !== '')
+        .map((item: any) => ({
+          user_id: item.user_id,
+          nome: item.nome,
+          email: item.email,
+          telefone: item.telefone,
+          dispositivo: item.dispositivo,
+          page_path: item.page_path,
+          last_seen: item.last_seen,
+        }));
     },
     refetchInterval: 15000,
   });
