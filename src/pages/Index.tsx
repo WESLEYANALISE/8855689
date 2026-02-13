@@ -3,7 +3,7 @@ import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight } from "lucide-react";
 import cardAulasThumb from "@/assets/card-aulas-thumb.jpg";
 import bibliotecaThumb from "@/assets/biblioteca-office-sunset.jpg";
@@ -84,6 +84,23 @@ const Index = () => {
   const { handleLinkHover } = useRoutePrefetch();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // Parallax scroll state
+  const [scrollY, setScrollY] = useState(0);
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Buscar nome do usuário para saudação
   const [userName, setUserName] = useState<string | null>(null);
@@ -236,6 +253,17 @@ const Index = () => {
       {/* Áudio de boas-vindas para novos usuários */}
       <WelcomeAudioPlayer />
       
+      {/* Ícone de busca flutuante - independente do hero para funcionar sempre */}
+      {mainTab === 'ferramentas' && (
+        <button
+          onClick={() => navigate('/pesquisar')}
+          className="md:hidden fixed top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
+          style={{ zIndex: 10 }}
+        >
+          <Search className="w-5 h-5 text-white" />
+        </button>
+      )}
+
       {/* Hero Banner Mobile - fixo, cobre do topo até incluir os tabs */}
       <div className="md:hidden fixed top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 1, height: '18rem' }}>
         <div className="w-full h-full overflow-hidden rounded-b-[32px]" style={{ position: 'relative' }}>
@@ -246,23 +274,19 @@ const Index = () => {
             loading="eager"
             fetchPriority="high"
             decoding="sync"
+            style={{
+              transform: `translateY(${scrollY * 0.3}px) scale(1.1)`,
+              willChange: 'transform',
+              transition: 'transform 0.05s linear',
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
           {/* Saudação personalizada */}
           {userName && (
             <div className="absolute bottom-24 left-5 pointer-events-auto" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
-              <p className="text-2xl font-bold text-white/90 leading-tight">{getGreeting()}</p>
-              <p className="text-4xl font-bold text-white leading-tight">{userName}</p>
+              <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()}</p>
+              <p className="font-playfair text-4xl font-bold text-white leading-tight">{userName}</p>
             </div>
-          )}
-          {/* Ícone de busca no hero - só aparece em Estudos */}
-          {mainTab === 'ferramentas' && (
-            <button
-              onClick={() => navigate('/pesquisar')}
-              className="absolute top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 pointer-events-auto hover:bg-white/20 transition-colors"
-            >
-              <Search className="w-5 h-5 text-white" />
-            </button>
           )}
         </div>
       </div>
