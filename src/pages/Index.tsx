@@ -247,44 +247,58 @@ const Index = () => {
       {/* Áudio de boas-vindas para novos usuários */}
       <WelcomeAudioPlayer />
       
-      {/* Hero Banner Mobile - Menor e com opacidade reduzida */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+      {/* Hero Banner Mobile - Imagem fixa atrás do card */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-64 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
         <img 
           src={heroImage}
           alt="Juridiquê"
-          className="absolute inset-0 w-full h-full object-cover object-top opacity-85"
+          className="absolute inset-0 w-full h-full object-cover object-top"
           loading="eager"
           fetchPriority="high"
           decoding="sync"
         />
-        {/* Gradiente suave para transição */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/50 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/50" />
       </div>
 
       {/* Header com gradiente sutil - Desktop */}
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
-      <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] py-[2px]" style={{ zIndex: 2 }}>
-        {/* Menu de Alternância Principal - Apenas mobile (antes de tudo para não pular) */}
-        <div className="flex gap-1.5 md:hidden mb-2 relative z-20 h-[44px] mt-4">
+      {/* Spacer mobile para empurrar o card abaixo do hero */}
+      <div className="md:hidden h-36" style={{ zIndex: 1 }} />
+
+      {/* Card branco arredondado - Mobile */}
+      <div className="md:hidden bg-background rounded-t-[28px] relative shadow-[0_-4px_20px_rgba(0,0,0,0.15)] min-h-screen" style={{ zIndex: 2 }}>
+        <div className="px-4 pt-4 pb-2 space-y-4">
+          {/* Menu de Alternância Principal */}
+          <div className="flex gap-1.5 h-[44px]">
+            <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
+            <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
+            <TabButton tab="leis" icon={Scale} label="Leis" />
+          </div>
+
+          {/* Search Bar */}
+          {mainTab !== 'iniciante' && (
+            <div 
+              data-tutorial="busca-principal"
+              onClick={() => navigate('/pesquisar')} 
+              className="group flex items-center gap-3 px-5 py-4 bg-muted/50 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-muted transition-colors duration-150"
+            >
+              <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
+                <Search className="w-5 h-5 text-red-400" />
+              </div>
+              <SearchBarAnimatedText />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] md:py-[2px] bg-background" style={{ zIndex: 2 }}>
+        {/* Desktop tabs (hidden on mobile since they're in the card above) */}
+        <div className="hidden md:flex gap-1.5 mb-2 relative z-20 h-[44px] mt-4">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
           <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
         </div>
-
-        {/* Search Bar - Apenas mobile (desktop usa a barra no header) */}
-        {mainTab !== 'iniciante' && (
-          <div 
-            data-tutorial="busca-principal"
-            onClick={() => navigate('/pesquisar')} 
-            className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg relative z-10"
-          >
-            <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
-              <Search className="w-5 h-5 text-red-400" />
-            </div>
-            <SearchBarAnimatedText />
-          </div>
-        )}
 
         {/* Notícias em Destaque */}
         {mainTab !== 'iniciante' && (
@@ -292,16 +306,16 @@ const Index = () => {
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-500/20 rounded-xl">
-                  <Newspaper className="w-5 h-5 text-amber-100" />
+                  <Newspaper className="w-5 h-5 text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">Notícias Jurídicas</h3>
-                  <p className="text-xs text-white/70">Fique atualizado</p>
+                  <h3 className="font-playfair text-xl md:text-lg font-bold text-foreground tracking-tight">Notícias Jurídicas</h3>
+                  <p className="text-xs text-muted-foreground">Fique atualizado</p>
                 </div>
               </div>
               <button
                 onClick={() => navigate('/noticias-juridicas')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
               >
                 <span>Ver mais</span>
                 <ArrowRight className="w-3.5 h-3.5" />
