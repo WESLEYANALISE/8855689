@@ -286,31 +286,33 @@ const Index = () => {
           <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
             <button
               onClick={() => changeMainTab('iniciante')}
-              className="relative overflow-hidden rounded-2xl h-[100px] text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group"
+              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-muted"
             >
-              <img src={cardAulasThumb} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-              <div className="relative z-10 p-4 flex flex-col justify-end h-full">
+              <div className="relative h-[70px] overflow-hidden">
+                <img src={cardAulasThumb} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-3">
                 <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-base font-bold text-white">Aulas</h3>
+                  <GraduationCap className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-bold text-foreground">Aulas</h3>
                 </div>
-                <p className="text-[11px] text-white/60 mt-0.5">Jornada de estudos</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Jornada de estudos</p>
               </div>
             </button>
 
             <button
               onClick={() => navigate('/bibliotecas')}
-              className="relative overflow-hidden rounded-2xl h-[100px] text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group"
+              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-muted"
             >
-              <img src={bibliotecaThumb} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-              <div className="relative z-10 p-4 flex flex-col justify-end h-full">
+              <div className="relative h-[70px] overflow-hidden">
+                <img src={bibliotecaThumb} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-3">
                 <div className="flex items-center gap-2">
-                  <Library className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-base font-bold text-white">Biblioteca</h3>
+                  <Library className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-bold text-foreground">Biblioteca</h3>
                 </div>
-                <p className="text-[11px] text-white/60 mt-0.5">Acervo completo</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Acervo completo</p>
               </div>
             </button>
           </div>
