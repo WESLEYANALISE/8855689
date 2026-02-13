@@ -263,19 +263,18 @@ const Index = () => {
       {/* Header com gradiente sutil - Desktop */}
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
-      {/* Spacer mobile para empurrar o card abaixo do hero */}
-      <div className="md:hidden h-36" style={{ zIndex: 1 }} />
+      {/* Tabs sobre a imagem hero - Mobile */}
+      <div className="md:hidden relative px-4 mb-[-14px]" style={{ zIndex: 3 }}>
+        <div className="flex gap-1.5 h-[44px]">
+          <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
+          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
+          <TabButton tab="leis" icon={Scale} label="Leis" />
+        </div>
+      </div>
 
       {/* Card branco arredondado - Mobile */}
       <div className="md:hidden bg-background rounded-t-[28px] relative shadow-[0_-4px_20px_rgba(0,0,0,0.15)] min-h-screen pb-20" style={{ zIndex: 2 }}>
-        <div className="px-4 pt-4 pb-2 space-y-4">
-          {/* Menu de Alternância Principal */}
-          <div className="flex gap-1.5 h-[44px]">
-            <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
-            <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
-            <TabButton tab="leis" icon={Scale} label="Leis" />
-          </div>
-
+        <div className="px-4 pt-6 pb-2 space-y-4">
           {/* Search Bar - apenas aba Estudos */}
           {mainTab === 'ferramentas' && (
             <div 
@@ -296,7 +295,11 @@ const Index = () => {
           {/* ABA FERRAMENTAS - Mobile */}
           {mainTab === 'ferramentas' && (
             <>
-              {/* Notícias em Destaque - apenas em Estudos */}
+              <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+              <OABHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+              <PoliticaHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+
+              {/* Notícias em Destaque - abaixo de Estudos */}
               <div className="space-y-4 relative z-10">
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-3">
@@ -330,10 +333,6 @@ const Index = () => {
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
-
-              <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
-              <OABHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
-              <PoliticaHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
             </>
           )}
 
