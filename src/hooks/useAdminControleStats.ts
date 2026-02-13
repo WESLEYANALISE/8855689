@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -274,7 +274,6 @@ export const useMetricasPremium = (periodoDias = 7) => {
         ? (totalPremium / totalUsuarios) * 100 
         : 0;
       
-      // Receita
       let receitaTotal = 0;
       let receitaMensal = 0;
       let receitaAnual = 0;
@@ -299,7 +298,6 @@ export const useMetricasPremium = (periodoDias = 7) => {
         }
       });
 
-      // Média de dias até premium
       let mediaDiasAtePremium: number | null = null;
       
       if (subscriptions && subscriptions.length > 0) {
@@ -362,8 +360,26 @@ export interface AssinantePremium {
   payment_method: string | null;
 }
 
-// Hook para listar assinantes premium únicos
+// Hook para listar assinantes premium únicos - COM REALTIME
 export const useListaAssinantesPremium = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-premium-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-controle-lista-premium'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-controle-premium'] });
+        }
+      )
+      .subscribe();
+
+    return () => { channel.unsubscribe(); };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['admin-controle-lista-premium'],
     queryFn: async (): Promise<AssinantePremium[]> => {
@@ -401,7 +417,6 @@ export const useListaAssinantesPremium = () => {
         }
       });
 
-      // Fetch profile details
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
@@ -420,7 +435,7 @@ export const useListaAssinantesPremium = () => {
 
       return Array.from(emailMap.values());
     },
-    refetchInterval: 60000,
+    refetchInterval: 15000,
   });
 };
 
@@ -467,12 +482,74 @@ export const useOnlineAgoraRealtime = () => {
   return { onlineAgora, isLoading, refetch: fetchOnline };
 };
 
+// Hook para Online 30 Minutos
+export const useOnline30MinRealtime = () => {
+  const [online30Min, setOnline30Min] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchOnline30 = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_online_30min_count');
+      if (!error && data != null) {
+        setOnline30Min(data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar online 30min:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOnline30();
+
+    const channel = supabase
+      .channel('online-30min-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'page_views' },
+        () => { fetchOnline30(); }
+      )
+      .subscribe();
+
+    const interval = setInterval(fetchOnline30, 30000);
+
+    return () => {
+      channel.unsubscribe();
+      clearInterval(interval);
+    };
+  }, [fetchOnline30]);
+
+  return { online30Min, isLoading, refetch: fetchOnline30 };
+};
+
 // Hook para detalhes dos usuários online agora
 export const useOnlineDetails = () => {
   return useQuery({
     queryKey: ['admin-controle-online-details'],
     queryFn: async (): Promise<UsuarioDetalhe[]> => {
       const { data, error } = await supabase.rpc('get_admin_online_details');
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        user_id: item.user_id,
+        nome: item.nome,
+        email: item.email,
+        telefone: item.telefone,
+        dispositivo: item.dispositivo,
+        page_path: item.page_path,
+        last_seen: item.last_seen,
+      }));
+    },
+    refetchInterval: 15000,
+  });
+};
+
+// Hook para detalhes dos usuários online 30 minutos
+export const useOnline30MinDetails = () => {
+  return useQuery({
+    queryKey: ['admin-controle-online-30min-details'],
+    queryFn: async (): Promise<UsuarioDetalhe[]> => {
+      const { data, error } = await supabase.rpc('get_admin_online_30min_details');
       if (error) throw error;
       return (data || []).map((item: any) => ({
         user_id: item.user_id,
@@ -548,4 +625,44 @@ export const useCadastrosPorDia = (dias = 30) => {
     },
     refetchInterval: 60000,
   });
+};
+
+// Hook para feedback diário da IA
+export const useDailyFeedback = () => {
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchFeedback = useCallback(async (regenerate = false) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        'https://izspjvegxdfgkgibpyst.supabase.co/functions/v1/admin-daily-feedback',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6c3BqdmVneGRmZ2tnaWJweXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNDA2MTQsImV4cCI6MjA2MDcxNjYxNH0.LwTMbDH-S0mBoiIxfrSH2BpUMA7r4upOWWAb5a_If0Y',
+          },
+          body: JSON.stringify({ regenerate }),
+        }
+      );
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setFeedback(data.feedback);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao buscar feedback');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFeedback();
+  }, [fetchFeedback]);
+
+  return { feedback, isLoading, error, regenerate: () => fetchFeedback(true) };
 };

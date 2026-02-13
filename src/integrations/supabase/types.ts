@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_daily_feedback: {
+        Row: {
+          created_at: string
+          data: string
+          feedback_text: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          feedback_text: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          feedback_text?: string
+          id?: string
+        }
+        Relationships: []
+      }
       advogado_blog: {
         Row: {
           cache_validade: string | null
@@ -20169,6 +20190,19 @@ export type Database = {
       get_admin_novos_por_periodo: {
         Args: { p_dias?: number }
         Returns: number
+      }
+      get_admin_online_30min_count: { Args: never; Returns: number }
+      get_admin_online_30min_details: {
+        Args: never
+        Returns: {
+          dispositivo: string
+          email: string
+          last_seen: string
+          nome: string
+          page_path: string
+          telefone: string
+          user_id: string
+        }[]
       }
       get_admin_online_count: { Args: never; Returns: number }
       get_admin_online_details: {
