@@ -522,7 +522,7 @@ export const MobileTrilhasAprender = memo(() => {
       )}
 
       {/* Menu de rodapé fixo - apenas admin */}
-      {isAdmin && <CategoriasBottomNav activeTab="aulas" />}
+      {isAdmin && activeCategory && <CategoriasBottomNav activeTab="aulas" />}
     </div>
   );
 });
