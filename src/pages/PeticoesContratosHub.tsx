@@ -45,14 +45,6 @@ const PeticoesContratosHub = () => {
 
   const contratosItems: TrailItem[] = [
     {
-      title: "Modelos de Contratos",
-      subtitle: "Mais de 500 modelos prontos para usar",
-      icon: <FileText className="w-7 h-7 text-white" />,
-      onClick: () => navigate("/advogado/contratos/modelos"),
-      badge: "500+",
-      coverGradient: "from-emerald-600/50 to-teal-700/40",
-    },
-    {
       title: "Criar Contrato",
       subtitle: "Gere contratos personalizados com IA",
       icon: <FilePlus className="w-7 h-7 text-white" />,
