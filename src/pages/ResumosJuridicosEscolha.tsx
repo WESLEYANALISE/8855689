@@ -88,12 +88,6 @@ export default function ResumosJuridicosEscolha() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border/40">
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-center gap-3 mb-3">
-            <button
-              onClick={() => navigate('/')}
-              className="p-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 transition-colors border border-red-600/20"
-            >
-              <ArrowLeft className="w-5 h-5 text-red-500" />
-            </button>
             <div className="flex-1">
               <h1 className="text-lg font-bold text-foreground">Resumos Jurídicos</h1>
               <p className="text-xs text-muted-foreground">

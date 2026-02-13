@@ -719,7 +719,7 @@ const ResumosProntosView = () => {
               <ChevronRight className="w-3 h-3" />
               <span>{decodedTema}</span>
             </div>
-            <h1 className="text-xl md:text-2xl font-bold">{decodedTema}</h1>
+            <h1 className="text-xl md:text-2xl font-medium text-foreground">{decodedTema}</h1>
           </div>
 
           {!isMobile && resumoSelecionado && resumosGerados.has(resumoSelecionado.id) && <div className="flex gap-2 mb-4">
@@ -780,8 +780,8 @@ const ResumosProntosView = () => {
 
                   {/* Conteúdo */}
                   <div className="flex-1 text-left min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-red-500 transition-colors">
-                      {resumo.subtema}
+                    <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-red-500 transition-colors" style={{ textTransform: 'capitalize' }}>
+                      {resumo.subtema.toLowerCase()}
                     </h3>
                   </div>
 
