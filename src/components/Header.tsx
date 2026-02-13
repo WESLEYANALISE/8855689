@@ -5,6 +5,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 const getHierarchicalDestination = (pathname: string, search: string): string => {
   const params = new URLSearchParams(search);
 
+  // ===== LEIS / EXPLICAÇÕES =====
+  if (pathname === "/leis/explicacoes") return "/?tab=leis";
+
   // ===== VADE MECUM =====
   if (pathname === "/vade-mecum/busca") return "/?tab=leis";
   if (pathname === "/vade-mecum/sobre") return "/?tab=leis";

@@ -2077,6 +2077,27 @@ export type Database = {
         }
         Relationships: []
       }
+      busca_leis_historico: {
+        Row: {
+          created_at: string | null
+          id: string
+          termo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          termo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          termo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       "CA - Código de Águas": {
         Row: {
           Artigo: string | null

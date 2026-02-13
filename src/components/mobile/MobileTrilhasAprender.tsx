@@ -317,115 +317,118 @@ export const MobileTrilhasAprender = memo(() => {
         </div>
       </div>
 
-      {/* ========== 4. ÁREAS DO DIREITO (CARROSSEL COM DESTAQUE) ========== */}
-      <div className="w-full mb-6">
-        <div className="flex items-center gap-2 px-4 mb-1">
-          <Scale className="w-4 h-4 text-amber-400" />
-          <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Áreas do Direito</h3>
-        </div>
-        <p className="text-white/40 text-[10px] px-4 mb-3">Explore as matérias</p>
-        <div 
-          className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {AREAS_ORDEM.map((area) => {
-            const isActive = activeArea === area.value && activeCategory === "areas";
-            return (
-              <button
-                key={area.value}
-                onClick={() => {
-                  setActiveArea(area.value);
-                  setActiveCategory("areas");
-                }}
-                className={`flex-shrink-0 w-[150px] relative overflow-hidden rounded-2xl text-left transition-all shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[120px] ${
-                  isActive ? 'ring-2 ring-amber-400/60 scale-[1.03]' : 'hover:scale-[1.02]'
-                }`}
-              >
-                <img src={areasThumb} alt={area.label} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
-                <div className="relative z-10 p-3 h-full flex flex-col justify-end">
-                  <h4 className="font-semibold text-white text-xs leading-tight">{area.label}</h4>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ========== 5. PORTUGUÊS JURÍDICO ========== */}
-      <div className="w-full px-3 mb-6">
-        <button
-          onClick={() => setActiveCategory(activeCategory === "portugues" ? null : "portugues")}
-          className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[110px]"
-        >
-          <img src={portuguesThumb} alt="Português Jurídico" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
-          <div className="relative z-10 p-4 h-full flex items-center gap-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2.5">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-white text-sm">Português Jurídico</h3>
-              <p className="text-white/50 text-[10px] mt-0.5">Gramática • Redação</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-white/50" />
+      {/* ========== 4. ÁREAS DO DIREITO - ADMIN ONLY ========== */}
+      {isAdmin && (
+        <div className="w-full mb-6">
+          <div className="flex items-center gap-2 px-4 mb-1">
+            <Scale className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Áreas do Direito</h3>
           </div>
-        </button>
-      </div>
+          <p className="text-white/40 text-[10px] px-4 mb-3">Explore as matérias</p>
+          <div 
+            className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {AREAS_ORDEM.map((area) => {
+              const isActive = activeArea === area.value && activeCategory === "areas";
+              return (
+                <button
+                  key={area.value}
+                  onClick={() => {
+                    setActiveArea(area.value);
+                    setActiveCategory("areas");
+                  }}
+                  className={`flex-shrink-0 w-[150px] relative overflow-hidden rounded-2xl text-left transition-all shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[120px] ${
+                    isActive ? 'ring-2 ring-amber-400/60 scale-[1.03]' : 'hover:scale-[1.02]'
+                  }`}
+                >
+                  <img src={areasThumb} alt={area.label} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                  <div className="relative z-10 p-3 h-full flex flex-col justify-end">
+                    <h4 className="font-semibold text-white text-xs leading-tight">{area.label}</h4>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-      {activeCategory === "portugues" && (
+      {/* ========== 5. PORTUGUÊS JURÍDICO - ADMIN ONLY ========== */}
+      {isAdmin && (
+        <div className="w-full px-3 mb-6">
+          <button
+            onClick={() => setActiveCategory(activeCategory === "portugues" ? null : "portugues")}
+            className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[110px]"
+          >
+            <img src={portuguesThumb} alt="Português Jurídico" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
+            <div className="relative z-10 p-4 h-full flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2.5">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-white text-sm">Português Jurídico</h3>
+                <p className="text-white/50 text-[10px] mt-0.5">Gramática • Redação</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-white/50" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {isAdmin && activeCategory === "portugues" && (
         <div className="text-center py-10 text-white/50 text-sm mb-4">
           Em breve: Português para Concurso
         </div>
       )}
 
-      {/* ========== 6. SEÇÃO OAB (COM DESTAQUE) ========== */}
-      <div className="w-full px-3 mb-4">
-        <div className="flex items-center gap-2 px-1 mb-1">
-          <Gavel className="w-4 h-4 text-red-400" />
-          <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">OAB</h3>
+      {/* ========== 6. SEÇÃO OAB - ADMIN ONLY ========== */}
+      {isAdmin && (
+        <div className="w-full px-3 mb-4">
+          <div className="flex items-center gap-2 px-1 mb-1">
+            <Gavel className="w-4 h-4 text-red-400" />
+            <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">OAB</h3>
+          </div>
+          <p className="text-white/40 text-[10px] px-1 mb-2.5">Preparação completa</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              onClick={() => navigate("/oab/trilhas-aprovacao")}
+              className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
+            >
+              <img src={oabPrimeiraThumb} alt="OAB 1ª Fase" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+              <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+                <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
+                  <Gavel className="w-4 h-4 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-sm">1ª Fase</h3>
+                  <p className="text-white/50 text-[10px] mt-0.5">Trilhas de aprovação</p>
+                </div>
+              </div>
+              <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
+            </button>
+            <button
+              onClick={() => navigate("/oab/segunda-fase")}
+              className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
+            >
+              <img src={oabSegundaThumb} alt="OAB 2ª Fase" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+              <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+                <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
+                  <Scale className="w-4 h-4 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-sm">2ª Fase</h3>
+                  <p className="text-white/50 text-[10px] mt-0.5">Peça prática</p>
+                </div>
+              </div>
+              <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
+            </button>
+          </div>
         </div>
-        <p className="text-white/40 text-[10px] px-1 mb-2.5">Preparação completa</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* 1ª Fase */}
-          <button
-            onClick={() => navigate("/oab/trilhas-aprovacao")}
-            className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
-          >
-            <img src={oabPrimeiraThumb} alt="OAB 1ª Fase" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
-            <div className="relative z-10 p-3 h-full flex flex-col justify-between">
-              <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
-                <Gavel className="w-4 h-4 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white text-sm">1ª Fase</h3>
-                <p className="text-white/50 text-[10px] mt-0.5">Trilhas de aprovação</p>
-              </div>
-            </div>
-            <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
-          </button>
-
-          {/* 2ª Fase */}
-          <button
-            onClick={() => navigate("/oab/segunda-fase")}
-            className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
-          >
-            <img src={oabSegundaThumb} alt="OAB 2ª Fase" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
-            <div className="relative z-10 p-3 h-full flex flex-col justify-between">
-              <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
-                <Scale className="w-4 h-4 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white text-sm">2ª Fase</h3>
-                <p className="text-white/50 text-[10px] mt-0.5">Peça prática</p>
-              </div>
-            </div>
-            <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Conteúdo da área selecionada */}
       {activeCategory === "areas" && (
