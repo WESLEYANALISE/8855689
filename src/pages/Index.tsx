@@ -248,16 +248,18 @@ const Index = () => {
       <WelcomeAudioPlayer />
       
       {/* Hero Banner Mobile - fixo, cobre do topo até incluir os tabs */}
-      <div className="md:hidden fixed top-0 left-0 right-0 overflow-hidden pointer-events-none rounded-b-[28px]" style={{ zIndex: 1, height: '15.5rem' }}>
-        <img 
-          src={heroImage}
-          alt="Juridiquê"
-          className="absolute inset-0 w-full h-full object-cover object-top"
-          loading="eager"
-          fetchPriority="high"
-          decoding="sync"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+      <div className="md:hidden fixed top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 1, height: '15.5rem' }}>
+        <div className="w-full h-full overflow-hidden rounded-b-[32px]" style={{ position: 'relative' }}>
+          <img 
+            src={heroImage}
+            alt="Juridiquê"
+            className="absolute inset-0 w-full h-full object-cover object-top"
+            loading="eager"
+            fetchPriority="high"
+            decoding="sync"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+        </div>
       </div>
 
       {/* Header com gradiente sutil - Desktop */}
