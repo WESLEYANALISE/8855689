@@ -1,4 +1,5 @@
-import { useEffect, lazy } from "react";
+import { useEffect, lazy, Suspense } from "react";
+import { PageLoader } from "@/components/ui/page-loader";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -889,7 +890,7 @@ const App = () => {
               <Route path="/dominando/estudo/:disciplinaId" element={<DominandoEstudo />} />
               
               {/* Dashboard de Aulas */}
-              <Route path="/aulas" element={<AulasPage />} />
+              <Route path="/aulas" element={<Suspense fallback={<PageLoader />}><AulasPage /></Suspense>} />
               <Route path="/aulas/dashboard" element={<AulasDashboard />} />
               
               {/* Conceitos (Trilhas para Iniciantes) */}
