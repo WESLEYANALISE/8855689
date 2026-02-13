@@ -128,8 +128,8 @@ const Onboarding = () => {
         markOnboardingComplete(user.id);
       }
 
-      // Ir para escolha de plano
-      navigate('/escolher-plano', { replace: true });
+      // Ir direto para o app (planos acessíveis via seção Premium)
+      navigate('/', { replace: true });
     } catch (error: any) {
       console.error('Erro ao salvar perfil:', error);
       toast.error('Erro ao salvar perfil. Tente novamente.');
