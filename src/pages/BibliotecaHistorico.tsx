@@ -4,7 +4,7 @@ import { Clock, BookOpen, Loader2, ChevronRight, BarChart3 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
+import { BibliotecaTopNav } from "@/components/biblioteca/BibliotecaTopNav";
 import { format, isToday, isYesterday, isThisWeek, parseISO, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -139,7 +139,8 @@ const BibliotecaHistorico = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-8">
+      <BibliotecaTopNav activeTab="historico" />
       <div className="bg-gradient-to-b from-amber-950/30 to-background px-4 pt-6 pb-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
@@ -243,7 +244,7 @@ const BibliotecaHistorico = () => {
         ))}
       </div>
 
-      <BibliotecaBottomNav activeTab="historico" />
+      
     </div>
   );
 };

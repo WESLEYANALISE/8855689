@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Target, BookOpen, MessageSquare, Trash2, ChevronRight, Loader2, Plus, Search, X, ArrowLeft, Star, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
+import { BibliotecaTopNav } from "@/components/biblioteca/BibliotecaTopNav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -183,13 +183,14 @@ const BibliotecaPlanoLeitura = () => {
           <Target className="w-12 h-12 text-amber-500/30 mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">Faça login para acessar seu plano de leitura</p>
         </div>
-        <BibliotecaBottomNav activeTab="plano" />
+          <BibliotecaTopNav activeTab="plano" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-8">
+      <BibliotecaTopNav activeTab="plano" />
       <div className="bg-gradient-to-b from-amber-950/30 to-background px-4 pt-6 pb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -521,7 +522,7 @@ const BibliotecaPlanoLeitura = () => {
         </DialogContent>
       </Dialog>
 
-      <BibliotecaBottomNav activeTab="plano" />
+      
     </div>
   );
 };
