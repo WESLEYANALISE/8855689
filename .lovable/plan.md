@@ -1,32 +1,99 @@
 
+# Melhorias no Painel Administrativo "Controle"
 
-## Problema Identificado
+## Resumo das Mudancas
 
-O cache do IndexedDB contém apenas 150 artigos antigos do Código Civil. O sistema detecta que há 2388 artigos no banco, mas ao tentar atualizar, ele lê o mesmo cache antigo novamente, criando um **loop infinito** sem nunca buscar dados novos do Supabase.
+O painel sera reestruturado com 4 grandes melhorias: (1) Online Agora + Online 30min, (2) Assinantes Premium em tempo real, (3) remocao do botao "Atualizar" e mais metricas clicaveis, (4) secao de Feedback diario com IA Gemini.
 
-Fluxo do bug:
-1. Cache IndexedDB tem 150 artigos
-2. Sistema carrega cache e mostra 150 artigos
-3. `checkForUpdates` detecta diferença (150 vs 2388)
-4. Reseta estado e chama `loadInitial()` novamente
-5. `loadInitial` encontra o mesmo cache de 150 artigos
-6. Volta ao passo 2 (loop infinito)
+---
 
-## Solução
+## 1. Online Agora + Online 30 Minutos
 
-Corrigir o hook `useProgressiveArticles.ts` para que, quando detectar dados desatualizados no cache, limpe o cache primeiro e force o carregamento direto do Supabase (sem ler o cache novamente).
+Atualmente so mostra "Online Agora" (ultimos 5 minutos). Sera adicionado um segundo card "Online 30min" que mostra usuarios unicos dos ultimos 30 minutos.
 
-### Mudancas Tecnicas
+- Criar nova funcao RPC no Supabase: `get_admin_online_30min_count` (conta usuarios distintos com `page_views` nos ultimos 30 minutos)
+- Criar nova funcao RPC: `get_admin_online_30min_details` (lista detalhada dos usuarios dos ultimos 30 minutos)
+- No hook `useAdminControleStats.ts`, adicionar `useOnline30MinRealtime` e `useOnline30MinDetails`
+- Na UI, o card "Online Agora" e "Online 30min" ficarao lado a lado no grid de metricas
+- Ao clicar, abre o dialog mostrando a lista de pessoas com nome, email, pagina atual e quando foram vistos por ultimo
 
-**Arquivo: `src/hooks/useProgressiveArticles.ts`**
+## 2. Assinantes Premium em Tempo Real
 
-1. Na funcao `checkForUpdates`: ao detectar mudanca, primeiro limpar o cache do IndexedDB antes de recarregar, e usar uma flag (`skipCache`) para forcar busca direta do Supabase.
+A lista de assinantes nao atualiza em tempo real. Sera corrigido:
 
-2. Adicionar um `useRef` (`skipCacheRef`) que, quando ativo, faz o `loadInitial` pular a leitura do cache e ir direto para o carregamento progressivo do Supabase.
+- Adicionar canal Supabase Realtime escutando a tabela `subscriptions` (eventos INSERT e UPDATE)
+- Quando detectar mudanca, refaz a query de `useListaAssinantesPremium` automaticamente
+- Reduzir o `refetchInterval` de 60s para 15s como fallback
+- Garantir que a lista mostra TODOS os assinantes (sem limite), ordenados por data mais recente
 
-3. Na funcao `loadInitial`: verificar `skipCacheRef.current` e, se verdadeiro, ignorar `cachedData` e carregar do Supabase diretamente.
+## 3. Remover Botao "Atualizar" + Mais Metricas Clicaveis
 
-4. Importar `clearCache` do hook `useIndexedDBCache` para poder limpar dados obsoletos.
+- Remover o botao "Atualizar" do header (os dados ja atualizam automaticamente via realtime + polling)
+- Transformar os cards de Premium (Total Premium, Taxa Conversao, Novos Premium, Receita) em clicaveis
+  - Ao clicar em "Total Premium" ou "Novos Premium", scrolla para a secao de assinantes
+  - Ao clicar em "Receita Total", abre dialog com detalhamento por tipo de plano
+- Cards de Page Views e Media de cadastros tambem clicaveis, abrindo dialog com detalhes
+- Cada card tera visual de hover melhorado para indicar interatividade
 
-Isso resolve tanto o loop infinito quanto garante que todos os 2388 artigos sejam carregados e salvos no cache para visitas futuras.
+## 4. Secao de Feedback Diario com IA (Gemini)
 
+Nova secao "Feedback do Dia" que usa a API Gemini (mesmas chaves GEMINI_KEY_1/2/3 do chat) para gerar um resumo diario.
+
+### Como funciona:
+- Novo edge function `admin-daily-feedback` que:
+  1. Busca dados do dia atual: page views, novos usuarios, paginas populares, assinantes novos
+  2. Monta um prompt para Gemini pedindo analise e feedback
+  3. Retorna o texto formatado em markdown
+- Cache no Supabase: nova tabela `admin_daily_feedback` com colunas `id`, `data` (date, unique), `feedback_text`, `created_at`
+  - Se ja tem feedback do dia, retorna do cache
+  - Se nao tem, gera com Gemini e salva
+- Na UI:
+  - Card com icone de IA/cerebro
+  - Mostra o feedback do dia formatado em markdown (react-markdown)
+  - Botao "Regenerar" para forcar nova geracao
+  - Indicador de loading enquanto gera
+
+### Prompt da Gemini incluira:
+- Total de usuarios online hoje
+- Novos cadastros do dia
+- Paginas mais acessadas do dia
+- Novos assinantes premium do dia
+- Comparacao com dia anterior (se disponivel)
+- A IA retornara porcentagens, insights e recomendacoes
+
+---
+
+## Detalhes Tecnicos
+
+### Arquivos a criar:
+- `supabase/functions/admin-daily-feedback/index.ts` - Edge function que busca dados e chama Gemini
+- Migracoes SQL para:
+  - `get_admin_online_30min_count()` - RPC
+  - `get_admin_online_30min_details()` - RPC
+  - `admin_daily_feedback` - tabela de cache
+
+### Arquivos a modificar:
+- `src/hooks/useAdminControleStats.ts` - Adicionar hooks para online 30min, realtime de subscriptions, e feedback diario
+- `src/pages/Admin/AdminControle.tsx` - Reestruturar UI com todas as mudancas acima
+
+### Estrutura dos novos cards (grid superior):
+```text
++----------------+------------------+
+| Online Agora   | Online 30min     |
+| (5 min)        | (30 min)         |
++----------------+------------------+
+| Novos (periodo)| Ativos (periodo) |
++----------------+------------------+
+| Total Usuarios | Page Views       |
++----------------+------------------+
+```
+
+### Fluxo do Feedback IA:
+```text
+Usuario abre Controle
+  -> Frontend chama edge function admin-daily-feedback
+  -> Edge function verifica cache (tabela admin_daily_feedback)
+  -> Se tem do dia: retorna texto
+  -> Se nao: busca metricas via Supabase, monta prompt, chama Gemini, salva cache, retorna
+  -> Frontend renderiza com react-markdown
+```
