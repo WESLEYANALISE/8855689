@@ -266,7 +266,7 @@ All colors MUST be HSL.
   .resumo-content h1,
   .resumo-content h2,
   .resumo-content h3 {
-    color: hsl(var(--accent-light)) !important;
+    color: hsl(var(--strong-color)) !important;
   }
 
   .resumo-content strong {
