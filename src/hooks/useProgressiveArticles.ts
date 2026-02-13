@@ -243,17 +243,21 @@ export const useProgressiveArticles = <T = any>({
   }, [tableName, loadInitial]);
 
   // Disparar carregamento inicial quando cache terminar de carregar
+  const loadInitialRef = useRef(loadInitial);
+  loadInitialRef.current = loadInitial;
+  
   useEffect(() => {
     if (!enabled) return;
     if (isLoadingCache) return;
     
-    loadInitial();
+    loadInitialRef.current();
     
     return () => {
       // Abortar carregamento em andamento ao desmontar
       abortControllerRef.current?.abort();
     };
-  }, [enabled, isLoadingCache, loadInitial]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isLoadingCache]);
 
   // Função para forçar refresh
   const refresh = useCallback(() => {
