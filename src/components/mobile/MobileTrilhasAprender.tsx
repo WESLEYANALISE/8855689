@@ -244,13 +244,7 @@ export const MobileTrilhasAprender = memo(() => {
       {/* Card Trilha de Conceitos */}
       <div className="w-full px-3 mb-4">
         <button
-          onClick={() => {
-            if (todosProgresso.length > 0) {
-              handleContinuar(todosProgresso[0]);
-            } else {
-              navigate("/conceitos");
-            }
-          }}
+          onClick={() => navigate("/conceitos")}
           className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[110px]"
         >
           <img 

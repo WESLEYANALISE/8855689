@@ -164,7 +164,7 @@ const ConceitosTrilhante = () => {
         <div className="pt-6 pb-4 px-4">
           <div className="max-w-lg mx-auto">
             <button
-              onClick={() => navigate('/primeiros-passos')}
+              onClick={() => navigate('/?tab=aulas')}
               className="flex items-center gap-2 text-red-400 hover:text-red-300 mb-6 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
