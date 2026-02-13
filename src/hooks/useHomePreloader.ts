@@ -12,9 +12,9 @@ import heroBibliotecas from '@/assets/hero-bibliotecas-office.webp';
 import heroNoticias from '@/assets/hero-noticias.webp';
 
 // Imagens dos cards de orientação política
-import politicoEsquerda from '@/assets/politico-esquerda.png';
-import politicoCentro from '@/assets/politico-centro.png';
-import politicoDireita from '@/assets/politico-direita.png';
+import politicoEsquerda from '@/assets/politico-esquerda.webp';
+import politicoCentro from '@/assets/politico-centro.webp';
+import politicoDireita from '@/assets/politico-direita.webp';
 
 // Imagem da página de assinatura (WebP otimizada)
 import assinaturaHero from '@/assets/assinatura-hero.webp';

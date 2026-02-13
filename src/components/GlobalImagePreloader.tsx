@@ -2,46 +2,43 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { preloadImages, saveToInstantCache, getFromInstantCache } from '@/hooks/useInstantCache';
 
-// SUPER CRÍTICAS - Home, Vade Mecum, Bibliotecas (preload imediato via <link rel="preload">)
+// ===== TIER 1: SUPER CRÍTICAS (max 4) - <link rel="preload"> com fetchPriority="high" =====
 import heroBannerThemisAdvogado from '@/assets/hero-banner-themis-advogado-v2.webp';
 import heroBannerThemisChorando from '@/assets/hero-banner-themis-chorando.webp';
 import heroBannerTribunal from '@/assets/hero-banner-tribunal.webp';
-import heroVadeMecumPlanalto from '@/assets/hero-vademecum-planalto.webp';
 import themisFull from '@/assets/themis-full.webp';
+
+const TIER1_CRITICAL = [
+  heroBannerThemisAdvogado,
+  heroBannerThemisChorando,
+  heroBannerTribunal,
+  themisFull,
+];
+
+// ===== TIER 2: IMPORTANTES - preload via new Image() em requestIdleCallback =====
+import heroVadeMecumPlanalto from '@/assets/hero-vademecum-planalto.webp';
 import heroBibliotecas from '@/assets/hero-bibliotecas-office.webp';
-
-// BIBLIOTECAS - Capas locais (preload imediato para carregamento instantâneo)
-import heroBibliotecasSunset from '@/assets/biblioteca-office-sunset.jpg';
-import capaLideranca from '@/assets/capa-lideranca.jpg';
-import capaForaDaToga from '@/assets/capa-fora-da-toga.jpg';
+import heroBibliotecasSunset from '@/assets/biblioteca-office-sunset.webp';
+import capaLideranca from '@/assets/capa-lideranca.webp';
+import capaForaDaToga from '@/assets/capa-fora-da-toga.webp';
 import capaEstudos from '@/assets/sala-aula-direito.webp';
-import capaClassicos from '@/assets/capa-classicos.jpg';
-import capaOratoria from '@/assets/capa-oratoria.jpg';
-import capaPesquisaCientifica from '@/assets/capa-pesquisa-cientifica.jpg';
-import capaPortugues from '@/assets/capa-portugues.jpg';
-import capaOab from '@/assets/capa-biblioteca-oab.jpg';
-
-// Cards políticos - CRÍTICAS para página Política
-import politicoEsquerda from '@/assets/politico-esquerda.png';
-import politicoCentro from '@/assets/politico-centro.png';
-import politicoDireita from '@/assets/politico-direita.png';
-import estudosBackground from '@/assets/estudos-background.jpg';
-
-// JORNADAS OAB/ESTUDOS - CRÍTICAS
+import capaClassicos from '@/assets/capa-classicos.webp';
+import capaOratoria from '@/assets/capa-oratoria.webp';
+import capaPesquisaCientifica from '@/assets/capa-pesquisa-cientifica.webp';
+import capaPortugues from '@/assets/capa-portugues.webp';
+import capaOab from '@/assets/capa-biblioteca-oab.webp';
+import politicoEsquerda from '@/assets/politico-esquerda.webp';
+import politicoCentro from '@/assets/politico-centro.webp';
+import politicoDireita from '@/assets/politico-direita.webp';
+import estudosBackground from '@/assets/estudos-background.webp';
 import themisEstudosBackground from '@/assets/themis-estudos-background.webp';
 import oabAprovacaoHero from '@/assets/oab-aprovacao-hero.webp';
 import bgAreasOab from '@/assets/bg-areas-oab.webp';
 import oabPrimeiraFaseAprovacao from '@/assets/oab-primeira-fase-aprovacao.webp';
 
-// Imagens SUPER críticas - preload via <link rel="preload">
-const SUPER_CRITICAL_IMAGES = [
-  heroBannerThemisAdvogado,
-  heroBannerThemisChorando,
-  heroBannerTribunal,
+const TIER2_IMPORTANT = [
   heroVadeMecumPlanalto,
-  themisFull,
   heroBibliotecas,
-  // BIBLIOTECAS - Background + 8 capas (preload prioritário)
   heroBibliotecasSunset,
   capaLideranca,
   capaForaDaToga,
@@ -51,27 +48,23 @@ const SUPER_CRITICAL_IMAGES = [
   capaPesquisaCientifica,
   capaPortugues,
   capaOab,
-  // Cards políticos - preload prioritário
   politicoEsquerda,
   politicoCentro,
   politicoDireita,
   estudosBackground,
-  // Jornadas OAB/Estudos - preload prioritário
   themisEstudosBackground,
   oabAprovacaoHero,
   bgAreasOab,
   oabPrimeiraFaseAprovacao,
 ];
 
-// Imagens das categorias do Localizador Jurídico
+// ===== TIER 3: SECUNDÁRIAS - preload após 3s ou quando ocioso =====
 import imgTribunais from '@/assets/categoria-tribunais.png';
 import imgCartorios from '@/assets/categoria-cartorios.png';
 import imgOab from '@/assets/categoria-oab.png';
 import imgEscritorios from '@/assets/categoria-escritorios.png';
 import imgMuseus from '@/assets/categoria-museus.png';
 import imgTodos from '@/assets/categoria-todos.png';
-
-// SECUNDÁRIAS - Outras páginas (preload quando ocioso)
 import heroCursos from '@/assets/hero-cursos.webp';
 import heroFlashcards from '@/assets/hero-flashcards.webp';
 import heroMapaMental from '@/assets/hero-mapamental.webp';
@@ -82,29 +75,15 @@ import heroSumulas from '@/assets/hero-sumulas.webp';
 import advogadoDiscursando from '@/assets/advogado-discursando-vertical.webp';
 import senadoBg from '@/assets/senado-bg.webp';
 
-// Imagens secundárias - preload quando browser estiver ocioso
-const SECONDARY_IMAGES = [
-  heroCursos,
-  heroFlashcards,
-  heroMapaMental,
-  heroVideoaulas,
-  heroNoticias,
-  heroJuriflix,
-  heroSumulas,
-  advogadoDiscursando,
-  senadoBg,
-  // Categorias do Localizador Jurídico
-  imgTribunais,
-  imgCartorios,
-  imgOab,
-  imgEscritorios,
-  imgMuseus,
-  imgTodos,
+const TIER3_SECONDARY = [
+  heroCursos, heroFlashcards, heroMapaMental, heroVideoaulas,
+  heroNoticias, heroJuriflix, heroSumulas, advogadoDiscursando, senadoBg,
+  imgTribunais, imgCartorios, imgOab, imgEscritorios, imgMuseus, imgTodos,
 ];
 
-// Função para inserir preload links no head (apenas super críticas)
+// TIER 1: Inserir preload links no head (apenas 4 imagens max)
 const insertPreloadLinks = () => {
-  SUPER_CRITICAL_IMAGES.forEach(src => {
+  TIER1_CRITICAL.forEach(src => {
     const existing = document.querySelector(`link[rel="preload"][href="${src}"]`);
     if (existing) return;
     
@@ -117,22 +96,35 @@ const insertPreloadLinks = () => {
   });
 };
 
-// Preload imagens secundárias quando ocioso
-const preloadSecondaryImages = () => {
-  const idleCallback = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 200));
+// TIER 2: Preload quando browser estiver ocioso (requestIdleCallback)
+const preloadTier2 = () => {
+  const idleCallback = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 100));
   
   idleCallback(() => {
-    SECONDARY_IMAGES.forEach(src => {
+    TIER2_IMPORTANT.forEach(src => {
       const img = new Image();
       img.src = src;
     });
-    console.log('🖼️ GlobalImagePreloader: Imagens secundárias carregadas');
   });
+};
+
+// TIER 3: Preload após 3 segundos
+const preloadTier3 = () => {
+  setTimeout(() => {
+    const idleCallback = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 200));
+    idleCallback(() => {
+      TIER3_SECONDARY.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    });
+  }, 3000);
 };
 
 // Executar IMEDIATAMENTE quando o módulo carrega
 insertPreloadLinks();
-preloadSecondaryImages();
+preloadTier2();
+preloadTier3();
 
 // Configuração de imagens críticas do Supabase para preload
 interface CriticalImageConfig {
@@ -143,22 +135,15 @@ interface CriticalImageConfig {
   limit: number;
 }
 
-// CRÍTICAS: imagens above-the-fold incluindo notícias jurídicas
 const CRITICAL_SUPABASE_IMAGES: CriticalImageConfig[] = [
-  // PRIORIDADE MÁXIMA: Capas das bibliotecas (página /bibliotecas)
   { key: 'capas_biblioteca', table: 'CAPA-BIBILIOTECA', imageColumn: 'capa', select: 'id,capa', limit: 10 },
-  // Notícias jurídicas do carrossel principal - usa imagem como fallback
   { key: 'noticias_juridicas_imgs', table: 'noticias_juridicas_cache', imageColumn: 'imagem', select: 'id,imagem_webp,imagem', limit: 6 },
   { key: 'cursos_capas', table: 'CURSOS-APP', imageColumn: 'capa-aula', select: 'id,"capa-aula"', limit: 8 },
   { key: 'blogger_capas', table: 'BLOGGER_JURIDICO', imageColumn: 'url_capa', select: 'id,url_capa', limit: 6 },
   { key: 'flashcards_capas', table: 'flashcards_areas', imageColumn: 'url_capa', select: 'area,url_capa', limit: 8 },
-  // Capas geradas da biblioteca de estudos (aumentado para 50)
   { key: 'biblioteca_estudos_capas', table: 'BIBLIOTECA-ESTUDOS', imageColumn: 'url_capa_gerada', select: 'id,url_capa_gerada', limit: 50 },
-  // TRILHAS OAB - Capas das áreas/matérias (preload instantâneo)
   { key: 'oab_trilhas_materias_capas', table: 'oab_trilhas_materias', imageColumn: 'capa_url', select: 'id,capa_url', limit: 25 },
-  // TRILHAS OAB - Capas das matérias (tópicos)
   { key: 'oab_trilhas_topicos_capas', table: 'oab_trilhas_topicos', imageColumn: 'capa_url', select: 'id,capa_url', limit: 50 },
-  // TRILHAS OAB - Capas dos subtemas (RESUMO)
   { key: 'oab_resumos_capas', table: 'RESUMO', imageColumn: 'url_imagem_resumo', select: 'id,url_imagem_resumo', limit: 100 },
 ];
 
@@ -168,12 +153,8 @@ async function preloadCriticalSupabaseImages() {
   if (hasStartedAdvanced) return;
   hasStartedAdvanced = true;
 
-  console.log('🖼️ GlobalImagePreloader: Iniciando preload avançado...');
-  const startTime = performance.now();
-
   for (const config of CRITICAL_SUPABASE_IMAGES) {
     try {
-      // Verifica se já tem no cache
       const cached = await getFromInstantCache<any[]>(`images_${config.key}`);
       
       let imageUrls: string[] = [];
@@ -192,7 +173,6 @@ async function preloadCriticalSupabaseImages() {
 
         if (data && data.length > 0) {
           await saveToInstantCache(`images_${config.key}`, data);
-          // Para notícias, usar imagem_webp com fallback para imagem
           imageUrls = data
             .map((item: any) => item.imagem_webp || item[config.imageColumn])
             .filter(Boolean);
@@ -206,9 +186,6 @@ async function preloadCriticalSupabaseImages() {
       // Silent fail
     }
   }
-
-  const elapsed = Math.round(performance.now() - startTime);
-  console.log(`✅ GlobalImagePreloader: Preload avançado concluído em ${elapsed}ms`);
 }
 
 export const GlobalImagePreloader = () => {
@@ -217,14 +194,10 @@ export const GlobalImagePreloader = () => {
   useEffect(() => {
     if (preloadedRef.current) return;
     preloadedRef.current = true;
-
-    // Preload imagens do Supabase IMEDIATAMENTE (não espera idle)
-    // Isso garante que as notícias jurídicas estejam prontas quando o usuário ver a página
     preloadCriticalSupabaseImages();
   }, []);
 
   return null;
 };
 
-// Exportar para uso externo (preload mais cedo possível)
 export { preloadCriticalSupabaseImages };

@@ -9,7 +9,7 @@ import { Newspaper, Search, X } from "lucide-react";
 import { format, subDays, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import HeroBackground from "@/components/HeroBackground";
-import heroNoticias from "@/assets/noticias-juridicas-bg.png";
+import heroNoticias from "@/assets/noticias-juridicas-bg.webp";
 import { useInstantCache } from "@/hooks/useInstantCache";
 
 type FiltroCategoria = 'direito' | 'concurso' | 'politica';

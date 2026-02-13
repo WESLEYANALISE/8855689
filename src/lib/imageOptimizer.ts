@@ -62,7 +62,7 @@ export function getOptimizedImageUrl(
     urlObj.searchParams.set('width', dimensions.width.toString());
     urlObj.searchParams.set('height', dimensions.height.toString());
     urlObj.searchParams.set('resize', 'cover');
-    urlObj.searchParams.set('quality', '80');
+    urlObj.searchParams.set('quality', '75');
     
     return urlObj.toString();
   } catch {

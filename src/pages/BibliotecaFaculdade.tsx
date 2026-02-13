@@ -7,10 +7,10 @@ import { useInstantCache } from "@/hooks/useInstantCache";
 import useEmblaCarousel from "embla-carousel-react";
 import heroFaculdade from "@/assets/sala-aula-direito.webp";
 import capaEstudos from "@/assets/sala-aula-direito.webp";
-import capaClassicos from "@/assets/capa-classicos.jpg";
-import capaPortugues from "@/assets/capa-portugues.jpg";
-import capaPesquisa from "@/assets/capa-pesquisa-cientifica.jpg";
-import capaOratoria from "@/assets/capa-oratoria.jpg";
+import capaClassicos from "@/assets/capa-classicos.webp";
+import capaPortugues from "@/assets/capa-portugues.webp";
+import capaPesquisa from "@/assets/capa-pesquisa-cientifica.webp";
+import capaOratoria from "@/assets/capa-oratoria.webp";
 
 interface CapaBiblioteca {
   Biblioteca: string | null;

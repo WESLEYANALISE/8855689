@@ -55,7 +55,7 @@ export const ASSET_BLURS: Record<string, string> = {
   'hero-banner-themis-advogado-v2.webp': BLUR_PLACEHOLDERS.gold,
   'themis-full.webp': BLUR_PLACEHOLDERS.gold,
   'hero-bibliotecas-office.webp': BLUR_PLACEHOLDERS.dark,
-  'estudos-background.jpg': BLUR_PLACEHOLDERS.dark,
+  'estudos-background.webp': BLUR_PLACEHOLDERS.dark,
   
   // Jornadas OAB/Estudos - CRÍTICAS
   'themis-estudos-background.webp': BLUR_PLACEHOLDERS.gold,
