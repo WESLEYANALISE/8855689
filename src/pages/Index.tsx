@@ -265,12 +265,19 @@ const Index = () => {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] py-[2px]" style={{ zIndex: 2 }}>
+        {/* Menu de Alternância Principal - Apenas mobile (antes de tudo para não pular) */}
+        <div className="flex gap-1.5 md:hidden mb-2 relative z-20 h-[44px] mt-4">
+          <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
+          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
+          <TabButton tab="leis" icon={Scale} label="Leis" />
+        </div>
+
         {/* Search Bar - Apenas mobile (desktop usa a barra no header) */}
         {mainTab !== 'iniciante' && (
           <div 
             data-tutorial="busca-principal"
             onClick={() => navigate('/pesquisar')} 
-            className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg relative z-10 mt-4"
+            className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg relative z-10"
           >
             <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
               <Search className="w-5 h-5 text-red-400" />
@@ -279,7 +286,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Notícias em Destaque - sempre visível no mobile */}
+        {/* Notícias em Destaque */}
         {mainTab !== 'iniciante' && (
           <div className="md:hidden space-y-4 relative z-10">
             <div className="flex items-center justify-between px-1">
@@ -315,13 +322,6 @@ const Index = () => {
             </ScrollArea>
           </div>
         )}
-
-        {/* Menu de Alternância Principal - Apenas mobile */}
-        <div className="flex gap-1.5 md:hidden mb-6 relative z-20 h-[44px]">
-          <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
-          <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
-          <TabButton tab="leis" icon={Scale} label="Leis" />
-        </div>
 
         {/* ==================== ABA FERRAMENTAS ==================== */}
         {mainTab === 'ferramentas' && (
