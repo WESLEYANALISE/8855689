@@ -391,49 +391,51 @@ export const useListaAssinantesPremium = () => {
 
       if (error) throw error;
 
-      const emailMap = new Map<string, AssinantePremium>();
-      const userIds: string[] = [];
-
+      // Deduplicate by user_id (keep most recent)
+      const userIdMap = new Map<string, any>();
       (data || []).forEach((sub: any) => {
-        const email = sub.mp_payer_email || 'Email não disponível';
-        if (!emailMap.has(email)) {
-          const planId = (sub.plan_type || '').toLowerCase();
-          let plano = 'Vitalício';
-          if (planId.includes('mensal') || planId.includes('monthly')) plano = 'Mensal';
-          else if (planId.includes('anual') || planId.includes('yearly')) plano = 'Anual';
-
-          emailMap.set(email, {
-            email,
-            nome: null,
-            telefone: null,
-            plano,
-            valor: sub.amount || 0,
-            data: sub.created_at,
-            status: sub.status,
-            intencao: null,
-            payment_method: sub.payment_method || null,
-          });
-          if (sub.user_id) userIds.push(sub.user_id);
+        if (sub.user_id && !userIdMap.has(sub.user_id)) {
+          userIdMap.set(sub.user_id, sub);
         }
       });
 
+      const uniqueSubs = Array.from(userIdMap.values());
+      const userIds = uniqueSubs.map((s: any) => s.user_id).filter(Boolean);
+
+      // Fetch profiles for all users
+      let profileMap = new Map<string, any>();
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('email, nome, telefone, intencao')
+          .select('id, email, nome, telefone, intencao')
           .in('id', userIds);
 
         (profiles || []).forEach((p: any) => {
-          const existing = emailMap.get(p.email);
-          if (existing) {
-            existing.nome = p.nome;
-            existing.telefone = p.telefone;
-            existing.intencao = p.intencao;
-          }
+          profileMap.set(p.id, p);
         });
       }
 
-      return Array.from(emailMap.values());
+      return uniqueSubs.map((sub: any) => {
+        const profile = profileMap.get(sub.user_id);
+        const planId = (sub.plan_type || '').toLowerCase();
+        let plano = 'Vitalício';
+        if (planId.includes('mensal') || planId.includes('monthly')) plano = 'Mensal';
+        else if (planId.includes('anual') || planId.includes('yearly')) plano = 'Anual';
+        else if (planId.includes('essencial')) plano = 'Essencial';
+        else if (planId.includes('pro')) plano = 'Pro';
+
+        return {
+          email: profile?.email || sub.mp_payer_email || 'Email não disponível',
+          nome: profile?.nome || null,
+          telefone: profile?.telefone || null,
+          plano,
+          valor: sub.amount || 0,
+          data: sub.created_at,
+          status: sub.status,
+          intencao: profile?.intencao || null,
+          payment_method: sub.payment_method || null,
+        };
+      });
     },
     refetchInterval: 15000,
   });
