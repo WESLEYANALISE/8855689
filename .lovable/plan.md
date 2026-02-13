@@ -1,32 +1,68 @@
 
-# Ajustes no Hero Mobile e Cards
 
-## 1. Subir a saudacao para nao ficar atras dos tabs
-- Mover o texto de saudacao de `bottom-16` para `bottom-20` ou mais, garantindo que fique acima do menu de alternancia
+## Plano de Ajustes
 
-## 2. Remover barra de pesquisa e adicionar icone de busca no hero
-- Remover o bloco `SearchBarAnimatedText` do conteudo mobile
-- Adicionar um icone de busca (Search) no canto inferior direito da imagem hero, como um botao circular que navega para `/pesquisar`
+### 1. Corrigir botao "Voltar" da pagina Explicacoes
 
-## 3. Remover botao Evelyn da divisa hero/conteudo
-- Remover completamente o bloco do botao `GraduationCap` que esta entre o hero e o conteudo (linhas 306-314), pois ja existe no BottomNav
+**Problema**: O botao "Voltar" na pagina `/leis/explicacoes` mostra "Inicio" em vez de "Leis". Isso acontece porque o `Header.tsx` tem sua propria copia da funcao `getHierarchicalDestination` que nao inclui a rota `/leis/explicacoes`, fazendo o fallback retornar `/` (Inicio).
 
-## 4. Tabs com mesmo tamanho
-- O `TabButton` ja usa `flex-1`, mas precisa garantir que todos os tres botoes tenham exatamente o mesmo tamanho visual. Verificar se o texto nao esta causando diferenca e ajustar com `min-w-0` e `truncate` se necessario
+**Solucao**: Adicionar a rota `/leis/explicacoes` no mapeamento dentro de `Header.tsx`, apontando para `/?tab=leis`, igual ja esta configurado no hook `useHierarchicalNavigation.ts`.
 
-## 5. Cards de Aulas e Biblioteca com cor diferente do fundo
-- Mudar o `bg-muted` dos cards para uma cor mais escura/distinta, como `bg-card` ou `bg-neutral-800` (dark mode) com borda mais visivel, para se destacarem do fundo cinza (`bg-muted`)
+---
 
-## Detalhes Tecnicos
+### 2. Pagina de Busca de Leis - Artigos mais buscados e Favoritos
 
-### Arquivo: `src/pages/Index.tsx`
+**Problema**: A pagina `/vade-mecum/busca` mostra apenas sugestoes estaticas quando nao ha busca ativa. O usuario quer ver seus artigos mais pesquisados e seus favoritos.
 
-**Saudacao (linha 283):** Mudar `bottom-16` para `bottom-24` para subir acima dos tabs.
+**Solucao**:
 
-**Icone de busca no hero (dentro do bloco hero, linhas 270-289):** Adicionar botao circular com icone Search posicionado `absolute bottom-16 right-5` dentro da imagem hero, navegando para `/pesquisar`.
+- Criar uma tabela `busca_leis_historico` no Supabase para registrar cada busca do usuario (user_id, termo, created_at).
+- Na tela inicial da busca (antes de digitar), exibir duas secoes:
+  - **Mais Buscados**: Agrupar por termo e ordenar por frequencia (consulta na tabela de historico).
+  - **Favoritos**: Reutilizar a logica existente do hook `useLeisFavoritasRecentes` para exibir os artigos favoritados pelo usuario.
+- Registrar cada busca executada na tabela de historico.
+- Os itens clicaveis preenchem o campo de busca e executam a pesquisa.
 
-**Remover botao Evelyn (linhas 306-314):** Deletar todo o bloco do botao central na divisa.
+---
 
-**Remover barra de pesquisa (linhas 357-368):** Deletar o bloco da search bar animada e seu container.
+### 3. Restringir conteudo da pagina de Aulas para nao-admin
 
-**Cards Aulas/Biblioteca (linhas 321-351):** Trocar `bg-muted` por `bg-card` ou `bg-neutral-900/80` nos cards, adicionando contraste com o fundo.
+**Problema**: Todas as secoes (Areas do Direito, Portugues, OAB) aparecem para qualquer usuario. Apenas as trilhas de Conceitos e OAB devem aparecer para usuarios comuns.
+
+**Solucao**: No componente `MobileTrilhasAprender.tsx`, envolver as secoes 4 (Areas do Direito), 5 (Portugues Juridico) e 6 (OAB) com a condicao `{isAdmin && (...)}`. Assim, apenas o administrador (email `wn7corporation@gmail.com`) vera essas categorias. Usuarios comuns verao apenas o Dashboard de Progresso, Jornada de Estudos e os cards de Conceitos.
+
+---
+
+### Detalhes Tecnicos
+
+**Arquivos a modificar:**
+
+| Arquivo | Alteracao |
+|---|---|
+| `src/components/Header.tsx` | Adicionar `/leis/explicacoes` -> `/?tab=leis` no `getHierarchicalDestination` |
+| `src/pages/VadeMecumBusca.tsx` | Adicionar secoes de "Mais Buscados" e "Favoritos" na tela inicial; registrar buscas |
+| `src/components/mobile/MobileTrilhasAprender.tsx` | Envolver secoes 4, 5 e 6 com `{isAdmin && (...)}` |
+
+**Nova tabela Supabase:**
+
+```sql
+CREATE TABLE busca_leis_historico (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  termo text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE busca_leis_historico ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own search history"
+  ON busca_leis_historico FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own search history"
+  ON busca_leis_historico FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+```
+
