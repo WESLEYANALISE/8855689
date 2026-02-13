@@ -279,7 +279,38 @@ const Index = () => {
 
       {/* Conteúdo principal - Mobile */}
       <div className="md:hidden bg-background relative min-h-screen pb-20" style={{ zIndex: 2 }}>
-        <div className="px-4 pt-8 pb-2 space-y-5">
+        {/* Cards de acesso rápido - Aulas e Notícias */}
+        {mainTab === 'ferramentas' && (
+          <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => changeMainTab('iniciante')}
+              className="relative overflow-hidden rounded-2xl p-4 h-[90px] text-left border border-border/50 bg-gradient-to-br from-amber-900/40 to-amber-950/60 shadow-lg hover:shadow-xl transition-all group"
+            >
+              <div className="absolute top-2 right-2 p-2 bg-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                <GraduationCap className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base font-bold text-white">Aulas</h3>
+                <p className="text-[11px] text-white/60 mt-0.5">Jornada de estudos</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/noticias-juridicas')}
+              className="relative overflow-hidden rounded-2xl p-4 h-[90px] text-left border border-border/50 bg-gradient-to-br from-blue-900/40 to-blue-950/60 shadow-lg hover:shadow-xl transition-all group"
+            >
+              <div className="absolute top-2 right-2 p-2 bg-blue-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                <Newspaper className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base font-bold text-white">Notícias</h3>
+                <p className="text-[11px] text-white/60 mt-0.5">Destaques e histórico</p>
+              </div>
+            </button>
+          </div>
+        )}
+
+        <div className="px-4 pt-4 pb-2 space-y-5">
           {/* Search Bar - apenas aba Estudos */}
           {mainTab === 'ferramentas' && (
             <div 
