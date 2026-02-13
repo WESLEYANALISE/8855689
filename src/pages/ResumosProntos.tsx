@@ -2,10 +2,23 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Scale, ArrowDownAZ, Clock, ArrowLeft, FileText, ChevronRight, Loader2, BookOpen } from "lucide-react";
+import { Search, Scale, ArrowDownAZ, Clock, ArrowLeft, FileText, ChevronRight, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { UniversalImage } from "@/components/ui/universal-image";
 import { useDebounce } from "@/hooks/useDebounce";
+
+// Paleta de cores rotativas estilo Vade Mecum
+const CARD_COLORS = [
+  { bg: "from-red-600 to-red-800", badge: "bg-red-900/60" },
+  { bg: "from-amber-600 to-amber-800", badge: "bg-amber-900/60" },
+  { bg: "from-emerald-600 to-emerald-800", badge: "bg-emerald-900/60" },
+  { bg: "from-blue-600 to-blue-800", badge: "bg-blue-900/60" },
+  { bg: "from-purple-600 to-purple-800", badge: "bg-purple-900/60" },
+  { bg: "from-rose-600 to-rose-800", badge: "bg-rose-900/60" },
+  { bg: "from-teal-600 to-teal-800", badge: "bg-teal-900/60" },
+  { bg: "from-orange-600 to-orange-800", badge: "bg-orange-900/60" },
+  { bg: "from-indigo-600 to-indigo-800", badge: "bg-indigo-900/60" },
+  { bg: "from-cyan-600 to-cyan-800", badge: "bg-cyan-900/60" },
+];
 
 const ResumosProntos = () => {
   const navigate = useNavigate();
@@ -15,12 +28,10 @@ const ResumosProntos = () => {
   const [ordenacaoTemas, setOrdenacaoTemas] = useState<"cronologica" | "alfabetica">("cronologica");
   const debouncedSearch = useDebounce(searchTema, 300);
 
-  // Redirect if no area
   useEffect(() => {
     if (!areaFromUrl) navigate('/resumos-juridicos/prontos', { replace: true });
   }, [areaFromUrl, navigate]);
 
-  // Fetch temas
   const { data: temas, isLoading } = useQuery({
     queryKey: ["resumos-temas-hub", areaSelecionada],
     queryFn: async () => {
@@ -34,7 +45,7 @@ const ResumosProntos = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("RESUMO")
-          .select("tema, \"ordem Tema\", url_imagem_resumo")
+          .select("tema, \"ordem Tema\"")
           .eq("area", areaSelecionada)
           .not("tema", "is", null)
           .range(offset, offset + batchSize - 1);
@@ -49,19 +60,17 @@ const ResumosProntos = () => {
         }
       }
 
-      const temaMap = new Map<string, { tema: string; ordem: string; count: number; capa: string | null }>();
+      const temaMap = new Map<string, { tema: string; ordem: string; count: number }>();
       allData.forEach((item: any) => {
         if (item.tema) {
           const existing = temaMap.get(item.tema);
           if (existing) {
             existing.count++;
-            if (!existing.capa && item.url_imagem_resumo) existing.capa = item.url_imagem_resumo;
           } else {
             temaMap.set(item.tema, {
               tema: item.tema,
               ordem: item["ordem Tema"] || "0",
               count: 1,
-              capa: item.url_imagem_resumo || null,
             });
           }
         }
@@ -74,8 +83,10 @@ const ResumosProntos = () => {
       });
     },
     enabled: !!areaSelecionada,
-    staleTime: 1000 * 60 * 10,
-    gcTime: 1000 * 60 * 30,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const temasFiltrados = useMemo(() => {
@@ -162,7 +173,7 @@ const ResumosProntos = () => {
         </div>
       </div>
 
-      {/* Lista de temas */}
+      {/* Lista de temas - Cards coloridos sem imagem */}
       <div className="px-4 pt-3">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -173,33 +184,21 @@ const ResumosProntos = () => {
             Nenhum tema encontrado
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {temasFiltrados.map((tema, index) => {
               const ordemNum = parseInt(tema.ordem) || (index + 1);
+              const color = CARD_COLORS[index % CARD_COLORS.length];
               return (
                 <button
                   key={tema.tema}
                   onClick={() => navigate(`/resumos-juridicos/prontos/${encodeURIComponent(areaSelecionada)}/${encodeURIComponent(tema.tema)}`)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 hover:border-red-500/40 hover:bg-card/80 transition-all duration-200 active:scale-[0.98] group"
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r ${color.bg} hover:opacity-90 transition-all duration-200 active:scale-[0.98] group shadow-lg`}
                 >
-                  {/* Thumbnail */}
-                  <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0">
-                    {tema.capa ? (
-                      <UniversalImage
-                        src={tema.capa}
-                        alt={tema.tema}
-                        className="w-full h-full object-cover"
-                        blurCategory="juridico"
-                        containerClassName="w-full h-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center">
-                        <Scale className="w-6 h-6 text-white/70" />
-                      </div>
-                    )}
-                    {/* Badge numérica */}
-                    <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-md bg-red-600 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-white">
+                  {/* Ícone com badge */}
+                  <div className="relative w-12 h-12 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                    <Scale className="w-6 h-6 text-white/90" />
+                    <div className={`absolute -bottom-1 -left-1 w-5 h-5 rounded-md ${color.badge} flex items-center justify-center border border-white/20`}>
+                      <span className="text-[9px] font-bold text-white">
                         {String(ordemNum).padStart(2, '0')}
                       </span>
                     </div>
@@ -207,18 +206,18 @@ const ResumosProntos = () => {
 
                   {/* Info */}
                   <div className="flex-1 text-left min-w-0">
-                    <h3 className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-red-500 transition-colors">
+                    <h3 className="text-sm font-semibold text-white line-clamp-2">
                       {tema.tema}
                     </h3>
                     <div className="flex items-center gap-1 mt-1">
-                      <FileText className="w-3 h-3 text-amber-500" />
-                      <span className="text-xs text-muted-foreground">
+                      <FileText className="w-3 h-3 text-white/60" />
+                      <span className="text-xs text-white/70">
                         {tema.count} {tema.count === 1 ? "resumo" : "resumos"}
                       </span>
                     </div>
                   </div>
 
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-red-500 transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
                 </button>
               );
             })}

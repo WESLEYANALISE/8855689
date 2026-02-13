@@ -10,7 +10,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebounce } from "@/hooks/useDebounce";
-import { UniversalImage } from "@/components/ui/universal-image";
+
+// Paleta de cores rotativas estilo Vade Mecum
+const CARD_COLORS = [
+  { bg: "from-red-600 to-red-800", badge: "bg-red-900/60" },
+  { bg: "from-amber-600 to-amber-800", badge: "bg-amber-900/60" },
+  { bg: "from-emerald-600 to-emerald-800", badge: "bg-emerald-900/60" },
+  { bg: "from-blue-600 to-blue-800", badge: "bg-blue-900/60" },
+  { bg: "from-purple-600 to-purple-800", badge: "bg-purple-900/60" },
+  { bg: "from-rose-600 to-rose-800", badge: "bg-rose-900/60" },
+  { bg: "from-teal-600 to-teal-800", badge: "bg-teal-900/60" },
+  { bg: "from-orange-600 to-orange-800", badge: "bg-orange-900/60" },
+  { bg: "from-indigo-600 to-indigo-800", badge: "bg-indigo-900/60" },
+  { bg: "from-cyan-600 to-cyan-800", badge: "bg-cyan-900/60" },
+];
 
 // ABA 2: ARTIGOS DE LEI
 const categoriasArtigos = [
@@ -38,7 +51,7 @@ export default function ResumosJuridicosEscolha() {
   const { data: areasData, isLoading } = useQuery({
     queryKey: ['resumos-juridicos-areas-hub'],
     queryFn: async () => {
-      let allData: { area: string; url_imagem_resumo: string | null }[] = [];
+      let allData: { area: string }[] = [];
       let offset = 0;
       const batchSize = 1000;
       let hasMore = true;
@@ -46,7 +59,7 @@ export default function ResumosJuridicosEscolha() {
       while (hasMore) {
         const { data, error } = await supabase
           .from('RESUMO')
-          .select('area, url_imagem_resumo')
+          .select('area')
           .not('area', 'is', null)
           .range(offset, offset + batchSize - 1);
 
@@ -60,25 +73,21 @@ export default function ResumosJuridicosEscolha() {
         }
       }
 
-      const areaMap = new Map<string, { count: number; capa: string | null }>();
+      const areaMap = new Map<string, number>();
       allData.forEach((item) => {
         if (item.area) {
-          const existing = areaMap.get(item.area);
-          if (existing) {
-            existing.count++;
-            if (!existing.capa && item.url_imagem_resumo) existing.capa = item.url_imagem_resumo;
-          } else {
-            areaMap.set(item.area, { count: 1, capa: item.url_imagem_resumo || null });
-          }
+          areaMap.set(item.area, (areaMap.get(item.area) || 0) + 1);
         }
       });
 
       return Array.from(areaMap.entries())
-        .map(([area, data]) => ({ area, ...data }))
+        .map(([area, count]) => ({ area, count }))
         .sort((a, b) => a.area.localeCompare(b.area));
     },
-    staleTime: 1000 * 60 * 10,
-    gcTime: 1000 * 60 * 30,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const totalResumos = useMemo(() => {
@@ -164,84 +173,75 @@ export default function ResumosJuridicosEscolha() {
           </div>
         ) : (
           <>
-            {/* ABA MATÉRIA */}
+            {/* ABA MATÉRIA - Cards coloridos sem imagem */}
             {abaAtiva === "materia" && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {areasFiltradas.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground text-sm">
                     Nenhuma matéria encontrada
                   </div>
                 ) : (
-                  areasFiltradas.map((item, index) => (
-                    <button
-                      key={item.area}
-                      onClick={() => navigate(`/resumos-juridicos/prontos/${encodeURIComponent(item.area)}`)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 hover:border-red-500/40 hover:bg-card/80 transition-all duration-200 active:scale-[0.98] group"
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0">
-                        {item.capa ? (
-                          <UniversalImage
-                            src={item.capa}
-                            alt={item.area}
-                            className="w-full h-full object-cover"
-                            blurCategory="juridico"
-                            containerClassName="w-full h-full"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
-                            <BookOpen className="w-6 h-6 text-white/80" />
+                  areasFiltradas.map((item, index) => {
+                    const color = CARD_COLORS[index % CARD_COLORS.length];
+                    return (
+                      <button
+                        key={item.area}
+                        onClick={() => navigate(`/resumos-juridicos/prontos/${encodeURIComponent(item.area)}`)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r ${color.bg} hover:opacity-90 transition-all duration-200 active:scale-[0.98] group shadow-lg`}
+                      >
+                        {/* Ícone com badge */}
+                        <div className="relative w-12 h-12 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <Scale className="w-6 h-6 text-white/90" />
+                          <div className={`absolute -bottom-1 -left-1 w-5 h-5 rounded-md ${color.badge} flex items-center justify-center border border-white/20`}>
+                            <span className="text-[9px] font-bold text-white">
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
                           </div>
-                        )}
-                        {/* Badge numérica */}
-                        <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-md bg-red-600 flex items-center justify-center">
-                          <span className="text-[10px] font-bold text-white">
-                            {String(index + 1).padStart(2, '0')}
-                          </span>
                         </div>
-                      </div>
 
-                      {/* Info */}
-                      <div className="flex-1 text-left min-w-0">
-                        <h3 className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-red-500 transition-colors">
-                          {item.area}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {item.count.toLocaleString('pt-BR')} resumos
-                        </p>
-                      </div>
+                        {/* Info */}
+                        <div className="flex-1 text-left min-w-0">
+                          <h3 className="text-sm font-semibold text-white line-clamp-2">
+                            {item.area}
+                          </h3>
+                          <p className="text-xs text-white/70 mt-0.5">
+                            {item.count.toLocaleString('pt-BR')} resumos
+                          </p>
+                        </div>
 
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-red-500 transition-colors" />
-                    </button>
-                  ))
+                        <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
+                      </button>
+                    );
+                  })
                 )}
               </div>
             )}
 
             {/* ABA ARTIGOS */}
             {abaAtiva === "artigos" && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {artigosFiltrados.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground text-sm">Nenhum resultado</div>
                 ) : (
-                  artigosFiltrados.map((item) => {
+                  artigosFiltrados.map((item, index) => {
                     const Icon = item.icon;
+                    const color = CARD_COLORS[(index + 3) % CARD_COLORS.length];
                     return (
                       <button
                         key={item.id}
                         onClick={() => navigate(item.route)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 hover:border-amber-500/40 transition-all duration-200 active:scale-[0.98] group"
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r ${color.bg} hover:opacity-90 transition-all duration-200 active:scale-[0.98] group shadow-lg`}
                       >
-                        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shrink-0">
-                          <Icon className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <Icon className="w-6 h-6 text-white/90" />
                         </div>
                         <div className="flex-1 text-left min-w-0">
-                          <h3 className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-amber-500 transition-colors">
+                          <h3 className="text-sm font-semibold text-white line-clamp-1">
                             {item.title}
                           </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                          <p className="text-xs text-white/70 mt-0.5">{item.description}</p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
                       </button>
                     );
                   })
@@ -251,28 +251,29 @@ export default function ResumosJuridicosEscolha() {
 
             {/* ABA PERSONALIZADO */}
             {abaAtiva === "personalizado" && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {customFiltrados.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground text-sm">Nenhum resultado</div>
                 ) : (
-                  customFiltrados.map((item) => {
+                  customFiltrados.map((item, index) => {
                     const Icon = item.icon;
+                    const color = CARD_COLORS[(index + 5) % CARD_COLORS.length];
                     return (
                       <button
                         key={item.id}
                         onClick={() => navigate(item.route)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 hover:border-purple-500/40 transition-all duration-200 active:scale-[0.98] group"
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r ${color.bg} hover:opacity-90 transition-all duration-200 active:scale-[0.98] group shadow-lg`}
                       >
-                        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shrink-0">
-                          <Icon className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <Icon className="w-6 h-6 text-white/90" />
                         </div>
                         <div className="flex-1 text-left min-w-0">
-                          <h3 className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-purple-500 transition-colors">
+                          <h3 className="text-sm font-semibold text-white line-clamp-1">
                             {item.title}
                           </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                          <p className="text-xs text-white/70 mt-0.5">{item.description}</p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
                       </button>
                     );
                   })
