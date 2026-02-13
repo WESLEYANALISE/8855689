@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, CSSProperties, ReactElement } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Search, ExternalLink, FileText, ChevronRight, FolderOpen, ArrowLeft } from "lucide-react";
+import { Search, ExternalLink, FileText, ChevronRight, FolderOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInstantCache } from "@/hooks/useInstantCache";
 import { List } from "react-window";
@@ -19,7 +19,6 @@ interface PeticaoModelo {
 
 const ITEM_HEIGHT = 64;
 
-// Cores para as categorias
 const CATEGORY_COLORS = [
   "from-amber-600/50 to-orange-700/40",
   "from-blue-600/50 to-indigo-700/40",
@@ -33,9 +32,8 @@ const CATEGORY_COLORS = [
 
 const AdvogadoModelos = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [navigationPath, setNavigationPath] = useState<string[]>([]);
 
-  // Cache instantâneo para modelos
   const { data: modelos, isLoading } = useInstantCache<PeticaoModelo[]>({
     cacheKey: "advogado-peticoes-modelos-v2",
     queryFn: async () => {
@@ -50,62 +48,78 @@ const AdvogadoModelos = () => {
     },
   });
 
-  // Extrair categorias únicas com contagem
-  const categoriesWithCount = useMemo(() => {
-    if (!modelos) return [];
-    const categoryMap = new Map<string, number>();
+  // Get subcategories or models for current navigation path
+  const { subcategories, currentModelos, isLeaf } = useMemo(() => {
+    if (!modelos) return { subcategories: [], currentModelos: [], isLeaf: false };
+
+    const prefix = navigationPath.join(" > ");
     
-    modelos.forEach(m => {
-      const count = categoryMap.get(m.categoria) || 0;
-      categoryMap.set(m.categoria, count + 1);
+    // Filter models matching current path
+    const matching = prefix
+      ? modelos.filter(m => m.categoria === prefix || m.categoria.startsWith(prefix + " > "))
+      : modelos;
+
+    // Extract next level
+    const nextLevelMap = new Map<string, number>();
+    const directModels: PeticaoModelo[] = [];
+
+    matching.forEach(m => {
+      const parts = m.categoria.split(" > ");
+      const depth = navigationPath.length;
+
+      if (parts.length > depth) {
+        const nextPart = parts[depth];
+        nextLevelMap.set(nextPart, (nextLevelMap.get(nextPart) || 0) + 1);
+      }
+      
+      // Models at exactly this level (categoria matches prefix exactly)
+      if (prefix && m.categoria === prefix) {
+        directModels.push(m);
+      }
     });
-    
-    return Array.from(categoryMap.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [modelos]);
 
-  // Filtrar categorias por busca
-  const filteredCategories = useMemo(() => {
-    if (!searchTerm.trim()) return categoriesWithCount;
-    const term = searchTerm.toLowerCase();
-    return categoriesWithCount.filter(cat => 
-      cat.name.toLowerCase().includes(term)
-    );
-  }, [categoriesWithCount, searchTerm]);
-
-  // Filtrar modelos da categoria selecionada
-  const filteredModelos = useMemo(() => {
-    if (!modelos || !selectedCategory) return [];
-    
-    let filtered = modelos.filter(m => m.categoria === selectedCategory);
-    
-    // Filtro por busca
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(m => 
-        m.nome_arquivo.toLowerCase().includes(term)
-      );
+    // If there are subcategories, show them
+    if (nextLevelMap.size > 0) {
+      const subs = Array.from(nextLevelMap.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      return { subcategories: subs, currentModelos: directModels, isLeaf: false };
     }
-    
-    return filtered;
-  }, [modelos, selectedCategory, searchTerm]);
+
+    // Leaf: show direct models
+    return { subcategories: [], currentModelos: directModels, isLeaf: true };
+  }, [modelos, navigationPath]);
+
+  // Filter by search
+  const filteredSubcategories = useMemo(() => {
+    if (!searchTerm.trim()) return subcategories;
+    const term = searchTerm.toLowerCase();
+    return subcategories.filter(s => s.name.toLowerCase().includes(term));
+  }, [subcategories, searchTerm]);
+
+  const filteredModelos = useMemo(() => {
+    if (!searchTerm.trim()) return currentModelos;
+    const term = searchTerm.toLowerCase();
+    return currentModelos.filter(m => m.nome_arquivo.toLowerCase().includes(term));
+  }, [currentModelos, searchTerm]);
 
   const handleOpenLink = useCallback((link: string) => {
     window.open(link, "_blank", "noopener,noreferrer");
   }, []);
 
-  const handleSelectCategory = (category: string) => {
-    setSelectedCategory(category);
+  const handleNavigate = (subcategory: string) => {
+    setNavigationPath(prev => [...prev, subcategory]);
     setSearchTerm("");
   };
 
   const handleBack = () => {
-    setSelectedCategory(null);
-    setSearchTerm("");
+    if (navigationPath.length > 0) {
+      setNavigationPath(prev => prev.slice(0, -1));
+      setSearchTerm("");
+    }
   };
 
-  // Componente de item para virtualização
+  // Row for virtualized model list
   const RowComponent = useCallback(({ 
     index, 
     style,
@@ -130,13 +144,11 @@ const AdvogadoModelos = () => {
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-600/20 flex-shrink-0 group-hover:bg-amber-600/30 transition-colors">
             <FileText className="w-5 h-5 text-amber-500" />
           </div>
-          
           <div className="flex-1 min-w-0">
             <span className="block font-medium text-sm text-white truncate">
               {modelo.nome_arquivo}
             </span>
           </div>
-          
           <div className="flex items-center gap-1 text-xs text-gray-400 group-hover:text-amber-400 transition-colors flex-shrink-0">
             <ExternalLink className="w-4 h-4" />
           </div>
@@ -145,107 +157,20 @@ const AdvogadoModelos = () => {
     );
   }, [filteredModelos, handleOpenLink]);
 
-  // Visualização de áreas/categorias
-  if (!selectedCategory) {
-    return (
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Background Image */}
-        <div className="fixed inset-0">
-          <img 
-            src={heroFerramentas}
-            alt="Background"
-            className="w-full h-full object-cover object-center"
-            loading="eager"
-            fetchPriority="high"
-            decoding="sync"
-          />
-        </div>
-        
-        {/* Dark gradient overlay */}
-        <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]" />
-        
-        {/* Standard Header */}
-        <StandardPageHeader 
-          title="Modelos de Petições"
-          subtitle="Selecione uma área"
-          backPath="/peticoes"
-          position="fixed"
-        />
-        
-        {/* Content */}
-        <div className="relative z-10 pt-20 px-4 pb-24">
-          <div className="max-w-lg mx-auto">
-            {/* Busca */}
-            <div className="mb-6 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Buscar área..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-[#12121a]/80 border-white/10 text-white placeholder:text-gray-500"
-              />
-            </div>
+  const currentTitle = navigationPath.length > 0 
+    ? navigationPath[navigationPath.length - 1] 
+    : "Modelos de Petições";
 
-            {/* Loading */}
-            {isLoading ? (
-              <div className="space-y-3">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-[#12121a]/60 border border-white/10">
-                    <Skeleton className="h-12 w-12 rounded-xl bg-white/10" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4 bg-white/10" />
-                      <Skeleton className="h-3 w-1/3 bg-white/10" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredCategories.map((category, index) => (
-                  <motion.button
-                    key={category.name}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                    onClick={() => handleSelectCategory(category.name)}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#12121a]/80 border border-white/10 hover:border-amber-500/30 hover:bg-amber-500/10 transition-all group text-left"
-                  >
-                    {/* Ícone com gradiente */}
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${CATEGORY_COLORS[index % CATEGORY_COLORS.length]}`}>
-                      <FolderOpen className="w-6 h-6 text-white" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-white text-sm leading-snug">
-                        {category.name}
-                      </h3>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {category.count} {category.count === 1 ? "modelo" : "modelos"}
-                      </p>
-                    </div>
-                    
-                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-amber-400 transition-colors" />
-                  </motion.button>
-                ))}
+  const currentSubtitle = navigationPath.length > 0
+    ? (isLeaf ? `${filteredModelos.length} modelos` : `${filteredSubcategories.length} subcategorias`)
+    : "Selecione uma área";
 
-                {filteredCategories.length === 0 && (
-                  <div className="text-center py-12">
-                    <FolderOpen className="w-16 h-16 mx-auto text-gray-600 mb-4" />
-                    <p className="text-gray-400">
-                      Nenhuma área encontrada
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const searchPlaceholder = navigationPath.length === 0 
+    ? "Buscar área..." 
+    : isLeaf 
+      ? "Buscar modelo..." 
+      : "Buscar subcategoria...";
 
-  // Visualização de modelos da categoria selecionada
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background Image */}
@@ -265,44 +190,117 @@ const AdvogadoModelos = () => {
       
       {/* Standard Header */}
       <StandardPageHeader 
-        title={selectedCategory}
-        subtitle={`${filteredModelos.length} modelos`}
-        onBack={handleBack}
+        title={currentTitle}
+        subtitle={currentSubtitle}
+        {...(navigationPath.length > 0 
+          ? { onBack: handleBack } 
+          : { backPath: "/peticoes" }
+        )}
         position="fixed"
       />
       
       {/* Content */}
       <div className="relative z-10 pt-20 px-4 pb-24">
         <div className="max-w-lg mx-auto">
-          {/* Busca */}
+          {/* Breadcrumb */}
+          {navigationPath.length > 0 && (
+            <div className="mb-4 flex items-center gap-1 flex-wrap text-xs text-gray-400">
+              <button onClick={() => { setNavigationPath([]); setSearchTerm(""); }} className="hover:text-amber-400 transition-colors">
+                Áreas
+              </button>
+              {navigationPath.map((part, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  <ChevronRight className="w-3 h-3" />
+                  <button 
+                    onClick={() => { setNavigationPath(navigationPath.slice(0, i + 1)); setSearchTerm(""); }}
+                    className={`hover:text-amber-400 transition-colors ${i === navigationPath.length - 1 ? 'text-amber-400' : ''}`}
+                  >
+                    {part.replace(/^\d+\.\s*/, '')}
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Search */}
           <div className="mb-6 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               type="text"
-              placeholder="Buscar modelo..."
+              placeholder={searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-[#12121a]/80 border-white/10 text-white placeholder:text-gray-500"
             />
           </div>
 
-          {filteredModelos.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 mx-auto text-gray-600 mb-4" />
-              <p className="text-gray-400">
-                {searchTerm ? "Nenhum modelo encontrado" : "Nenhum modelo disponível"}
-              </p>
+          {/* Loading */}
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-[#12121a]/60 border border-white/10">
+                  <Skeleton className="h-12 w-12 rounded-xl bg-white/10" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4 bg-white/10" />
+                    <Skeleton className="h-3 w-1/3 bg-white/10" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="border border-white/10 rounded-xl overflow-hidden bg-[#12121a]/40">
-              <List
-                style={{ height: Math.min(filteredModelos.length * ITEM_HEIGHT, 600) }}
-                rowCount={filteredModelos.length}
-                rowHeight={ITEM_HEIGHT}
-                rowComponent={RowComponent}
-                rowProps={{}}
-              />
-            </div>
+            <>
+              {/* Subcategories list */}
+              {filteredSubcategories.length > 0 && (
+                <div className="space-y-3">
+                  {filteredSubcategories.map((sub, index) => (
+                    <motion.button
+                      key={sub.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(index * 0.02, 0.5) }}
+                      onClick={() => handleNavigate(sub.name)}
+                      className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#12121a]/80 border border-white/10 hover:border-amber-500/30 hover:bg-amber-500/10 transition-all group text-left"
+                    >
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${CATEGORY_COLORS[index % CATEGORY_COLORS.length]}`}>
+                        <FolderOpen className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-white text-sm leading-snug">
+                          {sub.name}
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {sub.count} {sub.count === 1 ? "modelo" : "modelos"}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-amber-400 transition-colors" />
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+
+              {/* Models list (when leaf or direct models exist) */}
+              {filteredModelos.length > 0 && (
+                <div className={`border border-white/10 rounded-xl overflow-hidden bg-[#12121a]/40 ${filteredSubcategories.length > 0 ? 'mt-6' : ''}`}>
+                  <List
+                    style={{ height: Math.min(filteredModelos.length * ITEM_HEIGHT, 600) }}
+                    rowCount={filteredModelos.length}
+                    rowHeight={ITEM_HEIGHT}
+                    rowComponent={RowComponent}
+                    rowProps={{}}
+                  />
+                </div>
+              )}
+
+              {/* Empty state */}
+              {filteredSubcategories.length === 0 && filteredModelos.length === 0 && (
+                <div className="text-center py-12">
+                  <FolderOpen className="w-16 h-16 mx-auto text-gray-600 mb-4" />
+                  <p className="text-gray-400">
+                    {searchTerm ? "Nenhum resultado encontrado" : "Nenhum conteúdo disponível"}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
