@@ -1,131 +1,109 @@
 
-
-# Plano: Tornar Cadastro, Onboarding e Tutorial Responsivos para Desktop
+# Plano: Reformular a aba "Aulas" com seção de Progresso e cards com capas
 
 ## Resumo
 
-O app atualmente funciona bem no mobile, mas no desktop as telas de onboarding ("Qual e o seu objetivo?") e o tutorial (IntroCarousel) ficam com layout mobile esticado. Este plano ajusta essas telas e aplica melhorias gerais de responsividade.
+Remover a barra de busca e as noticias juridicas quando a aba "Aulas" estiver ativa, substituindo por uma secao de **Progresso** no topo (carrossel horizontal mostrando aulas em andamento do usuario). Alem disso, trocar os cards de categorias (gradientes simples) por cards com imagens de fundo cinematograficas. As categorias "Areas do Direito" e "OAB" continuam restritas ao admin.
 
 ---
 
-## 1. Onboarding - Tela "Qual e o seu objetivo?" (Desktop)
+## 1. Ocultar busca e noticias na aba Aulas
 
-**Problema**: O card com os 4 perfis fica estreito (`max-w-lg`) mesmo em tela grande, como mostra a imagem enviada.
+**Arquivo**: `src/pages/Index.tsx`
 
-**Solucao**:
-- No desktop (`lg:`), expandir o container central para `max-w-2xl` ou `max-w-3xl`
-- Aumentar os cards do grid 2x2 para ficarem maiores e mais espaçados
-- O card de conteudo (`bg-card/95`) fica mais largo no desktop com padding maior
-- Os cards de perfil ganham aspect-ratio mais retangular no desktop em vez de quadrado
-- Botoes "Voltar" e "Finalizar" ficam maiores no desktop
+Atualmente a barra de busca e a secao de Noticias Juridicas aparecem em todas as abas mobile. Adicionar uma condicao para esconde-las quando `mainTab === 'iniciante'`.
 
-**Arquivo**: `src/pages/Onboarding.tsx`
+- Barra de busca (linhas 269-278): adicionar `mainTab !== 'iniciante'` como condicao
+- Noticias em Destaque (linhas 281-313): adicionar `mainTab !== 'iniciante'` como condicao
 
 ---
 
-## 2. IntroCarousel - Tutorial (Desktop)
+## 2. Secao de Progresso (carrossel)
 
-**Problema**: O conteudo fica alinhado a esquerda com `max-w-2xl`, funciona bem mas pode melhorar no desktop.
+**Arquivo**: `src/components/mobile/MobileTrilhasAprender.tsx`
 
-**Solucao**:
-- No desktop, centralizar melhor o conteudo verticalmente
-- Aumentar tamanhos de fonte do titulo (`lg:text-5xl`)
-- Feature pills maiores no desktop
-- Dots e botao "Proximo" com mais espaco e tamanho no desktop
-- Manter o layout atual que ja esta razoavel, apenas refinando proporcoes
+Adicionar no topo do componente (antes dos cards de categorias) uma secao "Seu Progresso" que:
 
-**Arquivo**: `src/components/onboarding/IntroCarousel.tsx`
-
----
-
-## 3. Pagina de Auth/Cadastro (Desktop)
-
-**Problema**: A pagina Auth ja tem layout desktop com 3 colunas (Themis esquerda + formulario + Themis close-up direita). Ja esta responsiva.
-
-**Acao**: Pequenos ajustes de refinamento se necessario, mas a estrutura principal ja existe.
-
-**Arquivo**: `src/pages/Auth.tsx`
+- Consulta a tabela `conceitos_topicos_progresso` para buscar topicos em andamento do usuario (onde `leitura_completa = false` e `progresso_porcentagem > 0`)
+- Consulta tambem `aulas_progresso` e `categorias_progresso` para aulas/topicos de outras categorias
+- Exibe um **carrossel horizontal** (scroll) com cards compactos mostrando:
+  - Nome do topico/aula
+  - Barra de progresso com porcentagem
+  - Botao para continuar
+- Se o usuario nao tiver nenhum progresso, mostra um estado vazio com mensagem motivacional: "Voce ainda nao iniciou nenhuma aula. Escolha uma categoria abaixo para comecar!"
 
 ---
 
-## 4. Componente ResponsiveContainer
+## 3. Cards de categorias com imagens de fundo
 
-**Criar** um componente reutilizavel `ResponsiveContainer` que centraliza conteudo e aplica largura maxima automaticamente conforme o breakpoint.
+**Arquivo**: `src/components/mobile/MobileTrilhasAprender.tsx`
 
-**Arquivo novo**: `src/components/layout/ResponsiveContainer.tsx`
+Trocar os cards com gradiente puro por cards com imagens de fundo, usando imagens ja existentes no projeto:
 
----
+- **Iniciante (Trilha de Conceitos)**: usar `conceitos-thumb.jpg` (ja existe em assets)
+- **Areas do Direito**: usar `areas-thumb.jpg` (ja existe em assets)
+- **Portugues p/ Concurso**: usar `capa-portugues.jpg` (ja existe em assets)
+- **OAB**: usar `oab-primeira-fase-thumb.jpg` (ja existe em assets)
 
-## 5. Hook useMediaQuery
-
-**Criar** um hook utilitario simples para queries de media, complementando o `useDeviceType` existente.
-
-**Arquivo novo**: `src/hooks/useMediaQuery.ts`
+Cada card tera:
+- Imagem de fundo com overlay escuro gradiente
+- Icone e titulo em branco sobre a imagem
+- Seta de navegacao
+- Efeito de ring quando ativo
 
 ---
 
 ## Detalhes Tecnicos
 
-### Onboarding.tsx - Mudancas principais:
+### Index.tsx - Condicoes de visibilidade
 
 ```text
-Container principal:
-- De: "w-full max-w-lg"
-- Para: "w-full max-w-lg lg:max-w-2xl xl:max-w-3xl"
+Barra de busca mobile:
+- De: "md:hidden group flex..."
+- Para: adicionar {mainTab !== 'iniciante' && (...)}
 
-Card wrapper:
-- De: "p-6 sm:p-8"  
-- Para: "p-6 sm:p-8 lg:p-10 xl:p-12"
-
-Grid dos perfis:
-- De: "grid grid-cols-2 gap-3"
-- Para: "grid grid-cols-2 gap-3 lg:gap-5"
-
-Cards individuais:
-- No desktop: aspect-ratio mais retangular, textos maiores
-
-Titulo "Qual e o seu objetivo?":
-- De: "text-2xl"
-- Para: "text-2xl lg:text-3xl"
+Noticias mobile:
+- De: "md:hidden space-y-4..."
+- Para: adicionar {mainTab !== 'iniciante' && (...)}
 ```
 
-### IntroCarousel.tsx - Mudancas principais:
+### MobileTrilhasAprender.tsx - Secao de Progresso
 
 ```text
-Conteudo:
-- De: "max-w-2xl mx-auto"
-- Para: "max-w-2xl lg:max-w-4xl mx-auto"
+Nova query: buscar de conceitos_topicos_progresso 
+  JOIN conceitos_topicos ON id = topico_id
+  WHERE user_id = current AND progresso_porcentagem > 0 AND leitura_completa = false
+  ORDER BY updated_at DESC
 
-Titulo:
-- De: "text-3xl md:text-4xl"
-- Para: "text-3xl md:text-4xl lg:text-5xl xl:text-6xl"
+Carrossel: ScrollArea horizontal com cards de ~200px de largura
+Cada card: nome do topico, mini progress bar, botao "Continuar"
 
-Descricao:
-- De: "text-base md:text-lg"
-- Para: "text-base md:text-lg lg:text-xl"
-
-Feature pills:
-- Desktop: padding e fonte maiores
-
-Bottom controls:
-- Desktop: mais espaco, botoes maiores
+Estado vazio: icone BookOpen + texto "Nenhuma aula em andamento"
 ```
 
-### ResponsiveContainer.tsx:
+### MobileTrilhasAprender.tsx - Cards com imagens
 
 ```text
-Componente simples que aplica:
-- mx-auto px-4 sm:px-6 lg:px-8
-- max-w configuravel (sm/md/lg/xl/2xl/full)
-- Reutilizavel em todas as paginas
+Importar imagens existentes:
+  import conceitosThumb from "@/assets/conceitos-thumb.jpg"
+  import areasThumb from "@/assets/areas-thumb.jpg" 
+  import capaPortugues from "@/assets/capa-portugues.jpg"
+  import oabThumb from "@/assets/oab-primeira-fase-thumb.jpg"
+
+Cada card:
+  <button className="relative overflow-hidden rounded-2xl h-[120px]">
+    <img src={thumb} className="absolute inset-0 w-full h-full object-cover" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+    <div className="relative z-10 p-4 h-full flex flex-col justify-end">
+      <Icon /> + <h3>titulo</h3>
+    </div>
+  </button>
 ```
 
 ---
 
 ## Ordem de Implementacao
 
-1. Criar `ResponsiveContainer` e `useMediaQuery`
-2. Ajustar `Onboarding.tsx` para desktop
-3. Ajustar `IntroCarousel.tsx` para desktop
-4. Testar em resolucoes 1920x1080, 1366x768 e 1280x720
-
+1. Editar `Index.tsx` para ocultar busca e noticias na aba Aulas
+2. Editar `MobileTrilhasAprender.tsx` para adicionar secao de progresso com carrossel
+3. Editar `MobileTrilhasAprender.tsx` para trocar cards de gradiente por cards com imagem de fundo
