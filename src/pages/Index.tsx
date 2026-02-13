@@ -396,16 +396,16 @@ const Index = () => {
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-amber-500/20 rounded-xl">
-                      <Newspaper className="w-5 h-5 text-amber-500" />
+                      <Newspaper className="w-5 h-5 text-amber-100" />
                     </div>
                     <div>
-                      <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">Notícias Jurídicas</h3>
-                      <p className="text-xs text-muted-foreground">Fique atualizado</p>
+                      <h3 className="font-playfair text-xl font-bold text-amber-100 tracking-tight">Notícias Jurídicas</h3>
+                      <p className="text-white/70 text-xs">Fique atualizado</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/noticias-juridicas')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
                   >
                     <span>Ver mais</span>
                     <ArrowRight className="w-3.5 h-3.5" />
