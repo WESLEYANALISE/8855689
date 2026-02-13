@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Book, Scale, Mic, Users, Briefcase, BookOpen, Languages, Library, Gavel, ChevronRight } from "lucide-react";
+import { GraduationCap, Book, Scale, Mic, Users, Briefcase, BookOpen, Languages, Library, ChevronRight } from "lucide-react";
 import { BibliotecaBottomNav } from "@/components/biblioteca/BibliotecaBottomNav";
 import { useState, useEffect, memo } from "react";
 import type { ElementType } from "react";
@@ -33,7 +33,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "estudos",
     title: "Estudos",
-    description: "Materiais de estudo organizados por área do Direito. Ideal para estudantes de graduação, concursos e OAB.",
+    description: "Materiais de estudo organizados por área do Direito.",
     icon: GraduationCap,
     color: "#10b981",
     route: "/biblioteca-estudos",
@@ -44,7 +44,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "classicos",
     title: "Clássicos",
-    description: "Obras clássicas da literatura jurídica para enriquecer seus conhecimentos fundamentais.",
+    description: "Obras clássicas da literatura jurídica.",
     icon: Book,
     color: "#f59e0b",
     route: "/biblioteca-classicos",
@@ -55,7 +55,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "oab",
     title: "OAB",
-    description: "Biblioteca oficial da OAB com materiais jurídicos essenciais para aprovação.",
+    description: "Materiais essenciais para aprovação na OAB.",
     icon: Scale,
     color: "#3b82f6",
     route: "/biblioteca-oab",
@@ -66,7 +66,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "oratoria",
     title: "Oratória",
-    description: "Domine a arte da comunicação e persuasão para tribunais e audiências.",
+    description: "A arte da comunicação e persuasão.",
     icon: Mic,
     color: "#a855f7",
     route: "/biblioteca-oratoria",
@@ -77,7 +77,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "portugues",
     title: "Português",
-    description: "Gramática e redação jurídica para aprimorar sua escrita profissional.",
+    description: "Gramática e redação jurídica.",
     icon: Languages,
     color: "#0ea5e9",
     route: "/biblioteca-portugues",
@@ -88,7 +88,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "lideranca",
     title: "Liderança",
-    description: "Desenvolva habilidades de liderança e gestão para sua carreira jurídica.",
+    description: "Habilidades de liderança e gestão.",
     icon: Users,
     color: "#6366f1",
     route: "/biblioteca-lideranca",
@@ -99,7 +99,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "fora",
     title: "Fora da Toga",
-    description: "Leituras complementares para ampliar sua visão além do jurídico.",
+    description: "Leituras além do jurídico.",
     icon: Briefcase,
     color: "#ec4899",
     route: "/biblioteca-fora-da-toga",
@@ -110,7 +110,7 @@ const bibliotecasItems: BibliotecaItem[] = [
   {
     id: "pesquisa",
     title: "Pesquisa Científica",
-    description: "Metodologia e ferramentas para produção acadêmica e científica.",
+    description: "Metodologia e produção acadêmica.",
     icon: BookOpen,
     color: "#14b8a6",
     route: "/biblioteca-pesquisa-cientifica",
@@ -120,8 +120,8 @@ const bibliotecasItems: BibliotecaItem[] = [
   }
 ];
 
-// Componente de card memoizado para performance
-const BibliotecaCard = memo(({ 
+// Card estilo estante de livros
+const BibliotecaGridCard = memo(({ 
   item, 
   index, 
   count, 
@@ -132,113 +132,90 @@ const BibliotecaCard = memo(({
   count: number; 
   onClick: () => void;
 }) => {
-  const isLeft = index % 2 === 0;
   const Icon = item.icon;
   const capaUrl = item.localCapa;
   
   return (
-    <div
-      className={`relative flex items-center animate-fade-in ${
-        isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
-      }`}
-      style={{ animationDelay: `${index * 50}ms` }}
+    <button
+      onClick={onClick}
+      className="w-full rounded-2xl overflow-hidden text-left transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] group animate-fade-in"
+      style={{
+        animationDelay: `${index * 60}ms`,
+        boxShadow: `0 4px 24px ${item.color}25`,
+      }}
     >
-      {/* Marcador Martelo no centro */}
-      <div className="absolute left-1/2 -translate-x-1/2 z-10">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg animate-pulse"
-          style={{ 
-            background: `linear-gradient(135deg, ${item.color}, ${item.color}dd)`,
-            boxShadow: `0 4px 20px ${item.color}50`
-          }}
+      <div className="aspect-[3/4] w-full overflow-hidden relative">
+        {capaUrl ? (
+          <img 
+            src={capaUrl} 
+            alt={item.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="eager"
+            decoding="sync"
+            fetchPriority="high"
+            onLoad={() => capaUrl && markImageLoaded(capaUrl)}
+          />
+        ) : (
+          <div 
+            className="w-full h-full flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${item.color}60, ${item.color}30)` }}
+          >
+            <Icon className="w-12 h-12" style={{ color: item.color }} />
+          </div>
+        )}
+        
+        {/* Badge de contagem - topo esquerdo */}
+        <div 
+          className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md backdrop-blur-sm"
+          style={{ backgroundColor: `${item.color}cc` }}
         >
-          <Gavel className="w-5 h-5 text-white" />
+          <Book className="w-3 h-3 text-white" />
+          <span className="text-xs font-bold text-white">{count}</span>
         </div>
-      </div>
-      
-      {/* Card da Biblioteca - Formato Livro */}
-      <div className="w-full">
-        <button
-          onClick={onClick}
-          className="w-full rounded-2xl overflow-hidden text-left transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          style={{
-            boxShadow: `0 4px 20px ${item.color}30`
-          }}
-        >
-          {/* Capa estilo livro - aspect ratio 3:4 */}
-          <div className="aspect-[3/4] w-full overflow-hidden relative group">
-            {capaUrl ? (
-              <img 
-                src={capaUrl} 
-                alt={item.title}
-                className="w-full h-full object-cover"
-                loading="eager"
-                decoding="sync"
-                fetchPriority="high"
-                onLoad={() => capaUrl && markImageLoaded(capaUrl)}
-              />
-            ) : (
-              <div 
-                className="w-full h-full flex items-center justify-center"
-                style={{ background: `linear-gradient(135deg, ${item.color}60, ${item.color}30)` }}
-              >
-                <Icon className="w-12 h-12" style={{ color: item.color }} />
-              </div>
-            )}
-            
-            {/* Badge de contagem - topo esquerdo */}
+
+        {/* Borda temática sutil no hover */}
+        <div 
+          className="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-opacity-60 transition-all duration-300 pointer-events-none"
+          style={{ borderColor: `${item.color}00`, }}
+        />
+        <div 
+          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          style={{ boxShadow: `inset 0 0 0 2px ${item.color}80` }}
+        />
+        
+        {/* Gradiente inferior */}
+        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+        
+        {/* Conteúdo */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Icon className="w-4 h-4 flex-shrink-0" style={{ color: item.color }} />
+            <h3 className="font-bold text-sm text-white leading-tight truncate">
+              {item.title}
+            </h3>
+          </div>
+          <div className="flex justify-end">
             <div 
-              className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md backdrop-blur-sm"
-              style={{ backgroundColor: `${item.color}90` }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-white text-[11px] font-medium backdrop-blur-sm"
+              style={{ backgroundColor: `${item.color}cc` }}
             >
-              <Book className="w-3 h-3 text-white" />
-              <span className="text-xs font-bold text-white">
-                {count}
-              </span>
-              <span className="text-[10px] text-white/80">livros</span>
-            </div>
-            
-            {/* Gradiente apenas na parte inferior para texto */}
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/90 to-transparent" />
-            
-            {/* Conteúdo sobre a capa */}
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              {/* Título */}
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-5 h-5" style={{ color: item.color }} />
-                <h3 className="font-bold text-lg text-white">
-                  {item.title}
-                </h3>
-              </div>
-              
-              {/* Botão Acessar abaixo, alinhado à direita */}
-              <div className="flex justify-end">
-                <div 
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium backdrop-blur-sm"
-                  style={{ backgroundColor: `${item.color}cc` }}
-                >
-                  <span>Acessar</span>
-                  <ChevronRight className="w-3.5 h-3.5 animate-bounceRight" />
-                </div>
-              </div>
+              Acessar
+              <ChevronRight className="w-3 h-3" />
             </div>
           </div>
-        </button>
+        </div>
       </div>
-    </div>
+    </button>
   );
 });
 
-BibliotecaCard.displayName = 'BibliotecaCard';
+BibliotecaGridCard.displayName = 'BibliotecaGridCard';
 
 const Bibliotecas = () => {
   const navigate = useNavigate();
 
-  // Verificar se a imagem já está em cache para exibição INSTANTÂNEA
   const [imageLoaded, setImageLoaded] = useState(() => {
-    // Verifica primeiro no cache do useInstantCache
     if (isImagePreloaded(heroBibliotecas)) return true;
-    // Fallback: verifica se está no cache do browser
     const img = new Image();
     img.src = heroBibliotecas;
     return img.complete && img.naturalWidth > 0;
@@ -255,7 +232,6 @@ const Bibliotecas = () => {
     }
   }, [imageLoaded]);
 
-  // Buscar contagens
   const { data: contagens } = useQuery({
     queryKey: ["contagens-bibliotecas"],
     queryFn: async () => {
@@ -306,12 +282,11 @@ const Bibliotecas = () => {
       
       {/* Content */}
       <div className="relative z-10">
-        {/* Header padrão fixo (colado no topo) */}
         <StandardPageHeader title="Biblioteca Jurídica" position="fixed" backPath="/" />
         
         {/* Hero section */}
-        <div className="pt-14 pb-4 px-4">
-          <div className="max-w-lg mx-auto">
+        <div className="pt-14 pb-2 px-4">
+          <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-4 animate-fade-in">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/30">
                 <Library className="w-7 h-7 text-white" />
@@ -322,16 +297,14 @@ const Bibliotecas = () => {
                     Biblioteca Jurídica
                   </span>
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Completa
-                </p>
+                <p className="text-sm text-muted-foreground">Completa</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Info Stats */}
-        <div className="px-4 py-4">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-center gap-6 text-sm text-foreground/80">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-amber-400" />
@@ -344,25 +317,18 @@ const Bibliotecas = () => {
           </div>
         </div>
 
-        {/* Timeline de Bibliotecas */}
-        <div className="px-4 pb-24 pt-4">
-          <div className="max-w-lg mx-auto relative">
-            {/* Linha central da timeline */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 overflow-hidden">
-              <div className="w-full h-full bg-gradient-to-b from-amber-500/80 via-amber-600/60 to-amber-700/40 rounded-full" />
-            </div>
-            
-            <div className="space-y-6">
-              {bibliotecasItems.map((item, index) => (
-                <BibliotecaCard
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  count={contagens?.[item.key as keyof typeof contagens] || 0}
-                  onClick={() => navigate(item.route)}
-                />
-              ))}
-            </div>
+        {/* Grid Estante de Livros */}
+        <div className="px-3 pb-24 pt-2">
+          <div className="max-w-4xl mx-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {bibliotecasItems.map((item, index) => (
+              <BibliotecaGridCard
+                key={item.id}
+                item={item}
+                index={index}
+                count={contagens?.[item.key as keyof typeof contagens] || 0}
+                onClick={() => navigate(item.route)}
+              />
+            ))}
           </div>
         </div>
       </div>
