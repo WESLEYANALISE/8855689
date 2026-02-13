@@ -6,7 +6,7 @@ import { ArrowLeft, Play, Loader2, Search, Footprints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import videoaulasBackground from "@/assets/videoaulas-oab-background.jpg";
+import videoaulasBackground from "@/assets/videoaulas-oab-background.webp";
 
 interface AreaData {
   area: string;

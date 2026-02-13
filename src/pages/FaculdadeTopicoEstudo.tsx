@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import ReactCardFlip from "react-card-flip";
-import bgPraticarExam from "@/assets/bg-praticar-exam.jpg";
+import bgPraticarExam from "@/assets/bg-praticar-exam.webp";
 import StandardPageHeader from "@/components/StandardPageHeader";
 import { Slider } from "@/components/ui/slider";
 

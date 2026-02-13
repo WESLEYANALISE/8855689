@@ -30,7 +30,7 @@ import JurisprudenciaResultadosAnimados from '@/components/jurisprudencia/Jurisp
 import JurisprudenciaCategoriaLista from '@/components/jurisprudencia/JurisprudenciaCategoriaLista';
 import NoticiasJurisprudenciaTab from '@/components/jurisprudencia/NoticiasJurisprudenciaTab';
 import { JurisprudenciaBackground } from '@/components/JurisprudenciaBackground';
-import constituicaoBackground from '@/assets/constituicao-background.jpg';
+import constituicaoBackground from '@/assets/constituicao-background.webp';
 
 interface Legislacao {
   id: string;

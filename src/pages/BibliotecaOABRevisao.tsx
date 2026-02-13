@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
-import capaOabRevisao from "@/assets/capa-biblioteca-oab-revisao.jpg";
+import capaOabRevisao from "@/assets/capa-biblioteca-oab-revisao.webp";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 

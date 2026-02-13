@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useCallback } from 'react';
 
 import themisFull from '@/assets/themis-full.webp';
-import welcome1 from '@/assets/landing/welcome-1.png';
+import welcome1 from '@/assets/landing/welcome-1.webp';
 import welcome2 from '@/assets/landing/welcome-2.png';
 import welcome3 from '@/assets/landing/welcome-3.png';
 import welcome4 from '@/assets/landing/welcome-4.png';

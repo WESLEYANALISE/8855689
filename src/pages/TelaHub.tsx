@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { ArrowLeft, Clapperboard, Video, BookOpen, Flame, Users, Heart, Footprints, Scale, FileText, Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import telaBackground from "@/assets/tela-background.jpg";
+import telaBackground from "@/assets/tela-background.webp";
 
 // Thumbnails geradas para cada categoria de videoaulas
 import conceitosThumb from "@/assets/thumbnails/conceitos-thumb.jpg";

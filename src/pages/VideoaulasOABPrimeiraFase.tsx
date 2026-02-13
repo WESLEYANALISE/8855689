@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Play, Loader2, Search, Footprints } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import videoaulasBackground from "@/assets/videoaulas-oab-background.jpg";
+import videoaulasBackground from "@/assets/videoaulas-oab-background.webp";
 
 interface AreaStats {
   area: string;

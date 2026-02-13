@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Play, Search, Footprints, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import videoaulasBackground from "@/assets/videoaulas-oab-background.jpg";
+import videoaulasBackground from "@/assets/videoaulas-oab-background.webp";
 import { AREAS_PLAYLISTS, AreaPlaylist } from "@/data/videoaulasAreasPlaylists";
 import { supabase } from "@/integrations/supabase/client";
 

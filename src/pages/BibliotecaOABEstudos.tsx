@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion } from "framer-motion";
-import capaOabEstudos from "@/assets/capa-biblioteca-oab-estudos.jpg";
+import capaOabEstudos from "@/assets/capa-biblioteca-oab-estudos.webp";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";

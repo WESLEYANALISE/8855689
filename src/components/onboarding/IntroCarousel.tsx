@@ -7,7 +7,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 
 // Imagens de fundo
-import capaFaculdade from '@/assets/landing/welcome-1.png';
+import capaFaculdade from '@/assets/landing/welcome-1.webp';
 import estudosSection from '@/assets/landing/estudos-section.webp';
 import oabSection from '@/assets/landing/oab-section.webp';
 import bibliotecaSection from '@/assets/landing/biblioteca-section-opt.webp';

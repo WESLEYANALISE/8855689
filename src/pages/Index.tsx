@@ -6,7 +6,7 @@ import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight } from "lucide-react";
 import cardAulasThumb from "@/assets/card-aulas-thumb.jpg";
-import bibliotecaThumb from "@/assets/biblioteca-office-sunset.jpg";
+import bibliotecaThumb from "@/assets/biblioteca-office-sunset.webp";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import useEmblaCarousel from 'embla-carousel-react';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
