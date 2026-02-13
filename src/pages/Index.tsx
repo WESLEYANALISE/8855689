@@ -289,7 +289,7 @@ const Index = () => {
           <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate('/aulas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-[0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] transition-all group bg-card"
+              className="overflow-hidden rounded-2xl text-left border border-border/30 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.6)] transition-all group bg-card"
             >
               <div className="relative h-[70px] overflow-hidden">
                 <img src={cardAulasThumb} alt="" className="w-full h-full object-cover" />
@@ -305,7 +305,7 @@ const Index = () => {
 
             <button
               onClick={() => navigate('/bibliotecas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-[0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] transition-all group bg-card"
+              className="overflow-hidden rounded-2xl text-left border border-border/30 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.6)] transition-all group bg-card"
             >
               <div className="relative h-[70px] overflow-hidden">
                 <img src={bibliotecaThumb} alt="" className="w-full h-full object-cover" />
