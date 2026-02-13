@@ -3,13 +3,20 @@ import { CategoriasBottomNav } from "@/components/categorias/CategoriasBottomNav
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Footprints, Loader2, Scale, Crown, Lock, Gavel, ChevronRight } from "lucide-react";
+import { BookOpen, Footprints, Loader2, Scale, Crown, Lock, Gavel, ChevronRight, PlayCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { UniversalImage } from "@/components/ui/universal-image";
 import { LockedTimelineCard } from "@/components/LockedTimelineCard";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { MobileAreaTrilha } from "./MobileAreaTrilha";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+
+import conceitosThumb from "@/assets/thumbnails/conceitos-thumb.jpg";
+import areasThumb from "@/assets/thumbnails/areas-thumb.jpg";
+import portuguesThumb from "@/assets/thumbnails/portugues-thumb.jpg";
+import oabThumb from "@/assets/thumbnails/oab-thumb.jpg";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
@@ -20,14 +27,14 @@ const FREE_MATERIA_NAMES = [
   "introducao ao estudo do direito"
 ];
 
-// Categorias estilo Vade Mecum
+// Categorias com imagens de fundo
 const categoriasAulas = [
-  { id: "conceitos", title: "Trilha de Conceitos", icon: Footprints, color: "from-amber-500 to-amber-700" },
-  { id: "areas", title: "Áreas do Direito", icon: Scale, color: "from-red-500 to-red-700" },
-  { id: "portugues", title: "Português p/ Concurso", icon: BookOpen, color: "from-sky-500 to-sky-700" },
+  { id: "conceitos", title: "Trilha de Conceitos", subtitle: "Iniciante", icon: Footprints, thumb: conceitosThumb },
+  { id: "areas", title: "Áreas do Direito", subtitle: "27 áreas", icon: Scale, thumb: areasThumb },
+  { id: "portugues", title: "Português p/ Concurso", subtitle: "Gramática", icon: BookOpen, thumb: portuguesThumb },
 ];
 
-const categoriaOAB = { id: "oab", title: "OAB", icon: Gavel, color: "from-emerald-500 to-emerald-700" };
+const categoriaOAB = { id: "oab", title: "OAB", subtitle: "1ª Fase", icon: Gavel, thumb: oabThumb };
 
 // label curto para exibição, value completo para query no banco
 const AREAS_ORDEM: { label: string; value: string }[] = [
@@ -71,7 +78,60 @@ export const MobileTrilhasAprender = memo(() => {
 
   const categorias = isAdmin ? [...categoriasAulas, categoriaOAB] : categoriasAulas;
 
-  // Buscar matérias do conceitos (para Trilha de Conceitos)
+  // === PROGRESSO: buscar tópicos em andamento ===
+  const { data: progressoConceitos } = useQuery({
+    queryKey: ["progresso-conceitos", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("conceitos_topicos_progresso")
+        .select("*, conceitos_topicos(titulo, materia_id)")
+        .eq("user_id", user.id)
+        .eq("leitura_completa", false)
+        .gt("progresso_porcentagem", 0)
+        .order("updated_at", { ascending: false })
+        .limit(10);
+      if (error) return [];
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        nome: item.conceitos_topicos?.titulo || "Tópico",
+        progresso: item.progresso_porcentagem || 0,
+        tipo: "conceitos" as const,
+        topicoId: item.topico_id,
+      }));
+    },
+    staleTime: 1000 * 60 * 2,
+    enabled: !!user?.id,
+  });
+
+  const { data: progressoAulas } = useQuery({
+    queryKey: ["progresso-aulas-interativas", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("aulas_progresso")
+        .select("*, aulas_interativas(titulo)")
+        .eq("user_id", user.id)
+        .eq("concluida", false)
+        .gt("progresso_percentual", 0)
+        .order("updated_at", { ascending: false })
+        .limit(10);
+      if (error) return [];
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        nome: item.aulas_interativas?.titulo || "Aula",
+        progresso: item.progresso_percentual || 0,
+        tipo: "aula" as const,
+        aulaId: item.aula_id,
+      }));
+    },
+    staleTime: 1000 * 60 * 2,
+    enabled: !!user?.id,
+  });
+
+  const todosProgresso = [...(progressoConceitos || []), ...(progressoAulas || [])];
+
+  // === CONCEITOS: buscar matérias ===
   const { data: materias, isLoading } = useQuery({
     queryKey: ["conceitos-materias-trilhante"],
     queryFn: async () => {
@@ -153,8 +213,64 @@ export const MobileTrilhasAprender = memo(() => {
     setActiveCategory(activeCategory === id ? null : id);
   };
 
+  const handleContinuar = (item: any) => {
+    if (item.tipo === "conceitos") {
+      navigate(`/conceitos/topico/${item.topicoId}`);
+    } else if (item.tipo === "aula") {
+      navigate(`/aula/${item.aulaId}`);
+    }
+  };
+
   return (
     <div className="relative py-4 pb-24 flex flex-col items-center">
+      {/* Seção de Progresso */}
+      <div className="w-full px-4 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 bg-amber-500/20 rounded-lg">
+            <PlayCircle className="w-4 h-4 text-amber-400" />
+          </div>
+          <h3 className="font-semibold text-amber-100 text-sm">Seu Progresso</h3>
+        </div>
+
+        {todosProgresso.length === 0 ? (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+            <BookOpen className="w-8 h-8 text-white/20 mx-auto mb-3" />
+            <p className="text-white/50 text-sm">Você ainda não iniciou nenhuma aula.</p>
+            <p className="text-white/30 text-xs mt-1">Escolha uma categoria abaixo para começar!</p>
+          </div>
+        ) : (
+          <ScrollArea className="w-full">
+            <div className="flex gap-3 pb-2">
+              {todosProgresso.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleContinuar(item)}
+                  className="flex-shrink-0 w-[200px] bg-white/5 border border-white/10 rounded-xl p-3 text-left hover:bg-white/10 transition-colors"
+                >
+                  <p className="text-white text-xs font-medium line-clamp-2 mb-2 min-h-[32px]">
+                    {item.nome}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Progress 
+                      value={item.progresso} 
+                      className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
+                    />
+                    <span className="text-[10px] text-amber-400 font-medium min-w-[28px] text-right">
+                      {item.progresso}%
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-2">
+                    <PlayCircle className="w-3 h-3 text-amber-400" />
+                    <span className="text-[10px] text-amber-400 font-medium">Continuar</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        )}
+      </div>
+
       {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -168,7 +284,7 @@ export const MobileTrilhasAprender = memo(() => {
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </motion.div>
 
-      {/* Grid de Categorias - Estilo Vade Mecum */}
+      {/* Grid de Categorias com Imagens */}
       <div className="w-full px-4 mb-6">
         <div className="grid grid-cols-2 gap-3">
           {categorias.map((categoria) => {
@@ -178,27 +294,35 @@ export const MobileTrilhasAprender = memo(() => {
               <button
                 key={categoria.id}
                 onClick={() => handleCategoryClick(categoria.id)}
-                className={`group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-150 hover:scale-[1.02] bg-gradient-to-br ${categoria.color} shadow-lg h-[100px] ${
-                  isActive ? 'ring-2 ring-white/60 scale-[1.02]' : ''
+                className={`group relative overflow-hidden rounded-2xl text-left transition-all duration-150 hover:scale-[1.02] shadow-lg h-[120px] ${
+                  isActive ? 'ring-2 ring-amber-400/60 scale-[1.02]' : ''
                 }`}
               >
-                {/* Ícone de fundo decorativo */}
-                <div className="absolute -right-3 -bottom-3 opacity-20">
-                  <Icon className="w-20 h-20 text-white" />
-                </div>
+                {/* Imagem de fundo */}
+                <img 
+                  src={categoria.thumb} 
+                  alt={categoria.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {/* Overlay escuro */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
                 
-                {/* Ícone principal */}
-                <div className="bg-white/20 rounded-xl p-2 w-fit mb-2 group-hover:bg-white/30 transition-colors">
-                  <Icon className="w-5 h-5 text-white" />
+                {/* Conteúdo */}
+                <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit group-hover:bg-white/30 transition-colors">
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white text-sm leading-tight pr-6">
+                      {categoria.title}
+                    </h3>
+                    <p className="text-white/50 text-[10px] mt-0.5">{categoria.subtitle}</p>
+                  </div>
                 </div>
-                
-                {/* Título */}
-                <h3 className="font-semibold text-white text-sm leading-tight pr-6">
-                  {categoria.title}
-                </h3>
                 
                 {/* Seta */}
-                <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-all z-10" />
               </button>
             );
           })}

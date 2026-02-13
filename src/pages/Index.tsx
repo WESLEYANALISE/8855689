@@ -266,51 +266,55 @@ const Index = () => {
 
       <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] py-[2px]" style={{ zIndex: 2 }}>
         {/* Search Bar - Apenas mobile (desktop usa a barra no header) */}
-        <div 
-          data-tutorial="busca-principal"
-          onClick={() => navigate('/pesquisar')} 
-          className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg relative z-10 mt-4"
-        >
-          <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
-            <Search className="w-5 h-5 text-red-400" />
+        {mainTab !== 'iniciante' && (
+          <div 
+            data-tutorial="busca-principal"
+            onClick={() => navigate('/pesquisar')} 
+            className="md:hidden group flex items-center gap-3 px-5 py-4 bg-card/90 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-card transition-colors duration-150 shadow-lg relative z-10 mt-4"
+          >
+            <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
+              <Search className="w-5 h-5 text-red-400" />
+            </div>
+            <SearchBarAnimatedText />
           </div>
-          <SearchBarAnimatedText />
-        </div>
+        )}
 
         {/* Notícias em Destaque - sempre visível no mobile */}
-        <div className="md:hidden space-y-4 relative z-10">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500/20 rounded-xl">
-                <Newspaper className="w-5 h-5 text-amber-100" />
+        {mainTab !== 'iniciante' && (
+          <div className="md:hidden space-y-4 relative z-10">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/20 rounded-xl">
+                  <Newspaper className="w-5 h-5 text-amber-100" />
+                </div>
+                <div>
+                  <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">Notícias Jurídicas</h3>
+                  <p className="text-xs text-white/70">Fique atualizado</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-playfair text-xl md:text-lg font-bold text-amber-100 tracking-tight">Notícias Jurídicas</h3>
-                <p className="text-xs text-white/70">Fique atualizado</p>
-              </div>
+              <button
+                onClick={() => navigate('/noticias-juridicas')}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
+              >
+                <span>Ver mais</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button
-              onClick={() => navigate('/noticias-juridicas')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
-            >
-              <span>Ver mais</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-4 touch-pan-x">
+                {featuredNews.slice(0, 6).map((noticia, index) => (
+                  <NoticiaCarouselCard 
+                    key={noticia.id} 
+                    noticia={noticia} 
+                    priority={index < 3}
+                  />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </div>
-          
-          <ScrollArea className="w-full">
-            <div className="flex gap-3 pb-4 touch-pan-x">
-              {featuredNews.slice(0, 6).map((noticia, index) => (
-                <NoticiaCarouselCard 
-                  key={noticia.id} 
-                  noticia={noticia} 
-                  priority={index < 3}
-                />
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </div>
+        )}
 
         {/* Menu de Alternância Principal - Apenas mobile */}
         <div className="flex gap-1.5 md:hidden mb-6 relative z-20 h-[44px]">
