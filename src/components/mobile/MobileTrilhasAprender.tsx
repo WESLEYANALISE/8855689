@@ -68,6 +68,7 @@ export const MobileTrilhasAprender = memo(() => {
   const isAdmin = user?.email === ADMIN_EMAIL;
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeArea, setActiveArea] = useState("Direito Constitucional");
+  const [showOabPhases, setShowOabPhases] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // === PROGRESSO: buscar tópicos em andamento (oab_trilhas_estudo_progresso) ===
@@ -222,11 +223,11 @@ export const MobileTrilhasAprender = memo(() => {
       {/* ========== 1. DASHBOARD DE PROGRESSO ========== */}
       <div className="w-full mb-6">
         <div className="flex items-center justify-between px-4 mb-3">
-          <h2 className="font-semibold text-sm text-white">Seu Progresso</h2>
+          <h2 className="font-semibold text-base text-white">Seu Progresso</h2>
           {todosProgresso.length > 0 && (
             <button 
               onClick={() => navigate("/aulas/dashboard")}
-              className="text-[11px] text-amber-400 font-medium flex items-center gap-0.5"
+              className="text-xs text-amber-400 font-medium flex items-center gap-0.5"
             >
               Ver tudo <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -234,10 +235,12 @@ export const MobileTrilhasAprender = memo(() => {
         </div>
 
         {todosProgresso.length === 0 ? (
-          <div className="mx-4 bg-white/5 border border-white/8 rounded-2xl p-6 text-center">
-            <PlayCircle className="w-8 h-8 text-amber-400/30 mx-auto mb-2" />
-            <p className="text-white/40 text-xs">Comece uma aula para acompanhar seu progresso</p>
-            <p className="text-white/25 text-[10px] mt-1">Suas aulas em andamento aparecerão aqui</p>
+          <div className="mx-4 bg-gradient-to-br from-white/8 to-white/3 border border-white/10 rounded-2xl p-8 text-center shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)]">
+            <div className="bg-amber-500/15 rounded-2xl p-4 w-fit mx-auto mb-3">
+              <PlayCircle className="w-10 h-10 text-amber-400/50" />
+            </div>
+            <p className="text-white/60 text-sm font-medium">Comece uma aula</p>
+            <p className="text-white/30 text-xs mt-1">Seu progresso aparecerá aqui</p>
           </div>
         ) : (
           <div 
@@ -248,23 +251,23 @@ export const MobileTrilhasAprender = memo(() => {
               <button
                 key={item.id}
                 onClick={() => handleContinuar(item)}
-                className="flex-shrink-0 w-[200px] bg-gradient-to-br from-white/8 to-white/3 border border-white/10 rounded-2xl p-3.5 text-left hover:border-amber-400/30 transition-all shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)]"
+                className="flex-shrink-0 w-[220px] bg-gradient-to-br from-white/10 to-white/4 border border-white/12 rounded-2xl p-4 text-left hover:border-amber-400/40 transition-all shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)]"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-amber-500/20 rounded-lg p-1.5">
-                    <PlayCircle className="w-3.5 h-3.5 text-amber-400" />
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="bg-amber-500/25 rounded-xl p-2">
+                    <PlayCircle className="w-4 h-4 text-amber-400" />
                   </div>
-                  <span className="text-[9px] text-amber-400/70 bg-amber-400/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider font-medium">
+                  <span className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                     {item.tipo === "conceitos" ? "Conceitos" : "Aula"}
                   </span>
                 </div>
-                <h3 className="text-xs font-medium text-white line-clamp-2 leading-snug mb-3">{item.nome}</h3>
-                <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white line-clamp-2 leading-snug mb-3">{item.nome}</h3>
+                <div className="flex items-center gap-2.5">
                   <Progress 
                     value={item.progresso} 
-                    className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
+                    className="h-2 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500 [&>div]:rounded-full" 
                   />
-                  <span className="text-[10px] text-amber-400 font-bold">{Math.round(item.progresso)}%</span>
+                  <span className="text-xs text-amber-400 font-bold min-w-[32px] text-right">{Math.round(item.progresso)}%</span>
                 </div>
               </button>
             ))}
@@ -280,10 +283,10 @@ export const MobileTrilhasAprender = memo(() => {
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </div>
 
-      {/* ========== 3. TRILHA DE CONCEITOS + CONCEITOS PARA CONCURSO ========== */}
+      {/* ========== 3. TRILHAS DE CONCEITOS + TRILHAS OAB ========== */}
       <div className="w-full px-3 mb-4">
         <div className="grid grid-cols-2 gap-2.5">
-          {/* Trilha de Conceitos */}
+          {/* Trilhas de Conceitos */}
           <button
             onClick={() => navigate("/conceitos/trilhante")}
             className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
@@ -302,25 +305,51 @@ export const MobileTrilhasAprender = memo(() => {
             <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
           </button>
 
-          {/* Conceitos para Concurso */}
+          {/* Trilhas OAB - abre seleção de fase */}
           <button
-            onClick={() => navigate("/ferramentas/simulados")}
+            onClick={() => setShowOabPhases(!showOabPhases)}
             className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
           >
             <img src={concursosThumb} alt="Trilhas OAB" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
             <div className="relative z-10 p-3 h-full flex flex-col justify-between">
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
-                <Target className="w-4 h-4 text-white" />
+                <Gavel className="w-4 h-4 text-white" />
               </div>
               <div>
                 <h3 className="font-semibold text-white text-sm leading-tight">Trilhas OAB</h3>
-                <p className="text-white/50 text-[10px] mt-0.5">Preparação</p>
+                <p className="text-white/50 text-[10px] mt-0.5">1ª e 2ª Fase</p>
               </div>
             </div>
             <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
           </button>
         </div>
+
+        {/* Seleção de fase OAB */}
+        {showOabPhases && (
+          <div className="grid grid-cols-2 gap-2.5 mt-2.5">
+            <button
+              onClick={() => navigate("/oab/primeira-fase")}
+              className="bg-gradient-to-br from-red-600/20 to-red-800/10 border border-red-500/30 rounded-2xl p-4 text-left hover:border-red-400/50 transition-all"
+            >
+              <div className="bg-red-500/20 rounded-xl p-2 w-fit mb-2">
+                <Target className="w-4 h-4 text-red-400" />
+              </div>
+              <h4 className="font-semibold text-white text-sm">1ª Fase</h4>
+              <p className="text-white/40 text-[10px] mt-0.5">Prova objetiva</p>
+            </button>
+            <button
+              onClick={() => navigate("/oab/segunda-fase")}
+              className="bg-gradient-to-br from-red-600/20 to-red-800/10 border border-red-500/30 rounded-2xl p-4 text-left hover:border-red-400/50 transition-all"
+            >
+              <div className="bg-red-500/20 rounded-xl p-2 w-fit mb-2">
+                <Scale className="w-4 h-4 text-red-400" />
+              </div>
+              <h4 className="font-semibold text-white text-sm">2ª Fase</h4>
+              <p className="text-white/40 text-[10px] mt-0.5">Prova prática</p>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ========== 4. ÁREAS DO DIREITO - ADMIN ONLY ========== */}
