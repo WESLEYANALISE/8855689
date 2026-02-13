@@ -227,7 +227,7 @@ const Index = () => {
     return (
       <button
         onClick={() => changeMainTab(tab)}
-        className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-full text-sm md:text-base font-medium transition-all flex items-center justify-center gap-1.5 md:gap-2 ${
+        className={`flex-1 min-w-0 basis-0 px-3 md:px-4 py-2.5 md:py-3 rounded-full text-sm md:text-base font-medium transition-all flex items-center justify-center gap-1.5 md:gap-2 ${
           isActive
             ? 'bg-red-600 text-white shadow-lg'
             : 'bg-neutral-800/80 hover:bg-neutral-700/80'
