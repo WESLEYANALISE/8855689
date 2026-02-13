@@ -1,5 +1,5 @@
-import { useState, useRef, KeyboardEvent } from "react";
-import { Send, Paperclip, Image, FileText, X, Loader2, Crown, Lock } from "lucide-react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { Send, Paperclip, Image, FileText, X, Loader2, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,30 @@ interface ChatInputProps {
   onFilesChange: (files: UploadedFile[]) => void;
   onExtractPdf: (file: File) => Promise<string>;
 }
+
+// Verificar quantos envios de arquivo o usuário gratuito já fez hoje
+const FREE_UPLOAD_KEY = 'chat_free_uploads';
+
+function getFreeUploadsToday(): number {
+  try {
+    const stored = localStorage.getItem(FREE_UPLOAD_KEY);
+    if (!stored) return 0;
+    const parsed = JSON.parse(stored);
+    const today = new Date().toISOString().slice(0, 10);
+    if (parsed.date !== today) return 0;
+    return parsed.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementFreeUploads() {
+  const today = new Date().toISOString().slice(0, 10);
+  const current = getFreeUploadsToday();
+  localStorage.setItem(FREE_UPLOAD_KEY, JSON.stringify({ date: today, count: current + 1 }));
+}
+
+const MAX_FREE_UPLOADS_PER_DAY = 1;
 
 export const ChatInputNew = ({ 
   onSend, 
@@ -34,6 +58,15 @@ export const ChatInputNew = ({
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto-focus no textarea ao montar (abre teclado no mobile)
+  useEffect(() => {
+    // Pequeno delay para garantir que o componente está renderizado
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleSend = () => {
     if (!input.trim() && !uploadedFiles.length) return;
     if (isStreaming) return;
@@ -49,19 +82,22 @@ export const ChatInputNew = ({
     }
   };
 
-  // Verificação premium para anexos
+  // Verificação de limite de anexos (gratuito: 1/dia, premium: ilimitado)
   const handleAttachClick = (type: 'image' | 'pdf') => {
     if (!isPremium) {
-      toast.error(`Enviar ${type === 'image' ? 'imagens' : 'PDFs'} é exclusivo Premium`, {
-        description: 'Assine para enviar arquivos e usar recursos avançados!',
-        action: {
-          label: 'Ver planos',
-          onClick: () => navigate('/assinatura')
-        },
-        duration: 5000
-      });
-      setShowAttachMenu(false);
-      return;
+      const usedToday = getFreeUploadsToday();
+      if (usedToday >= MAX_FREE_UPLOADS_PER_DAY) {
+        toast.error('Você já usou seu envio gratuito de hoje', {
+          description: 'Assinantes Premium podem enviar arquivos ilimitados!',
+          action: {
+            label: 'Ver planos',
+            onClick: () => navigate('/assinatura')
+          },
+          duration: 5000
+        });
+        setShowAttachMenu(false);
+        return;
+      }
     }
     
     if (type === 'image') {
@@ -76,6 +112,11 @@ export const ChatInputNew = ({
     setIsProcessingFile(true);
     
     try {
+      // Registrar uso para gratuitos
+      if (!isPremium) {
+        incrementFreeUploads();
+      }
+
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = e => resolve(e.target?.result as string);
@@ -108,6 +149,10 @@ export const ChatInputNew = ({
   const removeFile = (index: number) => {
     onFilesChange(uploadedFiles.filter((_, i) => i !== index));
   };
+
+  // Verificar se o usuário gratuito ainda tem envios disponíveis
+  const freeUploadsRemaining = isPremium ? Infinity : (MAX_FREE_UPLOADS_PER_DAY - getFreeUploadsToday());
+  const hasUploadsAvailable = isPremium || freeUploadsRemaining > 0;
 
   return (
     <div className="border-t border-red-900/30 bg-[#1a0a0a] p-4 pb-6 relative z-20">
@@ -163,7 +208,10 @@ export const ChatInputNew = ({
                   <Image className="w-4 h-4 text-blue-400" />
                   Imagem
                 </span>
-                {!isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                {!isPremium && !hasUploadsAvailable && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                {!isPremium && hasUploadsAvailable && (
+                  <span className="text-[10px] text-white/40">{freeUploadsRemaining}/dia</span>
+                )}
               </button>
               <button
                 onClick={() => handleAttachClick('pdf')}
@@ -173,7 +221,10 @@ export const ChatInputNew = ({
                   <FileText className="w-4 h-4 text-red-400" />
                   PDF
                 </span>
-                {!isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                {!isPremium && !hasUploadsAvailable && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                {!isPremium && hasUploadsAvailable && (
+                  <span className="text-[10px] text-white/40">{freeUploadsRemaining}/dia</span>
+                )}
               </button>
             </div>
           )}
@@ -212,6 +263,7 @@ export const ChatInputNew = ({
           className="flex-1 min-h-[52px] max-h-32 resize-none bg-white/20 border-white/40 text-white placeholder:text-white/60 focus-visible:ring-red-500/60 focus-visible:border-red-500/60 text-base shadow-inner"
           rows={1}
           disabled={isStreaming}
+          autoFocus
         />
 
         {/* Botão enviar/parar */}
