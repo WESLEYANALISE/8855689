@@ -228,6 +228,19 @@ export const MobileTrilhasAprender = memo(() => {
 
   return (
     <div className="relative py-4 pb-24 flex flex-col items-center">
+      {/* Title - Jornada de Estudos */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center mb-4"
+      >
+        <h2 className="font-cinzel text-xl font-bold text-amber-100 mb-1">
+          Jornada de Estudos
+        </h2>
+        <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
+      </motion.div>
+
       {/* Seção de Progresso */}
       <div className="w-full px-4 mb-5">
         <div className="flex items-center gap-2 mb-3">
@@ -278,19 +291,6 @@ export const MobileTrilhasAprender = memo(() => {
           </div>
         </button>
       </div>
-
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-4"
-      >
-        <h2 className="font-cinzel text-xl font-bold text-amber-100 mb-1">
-          Jornada de Estudos
-        </h2>
-        <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
-      </motion.div>
 
       {/* Grid de Categorias com Imagens */}
       <div className="w-full px-4 mb-6">
