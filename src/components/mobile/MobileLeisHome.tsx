@@ -41,8 +41,12 @@ export const MobileLeisHome = memo(() => {
             <button
               key={action.id}
               onClick={() => navigate(action.route)}
-              className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-card border border-border/50 shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:bg-accent/50 transition-all"
+              className="flex-1 relative overflow-hidden flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-card border border-border/50 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:bg-accent/50 transition-all"
             >
+              {/* Ícone decorativo de fundo */}
+              <div className="absolute -right-2 -bottom-2 opacity-10">
+                <Icon className="w-12 h-12 text-red-400" />
+              </div>
               <Icon className="w-5 h-5 text-red-400" />
               <span className="text-[11px] font-medium text-foreground">{action.label}</span>
             </button>
