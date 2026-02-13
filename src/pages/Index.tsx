@@ -257,7 +257,7 @@ const Index = () => {
           fetchPriority="high"
           decoding="sync"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
       </div>
 
       {/* Header com gradiente sutil - Desktop */}
