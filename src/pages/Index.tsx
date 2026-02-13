@@ -5,7 +5,7 @@ import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
 import cardAulasThumb from "@/assets/card-aulas-thumb.jpg";
-import cardPlanoEstudosThumb from "@/assets/card-plano-estudos-thumb.jpg";
+import cardQuestoesThumb from "@/assets/card-questoes-thumb.jpg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import useEmblaCarousel from 'embla-carousel-react';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -300,17 +300,17 @@ const Index = () => {
             </button>
 
             <button
-              onClick={() => navigate('/plano-estudos')}
+              onClick={() => navigate('/questoes')}
               className="relative overflow-hidden rounded-2xl h-[100px] text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group"
             >
-              <img src={cardPlanoEstudosThumb} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <img src={cardQuestoesThumb} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
               <div className="relative z-10 p-4 flex flex-col justify-end h-full">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-red-400" />
-                  <h3 className="text-base font-bold text-white">Plano de Estudos</h3>
+                  <ClipboardList className="w-4 h-4 text-red-400" />
+                  <h3 className="text-base font-bold text-white">Questões</h3>
                 </div>
-                <p className="text-[11px] text-white/60 mt-0.5">Cronograma personalizado</p>
+                <p className="text-[11px] text-white/60 mt-0.5">Pratique e aprenda</p>
               </div>
             </button>
           </div>
