@@ -247,8 +247,8 @@ const Index = () => {
       {/* Áudio de boas-vindas para novos usuários */}
       <WelcomeAudioPlayer />
       
-      {/* Hero Banner Mobile - fixo preenchendo do topo até os tabs */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+      {/* Hero Banner Mobile - fixo, cobre do topo até incluir os tabs */}
+      <div className="md:hidden fixed top-0 left-0 right-0 overflow-hidden pointer-events-none rounded-b-[28px]" style={{ zIndex: 1, height: '13.5rem' }}>
         <img 
           src={heroImage}
           alt="Juridiquê"
@@ -264,10 +264,10 @@ const Index = () => {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       {/* Spacer para revelar a imagem hero */}
-      <div className="md:hidden h-36" style={{ zIndex: 1 }} />
+      <div className="md:hidden h-28" style={{ zIndex: 1 }} />
 
-      {/* Tabs no limite inferior da imagem - Mobile */}
-      <div className="md:hidden relative px-4 mb-[-22px]" style={{ zIndex: 3 }}>
+      {/* Tabs dentro da imagem hero, na parte inferior */}
+      <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
           <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
@@ -275,8 +275,8 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Conteúdo principal com bordas arredondadas no topo - Mobile */}
-      <div className="md:hidden bg-background relative rounded-t-[28px] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] min-h-screen pb-20" style={{ zIndex: 2 }}>
+      {/* Conteúdo principal - Mobile */}
+      <div className="md:hidden bg-background relative min-h-screen pb-20" style={{ zIndex: 2 }}>
         <div className="px-4 pt-6 pb-2 space-y-4">
           {/* Search Bar - apenas aba Estudos */}
           {mainTab === 'ferramentas' && (
