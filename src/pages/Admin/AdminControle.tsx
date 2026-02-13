@@ -313,32 +313,32 @@ const AdminControle = () => {
 
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Toggle entre Estatísticas, Histórico e Prêmio */}
-        <div className="flex items-center gap-2 mb-2 overflow-x-auto">
+        <div className="grid grid-cols-3 gap-2 mb-2">
           <Button
             variant={dashboardView === 'estatisticas' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDashboardView('estatisticas')}
-            className="text-xs h-8 shrink-0"
+            className="text-xs h-8 w-full"
           >
-            <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+            <BarChart3 className="h-3.5 w-3.5 mr-1" />
             Estatísticas
           </Button>
           <Button
             variant={dashboardView === 'historico' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDashboardView('historico')}
-            className="text-xs h-8 shrink-0"
+            className="text-xs h-8 w-full"
           >
-            <Clock className="h-3.5 w-3.5 mr-1.5" />
-            Últimos Cadastros
+            <Clock className="h-3.5 w-3.5 mr-1" />
+            Cadastros
           </Button>
           <Button
             variant={dashboardView === 'premio' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDashboardView('premio')}
-            className="text-xs h-8 shrink-0"
+            className="text-xs h-8 w-full"
           >
-            <Crown className="h-3.5 w-3.5 mr-1.5" />
+            <Crown className="h-3.5 w-3.5 mr-1" />
             Prêmio
           </Button>
         </div>
@@ -498,8 +498,14 @@ const AdminControle = () => {
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 truncate">{usuario.email}</p>
-                        <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                           <span>{getDeviceIcon(usuario.dispositivo)} {parseDeviceInfo(usuario.device_info) || usuario.dispositivo || '—'}</span>
+                          {usuario.primeiro_acesso_minutos != null && (
+                            <span className="flex items-center gap-1">
+                              <Timer className="h-3 w-3" />
+                              {usuario.primeiro_acesso_minutos < 1 ? '< 1 min' : `${usuario.primeiro_acesso_minutos} min`} na 1ª sessão
+                            </span>
+                          )}
                         </div>
                       </Link>
                     ))}
@@ -694,6 +700,12 @@ const AdminControle = () => {
                   R$ {(metricasPremium?.receitaHoje || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                <span className="text-sm font-bold">Receita Ontem</span>
+                <span className="text-lg font-bold text-orange-500">
+                  R$ {(metricasPremium?.receitaOntem || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
                 <span className="text-sm font-bold">Receita do Mês</span>
                 <span className="text-lg font-bold text-emerald-500">
@@ -882,13 +894,13 @@ const AdminControle = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent cursor-pointer hover:border-emerald-500/60 hover:shadow-md transition-all"
+          <Card className="border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-transparent cursor-pointer hover:border-orange-500/60 hover:shadow-md transition-all"
             onClick={() => setOpenDialog('receita')}
           >
             <CardContent className="pt-4 pb-4">
-              <p className="text-[11px] text-muted-foreground">Receita Mensal</p>
-              <p className="text-lg font-bold text-emerald-500">
-                R$ {(metricasPremium?.receitaMesAtual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              <p className="text-[11px] text-muted-foreground">Receita Ontem</p>
+              <p className="text-xl font-bold text-orange-500">
+                R$ {(metricasPremium?.receitaOntem || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
@@ -897,9 +909,9 @@ const AdminControle = () => {
             onClick={() => setOpenDialog('receita')}
           >
             <CardContent className="pt-4 pb-4">
-              <p className="text-[11px] text-muted-foreground">Receita Vitalício</p>
+              <p className="text-[11px] text-muted-foreground">Receita Mensal</p>
               <p className="text-lg font-bold text-emerald-500">
-                R$ {(metricasPremium?.receitaVitalicio || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(metricasPremium?.receitaMesAtual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
