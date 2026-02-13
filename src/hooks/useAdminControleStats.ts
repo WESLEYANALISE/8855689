@@ -30,6 +30,10 @@ interface EstatisticasGerais {
   ativosNoPeriodo: number;
   onlineAgora: number;
   totalPageViews: number;
+  // Comparação com período anterior
+  novosAnterior: number;
+  ativosAnterior: number;
+  pageViewsAnterior: number;
 }
 
 interface DistribuicaoDispositivos {
@@ -177,26 +181,46 @@ export const useEstatisticasGerais = (periodoDias = 7) => {
   return useQuery({
     queryKey: ['admin-controle-stats', periodoDias],
     queryFn: async (): Promise<EstatisticasGerais> => {
+      // Período anterior para comparação (ex: 7 dias -> dias 14-7 atrás)
+      const periodoAnterior = periodoDias === 0 ? 1 : periodoDias * 2;
+      
       const [
         totalRes,
         novosRes,
         ativosRes,
         onlineRes,
         pvRes,
+        novosAntRes,
+        ativosAntRes,
+        pvAntRes,
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.rpc('get_admin_novos_por_periodo', { p_dias: periodoDias }),
         supabase.rpc('get_admin_ativos_periodo', { p_dias: periodoDias }),
         supabase.rpc('get_admin_online_count'),
         supabase.rpc('get_admin_total_pageviews', { p_dias: periodoDias }),
+        supabase.rpc('get_admin_novos_por_periodo', { p_dias: periodoAnterior }),
+        supabase.rpc('get_admin_ativos_periodo', { p_dias: periodoAnterior }),
+        supabase.rpc('get_admin_total_pageviews', { p_dias: periodoAnterior }),
       ]);
+
+      // Calcular valores do período anterior subtraindo o atual
+      const novosAtual = novosRes.data || 0;
+      const ativosAtual = ativosRes.data || 0;
+      const pvAtual = Number(pvRes.data) || 0;
+      const novosTotal2x = novosAntRes.data || 0;
+      const ativosTotal2x = ativosAntRes.data || 0;
+      const pvTotal2x = Number(pvAntRes.data) || 0;
 
       return {
         totalUsuarios: totalRes.count || 0,
-        novosNoPeriodo: novosRes.data || 0,
-        ativosNoPeriodo: ativosRes.data || 0,
+        novosNoPeriodo: novosAtual,
+        ativosNoPeriodo: ativosAtual,
         onlineAgora: onlineRes.data || 0,
-        totalPageViews: Number(pvRes.data) || 0,
+        totalPageViews: pvAtual,
+        novosAnterior: novosTotal2x - novosAtual,
+        ativosAnterior: ativosTotal2x - ativosAtual,
+        pageViewsAnterior: pvTotal2x - pvAtual,
       };
     },
     refetchInterval: 30000,
@@ -553,16 +577,18 @@ export const useOnlineAgoraRealtime = () => {
   return { onlineAgora, isLoading, refetch: fetchOnline };
 };
 
-// Hook para Online 30 Minutos
+// Hook para Online 30 Minutos - usa details filtrados para contagem correta
 export const useOnline30MinRealtime = () => {
   const [online30Min, setOnline30Min] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchOnline30 = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc('get_admin_online_30min_count');
+      // Use details RPC and filter to get accurate count of registered users
+      const { data, error } = await supabase.rpc('get_admin_online_30min_details');
       if (!error && data != null) {
-        setOnline30Min(data);
+        const filtered = (data as any[]).filter((item: any) => item.nome && item.nome.trim() !== '');
+        setOnline30Min(filtered.length);
       }
     } catch (error) {
       console.error('Erro ao buscar online 30min:', error);

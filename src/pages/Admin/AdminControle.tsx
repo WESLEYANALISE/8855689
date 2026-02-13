@@ -30,6 +30,8 @@ import {
   Brain,
   Clock3,
   Sparkles,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,6 +97,22 @@ const PERIODOS: { value: PeriodoFiltro; label: string; dias: number }[] = [
 
 const getDiasFromPeriodo = (periodo: PeriodoFiltro): number => {
   return PERIODOS.find(p => p.value === periodo)?.dias ?? 7;
+};
+
+// Componente de comparação percentual
+const ComparisonBadge = ({ current, previous }: { current: number; previous: number }) => {
+  if (previous === 0) return null;
+  const diff = ((current - previous) / previous) * 100;
+  const isUp = diff >= 0;
+  const absVal = Math.abs(Math.round(diff));
+  if (absVal === 0) return null;
+  
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${isUp ? 'text-emerald-500' : 'text-red-400'}`}>
+      {isUp ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+      {absVal}%
+    </span>
+  );
 };
 
 // Componente para lista de usuários no dialog
@@ -395,9 +413,14 @@ const AdminControle = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Novos ({periodoLabel})</p>
-                    <p className="text-2xl font-bold text-sky-500">
-                      {loadingStats ? '...' : estatisticas?.novosNoPeriodo || 0}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-sky-500">
+                        {loadingStats ? '...' : estatisticas?.novosNoPeriodo || 0}
+                      </p>
+                      {!loadingStats && estatisticas && (
+                        <ComparisonBadge current={estatisticas.novosNoPeriodo} previous={estatisticas.novosAnterior} />
+                      )}
+                    </div>
                   </div>
                   <UserPlus className="h-5 w-5 text-sky-500 opacity-50" />
                 </div>
@@ -413,9 +436,14 @@ const AdminControle = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Ativos ({periodoLabel})</p>
-                    <p className="text-2xl font-bold text-violet-500">
-                      {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-violet-500">
+                        {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
+                      </p>
+                      {!loadingStats && estatisticas && (
+                        <ComparisonBadge current={estatisticas.ativosNoPeriodo} previous={estatisticas.ativosAnterior} />
+                      )}
+                    </div>
                   </div>
                   <Activity className="h-5 w-5 text-violet-500 opacity-50" />
                 </div>
@@ -449,9 +477,14 @@ const AdminControle = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Page Views</p>
-                    <p className="text-2xl font-bold text-orange-500">
-                      {loadingStats ? '...' : estatisticas?.totalPageViews?.toLocaleString('pt-BR') || 0}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-orange-500">
+                        {loadingStats ? '...' : estatisticas?.totalPageViews?.toLocaleString('pt-BR') || 0}
+                      </p>
+                      {!loadingStats && estatisticas && (
+                        <ComparisonBadge current={estatisticas.totalPageViews} previous={estatisticas.pageViewsAnterior} />
+                      )}
+                    </div>
                     <p className="text-[10px] text-muted-foreground">{periodoLabel}</p>
                   </div>
                   <Eye className="h-5 w-5 text-orange-500 opacity-50" />
