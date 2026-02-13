@@ -241,16 +241,8 @@ export const MobileTrilhasAprender = memo(() => {
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </motion.div>
 
-      {/* Seção de Progresso */}
-      <div className="w-full px-4 mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="p-1.5 bg-amber-500/20 rounded-lg">
-            <PlayCircle className="w-4 h-4 text-amber-400" />
-          </div>
-          <h3 className="font-semibold text-amber-100 text-sm">Seu Progresso</h3>
-        </div>
-
-        {/* Card Trilha de Conceitos */}
+      {/* Card Trilha de Conceitos */}
+      <div className="w-full px-3 mb-4">
         <button
           onClick={() => {
             if (todosProgresso.length > 0) {
@@ -259,7 +251,7 @@ export const MobileTrilhasAprender = memo(() => {
               navigate("/conceitos");
             }
           }}
-          className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-lg h-[100px]"
+          className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[110px]"
         >
           <img 
             src={conceitosThumb} 
@@ -293,8 +285,8 @@ export const MobileTrilhasAprender = memo(() => {
       </div>
 
       {/* Grid de Categorias com Imagens */}
-      <div className="w-full px-4 mb-6">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="w-full px-3 mb-6">
+        <div className="grid grid-cols-2 gap-2.5">
           {categorias.map((categoria) => {
             const Icon = categoria.icon;
             const isActive = activeCategory === categoria.id;
@@ -302,7 +294,7 @@ export const MobileTrilhasAprender = memo(() => {
               <button
                 key={categoria.id}
                 onClick={() => handleCategoryClick(categoria.id)}
-                className={`group relative overflow-hidden rounded-2xl text-left transition-all duration-150 hover:scale-[1.02] shadow-lg h-[120px] ${
+                className={`group relative overflow-hidden rounded-2xl text-left transition-all duration-150 hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px] ${
                   isActive ? 'ring-2 ring-amber-400/60 scale-[1.02]' : ''
                 }`}
               >
