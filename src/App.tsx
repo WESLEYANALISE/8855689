@@ -394,6 +394,9 @@ import DominandoTrilhas from "./pages/DominandoTrilhas";
 import DominandoArea from "./pages/DominandoArea";
 import DominandoEstudo from "./pages/DominandoEstudo";
 
+// Dashboard de Aulas
+import AulasDashboard from "./pages/AulasDashboard";
+
 // Conceitos (Trilhas para Iniciantes)
 import ConceitosInicio from "./pages/ConceitosInicio";
 import ConceitosTrilhante from "./pages/ConceitosTrilhante";
@@ -883,6 +886,9 @@ const App = () => {
               <Route path="/dominando/trilhas" element={<DominandoTrilhas />} />
               <Route path="/dominando/area/:areaNome" element={<DominandoArea />} />
               <Route path="/dominando/estudo/:disciplinaId" element={<DominandoEstudo />} />
+              
+              {/* Dashboard de Aulas */}
+              <Route path="/aulas/dashboard" element={<AulasDashboard />} />
               
               {/* Conceitos (Trilhas para Iniciantes) */}
               <Route path="/conceitos/trilhas" element={<ConceitosInicio />} />

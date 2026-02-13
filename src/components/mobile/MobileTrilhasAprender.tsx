@@ -28,15 +28,6 @@ const FREE_MATERIA_NAMES = [
   "introducao ao estudo do direito"
 ];
 
-// Categorias com imagens de fundo (sem Conceitos - agora está no Seu Progresso)
-const categoriasAulas = [
-  { id: "areas", title: "Áreas do Direito", subtitle: "27 áreas", icon: Scale, thumb: areasThumb },
-  { id: "concursos", title: "Iniciando em Concursos", subtitle: "Preparação", icon: Target, thumb: concursosThumb },
-  { id: "portugues", title: "Português Jurídico", subtitle: "Gramática", icon: BookOpen, thumb: portuguesThumb },
-];
-
-const categoriaOAB = { id: "oab", title: "OAB", subtitle: "1ª Fase", icon: Gavel, thumb: oabThumb };
-
 // label curto para exibição, value completo para query no banco
 const AREAS_ORDEM: { label: string; value: string }[] = [
   { label: "Constitucional", value: "Direito Constitucional" },
@@ -76,8 +67,6 @@ export const MobileTrilhasAprender = memo(() => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeArea, setActiveArea] = useState("Direito Constitucional");
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const categorias = isAdmin ? [...categoriasAulas, categoriaOAB] : categoriasAulas;
 
   // === PROGRESSO: buscar tópicos em andamento ===
   const { data: progressoConceitos } = useQuery({
@@ -132,7 +121,7 @@ export const MobileTrilhasAprender = memo(() => {
 
   const todosProgresso = [...(progressoConceitos || []), ...(progressoAulas || [])];
 
-  // === CONCEITOS: buscar matérias ===
+  // === CONCEITOS: buscar matérias (para quando categoria ativa) ===
   const { data: materias, isLoading } = useQuery({
     queryKey: ["conceitos-materias-trilhante"],
     queryFn: async () => {
@@ -206,18 +195,6 @@ export const MobileTrilhasAprender = memo(() => {
   const visibleItems = isPremium ? materias || [] : freeMaterias;
   const lockedItems = isPremium ? [] : premiumMaterias;
 
-  const handleCategoryClick = (id: string) => {
-    if (id === "oab") {
-      navigate("/oab/trilhas-aprovacao");
-      return;
-    }
-    if (id === "concursos") {
-      navigate("/ferramentas/simulados");
-      return;
-    }
-    setActiveCategory(activeCategory === id ? null : id);
-  };
-
   const handleContinuar = (item: any) => {
     if (item.tipo === "conceitos") {
       navigate(`/conceitos/topico/${item.topicoId}`);
@@ -228,11 +205,65 @@ export const MobileTrilhasAprender = memo(() => {
 
   return (
     <div className="relative py-4 pb-24 flex flex-col items-center">
-      {/* Title - Jornada de Estudos */}
+
+      {/* ========== 1. DASHBOARD DE PROGRESSO ========== */}
+      <div className="w-full mb-6">
+        <div className="flex items-center justify-between px-4 mb-3">
+          <h2 className="font-semibold text-sm text-white">Seu Progresso</h2>
+          {todosProgresso.length > 0 && (
+            <button 
+              onClick={() => navigate("/aulas/dashboard")}
+              className="text-[11px] text-amber-400 font-medium flex items-center gap-0.5"
+            >
+              Ver tudo <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {todosProgresso.length === 0 ? (
+          <div className="mx-4 bg-white/5 border border-white/8 rounded-2xl p-6 text-center">
+            <PlayCircle className="w-8 h-8 text-amber-400/30 mx-auto mb-2" />
+            <p className="text-white/40 text-xs">Comece uma aula para acompanhar seu progresso</p>
+            <p className="text-white/25 text-[10px] mt-1">Suas aulas em andamento aparecerão aqui</p>
+          </div>
+        ) : (
+          <div 
+            className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {todosProgresso.slice(0, 8).map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleContinuar(item)}
+                className="flex-shrink-0 w-[200px] bg-gradient-to-br from-white/8 to-white/3 border border-white/10 rounded-2xl p-3.5 text-left hover:border-amber-400/30 transition-all shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)]"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-amber-500/20 rounded-lg p-1.5">
+                    <PlayCircle className="w-3.5 h-3.5 text-amber-400" />
+                  </div>
+                  <span className="text-[9px] text-amber-400/70 bg-amber-400/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider font-medium">
+                    {item.tipo === "conceitos" ? "Conceitos" : "Aula"}
+                  </span>
+                </div>
+                <h3 className="text-xs font-medium text-white line-clamp-2 leading-snug mb-3">{item.nome}</h3>
+                <div className="flex items-center gap-2">
+                  <Progress 
+                    value={item.progresso} 
+                    className="h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
+                  />
+                  <span className="text-[10px] text-amber-400 font-bold">{Math.round(item.progresso)}%</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ========== 2. JORNADA DE ESTUDOS ========== */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
         className="text-center mb-4"
       >
         <h2 className="font-cinzel text-xl font-bold text-amber-100 mb-1">
@@ -241,89 +272,159 @@ export const MobileTrilhasAprender = memo(() => {
         <p className="text-amber-200/70 text-xs">Fundamentos do Direito</p>
       </motion.div>
 
-      {/* Card Trilha de Conceitos */}
+      {/* ========== 3. SEÇÃO OAB ========== */}
       <div className="w-full px-3 mb-4">
+        <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2.5 px-1">OAB</h3>
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* 1ª Fase */}
+          <button
+            onClick={() => navigate("/oab/trilhas-aprovacao")}
+            className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[120px]"
+          >
+            <img src={oabThumb} alt="OAB 1ª Fase" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+            <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+              <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
+                <Gavel className="w-4 h-4 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white text-sm">1ª Fase</h3>
+                <p className="text-white/50 text-[10px] mt-0.5">Trilhas de aprovação</p>
+              </div>
+            </div>
+            <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
+          </button>
+
+          {/* 2ª Fase */}
+          <button
+            onClick={() => navigate("/oab/segunda-fase")}
+            className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[120px]"
+          >
+            <img src={oabThumb} alt="OAB 2ª Fase" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+            <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+              <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
+                <Scale className="w-4 h-4 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white text-sm">2ª Fase</h3>
+                <p className="text-white/50 text-[10px] mt-0.5">Peça prática</p>
+              </div>
+            </div>
+            <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
+          </button>
+        </div>
+      </div>
+
+      {/* ========== 4. TRILHA DE CONCEITOS + INICIANDO ========== */}
+      <div className="w-full px-3 mb-4">
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Trilha de Conceitos */}
+          <button
+            onClick={() => navigate("/conceitos/trilhante")}
+            className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
+          >
+            <img src={conceitosThumb} alt="Trilha de Conceitos" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+            <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
+                <Footprints className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white text-sm leading-tight">Trilha de Conceitos</h3>
+                <p className="text-white/50 text-[10px] mt-0.5">Iniciante</p>
+              </div>
+            </div>
+            <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
+          </button>
+
+          {/* Iniciando em Concursos */}
+          <button
+            onClick={() => navigate("/ferramentas/simulados")}
+            className="group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px]"
+          >
+            <img src={concursosThumb} alt="Iniciando em Concursos" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+            <div className="relative z-10 p-3 h-full flex flex-col justify-between">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit">
+                <Target className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white text-sm leading-tight">Iniciando em Concursos</h3>
+                <p className="text-white/50 text-[10px] mt-0.5">Preparação</p>
+              </div>
+            </div>
+            <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 z-10" />
+          </button>
+        </div>
+      </div>
+
+      {/* ========== 5. PORTUGUÊS JURÍDICO ========== */}
+      <div className="w-full px-3 mb-6">
         <button
-          onClick={() => navigate("/conceitos/trilhante")}
+          onClick={() => setActiveCategory(activeCategory === "portugues" ? null : "portugues")}
           className="w-full group relative overflow-hidden rounded-2xl text-left transition-all hover:scale-[1.01] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[110px]"
         >
-          <img 
-            src={conceitosThumb} 
-            alt="Trilha de Conceitos"
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="eager"
-          />
+          <img src={portuguesThumb} alt="Português Jurídico" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
           <div className="relative z-10 p-4 h-full flex items-center gap-4">
             <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2.5">
-              <Footprints className="w-5 h-5 text-white" />
+              <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white text-sm">Trilha de Conceitos</h3>
-              <p className="text-white/50 text-[10px] mt-0.5">Iniciante • Fundamentos do Direito</p>
-              {todosProgresso.length > 0 && (
-                <div className="flex items-center gap-2 mt-1.5">
-                  <Progress 
-                    value={todosProgresso[0].progresso} 
-                    className="h-1.5 flex-1 max-w-[120px] bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" 
-                  />
-                  <span className="text-[10px] text-amber-400 font-medium">
-                    {todosProgresso[0].progresso}%
-                  </span>
-                </div>
-              )}
+              <h3 className="font-semibold text-white text-sm">Português Jurídico</h3>
+              <p className="text-white/50 text-[10px] mt-0.5">Gramática • Redação</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
+            <ChevronRight className="w-5 h-5 text-white/50" />
           </div>
         </button>
       </div>
 
-      {/* Grid de Categorias com Imagens */}
-      <div className="w-full px-3 mb-6">
-        <div className="grid grid-cols-2 gap-2.5">
-          {categorias.map((categoria) => {
-            const Icon = categoria.icon;
-            const isActive = activeCategory === categoria.id;
+      {activeCategory === "portugues" && (
+        <div className="text-center py-10 text-white/50 text-sm mb-4">
+          Em breve: Português para Concurso
+        </div>
+      )}
+
+      {/* ========== 6. ÁREAS DO DIREITO (CARROSSEL) ========== */}
+      <div className="w-full mb-6">
+        <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 px-4">Áreas do Direito</h3>
+        <div 
+          className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {AREAS_ORDEM.map((area) => {
+            const isActive = activeArea === area.value && activeCategory === "areas";
             return (
               <button
-                key={categoria.id}
-                onClick={() => handleCategoryClick(categoria.id)}
-                className={`group relative overflow-hidden rounded-2xl text-left transition-all duration-150 hover:scale-[1.02] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[140px] ${
-                  isActive ? 'ring-2 ring-amber-400/60 scale-[1.02]' : ''
+                key={area.value}
+                onClick={() => {
+                  setActiveArea(area.value);
+                  setActiveCategory("areas");
+                }}
+                className={`flex-shrink-0 w-[130px] relative overflow-hidden rounded-2xl text-left transition-all shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4)] h-[100px] ${
+                  isActive ? 'ring-2 ring-amber-400/60 scale-[1.03]' : 'hover:scale-[1.02]'
                 }`}
               >
-                {/* Imagem de fundo */}
-                <img 
-                  src={categoria.thumb} 
-                  alt={categoria.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
-                />
-                {/* Overlay escuro */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
-                
-                {/* Conteúdo */}
-                <div className="relative z-10 p-3 h-full flex flex-col justify-between">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-1.5 w-fit group-hover:bg-white/30 transition-colors">
-                    <Icon className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white text-sm leading-tight pr-6">
-                      {categoria.title}
-                    </h3>
-                    <p className="text-white/50 text-[10px] mt-0.5">{categoria.subtitle}</p>
-                  </div>
+                <img src={areasThumb} alt={area.label} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                <div className="relative z-10 p-2.5 h-full flex flex-col justify-end">
+                  <h4 className="font-semibold text-white text-[11px] leading-tight">{area.label}</h4>
                 </div>
-                
-                {/* Seta */}
-                <ChevronRight className="absolute bottom-3 right-3 w-4 h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-all z-10" />
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Conteúdo da categoria selecionada */}
+      {/* Conteúdo da área selecionada */}
+      {activeCategory === "areas" && (
+        <div className="w-full">
+          <MobileAreaTrilha area={activeArea} />
+        </div>
+      )}
+
+      {/* Conteúdo conceitos (caso necessário) */}
       {activeCategory === "conceitos" && (
         <>
           {isLoading ? (
@@ -332,7 +433,6 @@ export const MobileTrilhasAprender = memo(() => {
             </div>
           ) : (
             <>
-              {/* Info Stats */}
               <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-6">
                 <div className="flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-red-400" />
@@ -348,7 +448,6 @@ export const MobileTrilhasAprender = memo(() => {
                 </div>
               </div>
 
-              {/* Timeline de Matérias */}
               {materias && materias.length > 0 && (
                 <div className="w-full px-4">
                   <div className="max-w-lg mx-auto relative">
@@ -479,40 +578,6 @@ export const MobileTrilhasAprender = memo(() => {
             </>
           )}
         </>
-      )}
-
-      {activeCategory === "areas" && (
-        <>
-          {/* Chip Carousel - Áreas do Direito */}
-          <div className="w-full mb-5">
-            <div 
-              ref={scrollRef}
-              className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-none"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {AREAS_ORDEM.map((area) => (
-                <button
-                  key={area.value}
-                  onClick={() => setActiveArea(area.value)}
-                  className={`flex-shrink-0 w-28 py-2 rounded-full text-xs font-medium transition-all text-center leading-tight ${
-                    activeArea === area.value
-                      ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
-                      : 'bg-gray-700/80 text-white/70 hover:text-white/90'
-                  }`}
-                >
-                  {area.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <MobileAreaTrilha area={activeArea} />
-        </>
-      )}
-
-      {activeCategory === "portugues" && (
-        <div className="text-center py-10 text-white/50 text-sm">
-          Em breve: Português para Concurso
-        </div>
       )}
 
       {/* Menu de rodapé fixo - apenas admin */}
