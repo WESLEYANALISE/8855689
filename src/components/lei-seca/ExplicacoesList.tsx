@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useNavigate } from "react-router-dom";
+import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
 import ExplicacaoModal from "./ExplicacaoModal";
 
 interface Explicacao {
@@ -27,7 +27,6 @@ const ExplicacoesList = () => {
   const [selectedExplicacao, setSelectedExplicacao] = useState<Explicacao | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { isPremium } = useSubscription();
-  const navigate = useNavigate();
 
   const FREE_LIMIT = 3;
 
@@ -51,9 +50,11 @@ const ExplicacoesList = () => {
     }
   };
 
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
   const handleExplicacaoClick = (explicacao: Explicacao, index: number) => {
     if (!isPremium && index >= FREE_LIMIT) {
-      navigate("/escolher-plano");
+      setShowPremiumModal(true);
       return;
     }
     setSelectedExplicacao(explicacao);
@@ -178,6 +179,12 @@ const ExplicacoesList = () => {
         open={modalOpen}
         onOpenChange={handleModalClose}
         explicacao={selectedExplicacao}
+      />
+
+      <PremiumUpgradeModal
+        open={showPremiumModal}
+        onOpenChange={setShowPremiumModal}
+        featureName="Este conteúdo"
       />
     </div>
   );
