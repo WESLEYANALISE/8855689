@@ -86,8 +86,6 @@ export const MobileLeisHome = memo(() => {
         })}
       </div>
 
-      {/* Menu de Rodapé - apenas para admin */}
-      {isAdmin && <LeisBottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
     </div>
   );
 });
