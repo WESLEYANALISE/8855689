@@ -245,10 +245,13 @@ interface MetricasPremium {
   taxaConversao: number;
   mediaDiasAtePremium: number | null;
   receitaTotal: number;
+  receitaHoje: number;
+  receitaMesAtual: number;
   receitaMensal: number;
   receitaAnual: number;
   receitaVitalicio: number;
   novosPremiumPeriodo: number;
+  assinaturasHoje: number;
 }
 
 // Hook para métricas de Premium com receita
@@ -275,14 +278,22 @@ export const useMetricasPremium = (periodoDias = 7) => {
         : 0;
       
       let receitaTotal = 0;
+      let receitaHoje = 0;
+      let receitaMesAtual = 0;
       let receitaMensal = 0;
       let receitaAnual = 0;
       let receitaVitalicio = 0;
       let novosPremiumPeriodo = 0;
+      let assinaturasHoje = 0;
 
       const dataLimite = periodoDias === 0 
         ? new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }).split(',')[0]).toISOString()
         : new Date(Date.now() - periodoDias * 24 * 60 * 60 * 1000).toISOString();
+
+      // Calculate today start and current month start in São Paulo timezone
+      const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const hojeInicio = new Date(nowSP.getFullYear(), nowSP.getMonth(), nowSP.getDate()).toISOString();
+      const mesInicio = new Date(nowSP.getFullYear(), nowSP.getMonth(), 1).toISOString();
 
       (subscriptions || []).forEach(sub => {
         const amount = sub.amount || 0;
@@ -292,6 +303,14 @@ export const useMetricasPremium = (periodoDias = 7) => {
         if (planId.includes('mensal') || planId.includes('monthly')) receitaMensal += amount;
         else if (planId.includes('anual') || planId.includes('yearly')) receitaAnual += amount;
         else receitaVitalicio += amount;
+
+        if (sub.created_at >= hojeInicio) {
+          receitaHoje += amount;
+          assinaturasHoje++;
+        }
+        if (sub.created_at >= mesInicio) {
+          receitaMesAtual += amount;
+        }
 
         if (sub.created_at >= dataLimite) {
           novosPremiumPeriodo++;
@@ -337,10 +356,13 @@ export const useMetricasPremium = (periodoDias = 7) => {
         taxaConversao: Math.round(taxaConversao * 100) / 100,
         mediaDiasAtePremium,
         receitaTotal,
+        receitaHoje,
+        receitaMesAtual,
         receitaMensal,
         receitaAnual,
         receitaVitalicio,
         novosPremiumPeriodo,
+        assinaturasHoje,
       };
     },
     refetchInterval: 60000,
