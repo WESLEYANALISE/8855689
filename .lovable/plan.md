@@ -1,45 +1,46 @@
 
 
-## Plano de Ajustes - Parallax, Fonte e Busca
+## Plano de Ajustes - 4 Correções
 
-### 1. Efeito Parallax na imagem de fundo do Hero
+### 1. Parallax mais fluido ao subir a tela
 
-**Problema**: A imagem de fundo do hero e fixa e estatica. O usuario quer que, ao rolar a tela, a imagem se mova junto, criando um efeito de profundidade.
+**Problema**: A transicao `transition: 0.05s linear` cria micro-stutters, especialmente ao rolar para cima. O efeito nao e suave o suficiente.
 
-**Solucao**: Adicionar um listener de scroll no componente da pagina inicial que aplica um `transform: translateY(...)` na imagem de fundo proporcional ao scroll, criando um efeito parallax suave. A imagem vai se mover mais devagar que o conteudo, dando sensacao de profundidade.
-
-- Usar `useEffect` + `addEventListener('scroll')` com `requestAnimationFrame` para performance
-- Aplicar `transform: translateY(scrollY * 0.3)` na imagem (ela se move a 30% da velocidade do scroll)
-- Manter o `will-change: transform` para aceleracao por GPU
+**Solucao**: Remover a propriedade `transition` do CSS da imagem de fundo e usar apenas `transform` via `requestAnimationFrame`, que ja e chamado no listener de scroll. Sem `transition`, o `transform` sera aplicado instantaneamente a cada frame, gerando um efeito mais fluido e responsivo em ambas as direcoes. Tambem reduzir levemente o fator de parallax de `0.3` para `0.25` para um movimento mais sutil e agradavel.
 
 ---
 
-### 2. Trocar a fonte da saudacao ("Boa noite, Wesley")
+### 2. Progresso nao aparece no Dashboard de Aulas
 
-**Problema**: A saudacao usa a fonte padrao (Inter/sans-serif) em negrito. O usuario quer uma fonte mais elegante e agradavel.
+**Problema**: O dashboard de progresso busca dados da tabela `conceitos_topicos_progresso`, mas a leitura de topicos como "Surgimento do Direito" salva o progresso na tabela `oab_trilhas_estudo_progresso`. Resultado: o dashboard mostra zero.
 
-**Solucao**: Aplicar a fonte `Playfair Display` (ja disponivel no projeto como `font-playfair`) na saudacao, que e uma fonte serifada elegante e combina com o tema juridico. Tambem ajustar o peso e tamanho para melhor legibilidade.
-
-- Saudacao ("Boa noite,"): `font-playfair text-2xl font-semibold`
-- Nome do usuario: `font-playfair text-4xl font-bold`
+**Solucao**: Adicionar uma segunda query no `MobileTrilhasAprender.tsx` que busque progresso tambem da tabela `oab_trilhas_estudo_progresso` (para topicos de conceitos), fazendo um JOIN com `conceitos_topicos` para obter o nome. Combinar os resultados de ambas as queries no array `todosProgresso`. Aplicar a mesma correcao no `AulasDashboard.tsx`.
 
 ---
 
-### 3. Corrigir o icone de busca que nao funciona
+### 3. Remover botao "Voltar" duplicado na pagina de Aulas
 
-**Problema**: O botao de busca no canto superior direito do hero nao responde ao toque. Isso acontece porque o container pai do hero tem `pointer-events-none` (linha 240) e o z-index do hero (1) e menor que o z-index do conteudo principal (2), fazendo com que o conteudo cubra o botao em certas areas.
+**Problema**: A pagina `/aulas` mostra dois botoes de voltar - o Header global (que diz "VOLTAR Inicio") e o botao proprio da pagina (que diz "Aulas"). O usuario quer manter apenas o da pagina.
 
-**Solucao**: Aumentar o z-index do botao de busca para ficar acima de todos os elementos. Extrair o botao de busca para fora do container `pointer-events-none`, posicionando-o como um elemento `fixed` independente com z-index mais alto que o conteudo.
+**Solucao**: Adicionar `/aulas` a lista `HIDE_HEADER_ROUTES` em `Layout.tsx` e tambem a `HIDE_BOTTOM_NAV_ROUTES` (ja que a pagina de Aulas tem seu proprio bottom nav). Isso esconde o Header global na pagina de Aulas, eliminando a duplicidade.
+
+---
+
+### 4. Tela cinza ao voltar de Aulas para Inicio
+
+**Problema**: O botao voltar da pagina de Aulas navega para `'/'` (Inicio), mas a tela fica cinza. A aba "Aulas" e acessada a partir da aba "Estudos", entao deve voltar para `/?tab=ferramentas`.
+
+**Solucao**: Alterar a navegacao do botao voltar em `AulasPage.tsx` de `navigate('/')` para `navigate('/?tab=ferramentas')`, garantindo que a tab "Estudos" seja selecionada ao retornar.
 
 ---
 
 ### Detalhes Tecnicos
 
-**Arquivo a modificar**: `src/pages/Index.tsx`
-
-| Alteracao | Detalhes |
+| Arquivo | Alteracao |
 |---|---|
-| Parallax | Adicionar `useState` para `scrollY`, `useEffect` com scroll listener + rAF, aplicar `transform` dinamico na `img` |
-| Fonte | Trocar classes da saudacao para `font-playfair` |
-| Botao busca | Mover o botao de busca para fora do container hero fixo, como elemento `fixed` independente com `zIndex: 10` |
+| `src/pages/Index.tsx` | Remover `transition: 'transform 0.05s linear'` da imagem hero; reduzir fator para `0.25` |
+| `src/components/mobile/MobileTrilhasAprender.tsx` | Adicionar query para `oab_trilhas_estudo_progresso` com JOIN em `conceitos_topicos`; mesclar no `todosProgresso` |
+| `src/pages/AulasDashboard.tsx` | Mesma correcao de query para mostrar progresso de `oab_trilhas_estudo_progresso` |
+| `src/components/Layout.tsx` | Adicionar `"/aulas"` em `HIDE_HEADER_ROUTES` e `HIDE_BOTTOM_NAV_ROUTES` |
+| `src/pages/AulasPage.tsx` | Trocar `navigate('/')` por `navigate('/?tab=ferramentas')` |
 
