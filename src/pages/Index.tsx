@@ -197,9 +197,9 @@ const Index = () => {
     return (
       <button
         onClick={() => changeMainTab(tab)}
-        className={`flex-1 min-w-0 basis-0 px-2 md:px-4 py-2.5 md:py-3 rounded-full text-xs md:text-base font-medium transition-all flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap ${
+        className={`flex-1 min-w-0 basis-0 px-2 md:px-4 py-2.5 md:py-3 rounded-full text-xs md:text-base font-medium transition-all flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap shadow-[0_4px_12px_rgba(0,0,0,0.4)] ${
           isActive
-            ? 'bg-red-600 text-white shadow-lg'
+            ? 'bg-red-600 text-white shadow-[0_4px_16px_rgba(220,38,38,0.5)]'
             : 'bg-neutral-800/80 hover:bg-neutral-700/80'
         }`}
       >
@@ -250,7 +250,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
           {/* Saudação personalizada */}
           {userName && (
-            <div className="absolute bottom-24 left-5 pointer-events-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+            <div className="absolute bottom-24 left-5 pointer-events-auto" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
               <p className="text-2xl font-bold text-white/90 leading-tight">{getGreeting()}</p>
               <p className="text-4xl font-bold text-white leading-tight">{userName}</p>
             </div>
@@ -289,7 +289,7 @@ const Index = () => {
           <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate('/aulas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-card"
+              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-[0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] transition-all group bg-card"
             >
               <div className="relative h-[70px] overflow-hidden">
                 <img src={cardAulasThumb} alt="" className="w-full h-full object-cover" />
@@ -305,7 +305,7 @@ const Index = () => {
 
             <button
               onClick={() => navigate('/bibliotecas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-card"
+              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-[0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] transition-all group bg-card"
             >
               <div className="relative h-[70px] overflow-hidden">
                 <img src={bibliotecaThumb} alt="" className="w-full h-full object-cover" />
