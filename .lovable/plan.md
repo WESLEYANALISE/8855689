@@ -1,76 +1,65 @@
 
 
-# Reestruturar Biblioteca Juridica - Layout Grid "Estante"
+# Mover Navegacao da Biblioteca para o Topo
 
-## Por que mudar?
+## O que muda
 
-O layout atual de timeline alternada (esquerda/direita) tem problemas:
-- Cards ocupam apenas ~45% da largura da tela, desperdicando espaco
-- Exige muito scroll vertical para ver 8 bibliotecas
-- O padrao alternado dificulta a leitura rapida
-- A timeline (linha central + martelo) e decorativa mas nao agrega valor funcional
+Atualmente a Biblioteca Juridica tem um menu de rodape (bottom nav) com 5 abas: Acervo, Plano, Procurar, Historico e Favoritos. O usuario quer:
 
-## Nova Estrutura Proposta
+1. **Remover o menu de rodape** da Biblioteca
+2. **Criar um menu de abas no topo**, logo abaixo do header, com as mesmas 5 opcoes
+3. **Adicionar barra de pesquisa** acima do grid de capas (integrada na aba Acervo)
+4. A busca por livros ficara embutida na propria pagina, sem precisar ir para uma pagina separada
 
-### Layout: Grid 2 colunas "Estante de Livros"
+## Nova Estrutura Visual
 
 ```text
-+---------------------------+
-|   Biblioteca Juridica     |
-|   8 colecoes - 1236 obras |
-+---------------------------+
-| +----------+ +----------+ |
-| |  [CAPA]  | |  [CAPA]  | |
-| |  490     | |  28      | |
-| | Estudos  | | Classicos| |
-| +----------+ +----------+ |
-| +----------+ +----------+ |
-| |  [CAPA]  | |  [CAPA]  | |
-| |  OAB     | | Oratoria | |
-| +----------+ +----------+ |
-| +----------+ +----------+ |
-| |  [CAPA]  | |  [CAPA]  | |
-| | Portugues| | Lideranca| |
-| +----------+ +----------+ |
-| +----------+ +----------+ |
-| |  [CAPA]  | |  [CAPA]  | |
-| |Fora Toga | | Pesquisa | |
-| +----------+ +----------+ |
-+---------------------------+
++----------------------------------+
+| <- Biblioteca Juridica           |
++----------------------------------+
+| Acervo | Plano | Historico | Fav |
++----------------------------------+
+| [🔍 Buscar livro...]             |
++----------------------------------+
+| +----------+ +----------+       |
+| |  [CAPA]  | |  [CAPA]  |       |
+| | Estudos  | | Classicos|       |
+| +----------+ +----------+       |
+| +----------+ +----------+       |
+| |  [CAPA]  | |  [CAPA]  |       |
+| | OAB      | | Oratoria |       |
+| +----------+ +----------+       |
++----------------------------------+
 ```
-
-### Design de cada card:
-- Aspect ratio **3:4** (formato livro) mantido
-- Capa ocupa o card inteiro como background
-- Badge de contagem no canto superior esquerdo (estilo atual)
-- Gradiente escuro na parte inferior com titulo e botao "Acessar"
-- Borda sutil com a cor tematica de cada biblioteca
-- Hover: leve scale + brilho na borda
-
-### Responsividade:
-- **Mobile**: Grid 2 colunas com gap de 12px
-- **Tablet (md)**: Grid 2 colunas com cards maiores
-- **Desktop (lg)**: Grid 3-4 colunas, centralizado com max-width
-
-## Vantagens:
-- Capas 2x maiores e mais visiveis
-- Todas as 8 bibliotecas visiveis com menos scroll
-- Layout familiar (tipo Netflix, Kindle, Apple Books)
-- Mais facil de escanear visualmente
-- Melhor aproveitamento do espaco em todas as telas
 
 ## Detalhes Tecnicos
 
-### Arquivo a modificar:
-**`src/pages/Bibliotecas.tsx`**
+### Arquivos a modificar:
 
-- Remover o componente `BibliotecaCard` com logica de timeline (isLeft, linha central, martelo)
-- Criar novo componente de card simplificado com grid layout
-- Substituir a section de timeline por:
-  ```
-  grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3
-  ```
-- Manter: hero section, stats, imagem de fundo, BibliotecaBottomNav
-- Manter: contagens do Supabase, animacoes fade-in
-- Remover: linha central da timeline, marcador Gavel, logica de alternancia esquerda/direita
+1. **`src/pages/Bibliotecas.tsx`**
+   - Remover `BibliotecaBottomNav` do rodape
+   - Adicionar componente de abas horizontais (estilo pill/segmented) no topo, logo apos o header
+   - As abas navegam para as mesmas rotas: `/bibliotecas`, `/biblioteca/plano-leitura`, `/biblioteca/historico`, `/biblioteca/favoritos`
+   - Remover o botao central "Procurar" como aba separada - a busca sera uma barra de input diretamente na pagina do Acervo
+   - Adicionar `Input` de pesquisa acima do grid que filtra as 8 bibliotecas por nome
+   - Ajustar padding inferior (remover `pb-24` pois nao ha mais bottom nav)
+
+2. **`src/components/biblioteca/BibliotecaTopNav.tsx`** (novo componente)
+   - Menu horizontal com 4 abas: Acervo, Plano, Historico, Favoritos
+   - Estilo: fundo escuro semi-transparente, aba ativa com destaque amber, sticky abaixo do header
+   - Icones menores ao lado dos rotulos
+   - Scroll horizontal em telas muito pequenas (improvavel com 4 abas, mas seguro)
+
+3. **`src/pages/BibliotecaPlanoLeitura.tsx`** - Substituir `BibliotecaBottomNav` por `BibliotecaTopNav`
+4. **`src/pages/BibliotecaHistorico.tsx`** - Substituir `BibliotecaBottomNav` por `BibliotecaTopNav`
+5. **`src/pages/BibliotecaFavoritos.tsx`** - Substituir `BibliotecaBottomNav` por `BibliotecaTopNav`
+6. **`src/pages/BibliotecaBusca.tsx`** - Substituir `BibliotecaBottomNav` por `BibliotecaTopNav` (manter pagina de busca avancada acessivel)
+7. **`src/pages/BibliotecaIniciante.tsx`** - Substituir `BibliotecaBottomNav` por `BibliotecaTopNav`
+
+### Design do menu superior:
+- Posicao: sticky, logo abaixo do StandardPageHeader
+- Tema amber/dourado consistente com o visual atual
+- Aba ativa: texto amber-400 com underline ou fundo amber-500/15
+- Abas inativas: texto muted-foreground
+- Compacto: altura de ~44px para nao ocupar muito espaco vertical
 
