@@ -1,68 +1,45 @@
 
 
-## Plano de Ajustes
+## Plano de Ajustes - Parallax, Fonte e Busca
 
-### 1. Corrigir botao "Voltar" da pagina Explicacoes
+### 1. Efeito Parallax na imagem de fundo do Hero
 
-**Problema**: O botao "Voltar" na pagina `/leis/explicacoes` mostra "Inicio" em vez de "Leis". Isso acontece porque o `Header.tsx` tem sua propria copia da funcao `getHierarchicalDestination` que nao inclui a rota `/leis/explicacoes`, fazendo o fallback retornar `/` (Inicio).
+**Problema**: A imagem de fundo do hero e fixa e estatica. O usuario quer que, ao rolar a tela, a imagem se mova junto, criando um efeito de profundidade.
 
-**Solucao**: Adicionar a rota `/leis/explicacoes` no mapeamento dentro de `Header.tsx`, apontando para `/?tab=leis`, igual ja esta configurado no hook `useHierarchicalNavigation.ts`.
+**Solucao**: Adicionar um listener de scroll no componente da pagina inicial que aplica um `transform: translateY(...)` na imagem de fundo proporcional ao scroll, criando um efeito parallax suave. A imagem vai se mover mais devagar que o conteudo, dando sensacao de profundidade.
 
----
-
-### 2. Pagina de Busca de Leis - Artigos mais buscados e Favoritos
-
-**Problema**: A pagina `/vade-mecum/busca` mostra apenas sugestoes estaticas quando nao ha busca ativa. O usuario quer ver seus artigos mais pesquisados e seus favoritos.
-
-**Solucao**:
-
-- Criar uma tabela `busca_leis_historico` no Supabase para registrar cada busca do usuario (user_id, termo, created_at).
-- Na tela inicial da busca (antes de digitar), exibir duas secoes:
-  - **Mais Buscados**: Agrupar por termo e ordenar por frequencia (consulta na tabela de historico).
-  - **Favoritos**: Reutilizar a logica existente do hook `useLeisFavoritasRecentes` para exibir os artigos favoritados pelo usuario.
-- Registrar cada busca executada na tabela de historico.
-- Os itens clicaveis preenchem o campo de busca e executam a pesquisa.
+- Usar `useEffect` + `addEventListener('scroll')` com `requestAnimationFrame` para performance
+- Aplicar `transform: translateY(scrollY * 0.3)` na imagem (ela se move a 30% da velocidade do scroll)
+- Manter o `will-change: transform` para aceleracao por GPU
 
 ---
 
-### 3. Restringir conteudo da pagina de Aulas para nao-admin
+### 2. Trocar a fonte da saudacao ("Boa noite, Wesley")
 
-**Problema**: Todas as secoes (Areas do Direito, Portugues, OAB) aparecem para qualquer usuario. Apenas as trilhas de Conceitos e OAB devem aparecer para usuarios comuns.
+**Problema**: A saudacao usa a fonte padrao (Inter/sans-serif) em negrito. O usuario quer uma fonte mais elegante e agradavel.
 
-**Solucao**: No componente `MobileTrilhasAprender.tsx`, envolver as secoes 4 (Areas do Direito), 5 (Portugues Juridico) e 6 (OAB) com a condicao `{isAdmin && (...)}`. Assim, apenas o administrador (email `wn7corporation@gmail.com`) vera essas categorias. Usuarios comuns verao apenas o Dashboard de Progresso, Jornada de Estudos e os cards de Conceitos.
+**Solucao**: Aplicar a fonte `Playfair Display` (ja disponivel no projeto como `font-playfair`) na saudacao, que e uma fonte serifada elegante e combina com o tema juridico. Tambem ajustar o peso e tamanho para melhor legibilidade.
+
+- Saudacao ("Boa noite,"): `font-playfair text-2xl font-semibold`
+- Nome do usuario: `font-playfair text-4xl font-bold`
+
+---
+
+### 3. Corrigir o icone de busca que nao funciona
+
+**Problema**: O botao de busca no canto superior direito do hero nao responde ao toque. Isso acontece porque o container pai do hero tem `pointer-events-none` (linha 240) e o z-index do hero (1) e menor que o z-index do conteudo principal (2), fazendo com que o conteudo cubra o botao em certas areas.
+
+**Solucao**: Aumentar o z-index do botao de busca para ficar acima de todos os elementos. Extrair o botao de busca para fora do container `pointer-events-none`, posicionando-o como um elemento `fixed` independente com z-index mais alto que o conteudo.
 
 ---
 
 ### Detalhes Tecnicos
 
-**Arquivos a modificar:**
+**Arquivo a modificar**: `src/pages/Index.tsx`
 
-| Arquivo | Alteracao |
+| Alteracao | Detalhes |
 |---|---|
-| `src/components/Header.tsx` | Adicionar `/leis/explicacoes` -> `/?tab=leis` no `getHierarchicalDestination` |
-| `src/pages/VadeMecumBusca.tsx` | Adicionar secoes de "Mais Buscados" e "Favoritos" na tela inicial; registrar buscas |
-| `src/components/mobile/MobileTrilhasAprender.tsx` | Envolver secoes 4, 5 e 6 com `{isAdmin && (...)}` |
-
-**Nova tabela Supabase:**
-
-```sql
-CREATE TABLE busca_leis_historico (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  termo text NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE busca_leis_historico ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own search history"
-  ON busca_leis_historico FOR SELECT
-  TO authenticated
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own search history"
-  ON busca_leis_historico FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
-```
+| Parallax | Adicionar `useState` para `scrollY`, `useEffect` com scroll listener + rAF, aplicar `transform` dinamico na `img` |
+| Fonte | Trocar classes da saudacao para `font-playfair` |
+| Botao busca | Mover o botao de busca para fora do container hero fixo, como elemento `fixed` independente com `zIndex: 10` |
 
