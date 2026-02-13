@@ -84,7 +84,7 @@ import {
 
 type PeriodoFiltro = 'hoje' | '7dias' | '30dias' | '90dias';
 type DialogType = 'online' | 'online30' | 'novos' | 'ativos' | 'total' | 'receita' | 'pageviews' | null;
-type DashboardView = 'estatisticas' | 'historico';
+type DashboardView = 'estatisticas' | 'historico' | 'premio';
 
 const PERIODOS: { value: PeriodoFiltro; label: string; dias: number }[] = [
   { value: 'hoje', label: 'Hoje', dias: 0 },
@@ -312,13 +312,13 @@ const AdminControle = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Toggle entre Estatísticas e Histórico */}
-        <div className="flex items-center gap-2 mb-2">
+        {/* Toggle entre Estatísticas, Histórico e Prêmio */}
+        <div className="flex items-center gap-2 mb-2 overflow-x-auto">
           <Button
             variant={dashboardView === 'estatisticas' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDashboardView('estatisticas')}
-            className="text-xs h-8"
+            className="text-xs h-8 shrink-0"
           >
             <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
             Estatísticas
@@ -327,10 +327,19 @@ const AdminControle = () => {
             variant={dashboardView === 'historico' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setDashboardView('historico')}
-            className="text-xs h-8"
+            className="text-xs h-8 shrink-0"
           >
             <Clock className="h-3.5 w-3.5 mr-1.5" />
             Últimos Cadastros
+          </Button>
+          <Button
+            variant={dashboardView === 'premio' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDashboardView('premio')}
+            className="text-xs h-8 shrink-0"
+          >
+            <Crown className="h-3.5 w-3.5 mr-1.5" />
+            Prêmio
           </Button>
         </div>
 
@@ -450,7 +459,7 @@ const AdminControle = () => {
               </CardContent>
             </Card>
           </div>
-        ) : (
+        ) : dashboardView === 'historico' ? (
           /* Histórico - Últimos Usuários Cadastrados */
           <Card>
             <CardHeader>
@@ -501,6 +510,141 @@ const AdminControle = () => {
               )}
             </CardContent>
           </Card>
+        ) : (
+          /* Prêmio - Assinaturas em tempo real */
+          <div className="space-y-4">
+            {/* Resumo rápido */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] text-muted-foreground">Total Premium</p>
+                  <p className="text-2xl font-bold text-amber-500">{metricasPremium?.totalPremium || 0}</p>
+                  <p className="text-[10px] text-muted-foreground">assinantes únicos</p>
+                </CardContent>
+              </Card>
+              <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] text-muted-foreground">E-mails Únicos</p>
+                  <p className="text-2xl font-bold text-emerald-500">{listaAssinantes?.length || 0}</p>
+                  <p className="text-[10px] text-muted-foreground">com assinatura ativa</p>
+                </CardContent>
+              </Card>
+              <Card className="border-sky-500/30 bg-gradient-to-br from-sky-500/5 to-transparent">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] text-muted-foreground">Assinaturas Hoje</p>
+                  <p className="text-2xl font-bold text-sky-500">{metricasPremium?.assinaturasHoje || 0}</p>
+                  <p className="text-[10px] text-muted-foreground">novas hoje</p>
+                </CardContent>
+              </Card>
+              <Card className="border-violet-500/30 bg-gradient-to-br from-violet-500/5 to-transparent">
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] text-muted-foreground">Taxa Conversão</p>
+                  <p className="text-2xl font-bold text-violet-500">{metricasPremium?.taxaConversao?.toFixed(2) || 0}%</p>
+                  <p className="text-[10px] text-muted-foreground">do total de usuários</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Lista de assinantes */}
+            <Card className="border-amber-500/30" id="assinantes-premio-section">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Crown className="h-5 w-5 text-amber-500" />
+                    Assinantes
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" title="Tempo real" />
+                  </div>
+                  <Badge className="bg-amber-500 text-white">
+                    {listaAssinantes?.length || 0} únicos
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingAssinantes ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : listaAssinantes && listaAssinantes.length > 0 ? (
+                  <>
+                    {/* Mobile: Cards */}
+                    <div className="space-y-3 md:hidden max-h-[500px] overflow-y-auto">
+                      {listaAssinantes.map((assinante, index) => (
+                        <div key={index} className="p-4 rounded-lg bg-secondary/30 border border-border space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm truncate">{assinante.nome || assinante.email}</span>
+                            <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px]">Ativo</Badge>
+                          </div>
+                          {assinante.nome && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              <span className="truncate">{assinante.email}</span>
+                            </div>
+                          )}
+                          {assinante.telefone && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              <span>{assinante.telefone}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px]">{assinante.plano}</Badge>
+                              <span className="font-medium">R$ {assinante.valor?.toFixed(2)}</span>
+                            </div>
+                            <span className="text-muted-foreground">{format(new Date(assinante.data), 'dd/MM/yyyy')}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            {assinante.intencao && (
+                              <Badge variant="outline" className="text-[10px] capitalize">{assinante.intencao}</Badge>
+                            )}
+                            <span className="text-muted-foreground">{formatPaymentMethod(assinante.payment_method)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop: Table */}
+                    <div className="hidden md:block max-h-[500px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Plano</TableHead>
+                            <TableHead>Valor</TableHead>
+                            <TableHead>Pagamento</TableHead>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {listaAssinantes.map((assinante, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium text-sm">{assinante.nome || '—'}</TableCell>
+                              <TableCell className="text-sm">{assinante.email}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{assinante.plano}</Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">R$ {assinante.valor?.toFixed(2) || '0.00'}</TableCell>
+                              <TableCell className="text-sm">{formatPaymentMethod(assinante.payment_method)}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {format(new Date(assinante.data), 'dd/MM/yyyy')}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className="bg-emerald-500/20 text-emerald-500 text-xs">Ativo</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">Nenhum assinante encontrado</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Dialog de detalhes de usuários */}
@@ -544,27 +688,42 @@ const AdminControle = () => {
               <DialogDescription>Receita por tipo de plano</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
-                <span className="text-sm font-medium">Mensal</span>
-                <span className="text-sm font-bold text-emerald-500">
-                  R$ {(metricasPremium?.receitaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-sky-500/10 border border-sky-500/30">
+                <span className="text-sm font-bold">Receita Hoje</span>
+                <span className="text-lg font-bold text-sky-500">
+                  R$ {(metricasPremium?.receitaHoje || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
-                <span className="text-sm font-medium">Anual</span>
-                <span className="text-sm font-bold text-emerald-500">
-                  R$ {(metricasPremium?.receitaAnual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
-                <span className="text-sm font-medium">Vitalício</span>
-                <span className="text-sm font-bold text-emerald-500">
-                  R$ {(metricasPremium?.receitaVitalicio || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                <span className="text-sm font-bold">Total</span>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                <span className="text-sm font-bold">Receita do Mês</span>
                 <span className="text-lg font-bold text-emerald-500">
+                  R$ {(metricasPremium?.receitaMesAtual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="border-t border-border pt-3 space-y-3">
+                <p className="text-xs text-muted-foreground font-medium">Por tipo de plano (total acumulado)</p>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
+                  <span className="text-sm font-medium">Mensal</span>
+                  <span className="text-sm font-bold text-emerald-500">
+                    R$ {(metricasPremium?.receitaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
+                  <span className="text-sm font-medium">Anual</span>
+                  <span className="text-sm font-bold text-emerald-500">
+                    R$ {(metricasPremium?.receitaAnual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
+                  <span className="text-sm font-medium">Vitalício</span>
+                  <span className="text-sm font-bold text-emerald-500">
+                    R$ {(metricasPremium?.receitaVitalicio || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <span className="text-sm font-bold">Total Geral</span>
+                <span className="text-lg font-bold text-amber-500">
                   R$ {(metricasPremium?.receitaTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -716,9 +875,9 @@ const AdminControle = () => {
             onClick={() => setOpenDialog('receita')}
           >
             <CardContent className="pt-4 pb-4">
-              <p className="text-[11px] text-muted-foreground">Receita Total</p>
+              <p className="text-[11px] text-muted-foreground">Receita Hoje</p>
               <p className="text-xl font-bold text-emerald-500">
-                R$ {(metricasPremium?.receitaTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(metricasPremium?.receitaHoje || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
@@ -729,7 +888,7 @@ const AdminControle = () => {
             <CardContent className="pt-4 pb-4">
               <p className="text-[11px] text-muted-foreground">Receita Mensal</p>
               <p className="text-lg font-bold text-emerald-500">
-                R$ {(metricasPremium?.receitaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(metricasPremium?.receitaMesAtual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
