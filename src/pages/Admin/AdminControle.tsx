@@ -84,6 +84,7 @@ import {
 
 type PeriodoFiltro = 'hoje' | '7dias' | '30dias' | '90dias';
 type DialogType = 'online' | 'online30' | 'novos' | 'ativos' | 'total' | 'receita' | 'pageviews' | null;
+type DashboardView = 'estatisticas' | 'historico';
 
 const PERIODOS: { value: PeriodoFiltro; label: string; dias: number }[] = [
   { value: 'hoje', label: 'Hoje', dias: 0 },
@@ -154,6 +155,7 @@ const AdminControle = () => {
   const [activeTab, setActiveTab] = useState('usuarios');
   const [periodo, setPeriodo] = useState<PeriodoFiltro>('7dias');
   const [openDialog, setOpenDialog] = useState<DialogType>(null);
+  const [dashboardView, setDashboardView] = useState<DashboardView>('estatisticas');
 
   const diasFiltro = getDiasFromPeriodo(periodo);
   const diasParaQuery = diasFiltro === 0 ? 1 : diasFiltro;
@@ -310,122 +312,196 @@ const AdminControle = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Cards de Estatísticas - 6 cards clicáveis */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {/* Online Agora */}
-          <Card 
-            className="cursor-pointer hover:border-emerald-500/50 transition-all hover:shadow-md"
-            onClick={() => setOpenDialog('online')}
+        {/* Toggle entre Estatísticas e Histórico */}
+        <div className="flex items-center gap-2 mb-2">
+          <Button
+            variant={dashboardView === 'estatisticas' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDashboardView('estatisticas')}
+            className="text-xs h-8"
           >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Online Agora</p>
-                  <p className="text-2xl font-bold text-emerald-500">
-                    {loadingOnline ? '...' : onlineAgora}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">5 min</p>
-                </div>
-                <div className="relative">
-                  <Clock className="h-5 w-5 text-emerald-500 opacity-50" />
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Online 30 min */}
-          <Card 
-            className="cursor-pointer hover:border-teal-500/50 transition-all hover:shadow-md"
-            onClick={() => setOpenDialog('online30')}
+            <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+            Estatísticas
+          </Button>
+          <Button
+            variant={dashboardView === 'historico' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDashboardView('historico')}
+            className="text-xs h-8"
           >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Online 30min</p>
-                  <p className="text-2xl font-bold text-teal-500">
-                    {loadingOnline30 ? '...' : online30Min}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">30 min</p>
-                </div>
-                <Clock3 className="h-5 w-5 text-teal-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Novos */}
-          <Card 
-            className="cursor-pointer hover:border-sky-500/50 transition-all hover:shadow-md"
-            onClick={() => setOpenDialog('novos')}
-          >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Novos ({periodoLabel})</p>
-                  <p className="text-2xl font-bold text-sky-500">
-                    {loadingStats ? '...' : estatisticas?.novosNoPeriodo || 0}
-                  </p>
-                </div>
-                <UserPlus className="h-5 w-5 text-sky-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Ativos */}
-          <Card 
-            className="cursor-pointer hover:border-violet-500/50 transition-all hover:shadow-md"
-            onClick={() => setOpenDialog('ativos')}
-          >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Ativos ({periodoLabel})</p>
-                  <p className="text-2xl font-bold text-violet-500">
-                    {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-violet-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Total Usuários */}
-          <Card 
-            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"
-            onClick={() => setOpenDialog('total')}
-          >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Total Usuários</p>
-                  <p className="text-2xl font-bold">
-                    {loadingStats ? '...' : estatisticas?.totalUsuarios?.toLocaleString('pt-BR') || 0}
-                  </p>
-                </div>
-                <Users className="h-5 w-5 text-primary opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Page Views */}
-          <Card 
-            className="cursor-pointer hover:border-orange-500/50 transition-all hover:shadow-md"
-            onClick={() => setOpenDialog('pageviews')}
-          >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Page Views</p>
-                  <p className="text-2xl font-bold text-orange-500">
-                    {loadingStats ? '...' : estatisticas?.totalPageViews?.toLocaleString('pt-BR') || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{periodoLabel}</p>
-                </div>
-                <Eye className="h-5 w-5 text-orange-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
+            <Clock className="h-3.5 w-3.5 mr-1.5" />
+            Últimos Cadastros
+          </Button>
         </div>
+
+        {dashboardView === 'estatisticas' ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* Online Agora */}
+            <Card 
+              className="cursor-pointer hover:border-emerald-500/50 transition-all hover:shadow-md"
+              onClick={() => setOpenDialog('online')}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Online Agora</p>
+                    <p className="text-2xl font-bold text-emerald-500">
+                      {loadingOnline ? '...' : onlineAgora}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">5 min</p>
+                  </div>
+                  <div className="relative">
+                    <Clock className="h-5 w-5 text-emerald-500 opacity-50" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Online 30 min */}
+            <Card 
+              className="cursor-pointer hover:border-teal-500/50 transition-all hover:shadow-md"
+              onClick={() => setOpenDialog('online30')}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Online 30min</p>
+                    <p className="text-2xl font-bold text-teal-500">
+                      {loadingOnline30 ? '...' : online30Min}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">30 min</p>
+                  </div>
+                  <Clock3 className="h-5 w-5 text-teal-500 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Novos */}
+            <Card 
+              className="cursor-pointer hover:border-sky-500/50 transition-all hover:shadow-md"
+              onClick={() => setOpenDialog('novos')}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Novos ({periodoLabel})</p>
+                    <p className="text-2xl font-bold text-sky-500">
+                      {loadingStats ? '...' : estatisticas?.novosNoPeriodo || 0}
+                    </p>
+                  </div>
+                  <UserPlus className="h-5 w-5 text-sky-500 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Ativos */}
+            <Card 
+              className="cursor-pointer hover:border-violet-500/50 transition-all hover:shadow-md"
+              onClick={() => setOpenDialog('ativos')}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Ativos ({periodoLabel})</p>
+                    <p className="text-2xl font-bold text-violet-500">
+                      {loadingStats ? '...' : estatisticas?.ativosNoPeriodo || 0}
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-violet-500 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Total Usuários */}
+            <Card 
+              className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"
+              onClick={() => setOpenDialog('total')}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Total Usuários</p>
+                    <p className="text-2xl font-bold">
+                      {loadingStats ? '...' : estatisticas?.totalUsuarios?.toLocaleString('pt-BR') || 0}
+                    </p>
+                  </div>
+                  <Users className="h-5 w-5 text-primary opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Page Views */}
+            <Card 
+              className="cursor-pointer hover:border-orange-500/50 transition-all hover:shadow-md"
+              onClick={() => setOpenDialog('pageviews')}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Page Views</p>
+                    <p className="text-2xl font-bold text-orange-500">
+                      {loadingStats ? '...' : estatisticas?.totalPageViews?.toLocaleString('pt-BR') || 0}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{periodoLabel}</p>
+                  </div>
+                  <Eye className="h-5 w-5 text-orange-500 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          /* Histórico - Últimos Usuários Cadastrados */
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5 text-primary" />
+                  Últimos Cadastros ({periodoLabel})
+                </div>
+                <Badge variant="secondary">{novosUsuarios?.length || 0} usuários</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingUsuarios ? (
+                <div className="flex justify-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : novosUsuarios && novosUsuarios.length > 0 ? (
+                <ScrollArea className="max-h-[500px]">
+                  <div className="space-y-2 pr-4">
+                    {novosUsuarios.map((usuario) => (
+                      <Link
+                        key={usuario.id}
+                        to={`/admin/usuario/${usuario.id}`}
+                        className="block p-3 rounded-lg bg-secondary/30 border border-border hover:bg-secondary/50 hover:border-primary/30 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full shrink-0" />
+                            <span className="font-medium text-sm truncate">{usuario.nome || 'Sem nome'}</span>
+                            {usuario.intencao && (
+                              <Badge variant="outline" className="text-[10px] shrink-0">{usuario.intencao}</Badge>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                            {formatDistanceToNow(new Date(usuario.created_at), { addSuffix: true, locale: ptBR })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{usuario.email}</p>
+                        <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                          <span>{getDeviceIcon(usuario.dispositivo)} {parseDeviceInfo(usuario.device_info) || usuario.dispositivo || '—'}</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">Nenhum cadastro no período</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Dialog de detalhes de usuários */}
         <Dialog open={openDialog !== null && openDialog !== 'receita' && openDialog !== 'pageviews'} onOpenChange={(open) => !open && setOpenDialog(null)}>
