@@ -7,13 +7,13 @@ interface EmAltaSectionProps {
   handleLinkHover: (path: string) => void;
 }
 
-// Itens de ESTUDOS - ordem: Resumos, Videoaulas, Documentos, Flashcards, Questões, Carreiras
+// Itens de ESTUDOS - ordem: Resumos, Videoaulas, Questões, Flashcards, Documentos, Carreiras
 const itensEstudos = [
   { id: "resumos", title: "Resumos", description: "Conteúdo objetivo e direto", icon: FileCheck2, route: "/resumos-juridicos" },
   { id: "videoaulas", title: "Videoaulas", description: "Aulas em vídeo", icon: Video, route: "/videoaulas" },
-  { id: "documentos", title: "Documentos", description: "Modelos e petições", icon: FileText, route: "/documentos" },
-  { id: "flashcards", title: "Flashcards", description: "Memorização eficiente", icon: Sparkles, route: "/flashcards/areas" },
   { id: "questoes", title: "Questões", description: "Pratique com questões reais", icon: Target, route: "/questoes" },
+  { id: "flashcards", title: "Flashcards", description: "Memorização eficiente", icon: Sparkles, route: "/flashcards/areas" },
+  { id: "documentos", title: "Documentos", description: "Petições e contratos", icon: FileText, route: "/peticoes" },
   { id: "carreiras", title: "Carreiras", description: "Explore as carreiras jurídicas", icon: Briefcase, route: "/carreiras-juridicas" },
 ];
 
