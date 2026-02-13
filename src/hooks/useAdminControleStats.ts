@@ -10,6 +10,7 @@ interface NovoUsuario {
   dispositivo: string | null;
   device_info: any;
   intencao: string | null;
+  primeiro_acesso_minutos?: number;
 }
 
 interface PaginaPopular {
@@ -82,7 +83,47 @@ export const useNovosUsuarios = (dias = 7, limite = 50) => {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      const usuarios = data || [];
+      
+      // Calculate first session screen time for each user
+      if (usuarios.length > 0) {
+        const userIds = usuarios.map(u => u.id);
+        // Get page_views for these users on their first day
+        const { data: pageViews } = await supabase
+          .from('page_views')
+          .select('user_id, created_at')
+          .in('user_id', userIds)
+          .order('created_at', { ascending: true });
+        
+        if (pageViews && pageViews.length > 0) {
+          // Group by user and calculate first session duration
+          const userSessions = new Map<string, { first: Date; last: Date }>();
+          pageViews.forEach((pv: any) => {
+            const userId = pv.user_id;
+            const ts = new Date(pv.created_at);
+            const existing = userSessions.get(userId);
+            if (!existing) {
+              userSessions.set(userId, { first: ts, last: ts });
+            } else {
+              // Only count views within first 24h of first view
+              const diffFromFirst = (ts.getTime() - existing.first.getTime()) / (1000 * 60 * 60);
+              if (diffFromFirst <= 24) {
+                existing.last = ts;
+              }
+            }
+          });
+          
+          return usuarios.map(u => ({
+            ...u,
+            primeiro_acesso_minutos: userSessions.has(u.id)
+              ? Math.round((userSessions.get(u.id)!.last.getTime() - userSessions.get(u.id)!.first.getTime()) / (1000 * 60))
+              : undefined,
+          }));
+        }
+      }
+      
+      return usuarios;
     },
     refetchInterval: 30000,
   });
@@ -246,6 +287,7 @@ interface MetricasPremium {
   mediaDiasAtePremium: number | null;
   receitaTotal: number;
   receitaHoje: number;
+  receitaOntem: number;
   receitaMesAtual: number;
   receitaMensal: number;
   receitaAnual: number;
@@ -279,6 +321,7 @@ export const useMetricasPremium = (periodoDias = 7) => {
       
       let receitaTotal = 0;
       let receitaHoje = 0;
+      let receitaOntem = 0;
       let receitaMesAtual = 0;
       let receitaMensal = 0;
       let receitaAnual = 0;
@@ -290,9 +333,10 @@ export const useMetricasPremium = (periodoDias = 7) => {
         ? new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }).split(',')[0]).toISOString()
         : new Date(Date.now() - periodoDias * 24 * 60 * 60 * 1000).toISOString();
 
-      // Calculate today start and current month start in São Paulo timezone
+      // Calculate today start, yesterday start/end and current month start in São Paulo timezone
       const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
       const hojeInicio = new Date(nowSP.getFullYear(), nowSP.getMonth(), nowSP.getDate()).toISOString();
+      const ontemInicio = new Date(nowSP.getFullYear(), nowSP.getMonth(), nowSP.getDate() - 1).toISOString();
       const mesInicio = new Date(nowSP.getFullYear(), nowSP.getMonth(), 1).toISOString();
 
       (subscriptions || []).forEach(sub => {
@@ -307,6 +351,8 @@ export const useMetricasPremium = (periodoDias = 7) => {
         if (sub.created_at >= hojeInicio) {
           receitaHoje += amount;
           assinaturasHoje++;
+        } else if (sub.created_at >= ontemInicio && sub.created_at < hojeInicio) {
+          receitaOntem += amount;
         }
         if (sub.created_at >= mesInicio) {
           receitaMesAtual += amount;
@@ -357,6 +403,7 @@ export const useMetricasPremium = (periodoDias = 7) => {
         mediaDiasAtePremium,
         receitaTotal,
         receitaHoje,
+        receitaOntem,
         receitaMesAtual,
         receitaMensal,
         receitaAnual,
