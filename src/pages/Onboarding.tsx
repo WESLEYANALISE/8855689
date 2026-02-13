@@ -206,10 +206,10 @@ const Onboarding = () => {
             animate="center"
             exit="exit"
             transition={{ duration: 0.3 }}
-            className="w-full max-w-lg space-y-6"
+            className="w-full max-w-lg lg:max-w-2xl xl:max-w-3xl space-y-6"
           >
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-foreground">
+              <h2 className="text-2xl lg:text-3xl font-bold text-foreground">
                 Qual é o seu objetivo?
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -218,7 +218,7 @@ const Onboarding = () => {
             </div>
 
             {/* Grid 2x2 com cards animados */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:gap-5">
               {INTENCOES.map((item, index) => {
                 const Icon = item.icon;
                 const isSelected = intencao === item.value;
@@ -234,7 +234,7 @@ const Onboarding = () => {
                     }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setIntencao(item.value)}
-                    className={`relative overflow-hidden rounded-xl aspect-square transition-all ${
+                    className={`relative overflow-hidden rounded-xl aspect-square lg:aspect-[4/3] transition-all ${
                       isSelected
                         ? 'ring-3 ring-primary ring-offset-2 ring-offset-background'
                         : 'ring-1 ring-border/50'
@@ -261,8 +261,8 @@ const Onboarding = () => {
                       }`}>
                         <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-primary'}`} />
                       </div>
-                      <h3 className="font-bold text-white text-lg">{item.label}</h3>
-                      <p className="text-white/80 text-sm leading-tight">{item.description}</p>
+                      <h3 className="font-bold text-white text-lg lg:text-xl">{item.label}</h3>
+                      <p className="text-white/80 text-sm lg:text-base leading-tight">{item.description}</p>
                     </div>
                     
                     {/* Checkmark animado */}
@@ -330,7 +330,7 @@ const Onboarding = () => {
 
       {/* Conteúdo */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
+        <div className="w-full max-w-lg lg:max-w-2xl xl:max-w-3xl">
           {/* Progress dots */}
           <div className="flex justify-center gap-2 mb-8">
             {[0, 1].map((i) => (
@@ -348,7 +348,7 @@ const Onboarding = () => {
           </div>
 
           {/* Content card */}
-          <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-2xl border border-border/50">
+          <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-6 sm:p-8 lg:p-10 xl:p-12 shadow-2xl border border-border/50">
             <AnimatePresence mode="wait" custom={step}>
               {renderStep()}
             </AnimatePresence>
