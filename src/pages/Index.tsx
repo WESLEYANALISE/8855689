@@ -309,9 +309,17 @@ const Index = () => {
 
       {/* Conteúdo principal - Mobile */}
       <div className="md:hidden bg-muted relative min-h-screen pb-20 rounded-t-[32px]" style={{ zIndex: 2 }}>
-        {/* Cards de acesso rápido - Aulas e Notícias */}
+        {/* Cards de acesso rápido - Aulas e Biblioteca */}
         {mainTab === 'ferramentas' && (
-          <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
+          <div className="px-4 pt-6 pb-2">
+            <div className="flex items-center gap-2 mb-3">
+              <GraduationCap className="w-5 h-5 text-amber-500" />
+              <div>
+                <h2 className="text-base font-bold text-foreground">Em alta</h2>
+                <p className="text-[11px] text-muted-foreground -mt-0.5">Material de apoio</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate('/aulas')}
               className="overflow-hidden rounded-2xl text-left border border-border/30 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.6)] transition-all group bg-card"
@@ -349,6 +357,7 @@ const Index = () => {
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
             </button>
+            </div>
           </div>
         )}
 
