@@ -4,7 +4,7 @@ import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase } from "lucide-react";
+import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight } from "lucide-react";
 import cardAulasThumb from "@/assets/card-aulas-thumb.jpg";
 import bibliotecaThumb from "@/assets/biblioteca-office-sunset.jpg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -296,12 +296,15 @@ const Index = () => {
               <div className="relative h-[70px] overflow-hidden">
                 <img src={cardAulasThumb} alt="" className="w-full h-full object-cover" />
               </div>
-              <div className="p-3">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-sm font-bold text-foreground">Aulas</h3>
+              <div className="p-3 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-sm font-bold text-foreground">Aulas</h3>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Jornada de estudos</p>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Jornada de estudos</p>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
             </button>
 
@@ -312,12 +315,15 @@ const Index = () => {
               <div className="relative h-[70px] overflow-hidden">
                 <img src={bibliotecaThumb} alt="" className="w-full h-full object-cover" />
               </div>
-              <div className="p-3">
-                <div className="flex items-center gap-2">
-                  <Library className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-sm font-bold text-foreground">Biblioteca</h3>
+              <div className="p-3 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Library className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-sm font-bold text-foreground">Biblioteca</h3>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Acervo completo</p>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Acervo completo</p>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
             </button>
           </div>
