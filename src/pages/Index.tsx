@@ -248,7 +248,7 @@ const Index = () => {
       <WelcomeAudioPlayer />
       
       {/* Hero Banner Mobile - fixo, cobre do topo até incluir os tabs */}
-      <div className="md:hidden fixed top-0 left-0 right-0 overflow-hidden pointer-events-none rounded-b-[28px]" style={{ zIndex: 1, height: '13.5rem' }}>
+      <div className="md:hidden fixed top-0 left-0 right-0 overflow-hidden pointer-events-none rounded-b-[28px]" style={{ zIndex: 1, height: '15.5rem' }}>
         <img 
           src={heroImage}
           alt="Juridiquê"
