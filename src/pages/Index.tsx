@@ -31,7 +31,7 @@ import { OabCarreiraBlogList } from "@/components/oab/OabCarreiraBlogList";
 import { EmAltaSection } from "@/components/EmAltaSection";
 import { CarreirasSection } from "@/components/CarreirasSection";
 import { PoliticaHomeSection } from "@/components/home/PoliticaHomeSection";
-import { OABHomeSection } from "@/components/home/OABHomeSection";
+import { RecomendacaoHomeSection } from "@/components/home/RecomendacaoHomeSection";
 import { DesktopTrilhasAprender } from "@/components/desktop/DesktopTrilhasAprender";
 import { DesktopTrilhasOAB } from "@/components/desktop/DesktopTrilhasOAB";
 import { DesktopHomeDestaque } from "@/components/desktop/DesktopHomeDestaque";
@@ -338,7 +338,7 @@ const Index = () => {
           {mainTab === 'ferramentas' && (
             <>
               <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
-              <OABHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+              <RecomendacaoHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
             </>
           )}
 
