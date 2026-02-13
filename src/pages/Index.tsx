@@ -267,7 +267,7 @@ const Index = () => {
       <div className="md:hidden h-36" style={{ zIndex: 1 }} />
 
       {/* Card branco arredondado - Mobile */}
-      <div className="md:hidden bg-background rounded-t-[28px] relative shadow-[0_-4px_20px_rgba(0,0,0,0.15)] min-h-screen" style={{ zIndex: 2 }}>
+      <div className="md:hidden bg-background rounded-t-[28px] relative shadow-[0_-4px_20px_rgba(0,0,0,0.15)] min-h-screen pb-20" style={{ zIndex: 2 }}>
         <div className="px-4 pt-4 pb-2 space-y-4">
           {/* Menu de Alternância Principal */}
           <div className="flex gap-1.5 h-[44px]">
@@ -290,78 +290,82 @@ const Index = () => {
             </div>
           )}
         </div>
+
+        {/* Conteúdo das abas mobile */}
+        <div className="px-2 space-y-6">
+          {/* Notícias em Destaque */}
+          {mainTab !== 'iniciante' && (
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/20 rounded-xl">
+                    <Newspaper className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">Notícias Jurídicas</h3>
+                    <p className="text-xs text-muted-foreground">Fique atualizado</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/noticias-juridicas')}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
+                >
+                  <span>Ver mais</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              
+              <ScrollArea className="w-full">
+                <div className="flex gap-3 pb-4 touch-pan-x">
+                  {featuredNews.slice(0, 6).map((noticia, index) => (
+                    <NoticiaCarouselCard 
+                      key={noticia.id} 
+                      noticia={noticia} 
+                      priority={index < 3}
+                    />
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* ABA FERRAMENTAS - Mobile */}
+          {mainTab === 'ferramentas' && (
+            <>
+              <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+              <OABHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+              <PoliticaHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
+            </>
+          )}
+
+          {/* ABA AULAS - Mobile */}
+          {mainTab === 'iniciante' && (
+            <div className="relative min-h-[500px]">
+              <MobileTrilhasAprender />
+            </div>
+          )}
+
+          {/* ABA LEIS - Mobile */}
+          {mainTab === 'leis' && (
+            <MobileLeisHome />
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 md:px-6 md:py-8 space-y-6 md:space-y-8 relative px-[8px] md:py-[2px] bg-background" style={{ zIndex: 2 }}>
-        {/* Desktop tabs (hidden on mobile since they're in the card above) */}
-        <div className="hidden md:flex gap-1.5 mb-2 relative z-20 h-[44px] mt-4">
+      {/* ===== Desktop Layout ===== */}
+      <div className="hidden md:block flex-1 px-6 py-8 space-y-8 relative" style={{ zIndex: 2 }}>
+        {/* Desktop tabs */}
+        <div className="flex gap-1.5 mb-2 relative z-20 h-[44px] mt-4">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
           <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
         </div>
 
-        {/* Notícias em Destaque */}
-        {mainTab !== 'iniciante' && (
-          <div className="md:hidden space-y-4 relative z-10">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-500/20 rounded-xl">
-                  <Newspaper className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-playfair text-xl md:text-lg font-bold text-foreground tracking-tight">Notícias Jurídicas</h3>
-                  <p className="text-xs text-muted-foreground">Fique atualizado</p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/noticias-juridicas')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
-              >
-                <span>Ver mais</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-4 touch-pan-x">
-                {featuredNews.slice(0, 6).map((noticia, index) => (
-                  <NoticiaCarouselCard 
-                    key={noticia.id} 
-                    noticia={noticia} 
-                    priority={index < 3}
-                  />
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </div>
-        )}
+        {mainTab === 'ferramentas' && <DesktopHomeDestaque />}
 
-        {/* ==================== ABA FERRAMENTAS ==================== */}
-        {mainTab === 'ferramentas' && (
-          <>
-            {/* Desktop: Layout otimizado em colunas */}
-            {isDesktop ? (
-              <DesktopHomeDestaque />
-            ) : (
-              <>
-                {/* Em Alta - Design Premium com Abas */}
-                <EmAltaSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
-
-                {/* OAB - Nova seção entre Estudos e Política */}
-                <OABHomeSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
-
-                {/* Política - Livros, Artigos e Documentários */}
-                <PoliticaHomeSection isDesktop={isDesktop} navigate={navigate} handleLinkHover={handleLinkHover} />
-              </>
-            )}
-          </>
-        )}
-
-        {/* ==================== ABA ESTUDOS - LINHA DO TEMPO ==================== */}
         {mainTab === 'iniciante' && (
-          <div className={`relative ${isDesktop ? 'min-h-[70vh]' : 'min-h-[500px]'}`}>
-            {/* Imagem de fundo Themis - fixa a partir do menu de alternância */}
+          <div className="relative min-h-[70vh]">
             <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
               <img 
                 src={themisEstudosDesktop} 
@@ -373,27 +377,14 @@ const Index = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
             </div>
-
-            {/* Conteúdo sobre o fundo */}
             <div className="relative z-10">
-              {/* Desktop: Layout horizontal das trilhas */}
-              {isDesktop ? (
-                <DesktopTrilhasAprender />
-              ) : (
-                <MobileTrilhasAprender />
-              )}
+              <DesktopTrilhasAprender />
             </div>
           </div>
         )}
 
-        {/* ==================== ABA LEIS - VADE MECUM ==================== */}
-        {mainTab === 'leis' && !isDesktop && (
-          <MobileLeisHome />
-        )}
-        
-        {mainTab === 'leis' && isDesktop && (
+        {mainTab === 'leis' && (
           <div className="relative min-h-[70vh]">
-            {/* Imagem de fundo fixa */}
             <div className="fixed left-0 right-0 bottom-0 z-0 pointer-events-none" style={{ top: '160px' }}>
               <img 
                 src={heroVadeMecumPlanalto} 
@@ -405,8 +396,6 @@ const Index = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/50 to-background" />
             </div>
-
-            {/* Conteúdo do Vade Mecum Desktop */}
             <div className="relative z-10">
               <DesktopVadeMecumHome />
             </div>
