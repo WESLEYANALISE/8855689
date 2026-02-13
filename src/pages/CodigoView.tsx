@@ -295,9 +295,9 @@ const CodigoView = () => {
     totalLoaded 
   } = useProgressiveArticles<Article>({
     tableName,
-    initialChunk: 50,       // Primeiros 50 artigos instantâneos
-    backgroundChunk: 100,   // Carregar 100 por vez em background
-    delayBetweenChunks: 200 // 200ms entre cada chunk
+    initialChunk: 100,       // Primeiros 100 artigos instantâneos
+    backgroundChunk: 500,   // Carregar 500 por vez em background
+    delayBetweenChunks: 100 // 100ms entre cada chunk
   });
   
   // Função placeholder para updateArticle (se necessário no futuro)
