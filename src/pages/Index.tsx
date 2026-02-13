@@ -318,7 +318,7 @@ const Index = () => {
               </div>
               <div>
                 <h2 className="font-playfair text-xl font-bold text-foreground tracking-tight">Em alta</h2>
-                <p className="text-xs text-muted-foreground">Material de apoio</p>
+                <p className="text-xs text-muted-foreground">Aprofunde os estudos</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
