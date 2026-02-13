@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, BookOpen, Monitor, Sparkles, Crown } from "lucide-react";
+import { Download, Loader2, BookOpen, Sparkles, Crown } from "lucide-react";
 import BibliotecaFavoritoButton from "@/components/biblioteca/BibliotecaFavoritoButton";
 import { useState } from "react";
 import PDFViewerModal from "@/components/PDFViewerModal";
@@ -38,6 +38,24 @@ const BibliotecaEstudosLivro = () => {
     },
   });
 
+  // Buscar a primeira capa da mesma área para fallback
+  const { data: areaCover } = useQuery({
+    queryKey: ["biblioteca-estudos-area-cover", livro?.["Área"]],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("BIBLIOTECA-ESTUDOS")
+        .select("url_capa_gerada, Capa-livro")
+        .eq("Área", livro!["Área"]!)
+        .order("Ordem")
+        .limit(20);
+
+      if (error) throw error;
+      const first = data?.find((d: any) => d.url_capa_gerada || d["Capa-livro"]);
+      return first?.url_capa_gerada || first?.["Capa-livro"] || null;
+    },
+    enabled: !!livro?.["Área"],
+  });
+
 
   const handleGenerateCover = async () => {
     if (!livro) return;
@@ -71,7 +89,7 @@ const BibliotecaEstudosLivro = () => {
     }
   };
 
-  const capaUrl = livro?.["Capa-livro"] || livro?.url_capa_gerada;
+  const capaUrl = livro?.["Capa-livro"] || livro?.url_capa_gerada || areaCover;
   const podeGerarCapa = !capaUrl && livro;
 
   if (isLoading) {
@@ -168,7 +186,7 @@ const BibliotecaEstudosLivro = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="sobre">Sobre</TabsTrigger>
-                <TabsTrigger value="desktop">Desktop</TabsTrigger>
+                <TabsTrigger value="aula" disabled={!livro.aula}>Aula</TabsTrigger>
                 <TabsTrigger value="download" disabled={!livro.Download}>Download</TabsTrigger>
               </TabsList>
 
@@ -183,21 +201,24 @@ const BibliotecaEstudosLivro = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="desktop">
+              <TabsContent value="aula">
                 <div className="text-center bg-card/50 backdrop-blur-sm rounded-xl p-8 border border-accent/20">
-                  <Monitor className="w-16 h-16 mx-auto mb-4 text-accent" />
-                  <h2 className="text-xl font-semibold mb-4">Acesso Desktop</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Leia este livro diretamente no seu computador através do nosso sistema desktop
-                  </p>
-                  <Button
-                    onClick={() => navigate("/acesso-desktop")}
-                    size="lg"
-                    className="min-w-[200px]"
-                  >
-                    <Monitor className="w-5 h-5 mr-2" />
-                    Acessar Desktop
-                  </Button>
+                  <BookOpen className="w-16 h-16 mx-auto mb-4 text-accent" />
+                  <h2 className="text-xl font-semibold mb-4">Aula</h2>
+                  {livro.aula ? (
+                    <Button
+                      onClick={() => window.open(livro.aula!, "_blank")}
+                      size="lg"
+                      className="min-w-[200px]"
+                    >
+                      <BookOpen className="w-5 h-5 mr-2" />
+                      Assistir Aula
+                    </Button>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Aula não disponível para este livro
+                    </p>
+                  )}
                 </div>
               </TabsContent>
 
