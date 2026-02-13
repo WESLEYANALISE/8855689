@@ -1,43 +1,85 @@
 
 
-## Reorganizacao da Aba "Aulas"
+## Aba "Aulas" - Layout Profissional com Dashboard
 
-### Mudancas Propostas
-
-A reorganizacao move o titulo "Jornada de Estudos" para o topo da pagina, antes da secao "Seu Progresso", criando uma hierarquia visual mais clara:
+### Nova Estrutura Visual
 
 ```text
 +----------------------------------+
-|     JORNADA DE ESTUDOS           |
-|     Fundamentos do Direito       |
+|  DASHBOARD DE PROGRESSO          |
+|  +---+ +---+ +---+              |
+|  |Aul| |Aul| |Aul|  (carrossel) |
+|  |a 1| |a 2| |a 3|              |
+|  |45%| |20%| |70%|              |
+|  +---+ +---+ +---+              |
+|           Ver tudo >             |
 +----------------------------------+
 |                                  |
-|  (play) Seu Progresso            |
-|  +-----------------------------+ |
-|  | Trilha de Conceitos     >   | |
-|  | Iniciante - Fundamentos     | |
-|  +-----------------------------+ |
+|  JORNADA DE ESTUDOS              |
+|  Fundamentos do Direito          |
+|                                  |
+|  -- OAB --                       |
+|  +-------------+  +------------+ |
+|  | 1a Fase     |  | 2a Fase    | |
+|  +-------------+  +------------+ |
 |                                  |
 |  +-------------+  +------------+ |
-|  | Areas do    |  | Iniciando  | |
-|  | Direito     |  | em         | |
-|  | 27 areas  > |  | Concursos >| |
+|  | Trilha de   |  | Iniciando  | |
+|  | Conceitos   |  | Concursos  | |
 |  +-------------+  +------------+ |
-|  +-------------+  +------------+ |
-|  | Portugues   |  | OAB        | |
-|  | Juridico    |  | 1a Fase    | |
-|  | Gramatica > |  |          > | |
-|  +-------------+  +------------+ |
+|                                  |
+|  +-------------+                 |
+|  | Portugues   |                 |
+|  +-------------+                 |
+|                                  |
+|  -- Areas do Direito --          |
+|  +---+ +---+ +---+ (carrossel)  |
+|  |Con| |Civ| |Pen|              |
+|  +---+ +---+ +---+              |
 +----------------------------------+
 ```
 
-### Detalhes Tecnicos
+### Detalhes de Cada Secao
 
-**Arquivo**: `src/components/mobile/MobileTrilhasAprender.tsx`
+**1. Dashboard de Progresso (topo)**
+- Cards em carrossel horizontal com as aulas em andamento do usuario
+- Cada card mostra: nome da aula/topico, area/materia, barra de progresso, porcentagem
+- Estilo escuro premium com sombras profundas e gradientes
+- Botao "Ver tudo" que navega para uma nova pagina `/aulas/dashboard`
+- Se nao houver progresso, mostra estado vazio com mensagem motivacional
 
-1. **Mover o bloco "Jornada de Estudos"** (linhas 283-293) para antes da secao "Seu Progresso" (linha 232), tornando-o o primeiro elemento visivel na aba.
+**2. Pagina Dashboard Completa (`/aulas/dashboard`)**
+- Nova pagina dedicada mostrando todos os topicos/aulas em andamento
+- Cada item mostra detalhes: titulo, area, materia, progresso de leitura/flashcards/questoes
+- Ao clicar em um item, navega para a aula correspondente
+- Botao voltar retorna para `/?tab=aulas`
 
-2. **Ajustar espacamento**: adicionar `mb-4` ao titulo e `mb-5` entre "Seu Progresso" e o grid de categorias para manter respiracao visual adequada.
+**3. Secao OAB**
+- Titulo "OAB" acima de dois cards lado a lado
+- Card "1a Fase" e card "2a Fase", ambos com imagens de fundo e sombras
+- 1a Fase navega para `/oab/trilhas-aprovacao`
+- 2a Fase navega para `/videoaulas/oab` (ou rota existente de 2a fase)
 
-3. **Manter tudo o mais intacto**: capas de imagem, grid 2x2, card da Trilha de Conceitos, logica de navegacao e progresso permanecem identicos.
+**4. Grid de Categorias**
+- Trilha de Conceitos e Iniciando em Concursos: lado a lado, mesmo tamanho (cards no grid 2x2)
+- Portugues Juridico: card sozinho abaixo
+
+**5. Areas do Direito (carrossel)**
+- Titulo "Areas do Direito" seguido de um carrossel horizontal
+- Cada area com card contendo imagem, nome e quantidade de materias
+- Ordem cronologica conforme array AREAS_ORDEM existente
+- Ao clicar, renderiza o conteudo da area inline abaixo (comportamento existente)
+
+### Arquivos Modificados
+
+- `src/components/mobile/MobileTrilhasAprender.tsx` - Reestruturacao completa do layout
+- `src/pages/AulasDashboard.tsx` - Nova pagina de dashboard detalhado
+- `src/App.tsx` - Adicionar rota `/aulas/dashboard`
+
+### Dependencias
+
+- Reutiliza dados de progresso ja buscados (`progressoConceitos`, `progressoAulas`)
+- Reutiliza componentes existentes (`Progress`, `ScrollArea`, `UniversalImage`)
+- Reutiliza thumbnails e imagens ja importadas
+- Precisa de thumbnail para OAB 2a Fase (reutiliza oabThumb existente)
 
