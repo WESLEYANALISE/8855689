@@ -55,6 +55,13 @@ import carreiraPf from "@/assets/pf-004-opt.webp";
 
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Bom dia,";
+  if (hour >= 12 && hour < 18) return "Boa tarde,";
+  return "Boa noite,";
+};
+
 // Lista de imagens de carreiras para preload
 const CARREIRAS_IMAGES = [
   carreiraAdvogado, carreiraJuiz, carreiraDelegado,
@@ -77,6 +84,16 @@ const Index = () => {
   const { handleLinkHover } = useRoutePrefetch();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // Buscar nome do usuário para saudação
+  const [userName, setUserName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setUserName(null); return; }
+    supabase.from('profiles').select('nome').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data?.nome) setUserName(data.nome.split(' ')[0]);
+      });
+  }, [user]);
 
   // Premium celebration for new subscribers
   const [showCelebration, setShowCelebration] = useState(() => {
@@ -250,7 +267,7 @@ const Index = () => {
       <WelcomeAudioPlayer />
       
       {/* Hero Banner Mobile - fixo, cobre do topo até incluir os tabs */}
-      <div className="md:hidden fixed top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 1, height: '15.5rem' }}>
+      <div className="md:hidden fixed top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 1, height: '18rem' }}>
         <div className="w-full h-full overflow-hidden rounded-b-[32px]" style={{ position: 'relative' }}>
           <img 
             src={heroImage}
@@ -260,7 +277,14 @@ const Index = () => {
             fetchPriority="high"
             decoding="sync"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
+          {/* Saudação personalizada */}
+          {userName && (
+            <div className="absolute bottom-14 left-5 pointer-events-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+              <p className="text-2xl font-bold text-white/90 leading-tight">{getGreeting()}</p>
+              <p className="text-4xl font-bold text-white leading-tight">{userName}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -268,7 +292,7 @@ const Index = () => {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       {/* Spacer para revelar a imagem hero */}
-      <div className="md:hidden h-28" style={{ zIndex: 1 }} />
+      <div className="md:hidden h-36" style={{ zIndex: 1 }} />
 
       {/* Tabs dentro da imagem hero, na parte inferior */}
       <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 3 }}>
@@ -279,8 +303,18 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Botão Evelyn na divisa hero/conteúdo */}
+      <div className="md:hidden flex justify-center" style={{ zIndex: 10, marginTop: '-1.75rem', marginBottom: '-1.75rem', position: 'relative' }}>
+        <button
+          onClick={() => navigate('/chat-professora')}
+          className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center"
+        >
+          <GraduationCap className="w-7 h-7 text-primary-foreground" />
+        </button>
+      </div>
+
       {/* Conteúdo principal - Mobile */}
-      <div className="md:hidden bg-background relative min-h-screen pb-20" style={{ zIndex: 2 }}>
+      <div className="md:hidden bg-muted relative min-h-screen pb-20 rounded-t-[32px]" style={{ zIndex: 2 }}>
         {/* Cards de acesso rápido - Aulas e Notícias */}
         {mainTab === 'ferramentas' && (
           <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
