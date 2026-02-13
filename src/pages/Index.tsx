@@ -255,13 +255,15 @@ const Index = () => {
               <p className="text-4xl font-bold text-white leading-tight">{userName}</p>
             </div>
           )}
-          {/* Ícone de busca no hero */}
-          <button
-            onClick={() => navigate('/pesquisar')}
-            className="absolute top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 pointer-events-auto hover:bg-white/20 transition-colors"
-          >
-            <Search className="w-5 h-5 text-white" />
-          </button>
+          {/* Ícone de busca no hero - só aparece em Estudos */}
+          {mainTab === 'ferramentas' && (
+            <button
+              onClick={() => navigate('/pesquisar')}
+              className="absolute top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 pointer-events-auto hover:bg-white/20 transition-colors"
+            >
+              <Search className="w-5 h-5 text-white" />
+            </button>
+          )}
         </div>
       </div>
 
