@@ -280,11 +280,18 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
           {/* Saudação personalizada */}
           {userName && (
-            <div className="absolute bottom-16 left-5 pointer-events-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+            <div className="absolute bottom-24 left-5 pointer-events-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
               <p className="text-2xl font-bold text-white/90 leading-tight">{getGreeting()}</p>
               <p className="text-4xl font-bold text-white leading-tight">{userName}</p>
             </div>
           )}
+          {/* Ícone de busca no hero */}
+          <button
+            onClick={() => navigate('/pesquisar')}
+            className="absolute bottom-16 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 pointer-events-auto hover:bg-white/20 transition-colors"
+          >
+            <Search className="w-5 h-5 text-white" />
+          </button>
         </div>
       </div>
 
@@ -301,17 +308,9 @@ const Index = () => {
           <TabButton tab="leis" icon={Scale} label="Leis" />
           <TabButton tab="destaques" icon={Sparkles} label="Destaques" />
         </div>
+
       </div>
 
-      {/* Botão Evelyn na divisa hero/conteúdo */}
-      <div className="md:hidden flex justify-center" style={{ zIndex: 10, marginTop: '-1.75rem', marginBottom: '-1.75rem', position: 'relative' }}>
-        <button
-          onClick={() => navigate('/chat-professora')}
-          className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center"
-        >
-          <GraduationCap className="w-7 h-7 text-primary-foreground" />
-        </button>
-      </div>
 
       {/* Conteúdo principal - Mobile */}
       <div className="md:hidden bg-muted relative min-h-screen pb-20 rounded-t-[32px]" style={{ zIndex: 2 }}>
@@ -320,7 +319,7 @@ const Index = () => {
           <div className="px-4 pt-6 pb-2 grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate('/aulas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-muted"
+              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-card"
             >
               <div className="relative h-[70px] overflow-hidden">
                 <img src={cardAulasThumb} alt="" className="w-full h-full object-cover" />
@@ -336,7 +335,7 @@ const Index = () => {
 
             <button
               onClick={() => navigate('/bibliotecas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-muted"
+              className="overflow-hidden rounded-2xl text-left border border-border/50 shadow-lg hover:shadow-xl transition-all group bg-card"
             >
               <div className="relative h-[70px] overflow-hidden">
                 <img src={bibliotecaThumb} alt="" className="w-full h-full object-cover" />
@@ -353,19 +352,6 @@ const Index = () => {
         )}
 
         <div className="px-4 pt-4 pb-2 space-y-5">
-          {/* Search Bar - apenas aba Estudos */}
-          {mainTab === 'ferramentas' && (
-            <div 
-              data-tutorial="busca-principal"
-              onClick={() => navigate('/pesquisar')} 
-              className="group flex items-center gap-3 px-5 py-4 bg-muted/50 rounded-2xl cursor-pointer border border-border/50 hover:border-primary/30 hover:bg-muted transition-colors duration-150"
-            >
-              <div className="p-2 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
-                <Search className="w-5 h-5 text-red-400" />
-              </div>
-              <SearchBarAnimatedText />
-            </div>
-          )}
         </div>
 
         {/* Conteúdo das abas mobile */}
