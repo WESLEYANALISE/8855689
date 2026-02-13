@@ -291,6 +291,7 @@ import BibliotecaFavoritos from "./pages/BibliotecaFavoritos";
 import AcessoDesktop from "./pages/AcessoDesktop";
 import Analisar from "./pages/Analisar";
 import AnalisarResultado from "./pages/AnalisarResultado";
+import ResumosJuridicosEscolha from "./pages/ResumosJuridicosEscolha";
 import ResumosJuridicosLanding from "./pages/ResumosJuridicosLanding";
 import ResumosJuridicosTrilhas from "./pages/ResumosJuridicosTrilhas";
 import ResumosPersonalizados from "./pages/ResumosPersonalizados";
@@ -808,8 +809,8 @@ const App = () => {
               <Route path="/acesso-desktop" element={<AcessoDesktop />} />
               <Route path="/analisar" element={<Analisar />} />
               <Route path="/analisar/resultado" element={<AnalisarResultado />} />
-              <Route path="/resumos-juridicos" element={<ResumosJuridicosLanding />} />
-              <Route path="/resumos-juridicos/prontos" element={<ResumosJuridicosTrilhas />} />
+              <Route path="/resumos-juridicos" element={<Navigate to="/resumos-juridicos/prontos" replace />} />
+              <Route path="/resumos-juridicos/prontos" element={<ResumosJuridicosEscolha />} />
               <Route path="/resumos-juridicos/prontos/:area" element={<ResumosProntos />} />
               <Route path="/resumos-juridicos/prontos/:area/:tema" element={<ResumosProntosView />} />
               <Route path="/resumos-juridicos/personalizado" element={<ResumosPersonalizados />} />
