@@ -247,25 +247,28 @@ const Index = () => {
       {/* Áudio de boas-vindas para novos usuários */}
       <WelcomeAudioPlayer />
       
-      {/* Hero Banner Mobile - Imagem fixa atrás do card */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-56 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+      {/* Hero Banner Mobile - com bordas arredondadas e sombra */}
+      <div 
+        className="md:hidden relative mx-3 mt-2 overflow-hidden rounded-2xl"
+        style={{ zIndex: 2, boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}
+      >
         <img 
           src={heroImage}
           alt="Juridiquê"
-          className="absolute inset-0 w-full h-full object-cover object-top"
+          className="w-full h-48 object-cover object-top"
           loading="eager"
           fetchPriority="high"
           decoding="sync"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/50" />
+        {/* Gradiente sutil - apenas leve escurecimento no topo para o logo */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
       </div>
 
       {/* Header com gradiente sutil - Desktop */}
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
-      {/* Spacer + Tabs sobre a imagem hero - Mobile */}
-      <div className="md:hidden h-32" style={{ zIndex: 1 }} />
-      <div className="md:hidden relative px-4 mb-[-14px]" style={{ zIndex: 3 }}>
+      {/* Tabs sobrepostos entre imagem e conteúdo - Mobile */}
+      <div className="md:hidden relative px-4 -mt-5" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
           <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
           <TabButton tab="iniciante" icon={GraduationCap} label="Aulas" />
@@ -273,8 +276,8 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Card branco arredondado - Mobile */}
-      <div className="md:hidden bg-background rounded-t-[28px] relative shadow-[0_-4px_20px_rgba(0,0,0,0.15)] min-h-screen pb-20" style={{ zIndex: 2 }}>
+      {/* Conteúdo principal - Mobile */}
+      <div className="md:hidden bg-background relative min-h-screen pb-20 mt-3" style={{ zIndex: 2 }}>
         <div className="px-4 pt-6 pb-2 space-y-4">
           {/* Search Bar - apenas aba Estudos */}
           {mainTab === 'ferramentas' && (
