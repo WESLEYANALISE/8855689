@@ -1,68 +1,32 @@
 
-# Redesign do Hero Mobile com Saudacao Personalizada e Botao Evelyn
+# Ajustes no Hero Mobile e Cards
 
-## Resumo
-Redesenhar a secao hero da home mobile para incluir uma saudacao personalizada grande ("Bom dia, Wesley") sobre a imagem de fundo, posicionar o botao da Evelyn na divisa entre a imagem e o conteudo cinza, e manter as bordas arredondadas no conteudo.
+## 1. Subir a saudacao para nao ficar atras dos tabs
+- Mover o texto de saudacao de `bottom-16` para `bottom-20` ou mais, garantindo que fique acima do menu de alternancia
 
-## Mudancas Visuais
+## 2. Remover barra de pesquisa e adicionar icone de busca no hero
+- Remover o bloco `SearchBarAnimatedText` do conteudo mobile
+- Adicionar um icone de busca (Search) no canto inferior direito da imagem hero, como um botao circular que navega para `/pesquisar`
 
-### 1. Saudacao personalizada no hero
-- Texto grande e bold sobre a imagem hero, posicionado na parte inferior da imagem (acima dos tabs)
-- Logica de horario:
-  - 5h-11h59: "Bom dia"
-  - 12h-17h59: "Boa tarde"  
-  - 18h-4h59: "Boa noite"
-- Buscar o primeiro nome do usuario da tabela `profiles` (campo `nome`)
-- Formato: "Bom dia," (linha 1) + "Wesley" (linha 2, maior)
-- Se nao estiver logado ou sem nome, nao exibe a saudacao
+## 3. Remover botao Evelyn da divisa hero/conteudo
+- Remover completamente o bloco do botao `GraduationCap` que esta entre o hero e o conteudo (linhas 306-314), pois ja existe no BottomNav
 
-### 2. Botao da Evelyn na divisa imagem/conteudo
-- Botao circular (similar ao que ja existe no BottomNav) posicionado no centro horizontal, na fronteira entre a imagem hero e a area de conteudo cinza
-- Metade sobre a imagem, metade sobre o conteudo
-- Ao clicar, navega para `/chat-professora` (mesmo comportamento do BottomNav)
-- Icone: `GraduationCap` com gradiente primario, igual ao botao central do BottomNav
+## 4. Tabs com mesmo tamanho
+- O `TabButton` ja usa `flex-1`, mas precisa garantir que todos os tres botoes tenham exatamente o mesmo tamanho visual. Verificar se o texto nao esta causando diferenca e ajustar com `min-w-0` e `truncate` se necessario
 
-### 3. Bordas arredondadas na area de conteudo
-- Ja existe `rounded-b-[32px]` na imagem; a area de conteudo cinza tera `rounded-t-[32px]` para criar o efeito de sobreposicao
+## 5. Cards de Aulas e Biblioteca com cor diferente do fundo
+- Mudar o `bg-muted` dos cards para uma cor mais escura/distinta, como `bg-card` ou `bg-neutral-800` (dark mode) com borda mais visivel, para se destacarem do fundo cinza (`bg-muted`)
 
 ## Detalhes Tecnicos
 
 ### Arquivo: `src/pages/Index.tsx`
 
-**Novo estado e efeito para buscar nome:**
-- Adicionar estado `userName` e `useEffect` que consulta `profiles.nome` do usuario logado
-- Extrair apenas o primeiro nome: `nome.split(' ')[0]`
+**Saudacao (linha 283):** Mudar `bottom-16` para `bottom-24` para subir acima dos tabs.
 
-**Funcao de saudacao:**
-- Criar funcao `getGreeting()` que retorna "Bom dia", "Boa tarde" ou "Boa noite" baseado em `new Date().getHours()`
+**Icone de busca no hero (dentro do bloco hero, linhas 270-289):** Adicionar botao circular com icone Search posicionado `absolute bottom-16 right-5` dentro da imagem hero, navegando para `/pesquisar`.
 
-**Alteracoes no hero mobile (linhas 252-265):**
-- Adicionar texto de saudacao sobre a imagem, na parte inferior, com `text-3xl`/`text-4xl font-bold text-white` e sombra de texto
-- Aumentar levemente a altura do hero para acomodar o texto
+**Remover botao Evelyn (linhas 306-314):** Deletar todo o bloco do botao central na divisa.
 
-**Botao Evelyn na divisa:**
-- Posicionar um botao circular absoluto no centro, na transicao entre hero e conteudo
-- `z-index` alto para ficar acima de ambas as secoes
-- Estilo identico ao botao central do BottomNav (gradiente primario, sombra, `GraduationCap`)
+**Remover barra de pesquisa (linhas 357-368):** Deletar o bloco da search bar animada e seu container.
 
-**Area de conteudo:**
-- Adicionar `rounded-t-[32px]` no container de conteudo mobile para criar o efeito visual de sobreposicao com cantos arredondados
-
-### Estrutura resultante (mobile):
-```text
-+---------------------------+
-|                           |
-|     [imagem hero]         |
-|                           |
-|   Bom dia,                |
-|   Wesley                  |
-|  [Estudos] [Leis] [Dest.] |
-+------rounded-b-[32px]----+
-          (O) <-- botao Evelyn na divisa
-+------rounded-t-[32px]----+
-|                           |
-|   [Aulas]  [Biblioteca]  |
-|   [Busca...]              |
-|   ...conteudo...          |
-+---------------------------+
-```
+**Cards Aulas/Biblioteca (linhas 321-351):** Trocar `bg-muted` por `bg-card` ou `bg-neutral-900/80` nos cards, adicionando contraste com o fundo.
