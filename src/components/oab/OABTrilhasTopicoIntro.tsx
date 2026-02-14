@@ -233,14 +233,14 @@ export const OABTrilhasTopicoIntro = ({
             </motion.div>
           )}
 
-          {/* Serpentine Study Path */}
-          <div className="flex flex-col items-center relative py-4">
-            {/* SVG connector line */}
-            <svg className="absolute left-1/2 top-0 -translate-x-1/2 w-1 h-full pointer-events-none" viewBox="0 0 4 600" preserveAspectRatio="none">
-              <line x1="2" y1="40" x2="2" y2="560" stroke="rgba(255,255,255,0.1)" strokeWidth="3" strokeLinecap="round" />
-              <line x1="2" y1="40" x2="2" y2={leituraCompleta ? (flashcardsCompletos ? "560" : "300") : "40"} stroke="url(#progressGrad)" strokeWidth="3" strokeLinecap="round" />
+          {/* Horizontal Study Path */}
+          <div className="flex items-start justify-center gap-4 relative py-4">
+            {/* SVG connector line (horizontal) */}
+            <svg className="absolute top-[52px] left-1/2 -translate-x-1/2 h-1 pointer-events-none" style={{ width: '60%' }} viewBox="0 0 300 4" preserveAspectRatio="none">
+              <line x1="20" y1="2" x2="280" y2="2" stroke="rgba(255,255,255,0.1)" strokeWidth="3" strokeLinecap="round" />
+              <line x1="20" y1="2" x2={leituraCompleta ? (flashcardsCompletos ? "280" : "150") : "20"} y2="2" stroke="url(#progressGradH)" strokeWidth="3" strokeLinecap="round" />
               <defs>
-                <linearGradient id="progressGrad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="progressGradH" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="rgba(239,68,68,0.8)" />
                   <stop offset="50%" stopColor="rgba(168,85,247,0.8)" />
                   <stop offset="100%" stopColor="rgba(16,185,129,0.8)" />
@@ -253,7 +253,7 @@ export const OABTrilhasTopicoIntro = ({
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, type: "spring", stiffness: 180, damping: 15 }}
-              className="relative z-10 flex flex-col items-center mb-8"
+              className="relative z-10 flex flex-col items-center"
             >
               <button onClick={onStartPaginas} className="relative group">
                 {/* Pulse ring for current step */}
@@ -271,11 +271,11 @@ export const OABTrilhasTopicoIntro = ({
                     />
                   </>
                 )}
-                <div className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                <div className={`relative w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                   !leituraCompleta ? "border-[3px] border-red-500 shadow-red-500/40" : leituraCompleta ? "border-[3px] border-green-500 shadow-green-500/30" : "border-2 border-white/20"
                 }`}>
                   <div className="w-full h-full bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
-                    <Play className="w-10 h-10 text-white" />
+                    <Play className="w-8 h-8 text-white" />
                   </div>
                   <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-full">
                     <span className="text-white font-bold text-xs mb-2 drop-shadow-lg">{progressoLeitura}%</span>
@@ -285,8 +285,8 @@ export const OABTrilhasTopicoIntro = ({
                   1
                 </div>
               </button>
-              <p className="mt-2 text-sm font-semibold text-white">Começar Leitura</p>
-              <p className="text-[10px] text-gray-500">{totalPaginas} páginas</p>
+              <p className="mt-2 text-xs font-semibold text-white">Começar Leitura</p>
+              <p className="text-[9px] text-gray-500">{totalPaginas} páginas</p>
             </motion.div>
 
             {/* Node 2: Flashcards */}
@@ -295,7 +295,7 @@ export const OABTrilhasTopicoIntro = ({
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.45, type: "spring", stiffness: 180, damping: 15 }}
-                className="relative z-10 flex flex-col items-center mb-8"
+                className="relative z-10 flex flex-col items-center"
               >
                 <button
                   onClick={() => {
@@ -321,11 +321,11 @@ export const OABTrilhasTopicoIntro = ({
                       />
                     </>
                   )}
-                  <div className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                  <div className={`relative w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                     leituraCompleta && !flashcardsCompletos ? "border-[3px] border-purple-500 shadow-purple-500/40" : flashcardsCompletos ? "border-[3px] border-green-500 shadow-green-500/30" : "border-2 border-white/20 opacity-60"
                   }`}>
                     <div className={`w-full h-full flex items-center justify-center ${leituraCompleta ? "bg-gradient-to-br from-purple-500 to-violet-600" : "bg-gradient-to-br from-purple-500/40 to-violet-600/40"}`}>
-                      <Sparkles className="w-10 h-10 text-white" />
+                      <Sparkles className="w-8 h-8 text-white" />
                     </div>
                     {!leituraCompleta && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
@@ -344,8 +344,8 @@ export const OABTrilhasTopicoIntro = ({
                     2
                   </div>
                 </button>
-                <p className={`mt-2 text-sm font-semibold ${leituraCompleta ? "text-white" : "text-purple-300/60"}`}>Flashcards</p>
-                {!leituraCompleta && <p className="text-[10px] text-gray-600">Conclua a leitura</p>}
+                <p className={`mt-2 text-xs font-semibold ${leituraCompleta ? "text-white" : "text-purple-300/60"}`}>Flashcards</p>
+                {!leituraCompleta && <p className="text-[9px] text-gray-600">Conclua a leitura</p>}
               </motion.div>
             )}
 
@@ -381,11 +381,11 @@ export const OABTrilhasTopicoIntro = ({
                       />
                     </>
                   )}
-                  <div className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                  <div className={`relative w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                     flashcardsCompletos ? "border-[3px] border-emerald-500 shadow-emerald-500/40" : "border-2 border-white/20 opacity-60"
                   }`}>
                     <div className={`w-full h-full flex items-center justify-center ${flashcardsCompletos ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-emerald-500/40 to-green-600/40"}`}>
-                      <Target className="w-10 h-10 text-white" />
+                      <Target className="w-8 h-8 text-white" />
                     </div>
                     {!flashcardsCompletos && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
