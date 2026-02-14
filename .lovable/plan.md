@@ -1,67 +1,45 @@
 
 
-# Pipeline de Extração e Geração de Conteúdo para Áreas do Direito
+# Conectar Nós da Trilha ao Pipeline de PDF (igual OAB Trilhas)
 
-## Resumo
+## Problema Atual
+Ao clicar num nó da trilha serpentina (ex: "Noções gerais de direito penal"), o app navega para `/biblioteca/estudos/119` que resulta em 404. Falta uma página dedicada para cada matéria com o botão de upload de PDF e listagem de tópicos.
 
-Conectar a mecânica existente de processamento de PDFs (que já funciona nas OAB Trilhas e no módulo Categorias) à nova trilha serpentina das Áreas do Direito. Ao clicar numa matéria na trilha, o admin poderá enviar um PDF, extrair tópicos e gerar conteúdo automaticamente -- tudo reutilizando a infraestrutura já existente.
+## Solucao
 
-## O que já existe e será reutilizado
+Criar uma nova pagina `AreaMateriaTrilhaPage` que replica a mecanica do `OABTrilhasMateria`, mas usando as tabelas `categorias_materias` e `categorias_topicos`.
 
-- **Tabelas**: `categorias_materias`, `categorias_topicos`, `categorias_topico_paginas`, `categorias_progresso` -- já possuem toda a estrutura necessária (PDF URL, páginas, status de geração, slides, flashcards, questões)
-- **Edge Functions**: `processar-pdf-oab-materia` (OCR do PDF), `identificar-temas-oab` (identifica temas do índice), `confirmar-temas-oab` (salva tópicos agrupados), `gerar-conteudo-categorias` (gera slides/flashcards/questões)
-- **Componentes**: `OABPdfProcessorModal` (modal de upload e confirmação de temas)
-- **Hook**: `useCategoriasAutoGeneration` (geração automática em lote com polling de progresso)
+### Fluxo
 
-## Mudanças Necessárias
+1. Usuario clica num no da trilha (ex: "Nocoes gerais de direito penal")
+2. Navega para `/aulas/area/:area/materia/:livroId`
+3. A nova pagina verifica se ja existe um registro em `categorias_materias` para esse livro
+4. Se nao existe, admin ve o botao "Adicionar PDF" para criar o registro e extrair topicos
+5. Se ja existe, mostra a lista de topicos com status de geracao e progresso
+6. Ao clicar num topico, navega para `/categorias/topico/:id` (pagina ja existente)
 
-### 1. AreaTrilhaPage.tsx -- Adicionar botão de PDF e dados reais
+### Arquivos a Criar
 
-- Importar `OABPdfProcessorModal` e adicionar botão "Adicionar Matéria (PDF)" visível apenas para o admin
-- Buscar matérias da tabela `categorias_materias` filtradas por `categoria = area`
-- Exibir contagem real de matérias e tópicos no header
-- Calcular progresso real a partir de `categorias_progresso`
-- Passar os dados reais para `MobileAreaTrilha`
+**`src/pages/AreaMateriaTrilhaPage.tsx`** -- Nova pagina que:
+- Recebe `area` e `livroId` da URL
+- Busca o livro em `BIBLIOTECA-ESTUDOS` para pegar nome e capa
+- Busca/cria registro em `categorias_materias` vinculado a esse livro (usando campo `categoria = area`)
+- Mostra botao "Adicionar PDF" para admin (usando `OABPdfProcessorModal`)
+- Lista topicos de `categorias_topicos` com status de geracao
+- Usa `useCategoriasAutoGeneration` para gerar conteudo automaticamente
+- Layout similar ao `OABTrilhasMateria` (timeline com cards de topicos)
 
-### 2. MobileAreaTrilha.tsx -- Exibir matérias do banco
+### Arquivos a Modificar
 
-- Alterar a fonte de dados: em vez de buscar `BIBLIOTECA-ESTUDOS`, buscar `categorias_materias` filtradas pela área
-- Para cada matéria, buscar seus `categorias_topicos` para calcular progresso
-- Ao clicar num nó da trilha, navegar para `/categorias/materia/{id}` (página já existente que exibe os tópicos e permite gerar conteúdo)
-- Exibir indicadores de status (pendente, gerando, concluído) nos nós
+**`src/components/mobile/MobileAreaTrilha.tsx`**:
+- Mudar navegacao de `/biblioteca/estudos/${livro.id}` para `/aulas/area/${area}/materia/${livro.id}`
 
-### 3. Fluxo do Admin (PDF -> Tópicos -> Conteúdo)
+**`src/App.tsx`**:
+- Adicionar rota `/aulas/area/:area/materia/:livroId` apontando para `AreaMateriaTrilhaPage`
 
-O fluxo completo ao clicar "Adicionar Matéria":
+### Detalhes Tecnicos
 
-1. Modal abre pedindo link do Google Drive
-2. `processar-pdf-oab-materia` faz OCR via Mistral
-3. `identificar-temas-oab` analisa o índice e identifica temas
-4. Admin confirma/desseleciona temas
-5. `confirmar-temas-oab` salva na tabela `categorias_topicos`
-6. Ao navegar para a matéria, `useCategoriasAutoGeneration` inicia geração automática via `gerar-conteudo-categorias`
-
-### 4. Adaptação do handlePdfProcessed
-
-- A função `handlePdfProcessed` no `AreaTrilhaPage` criará um registro em `categorias_materias` com `categoria = area` e inserirá os tópicos em `categorias_topicos`
-- Reutilizar a mesma lógica já presente em `CategoriasMateriasPage.tsx`
-
-## Detalhes Técnicos
-
-### Arquivos modificados
-- `src/pages/AreaTrilhaPage.tsx` -- adicionar modal PDF, buscar dados reais, lógica admin
-- `src/components/mobile/MobileAreaTrilha.tsx` -- trocar fonte de dados de `BIBLIOTECA-ESTUDOS` para `categorias_materias`
-
-### Chaves API reutilizadas
-- `MISTRAL_API_KEY` (OCR do PDF)
-- `GEMINI_KEY_1/2/3` (geração de conteúdo via `gerar-conteudo-categorias`)
-
-### Navegação
-- Nó da trilha -> `/categorias/materia/{id}` (página existente com lista de tópicos, geração automática, estudo)
-- Tópico individual -> `/categorias/topico/{id}/estudo` (leitura de slides, flashcards, questões -- tudo existente)
-
-### Verificação admin
-- Reutilizar `useAuth` + verificação `user.email === "wn7corporation@gmail.com"`
-- Botão de PDF visível apenas para admin
-- Usuários comuns veem apenas as matérias já processadas
-
+- A `OABPdfProcessorModal` recebe um `materiaId` (de `oab_trilhas_materias`). Para as Areas, ao processar o PDF, primeiro criaremos um registro em `categorias_materias` com `categoria = nome_da_area` e `nome = titulo_do_livro`, e passaremos esse ID para o modal
+- As Edge Functions `processar-pdf-oab-materia`, `identificar-temas-oab`, `confirmar-temas-oab` trabalham com `oab_trilhas_materias` e `oab_trilhas_topicos`. Para as Areas, precisamos adaptar o `handlePdfProcessed` para salvar em `categorias_materias` e `categorias_topicos` (mesmo padrao usado em `CategoriasMateriasPage`)
+- A geracao automatica de conteudo usa `useCategoriasAutoGeneration` que chama `gerar-conteudo-categorias`
+- Usuarios comuns veem apenas topicos ja gerados; admin ve tudo + botao de PDF
