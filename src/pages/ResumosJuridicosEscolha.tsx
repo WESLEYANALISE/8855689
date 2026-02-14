@@ -87,6 +87,14 @@ export default function ResumosJuridicosEscolha() {
       {/* Header fixo */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border/40">
         <div className="px-4 pt-4 pb-3">
+          {/* Back button */}
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-3 -ml-1 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Voltar</span>
+          </button>
           <div className="flex items-center gap-3 mb-3">
             <div className="flex-1">
               <h1 className="text-lg font-bold text-foreground">Resumos Jurídicos</h1>

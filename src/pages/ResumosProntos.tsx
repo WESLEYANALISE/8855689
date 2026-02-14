@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Scale, ArrowDownAZ, Clock, FileText, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Scale, ArrowDownAZ, Clock, FileText, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -96,14 +96,14 @@ const ResumosProntos = () => {
       {/* Header fixo */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border/40">
         <div className="px-4 pt-4 pb-3">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-            <button onClick={() => navigate('/resumos-juridicos/prontos')} className="hover:text-red-500 transition-colors">
-              Resumos
-            </button>
-            <ChevronRight className="w-3 h-3" />
-            <span className="text-foreground font-medium truncate">{areaSelecionada}</span>
-          </div>
+          {/* Back button */}
+          <button 
+            onClick={() => navigate('/resumos-juridicos/prontos')}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-3 -ml-1 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">{areaSelecionada}</span>
+          </button>
 
           <div className="mb-3">
             <h1 className="text-lg font-bold text-foreground truncate">{areaSelecionada}</h1>
