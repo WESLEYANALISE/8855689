@@ -79,9 +79,12 @@ const CategoriasTopicoEstudo = () => {
     onError: () => { refetch(); toast.error("Erro ao gerar conteúdo."); },
   });
 
-  if (topico?.status === "pendente" && !gerarConteudoMutation.isPending) {
-    gerarConteudoMutation.mutate();
-  }
+  // Auto-trigger generation for pending or error topics
+  useEffect(() => {
+    if ((topico?.status === "pendente" || topico?.status === "erro") && !gerarConteudoMutation.isPending) {
+      gerarConteudoMutation.mutate();
+    }
+  }, [topico?.status]);
 
   const conteudoGerado = useMemo(() => {
     if (!topico?.conteudo_gerado) return null;

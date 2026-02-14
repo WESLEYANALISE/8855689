@@ -10,8 +10,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MIN_PAGINAS = 40;
-const MAX_TENTATIVAS = 3;
+const MIN_PAGINAS = 20;
+const MAX_TENTATIVAS = 5;
 
 declare const EdgeRuntime: {
   waitUntil: (promise: Promise<unknown>) => void;
