@@ -24,6 +24,8 @@ const AreaMateriaTrilhaPage = () => {
   const isAdmin = user?.email === ADMIN_EMAIL;
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [createdMateriaId, setCreatedMateriaId] = useState<number | null>(null);
+  const [createdMateriaNome, setCreatedMateriaNome] = useState<string>("");
 
   // Buscar livro da BIBLIOTECA-ESTUDOS
   const { data: livro, isLoading: loadingLivro } = useQuery({
@@ -135,13 +137,17 @@ const AreaMateriaTrilhaPage = () => {
     if (!categoriaMateria) {
       const newMateria = await criarMateria();
       if (newMateria) {
-        // Wait for query to update then open modal
-        setTimeout(() => setShowPdfModal(true), 500);
+        setCreatedMateriaId(newMateria.id);
+        setCreatedMateriaNome(newMateria.nome);
+        setShowPdfModal(true);
       }
     } else {
       setShowPdfModal(true);
     }
   };
+
+  const activeMateriaId = categoriaMateria?.id || createdMateriaId;
+  const activeMateriaNome = categoriaMateria?.nome || createdMateriaNome;
 
   const titulo = livro?.Tema || "Carregando...";
   const capaUrl = livro?.["Capa-livro"];
@@ -399,12 +405,12 @@ const AreaMateriaTrilhaPage = () => {
       )}
 
       {/* PDF Modal */}
-      {categoriaMateria && (
+      {activeMateriaId && (
         <CategoriasPdfProcessorModal
           open={showPdfModal}
           onOpenChange={setShowPdfModal}
-          materiaId={categoriaMateria.id}
-          materiaNome={categoriaMateria.nome}
+          materiaId={activeMateriaId}
+          materiaNome={activeMateriaNome}
           onComplete={() => {
             queryClient.invalidateQueries({ queryKey: ["area-categoria-topicos"] });
             queryClient.invalidateQueries({ queryKey: ["area-categoria-materia"] });
