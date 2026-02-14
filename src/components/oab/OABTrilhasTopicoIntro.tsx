@@ -53,8 +53,14 @@ export const OABTrilhasTopicoIntro = ({
   const [showBrownNoiseInfo, setShowBrownNoiseInfo] = useState(false);
   const brownNoiseRef = useRef<HTMLAudioElement | null>(null);
   
-  // Índice - expandido por padrão para mostrar objetivos
-  const [showIndex, setShowIndex] = useState(true);
+  // Índice - inicia fechado e abre com animação de "suspense"
+  const [showIndex, setShowIndex] = useState(false);
+  
+  // Auto-open with suspense animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setShowIndex(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
   
   // Modais de aviso para itens bloqueados
   const [showFlashcardsBlockedModal, setShowFlashcardsBlockedModal] = useState(false);
