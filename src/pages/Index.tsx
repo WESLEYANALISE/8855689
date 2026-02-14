@@ -4,7 +4,7 @@ import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight } from "lucide-react";
+import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight, Compass } from "lucide-react";
 import cardAulasThumb from "@/assets/card-aulas-thumb.jpg";
 import bibliotecaThumb from "@/assets/biblioteca-office-sunset.webp";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,6 +37,7 @@ import { DesktopTrilhasOAB } from "@/components/desktop/DesktopTrilhasOAB";
 import { DesktopHomeDestaque } from "@/components/desktop/DesktopHomeDestaque";
 import { MobileTrilhasAprender } from "@/components/mobile/MobileTrilhasAprender";
 import { MobileLeisHome } from "@/components/mobile/MobileLeisHome";
+import { JornadaHomeSection } from "@/components/home/JornadaHomeSection";
 import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { WelcomeAudioPlayer } from "@/components/WelcomeAudioPlayer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,11 +71,12 @@ const CARREIRAS_IMAGES = [
 ];
 
 const HERO_IMAGES_STATIC: Record<string, string> = {
-  ferramentas: '/hero-banner-themis-advogado-v2.webp',
-  destaques: '/hero-banner-themis-chorando.webp',
+  jornada: '/hero-banner-themis-advogado-v2.webp',
+  estudos: '/hero-banner-themis-advogado-v2.webp',
+  explorar: '/hero-banner-themis-chorando.webp',
 };
 
-type MainTab = 'ferramentas' | 'destaques' | 'leis';
+type MainTab = 'jornada' | 'estudos' | 'leis' | 'explorar';
 type FaculdadeSubTab = 'estudos' | 'ferramentas';
 
 const Index = () => {
@@ -138,7 +140,7 @@ const Index = () => {
   
   // Ler tab da URL para navegação de volta (default agora é 'ferramentas' / Estudos)
   const tabFromUrl = searchParams.get('tab') as MainTab | null;
-  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'ferramentas');
+  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'jornada');
   const [faculdadeSubTab, setFaculdadeSubTab] = useState<FaculdadeSubTab>('estudos');
 
   // Função para mudar tab e notificar o header
@@ -155,7 +157,7 @@ const Index = () => {
 
   // Atualizar tab quando URL mudar
   useEffect(() => {
-    if (tabFromUrl && ['ferramentas', 'destaques', 'leis'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['jornada', 'estudos', 'leis', 'explorar'].includes(tabFromUrl)) {
       changeMainTab(tabFromUrl);
     }
   }, [tabFromUrl]);
@@ -164,7 +166,7 @@ const Index = () => {
   useEffect(() => {
     const handleHeaderClick = (e: CustomEvent<{ tab: string }>) => {
       const tab = e.detail.tab as MainTab;
-      if (['ferramentas', 'destaques', 'leis'].includes(tab)) {
+      if (['jornada', 'estudos', 'leis', 'explorar'].includes(tab)) {
         setMainTab(tab);
       }
     };
@@ -177,7 +179,7 @@ const Index = () => {
   useEffect(() => {
     const bottomNav = document.querySelector('[data-bottom-nav]');
     if (bottomNav) {
-      (bottomNav as HTMLElement).style.display = mainTab === 'ferramentas' ? '' : 'none';
+      (bottomNav as HTMLElement).style.display = mainTab === 'jornada' ? '' : 'none';
     }
     return () => {
       if (bottomNav) {
@@ -188,7 +190,7 @@ const Index = () => {
 
   // Controlar visibilidade das sidebars no desktop (ocultar quando em abas expandidas)
   useEffect(() => {
-    if (isDesktop && mainTab !== 'ferramentas') {
+    if (isDesktop && mainTab !== 'jornada') {
       window.dispatchEvent(new CustomEvent('hide-desktop-sidebars'));
     } else {
       window.dispatchEvent(new CustomEvent('show-desktop-sidebars'));
@@ -200,7 +202,7 @@ const Index = () => {
     };
   }, [isDesktop, mainTab]);
   
-  const heroImage = mainTab === 'leis' ? '/hero-banner-tribunal.webp' : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.ferramentas);
+  const heroImage = mainTab === 'leis' ? '/hero-banner-tribunal.webp' : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.jornada);
 
   const {
     featuredNews,
@@ -254,7 +256,7 @@ const Index = () => {
       <WelcomeAudioPlayer />
       
       {/* Ícone de busca flutuante - independente do hero para funcionar sempre */}
-      {mainTab === 'ferramentas' && (
+      {mainTab === 'jornada' && (
         <button
           onClick={() => navigate('/pesquisar')}
           className="md:hidden fixed top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
@@ -281,8 +283,8 @@ const Index = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
           {/* Saudação personalizada ou título da aba */}
-          <div className={`absolute bottom-24 pointer-events-auto ${mainTab === 'ferramentas' ? 'left-5 text-left' : 'left-0 right-0 text-center'}`} style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
-            {mainTab === 'ferramentas' && userName ? (
+          <div className={`absolute bottom-24 pointer-events-auto ${mainTab === 'jornada' ? 'left-5 text-left' : 'left-0 right-0 text-center'}`} style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
+            {mainTab === 'jornada' && userName ? (
               <>
                 <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()}</p>
                 <p className="font-playfair text-4xl font-bold text-white leading-tight">{userName}</p>
@@ -292,10 +294,15 @@ const Index = () => {
                 <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">Vade Mecum</p>
                 <p className="font-playfair text-4xl font-bold text-white leading-tight">Legislação</p>
               </>
-            ) : mainTab === 'destaques' ? (
+            ) : mainTab === 'estudos' ? (
+              <>
+                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">Material de</p>
+                <p className="font-playfair text-4xl font-bold text-white leading-tight">Apoio</p>
+              </>
+            ) : mainTab === 'explorar' ? (
               <>
                 <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">Fique por dentro</p>
-                <p className="font-playfair text-4xl font-bold text-white leading-tight">Destaques</p>
+                <p className="font-playfair text-4xl font-bold text-white leading-tight">Explorar</p>
               </>
             ) : null}
           </div>
@@ -311,9 +318,10 @@ const Index = () => {
       {/* Tabs dentro da imagem hero, na parte inferior */}
       <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
-          <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
+          <TabButton tab="jornada" icon={Route} label="Jornada" />
+          <TabButton tab="estudos" icon={GraduationCap} label="Estudos" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
-          <TabButton tab="destaques" icon={Sparkles} label="Destaques" />
+          <TabButton tab="explorar" icon={Compass} label="Explorar" />
         </div>
 
       </div>
@@ -322,7 +330,7 @@ const Index = () => {
       {/* Conteúdo principal - Mobile */}
       <div className="md:hidden bg-muted relative min-h-screen pb-20 rounded-t-[32px]" style={{ zIndex: 2 }}>
         {/* Cards de acesso rápido - Aulas e Biblioteca */}
-        {mainTab === 'ferramentas' && (
+        {mainTab === 'estudos' && (
           <div className="px-4 pt-6 pb-2">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-amber-500/20 rounded-xl">
@@ -380,8 +388,13 @@ const Index = () => {
 
         {/* Conteúdo das abas mobile */}
         <div className="px-2 space-y-6">
-          {/* ABA FERRAMENTAS - Mobile */}
-          {mainTab === 'ferramentas' && (
+          {/* ABA JORNADA - Mobile */}
+          {mainTab === 'jornada' && (
+            <JornadaHomeSection />
+          )}
+
+          {/* ABA ESTUDOS - Mobile */}
+          {mainTab === 'estudos' && (
             <>
               <EmAltaSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
               <RecomendacaoHomeSection isDesktop={false} navigate={navigate} handleLinkHover={handleLinkHover} />
@@ -389,7 +402,7 @@ const Index = () => {
           )}
 
           {/* ABA DESTAQUES - Mobile */}
-          {mainTab === 'destaques' && (
+          {mainTab === 'explorar' && (
             <>
               {/* Notícias em Destaque */}
               <div className="space-y-4 relative z-10">
@@ -442,14 +455,15 @@ const Index = () => {
       <div className="hidden md:block flex-1 px-6 py-8 space-y-8 relative" style={{ zIndex: 2 }}>
         {/* Desktop tabs */}
         <div className="flex gap-1.5 mb-2 relative z-20 h-[44px] mt-4">
-          <TabButton tab="ferramentas" icon={Flame} label="Estudos" />
+          <TabButton tab="jornada" icon={Route} label="Jornada" />
+          <TabButton tab="estudos" icon={GraduationCap} label="Estudos" />
           <TabButton tab="leis" icon={Scale} label="Leis" />
-          <TabButton tab="destaques" icon={Sparkles} label="Destaques" />
+          <TabButton tab="explorar" icon={Compass} label="Explorar" />
         </div>
 
-        {mainTab === 'ferramentas' && <DesktopHomeDestaque />}
+        {mainTab === 'jornada' && <DesktopHomeDestaque />}
 
-        {mainTab === 'destaques' && <DesktopHomeDestaque />}
+        {mainTab === 'explorar' && <DesktopHomeDestaque />}
 
         {mainTab === 'leis' && (
           <div className="relative min-h-[70vh]">
