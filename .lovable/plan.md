@@ -1,71 +1,76 @@
 
+# Corrigir Conteudo Zerado nas Categorias
 
-# Corrigir Flashcards e Questoes Vazios nas Categorias
+## Problemas Identificados
 
-## Problema Identificado
-
-A geracao de flashcards e questoes esta falhando silenciosamente em TODOS os topicos recentes. Os logs confirmam:
-
+### Problema 1: Parametro da rota incorreto (causa principal do "zerado")
+A rota no `App.tsx` define o parametro como `:id`:
 ```
-Erro flash/questoes: Unterminated string in JSON at position 24098
+/categorias/topico/:id
 ```
+Mas o componente `CategoriasTopicoEstudo.tsx` tenta ler `topicoId`:
+```
+const { topicoId } = useParams();
+```
+Como `topicoId` e sempre `undefined`, a query nunca encontra o topico e tudo aparece zerado (0 paginas, 0 flashcards, 0 questoes), apesar dos dados existirem no banco (confirmado: topico 31 tem 51 slides, 22 flashcards, 17 questoes).
 
-O `maxOutputTokens: 6144` e insuficiente para gerar 22 flashcards + 17 questoes em um unico JSON. A resposta da IA e cortada no meio, o JSON fica invalido, o parse falha, e arrays vazios sao salvos.
-
-Dados no banco confirmam:
-- Topicos 31, 34-37: **0 flashcards, 0 questoes** (todos falharam)
-- Topicos 32-33: **22 flashcards, 17 questoes** (os unicos que geraram antes da mudanca de prompt)
+### Problema 2: Reprocessar PDF apaga todo o conteudo gerado
+No `confirmar-temas-categorias/index.ts` (linha 85), ao reprocessar:
+```
+await supabase.from('categorias_topicos').delete().eq('materia_id', materiaId);
+```
+Isso deleta TODOS os topicos (incluindo conteudo ja gerado), diferente do OAB que preserva conteudo existente.
 
 ## Solucao
 
-### 1. Aumentar maxOutputTokens para flashcards/questoes
+### Correcao 1 - Parametro da rota
+No arquivo `src/pages/CategoriasTopicoEstudo.tsx`, mudar:
+```
+const { topicoId } = useParams();
+```
+Para:
+```
+const { id: topicoId } = useParams();
+```
+Isso resolve o problema do conteudo zerado. Todas as referencias a `topicoId` no componente continuam funcionando sem outras alteracoes.
 
-Mudar de `6144` para `16384` na chamada `gerarJSON(promptFlashQuestoes, ...)` para dar espaco suficiente ao JSON completo.
+Tambem corrigir as rotas de flashcards e questoes que provavelmente tem o mesmo problema (parametro `:id` na rota vs leitura diferente no componente).
 
-### 2. Separar geracao de flashcards e questoes em 2 chamadas
+### Correcao 2 - Preservar conteudo ao reprocessar PDF
+No `confirmar-temas-categorias/index.ts`, em vez de deletar todos os topicos e recriar:
+- Comparar os temas novos com os existentes
+- Atualizar os que ja existem (preservando `conteudo_gerado`, `flashcards`, `questoes`)
+- Adicionar apenas os novos
+- Remover apenas os que nao estao mais na lista
 
-Em vez de pedir tudo em uma unica chamada (que gera JSONs enormes), dividir em:
-- Chamada 1: 22 flashcards (maxTokens: 8192)
-- Chamada 2: 17 questoes (maxTokens: 8192)
+## Arquivos a Modificar
 
-Isso reduz o risco de truncamento e melhora a confiabilidade.
-
-### 3. Adicionar fallback com reparo de JSON truncado
-
-Se o JSON terminar com string nao fechada, tentar fechar automaticamente antes de desistir (adicionar `"}]}`).
-
-### 4. Regenerar topicos com flashcards/questoes vazios
-
-Marcar topicos concluidos mas com flashcards/questoes vazios como "pendente" para regerar apenas os extras.
-
-## Arquivo a Modificar
-
-- `supabase/functions/gerar-conteudo-categorias/index.ts`
+1. `src/pages/CategoriasTopicoEstudo.tsx` - corrigir `useParams`
+2. `src/pages/CategoriasTopicoFlashcards.tsx` - verificar e corrigir `useParams` (se necessario)
+3. `src/pages/CategoriasTopicoQuestoes.tsx` - verificar e corrigir `useParams` (se necessario)
+4. `supabase/functions/confirmar-temas-categorias/index.ts` - preservar conteudo existente ao reprocessar
 
 ## Detalhes Tecnicos
 
-Na funcao de geracao de extras (Etapa 3), substituir a chamada unica:
+### useParams fix
+A mudanca e minima - apenas renomear a desestruturacao:
+```typescript
+// ANTES
+const { topicoId } = useParams();
 
-```text
-// ANTES (falha por truncamento)
-gerarJSON(promptFlashQuestoes, 2, 6144)
-
-// DEPOIS (separado e com mais tokens)
-Promise.all([
-  gerarJSON(promptFlashcards, 3, 8192),
-  gerarJSON(promptQuestoes, 3, 8192),
-])
+// DEPOIS  
+const { id: topicoId } = useParams();
 ```
 
-Tambem adicionar na funcao `gerarJSON` um reparo extra para JSONs truncados:
+### Preservar conteudo no reprocessamento
+Em vez de `DELETE + INSERT`, usar logica de merge:
 
 ```text
-// Se o parse falhar por truncamento, tentar fechar arrays/objetos abertos
-if (error.message.includes("Unterminated")) {
-  text += '"}]}';
-  return JSON.parse(text);
-}
+1. Buscar topicos existentes com conteudo
+2. Para cada tema novo:
+   a. Se ja existe (por titulo normalizado) -> UPDATE (manter conteudo_gerado, flashcards, questoes)
+   b. Se nao existe -> INSERT como pendente
+3. Topicos existentes que nao estao na nova lista -> DELETE (ou manter como inativos)
 ```
 
-Para os topicos ja gerados com extras vazios, adicionar logica no inicio da funcao que detecta status "concluido" + flashcards vazio e regera apenas os extras (sem reprocessar slides).
-
+Isso garante que o conteudo ja gerado pela IA nao seja perdido ao reprocessar o PDF.
