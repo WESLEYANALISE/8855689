@@ -6,8 +6,6 @@ import { GraduationCap, BookOpen, Footprints, Scale, Loader2 } from "lucide-reac
 import { motion } from "framer-motion";
 import { SerpentineNiveis } from "@/components/shared/SerpentineNiveis";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import themisBackground from "@/assets/themis-estudos-background.webp";
-import { InstantBackground } from "@/components/ui/instant-background";
 
 const FREE_MATERIA_NAMES = [
   "história do direito",
@@ -66,15 +64,9 @@ export const JornadaHomeSection = memo(() => {
   }
 
   return (
-    <div className="space-y-3 relative min-h-[60vh]">
-      <InstantBackground
-        src={themisBackground}
-        alt="Themis"
-        blurCategory="estudos"
-        gradientClassName="bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]"
-      />
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center gap-3 px-2 relative z-10">
+      <div className="flex items-center gap-3 px-2">
         <div className="p-2 bg-red-500/20 rounded-xl">
           <GraduationCap className="w-5 h-5 text-red-400" />
         </div>
@@ -89,7 +81,7 @@ export const JornadaHomeSection = memo(() => {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-2 relative z-10">
+      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-2">
         <div className="flex items-center gap-1.5">
           <BookOpen className="w-3.5 h-3.5 text-red-400" />
           <span>{totalMaterias} matérias</span>
@@ -101,7 +93,6 @@ export const JornadaHomeSection = memo(() => {
       </div>
 
       {/* Serpentine */}
-      <div className="relative z-10">
       {materias && materias.length > 0 ? (
         <SerpentineNiveis
           items={materias}
@@ -122,7 +113,6 @@ export const JornadaHomeSection = memo(() => {
       ) : (
         <div className="text-center py-10 text-muted-foreground text-sm">Nenhuma matéria encontrada.</div>
       )}
-      </div>
     </div>
   );
 });
