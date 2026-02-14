@@ -272,22 +272,7 @@ const Bibliotecas = () => {
     : 0;
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background Image - Fixed */}
-      <div className="fixed inset-0">
-        <img
-          src={heroBibliotecas}
-          alt="Bibliotecas"
-          className={`w-full h-full object-cover object-[50%_30%] transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-          loading="eager"
-          fetchPriority="high"
-          decoding="sync"
-        />
-      </div>
-      
-      {/* Dark gradient overlay */}
-      <div className="fixed inset-0 bg-gradient-to-b from-black/60 via-black/70 to-neutral-900" />
-      
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Content */}
       <div className="relative z-10">
         <StandardPageHeader title="Biblioteca Jurídica" position="fixed" backPath="/" />
