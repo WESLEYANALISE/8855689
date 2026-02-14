@@ -4,7 +4,7 @@ import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight, Compass } from "lucide-react";
+import { Crown, Gavel, FileText, Scale, GraduationCap, BookOpen as BookOpenIcon, Library, Hammer, Target, Search, Headphones, Play, Loader2, Newspaper, ArrowRight, Sparkles, Scroll, Brain, Monitor, Video, BookOpen, Calendar, Settings, Flame, MonitorSmartphone, Users, Landmark, Clapperboard, BarChart3, Film, MessageCircle, Clock, Map, MapPin, Award, Wrench, Baby, BookText, FileCheck, ClipboardList, Layers, Route, Footprints, Briefcase, ChevronRight, ChevronDown, Compass } from "lucide-react";
 import cardAulasThumb from "@/assets/card-aulas-thumb.jpg";
 import bibliotecaThumb from "@/assets/biblioteca-office-sunset.webp";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -76,6 +76,13 @@ const HERO_IMAGES_STATIC: Record<string, string> = {
   explorar: '/hero-banner-themis-chorando.webp',
 };
 
+type JornadaTipo = 'conceitos' | 'oab';
+
+const JORNADAS_OPTIONS = [
+  { id: 'conceitos' as JornadaTipo, label: 'Conceitos', sublabel: 'Fundamentos do Direito', icon: GraduationCap },
+  { id: 'oab' as JornadaTipo, label: 'OAB', sublabel: '1ª e 2ª Fase', icon: Scale },
+];
+
 type MainTab = 'jornada' | 'estudos' | 'leis' | 'explorar';
 type FaculdadeSubTab = 'estudos' | 'ferramentas';
 
@@ -142,6 +149,20 @@ const Index = () => {
   const tabFromUrl = searchParams.get('tab') as MainTab | null;
   const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'estudos');
   const [faculdadeSubTab, setFaculdadeSubTab] = useState<FaculdadeSubTab>('estudos');
+
+  // Jornada selector state (Conceitos / OAB)
+  const [jornadaAtiva, setJornadaAtiva] = useState<JornadaTipo>(() => {
+    return (localStorage.getItem('jornada_ativa') as JornadaTipo) || 'conceitos';
+  });
+  const [showJornadaSelector, setShowJornadaSelector] = useState(false);
+
+  const handleSelectJornada = (tipo: JornadaTipo) => {
+    setJornadaAtiva(tipo);
+    localStorage.setItem('jornada_ativa', tipo);
+    setShowJornadaSelector(false);
+  };
+
+  const jornadaInfo = JORNADAS_OPTIONS.find(j => j.id === jornadaAtiva)!;
 
   // Função para mudar tab e notificar o header
   const changeMainTab = (tab: MainTab) => {
@@ -343,6 +364,65 @@ const Index = () => {
       {/* Spacer para revelar a imagem hero */}
       <div className="md:hidden h-36" style={{ zIndex: 1 }} />
 
+      {/* Jornada selector - above tabs, only when on Jornada tab */}
+      {mainTab === 'jornada' && (
+        <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 4 }}>
+          <button
+            onClick={() => setShowJornadaSelector(!showJornadaSelector)}
+            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
+          >
+            <div className="p-1.5 bg-red-500/20 rounded-xl">
+              <jornadaInfo.icon className="w-4 h-4 text-red-400" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="font-playfair text-base font-bold text-foreground tracking-tight leading-tight">
+                {jornadaInfo.label}
+              </h3>
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                {jornadaInfo.sublabel}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Settings className="w-3.5 h-3.5" />
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showJornadaSelector ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {/* Floating card dropdown */}
+          {showJornadaSelector && (
+            <div className="absolute left-4 right-4 top-full mt-1.5 z-50 bg-card border border-border rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
+              <p className="px-4 pt-3 pb-1 text-xs text-muted-foreground font-medium">Escolha sua jornada</p>
+              {JORNADAS_OPTIONS.map((jornada) => {
+                const Icon = jornada.icon;
+                const isActive = jornadaAtiva === jornada.id;
+                return (
+                  <button
+                    key={jornada.id}
+                    onClick={() => handleSelectJornada(jornada.id)}
+                    className={`w-full flex items-center gap-3 p-3 transition-colors ${
+                      isActive 
+                        ? 'bg-red-500/10 text-foreground' 
+                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold">{jornada.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{jornada.sublabel}</p>
+                    </div>
+                    {isActive && (
+                      <div className="ml-auto w-2 h-2 rounded-full bg-red-500" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs dentro da imagem hero, na parte inferior */}
       <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
@@ -351,7 +431,6 @@ const Index = () => {
           <TabButton tab="leis" icon={Scale} label="Leis" />
           <TabButton tab="explorar" icon={Compass} label="Explorar" />
         </div>
-
       </div>
 
 
@@ -418,7 +497,7 @@ const Index = () => {
         <div className="px-2 space-y-6">
           {/* ABA JORNADA - Mobile */}
           {mainTab === 'jornada' && (
-            <JornadaHomeSection />
+            <JornadaHomeSection jornadaAtiva={jornadaAtiva} />
           )}
 
           {/* ABA ESTUDOS - Mobile */}

@@ -1,11 +1,10 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import themisBackground from "@/assets/themis-estudos-background.webp";
 import { InstantBackground } from "@/components/ui/instant-background";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, BookOpen, Footprints, Scale, Loader2, Settings, ChevronDown, Target } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { BookOpen, Footprints, Scale, Loader2, Target } from "lucide-react";
 import { SerpentineNiveis } from "@/components/shared/SerpentineNiveis";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
@@ -18,26 +17,13 @@ const FREE_MATERIA_NAMES = [
 
 type JornadaTipo = 'conceitos' | 'oab';
 
-const JORNADAS = [
-  { id: 'conceitos' as JornadaTipo, label: 'Conceitos', sublabel: 'Fundamentos do Direito', icon: GraduationCap },
-  { id: 'oab' as JornadaTipo, label: 'OAB', sublabel: '1ª e 2ª Fase', icon: Scale },
-];
+interface JornadaHomeSectionProps {
+  jornadaAtiva: JornadaTipo;
+}
 
-export const JornadaHomeSection = memo(() => {
+export const JornadaHomeSection = memo(({ jornadaAtiva }: JornadaHomeSectionProps) => {
   const navigate = useNavigate();
   const { isPremium } = useSubscription();
-  const [jornadaAtiva, setJornadaAtiva] = useState<JornadaTipo>(() => {
-    return (localStorage.getItem('jornada_ativa') as JornadaTipo) || 'conceitos';
-  });
-  const [showSelector, setShowSelector] = useState(false);
-
-  const handleSelectJornada = (tipo: JornadaTipo) => {
-    setJornadaAtiva(tipo);
-    localStorage.setItem('jornada_ativa', tipo);
-    setShowSelector(false);
-  };
-
-  const jornadaInfo = JORNADAS.find(j => j.id === jornadaAtiva)!;
 
   const { data: materias, isLoading } = useQuery({
     queryKey: ["conceitos-materias-trilhante"],
@@ -88,7 +74,6 @@ export const JornadaHomeSection = memo(() => {
 
   return (
     <div className="relative min-h-[60vh]">
-      {/* Background image - fixed to viewport, clipped by parent overflow-hidden + rounded */}
       <InstantBackground
         src={themisBackground}
         alt="Themis"
@@ -98,78 +83,11 @@ export const JornadaHomeSection = memo(() => {
         gradientClassName="bg-gradient-to-b from-black/50 via-black/60 to-[#0d0d14]"
       />
 
-      {/* Content */}
       <div className="relative z-10 space-y-3">
-        {/* Journey Selector */}
-        <div className="px-4 pt-6 relative">
-          <button
-            onClick={() => setShowSelector(!showSelector)}
-            className="flex items-center gap-3 w-full p-3 rounded-2xl bg-card border border-border/50 hover:border-amber-500/30 transition-all group"
-          >
-            <div className="p-2 bg-red-500/20 rounded-xl">
-              <jornadaInfo.icon className="w-5 h-5 text-red-400" />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">
-                {jornadaInfo.label}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {jornadaInfo.sublabel}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-amber-500 transition-colors">
-              <Settings className="w-4 h-4" />
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSelector ? 'rotate-180' : ''}`} />
-            </div>
-          </button>
-
-          {/* Dropdown selector */}
-          <AnimatePresence>
-            {showSelector && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="absolute left-4 right-4 top-full mt-1 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
-              >
-                <p className="px-4 pt-3 pb-1 text-xs text-muted-foreground font-medium">Escolha sua jornada</p>
-                {JORNADAS.map((jornada) => {
-                  const Icon = jornada.icon;
-                  const isActive = jornadaAtiva === jornada.id;
-                  return (
-                    <button
-                      key={jornada.id}
-                      onClick={() => handleSelectJornada(jornada.id)}
-                      className={`w-full flex items-center gap-3 p-3 transition-colors ${
-                        isActive 
-                          ? 'bg-red-500/10 text-foreground' 
-                          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <div className={`p-2 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
-                        <Icon className={`w-4 h-4 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold">{jornada.label}</p>
-                        <p className="text-[11px] text-muted-foreground">{jornada.sublabel}</p>
-                      </div>
-                      {isActive && (
-                        <div className="ml-auto w-2 h-2 rounded-full bg-red-500" />
-                      )}
-                    </button>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
         {/* Conceitos Content */}
         {jornadaAtiva === 'conceitos' && (
           <div>
-            {/* Stats */}
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-4">
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-4 pt-4">
               <div className="flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-red-400" />
                 <span>{totalMaterias} matérias</span>
@@ -180,7 +98,6 @@ export const JornadaHomeSection = memo(() => {
               </div>
             </div>
 
-            {/* Serpentine */}
             {materias && materias.length > 0 ? (
               <SerpentineNiveis
                 items={materias}
@@ -206,7 +123,7 @@ export const JornadaHomeSection = memo(() => {
 
         {/* OAB Content */}
         {jornadaAtiva === 'oab' && (
-          <div className="px-4 space-y-3">
+          <div className="px-4 pt-4 space-y-3">
             <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
               <span>Selecione a fase do exame</span>
             </div>
