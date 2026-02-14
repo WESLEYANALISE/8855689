@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
-const VERSION = "v2.0.0-categorias-aligned";
+const VERSION = "v2.1.0-split-extras-fix";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +52,29 @@ serve(async (req) => {
     }
 
     const materiaId = topico.materia_id;
+
+    // === DETECTAR TÓPICO CONCLUÍDO COM EXTRAS VAZIOS (ANTES DA FILA) ===
+    const extrasVazios = topico.status === "concluido" && (
+      (!topico.flashcards || (Array.isArray(topico.flashcards) && topico.flashcards.length === 0)) ||
+      (!topico.questoes || (Array.isArray(topico.questoes) && topico.questoes.length === 0))
+    );
+
+    if (extrasVazios && !force_restart) {
+      console.log(`[Categorias] 🔄 Tópico ${topico_id} concluído mas com extras vazios - regenerando apenas extras`);
+      
+      EdgeRuntime.waitUntil(regenerarExtras(supabase, topico_id, topico));
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          background: true,
+          message: "Regenerando flashcards e questões em background.",
+          topico_id,
+          titulo: topico.titulo,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // === SISTEMA DE FILA (igual OAB Trilhas) ===
     // Verificar se já existe geração ativa na mesma matéria
@@ -123,6 +146,7 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     // Marcar como gerando
     await supabase
@@ -280,7 +304,36 @@ async function processarGeracaoBackground(
           let text = result.response.text();
           const sanitized = sanitizeJsonString(text);
           const repaired = repairJson(sanitized);
-          try { return JSON.parse(repaired); } catch {
+          try { return JSON.parse(repaired); } catch (parseErr: any) {
+            // Fallback: tentar reparar JSON truncado
+            if (parseErr?.message?.includes("Unterminated") || parseErr?.message?.includes("Unexpected end")) {
+              console.log(`[Categorias] ⚠️ JSON truncado detectado, tentando reparo...`);
+              let truncFixed = repaired.replace(/,\s*$/, "");
+              // Fechar strings abertas
+              const lastQuote = truncFixed.lastIndexOf('"');
+              const afterLastQuote = truncFixed.substring(lastQuote + 1);
+              if (lastQuote > 0 && !afterLastQuote.includes('"')) {
+                truncFixed += '"';
+              }
+              // Fechar arrays e objetos abertos
+              let bc = 0, bk = 0, inS = false, esc = false;
+              for (const c of truncFixed) {
+                if (esc) { esc = false; continue; }
+                if (c === '\\') { esc = true; continue; }
+                if (c === '"') { inS = !inS; continue; }
+                if (!inS) {
+                  if (c === '{') bc++; else if (c === '}') bc--;
+                  else if (c === '[') bk++; else if (c === ']') bk--;
+                }
+              }
+              while (bk > 0) { truncFixed += "]"; bk--; }
+              while (bc > 0) { truncFixed += "}"; bc--; }
+              try {
+                const result = JSON.parse(truncFixed);
+                console.log(`[Categorias] ✓ JSON truncado reparado com sucesso`);
+                return result;
+              } catch { /* fall through */ }
+            }
             const fixed = repaired.replace(/,\s*([}\]])/g, "$1").replace(/\[\s*,/g, "[").replace(/,\s*,/g, ",");
             return JSON.parse(fixed);
           }
@@ -603,25 +656,38 @@ QUANTIDADES EXATAS:
 IMPORTANTE: Definições curtas, máximo 50 caracteres cada. NÃO mencione OAB.
 Retorne APENAS o JSON.`;
 
-    const promptFlashQuestoes = `${promptBase}
+    const promptFlashcards = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Gere FLASHCARDS e QUESTÕES sobre "${topicoTitulo}" (foco em estudo aprofundado, NÃO OAB).
+Gere FLASHCARDS sobre "${topicoTitulo}" (foco em estudo aprofundado, NÃO OAB).
 
 Retorne JSON:
 {
-  "flashcards": [{"frente": "Pergunta direta sobre conceito-chave", "verso": "Resposta clara e objetiva", "exemplo": "Exemplo prático"}],
-  "questoes": [{"pergunta": "Enunciado completo da questão", "alternativas": ["A) ...", "B) ...", "C) ...", "D) ..."], "correta": 0, "explicacao": "Explicação detalhada"}]
+  "flashcards": [{"frente": "Pergunta direta sobre conceito-chave", "verso": "Resposta clara e objetiva", "exemplo": "Exemplo prático"}]
 }
 
 QUANTIDADES EXATAS (OBRIGATÓRIO):
 - flashcards: EXATAMENTE 22 cards
-- questoes: EXATAMENTE 17 questões
 
 REGRAS PARA FLASHCARDS:
 - Frente: Pergunta direta e objetiva
 - Verso: Resposta clara (máx 100 palavras)
 - Exemplo: Situação prática que ilustra
+
+Retorne APENAS o JSON.`;
+
+    const promptQuestoes = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere QUESTÕES sobre "${topicoTitulo}" (foco em estudo aprofundado, NÃO OAB).
+
+Retorne JSON:
+{
+  "questoes": [{"pergunta": "Enunciado completo da questão", "alternativas": ["A) ...", "B) ...", "C) ...", "D) ..."], "correta": 0, "explicacao": "Explicação detalhada"}]
+}
+
+QUANTIDADES EXATAS (OBRIGATÓRIO):
+- questoes: EXATAMENTE 17 questões
 
 REGRAS PARA QUESTÕES:
 - Enunciado claro e contextualizado
@@ -633,14 +699,15 @@ Retorne APENAS o JSON.`;
     let extras: any = { correspondencias: [], ligar_termos: [], explique_com_palavras: [], exemplos: [], termos: [], flashcards: [], questoes: [] };
 
     try {
-      const [gam, fq] = await Promise.all([
+      const [gam, flashData, questData] = await Promise.all([
         gerarJSON(promptGamificacao, 2, 4096).catch(e => { console.error(`[Categorias] ⚠️ Erro gamificação:`, e.message); return {}; }),
-        gerarJSON(promptFlashQuestoes, 2, 6144).catch(e => { console.error(`[Categorias] ⚠️ Erro flash/questões:`, e.message); return {}; }),
+        gerarJSON(promptFlashcards, 3, 8192).catch(e => { console.error(`[Categorias] ⚠️ Erro flashcards:`, e.message); return {}; }),
+        gerarJSON(promptQuestoes, 3, 8192).catch(e => { console.error(`[Categorias] ⚠️ Erro questões:`, e.message); return {}; }),
       ]);
       extras = {
         correspondencias: gam.correspondencias || [], ligar_termos: gam.ligar_termos || [],
         explique_com_palavras: gam.explique_com_palavras || [], termos: gam.termos || [],
-        exemplos: gam.exemplos || [], flashcards: fq.flashcards || [], questoes: fq.questoes || [],
+        exemplos: gam.exemplos || [], flashcards: flashData.flashcards || [], questoes: questData.questoes || [],
       };
       console.log(`[Categorias] ✓ Gamificação: ${extras.correspondencias.length} corresp, ${extras.ligar_termos.length} ligar`);
       console.log(`[Categorias] ✓ Estudo: ${extras.flashcards.length} flashcards, ${extras.questoes.length} questões`);
@@ -777,6 +844,171 @@ Retorne JSON:
         await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey, t.materia_id);
       }
     } catch (e) { console.error("[Categorias] Erro retry:", e); }
+  }
+}
+
+// === REGENERAR APENAS EXTRAS (flashcards/questões) ===
+async function regenerarExtras(supabase: any, topico_id: number, topico: any) {
+  try {
+    console.log(`[Categorias] 🔄 Regenerando extras para: ${topico.titulo}`);
+
+    const areaNome = topico.materia?.nome || topico.materia?.categoria || "";
+    const categoriaNome = topico.materia?.categoria || "";
+    const topicoTitulo = topico.titulo;
+
+    // Buscar conteúdo PDF
+    const { data: paginas } = await supabase
+      .from("categorias_topico_paginas")
+      .select("pagina, conteudo")
+      .eq("topico_id", topico_id)
+      .order("pagina", { ascending: true });
+
+    let conteudoPDF = "";
+    if (paginas && paginas.length > 0) {
+      conteudoPDF = paginas
+        .filter((p: any) => p.conteudo && p.conteudo.trim().length > 0)
+        .map((p: any) => `\n--- PÁGINA ${p.pagina} ---\n${p.conteudo}`)
+        .join("\n\n");
+    }
+
+    const geminiKeys = [
+      Deno.env.get("GEMINI_KEY_1"),
+      Deno.env.get("GEMINI_KEY_2"),
+      Deno.env.get("GEMINI_KEY_3"),
+    ].filter(Boolean);
+    const geminiKey = geminiKeys[Math.floor(Math.random() * geminiKeys.length)];
+    const genAI = new GoogleGenerativeAI(geminiKey!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+    function sanitizeJsonString(str: string): string {
+      let result = "";
+      let inString = false;
+      let escapeNext = false;
+      for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const code = str.charCodeAt(i);
+        if (escapeNext) { result += char; escapeNext = false; continue; }
+        if (char === '\\') { result += char; escapeNext = true; continue; }
+        if (char === '"') { inString = !inString; result += char; continue; }
+        if (inString) {
+          if (code === 0x0A) result += '\\n';
+          else if (code === 0x0D) result += '\\r';
+          else if (code === 0x09) result += '\\t';
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
+        } else {
+          if (char === '\n' || char === '\r' || char === '\t' || char === ' ') result += char;
+          else if (code < 0x20 || code === 0x7F) continue;
+          else result += char;
+        }
+      }
+      return result;
+    }
+
+    function repairJson(text: string): string {
+      let repaired = text.trim();
+      repaired = repaired.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const jsonStart = repaired.indexOf("{");
+      if (jsonStart === -1) return "{}";
+      repaired = repaired.substring(jsonStart);
+      let braceCount = 0, bracketCount = 0, inStr = false, escNext = false, lastValid = 0;
+      for (let i = 0; i < repaired.length; i++) {
+        const c = repaired[i];
+        if (escNext) { escNext = false; continue; }
+        if (c === '\\') { escNext = true; continue; }
+        if (c === '"') { inStr = !inStr; continue; }
+        if (!inStr) {
+          if (c === '{') braceCount++;
+          else if (c === '}') { braceCount--; if (braceCount === 0) lastValid = i; }
+          else if (c === '[') bracketCount++;
+          else if (c === ']') bracketCount--;
+        }
+      }
+      if (braceCount === 0 && bracketCount === 0) return repaired.substring(0, lastValid + 1);
+      repaired = repaired.replace(/,\s*$/, "").replace(/:\s*$/, ': null').replace(/"\s*$/, '"');
+      while (bracketCount > 0) { repaired += "]"; bracketCount--; }
+      while (braceCount > 0) { repaired += "}"; braceCount--; }
+      return repaired;
+    }
+
+    async function gerarJSON(prompt: string, maxRetries = 3, maxTokens = 8192): Promise<any> {
+      let lastError: any = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
+          });
+          let text = result.response.text();
+          const sanitized = sanitizeJsonString(text);
+          const repaired = repairJson(sanitized);
+          try { return JSON.parse(repaired); } catch (parseErr: any) {
+            if (parseErr?.message?.includes("Unterminated") || parseErr?.message?.includes("Unexpected end")) {
+              let truncFixed = repaired.replace(/,\s*$/, "");
+              const lastQuote = truncFixed.lastIndexOf('"');
+              const afterLastQuote = truncFixed.substring(lastQuote + 1);
+              if (lastQuote > 0 && !afterLastQuote.includes('"')) truncFixed += '"';
+              let bc = 0, bk = 0, inS = false, esc = false;
+              for (const c of truncFixed) {
+                if (esc) { esc = false; continue; }
+                if (c === '\\') { esc = true; continue; }
+                if (c === '"') { inS = !inS; continue; }
+                if (!inS) {
+                  if (c === '{') bc++; else if (c === '}') bc--;
+                  else if (c === '[') bk++; else if (c === ']') bk--;
+                }
+              }
+              while (bk > 0) { truncFixed += "]"; bk--; }
+              while (bc > 0) { truncFixed += "}"; bc--; }
+              try { return JSON.parse(truncFixed); } catch { /* fall through */ }
+            }
+            const fixed = repaired.replace(/,\s*([}\]])/g, "$1").replace(/\[\s*,/g, "[").replace(/,\s*,/g, ",");
+            return JSON.parse(fixed);
+          }
+        } catch (err) { lastError = err; }
+      }
+      throw lastError;
+    }
+
+    const promptBase = `Você é um professor experiente explicando Direito para uma pessoa LEIGA.
+**Categoria:** ${categoriaNome}
+**Matéria:** ${areaNome}
+**Tópico:** ${topicoTitulo}
+
+═══ REFERÊNCIA DE ESTUDO ═══
+${conteudoPDF || "Gere com base no seu conhecimento sobre o tema"}
+═══════════════════════`;
+
+    const needFlashcards = !topico.flashcards || (Array.isArray(topico.flashcards) && topico.flashcards.length === 0);
+    const needQuestoes = !topico.questoes || (Array.isArray(topico.questoes) && topico.questoes.length === 0);
+
+    const updateData: any = { updated_at: new Date().toISOString() };
+
+    if (needFlashcards) {
+      const promptF = `${promptBase}\n\nGere EXATAMENTE 22 flashcards sobre "${topicoTitulo}".\nRetorne JSON: {"flashcards": [{"frente": "Pergunta", "verso": "Resposta", "exemplo": "Exemplo"}]}\nAPENAS JSON.`;
+      try {
+        const r = await gerarJSON(promptF, 3, 8192);
+        updateData.flashcards = r.flashcards || [];
+        console.log(`[Categorias] ✓ Regenerados ${updateData.flashcards.length} flashcards`);
+      } catch (e) { console.error(`[Categorias] ❌ Erro regenerar flashcards:`, e); }
+    }
+
+    if (needQuestoes) {
+      const promptQ = `${promptBase}\n\nGere EXATAMENTE 17 questões sobre "${topicoTitulo}".\nRetorne JSON: {"questoes": [{"pergunta": "Enunciado", "alternativas": ["A)...", "B)...", "C)...", "D)..."], "correta": 0, "explicacao": "Explicação"}]}\nAPENAS JSON.`;
+      try {
+        const r = await gerarJSON(promptQ, 3, 8192);
+        updateData.questoes = r.questoes || [];
+        console.log(`[Categorias] ✓ Regeneradas ${updateData.questoes.length} questões`);
+      } catch (e) { console.error(`[Categorias] ❌ Erro regenerar questões:`, e); }
+    }
+
+    if (Object.keys(updateData).length > 1) {
+      await supabase.from("categorias_topicos").update(updateData).eq("id", topico_id);
+      console.log(`[Categorias] ✅ Extras regenerados para: ${topicoTitulo}`);
+    }
+  } catch (err) {
+    console.error(`[Categorias] ❌ Erro regenerarExtras:`, err);
   }
 }
 
