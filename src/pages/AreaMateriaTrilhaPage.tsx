@@ -358,19 +358,29 @@ const AreaMateriaTrilhaPage = () => {
                         )}
                       </div>
 
-                      {/* Progresso por tipo */}
+                      {/* Progresso por tipo - barras coloridas */}
                       {hasConteudo && (
-                        <div className="mt-1">
-                          <div className="flex items-center gap-3 text-[10px]">
-                            <span className={progresso?.leitura ? "text-green-400" : "text-orange-400"}>
-                              leitura {progresso?.leitura ? "100" : "0"}%
-                            </span>
-                            <span className={progresso?.flashcards ? "text-green-400" : "text-purple-400"}>
-                              flashcards {progresso?.flashcards ? "100" : "0"}%
-                            </span>
-                            <span className={progresso?.questoes ? "text-green-400" : "text-emerald-400"}>
-                              praticar {progresso?.questoes ? "100" : "0"}%
-                            </span>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <div className="flex items-center gap-1 flex-1">
+                            <span className="text-[9px] text-orange-400 font-medium whitespace-nowrap">leitura</span>
+                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${progresso?.leitura ? 'bg-green-400 w-full' : 'bg-orange-500/60 w-0'}`} />
+                            </div>
+                            <span className="text-[9px] text-orange-400/70">{progresso?.leitura ? "100" : "0"}%</span>
+                          </div>
+                          <div className="flex items-center gap-1 flex-1">
+                            <span className="text-[9px] text-purple-400 font-medium whitespace-nowrap">flashcards</span>
+                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${progresso?.flashcards ? 'bg-green-400 w-full' : 'bg-purple-500/60 w-0'}`} />
+                            </div>
+                            <span className="text-[9px] text-purple-400/70">{progresso?.flashcards ? "100" : "0"}%</span>
+                          </div>
+                          <div className="flex items-center gap-1 flex-1">
+                            <span className="text-[9px] text-emerald-400 font-medium whitespace-nowrap">praticar</span>
+                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${progresso?.questoes ? 'bg-green-400 w-full' : 'bg-emerald-500/60 w-0'}`} />
+                            </div>
+                            <span className="text-[9px] text-emerald-400/70">{progresso?.questoes ? "100" : "0"}%</span>
                           </div>
                         </div>
                       )}
