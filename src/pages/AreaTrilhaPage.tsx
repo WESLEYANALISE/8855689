@@ -47,13 +47,15 @@ interface SerpentineMateriasProps {
 }
 
 // Banner component for each level
-const NivelBanner = ({ nivel, label, colorBg, isLocked }: { nivel: number; label: string; colorBg: string; isLocked: boolean }) => (
+const NivelBanner = ({ nivel, label, colorBg, isLocked, lineColor }: { nivel: number; label: string; colorBg: string; isLocked: boolean; lineColor: string }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.4 }}
-    className="flex justify-center mb-6"
+    className="flex items-center gap-3 mb-6"
   >
+    {/* Left line */}
+    <div className="flex-1 h-px" style={{ background: `linear-gradient(to right, transparent, ${lineColor})` }} />
     <div className={`relative flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r ${colorBg} shadow-lg`}>
       {isLocked ? (
         <Lock className="w-4 h-4 text-white/80" />
@@ -65,6 +67,8 @@ const NivelBanner = ({ nivel, label, colorBg, isLocked }: { nivel: number; label
       <span className="text-white font-bold text-sm tracking-wide">Nível {nivel}</span>
       <span className="text-white/70 text-xs">· {label}</span>
     </div>
+    {/* Right line */}
+    <div className="flex-1 h-px" style={{ background: `linear-gradient(to left, transparent, ${lineColor})` }} />
   </motion.div>
 );
 
@@ -153,7 +157,7 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
         {/* Level banners */}
         {bannerPositions.map((b) => (
           <div key={b.nivel} className="absolute left-0 right-0" style={{ top: b.y }}>
-            <NivelBanner nivel={b.nivel} label={b.color.label} colorBg={b.color.bg} isLocked={b.nivel > 1} />
+            <NivelBanner nivel={b.nivel} label={b.color.label} colorBg={b.color.bg} isLocked={b.nivel > 1} lineColor={b.color.stroke} />
           </div>
         ))}
 
