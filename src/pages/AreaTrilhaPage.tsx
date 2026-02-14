@@ -97,7 +97,7 @@ const AreaTrilhaPage = () => {
         <div className="pt-6 pb-4 px-4">
           <div className="max-w-lg mx-auto">
             <button
-              onClick={() => navigate("/?tab=ferramentas")}
+              onClick={() => navigate("/?tab=jornada")}
               className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mb-6"
             >
               <ArrowLeft className="w-5 h-5" />

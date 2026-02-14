@@ -88,7 +88,7 @@ const AulasDashboard = () => {
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/5">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button onClick={() => navigate("/?tab=ferramentas")} className="p-1">
+          <button onClick={() => navigate("/?tab=jornada")} className="p-1">
             <ArrowLeft className="w-5 h-5 text-white/70" />
           </button>
           <h1 className="font-semibold text-base">Seu Progresso</h1>

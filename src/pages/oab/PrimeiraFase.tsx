@@ -63,7 +63,7 @@ const PrimeiraFase = () => {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => navigate('/?tab=ferramentas')} 
+            onClick={() => navigate('/?tab=jornada')} 
             className="p-2 rounded-full bg-neutral-800/80 hover:bg-neutral-700/80 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
