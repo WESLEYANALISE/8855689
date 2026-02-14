@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
+import jornadaHeroBackground from "@/assets/jornada-hero-background.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -71,7 +72,7 @@ const CARREIRAS_IMAGES = [
 ];
 
 const HERO_IMAGES_STATIC: Record<string, string> = {
-  jornada: '/hero-banner-themis-advogado-v2.webp',
+  jornada: jornadaHeroBackground,
   estudos: '/hero-banner-themis-advogado-v2.webp',
   explorar: '/hero-banner-themis-chorando.webp',
 };
@@ -362,7 +363,7 @@ const Index = () => {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       {/* Spacer para revelar a imagem hero */}
-      <div className={`md:hidden ${mainTab === 'jornada' ? 'h-20' : 'h-36'}`} style={{ zIndex: 1 }} />
+      <div className="md:hidden h-36" style={{ zIndex: 1 }} />
 
       {/* Jornada selector - above tabs, only when on Jornada tab */}
       {mainTab === 'jornada' && (
@@ -440,7 +441,7 @@ const Index = () => {
 
 
       {/* Conteúdo principal - Mobile */}
-      <div key={mainTab} className={`md:hidden relative min-h-screen pb-20 rounded-t-[32px] animate-fade-in ${mainTab === 'jornada' ? 'bg-[#0d0d14] overflow-hidden' : 'bg-muted'}`} style={{ zIndex: 2 }}>
+      <div key={mainTab} className="md:hidden relative min-h-screen pb-20 rounded-t-[32px] animate-fade-in bg-muted" style={{ zIndex: 2 }}>
         {/* Cards de acesso rápido - Aulas e Biblioteca */}
         {mainTab === 'estudos' && (
           <div className="px-4 pt-6 pb-2">

@@ -1,7 +1,5 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import themisBackground from "@/assets/themis-estudos-background.webp";
-import { InstantBackground } from "@/components/ui/instant-background";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Footprints, Scale, Loader2, Target } from "lucide-react";
@@ -73,17 +71,8 @@ export const JornadaHomeSection = memo(({ jornadaAtiva }: JornadaHomeSectionProp
   }
 
   return (
-    <div className="relative min-h-[60vh]">
-      <InstantBackground
-        src={themisBackground}
-        alt="Themis"
-        blurCategory="estudos"
-        fixed={true}
-        showGradient={true}
-        gradientClassName="bg-gradient-to-b from-black/50 via-black/60 to-[#0d0d14]"
-      />
-
-      <div className="relative z-10 space-y-3">
+    <div className="relative">
+      <div className="space-y-3">
         {/* Conceitos Content */}
         {jornadaAtiva === 'conceitos' && (
           <div>
