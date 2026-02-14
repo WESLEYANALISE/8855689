@@ -179,7 +179,7 @@ const Index = () => {
   useEffect(() => {
     const bottomNav = document.querySelector('[data-bottom-nav]');
     if (bottomNav) {
-      (bottomNav as HTMLElement).style.display = (mainTab === 'jornada' || mainTab === 'estudos') ? '' : 'none';
+      (bottomNav as HTMLElement).style.display = mainTab === 'estudos' ? '' : 'none';
     }
     return () => {
       if (bottomNav) {
@@ -328,7 +328,7 @@ const Index = () => {
 
 
       {/* Conteúdo principal - Mobile */}
-      <div className="md:hidden bg-muted relative min-h-screen pb-20 rounded-t-[32px]" style={{ zIndex: 2 }}>
+      <div className={`md:hidden relative min-h-screen pb-20 rounded-t-[32px] ${mainTab === 'jornada' ? 'bg-transparent' : 'bg-muted'}`} style={{ zIndex: 2 }}>
         {/* Cards de acesso rápido - Aulas e Biblioteca */}
         {mainTab === 'estudos' && (
           <div className="px-4 pt-6 pb-2">

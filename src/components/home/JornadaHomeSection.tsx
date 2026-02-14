@@ -1,5 +1,7 @@
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import themisBackground from "@/assets/themis-estudos-background.webp";
+import { InstantBackground } from "@/components/ui/instant-background";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, BookOpen, Footprints, Scale, Loader2, Settings, ChevronDown, Target } from "lucide-react";
@@ -85,9 +87,16 @@ export const JornadaHomeSection = memo(() => {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 relative min-h-[60vh] rounded-t-[32px] overflow-hidden">
+      <InstantBackground
+        src={themisBackground}
+        alt="Themis"
+        blurCategory="estudos"
+        gradientClassName="bg-gradient-to-b from-black/60 via-black/70 to-[#0d0d14]"
+        className="rounded-t-[32px]"
+      />
       {/* Journey Selector */}
-      <div className="px-2 relative">
+      <div className="px-2 relative z-10">
         <button
           onClick={() => setShowSelector(!showSelector)}
           className="flex items-center gap-3 w-full p-3 rounded-2xl bg-card border border-border/50 hover:border-amber-500/30 transition-all group"
@@ -153,7 +162,7 @@ export const JornadaHomeSection = memo(() => {
 
       {/* Conceitos Content */}
       {jornadaAtiva === 'conceitos' && (
-        <>
+        <div className="relative z-10">
           {/* Stats */}
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-2">
             <div className="flex items-center gap-1.5">
@@ -187,12 +196,12 @@ export const JornadaHomeSection = memo(() => {
           ) : (
             <div className="text-center py-10 text-muted-foreground text-sm">Nenhuma matéria encontrada.</div>
           )}
-        </>
+        </div>
       )}
 
       {/* OAB Content - redirects to OAB selection */}
       {jornadaAtiva === 'oab' && (
-        <div className="px-2 space-y-3">
+        <div className="px-2 space-y-3 relative z-10">
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span>Selecione a fase do exame</span>
           </div>
