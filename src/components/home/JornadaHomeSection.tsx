@@ -87,21 +87,16 @@ export const JornadaHomeSection = memo(() => {
   }
 
   return (
-    <div className="relative min-h-[60vh] rounded-t-[32px] overflow-hidden">
-      {/* Background image - sticky so it stays visible while content scrolls */}
-      <div className="sticky top-0 h-0 z-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute inset-x-0 top-0 h-screen rounded-t-[32px] overflow-hidden">
-          <InstantBackground
-            src={themisBackground}
-            alt="Themis"
-            blurCategory="estudos"
-            fixed={false}
-            showGradient={false}
-            className="rounded-t-[32px]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/60 to-[#0d0d14]" />
-        </div>
-      </div>
+    <div className="relative min-h-[60vh]">
+      {/* Background image - fixed to viewport, clipped by parent overflow-hidden + rounded */}
+      <InstantBackground
+        src={themisBackground}
+        alt="Themis"
+        blurCategory="estudos"
+        fixed={true}
+        showGradient={true}
+        gradientClassName="bg-gradient-to-b from-black/50 via-black/60 to-[#0d0d14]"
+      />
 
       {/* Content */}
       <div className="relative z-10 space-y-3">
