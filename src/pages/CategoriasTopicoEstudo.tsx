@@ -118,12 +118,7 @@ const CategoriasTopicoEstudo = () => {
   const objetivos = conteudoGerado?.objetivos || [];
 
   const handleBack = () => {
-    const categoriaSlug = topico?.materia?.categoria?.toLowerCase().replace(/\s+/g, '-');
-    if (categoriaSlug) {
-      navigate(`/categorias/${categoriaSlug}`);
-    } else {
-      navigate('/?tab=jornada');
-    }
+    navigate('/?tab=jornada');
   };
 
   const handleSlidesComplete = async () => {
