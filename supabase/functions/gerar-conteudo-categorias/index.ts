@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
-const VERSION = "v1.0.0-categorias";
+const VERSION = "v2.0.0-categorias-aligned";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +10,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MIN_PAGINAS = 20;
+const MIN_PAGINAS = 40;
 const MAX_TENTATIVAS = 5;
 
 declare const EdgeRuntime: {
@@ -178,9 +178,12 @@ async function processarGeracaoBackground(
     const topicoTitulo = topico.titulo;
     const tentativasAtuais = topico.tentativas || 0;
 
-    console.log(`[Categorias] Gerando: ${topicoTitulo} (área: ${areaNome}, categoria: ${categoriaNome})`);
+    console.log(`[Categorias] ══════════════════════════════════════════`);
+    console.log(`[Categorias] 🚀 Iniciando geração: ${topicoTitulo}`);
+    console.log(`[Categorias] 📦 VERSÃO: ${VERSION}`);
+    console.log(`[Categorias] ══════════════════════════════════════════`);
 
-    // Buscar conteúdo extraído das páginas
+    // 1. Buscar conteúdo extraído das páginas do PDF
     await updateProgress(10);
     const { data: paginas } = await supabase
       .from("categorias_topico_paginas")
@@ -199,7 +202,7 @@ async function processarGeracaoBackground(
 
     await updateProgress(15);
 
-    // Configurar Gemini
+    // 2. Configurar Gemini
     const geminiKeys = [
       Deno.env.get("GEMINI_KEY_1"),
       Deno.env.get("GEMINI_KEY_2"),
@@ -210,6 +213,7 @@ async function processarGeracaoBackground(
     const genAI = new GoogleGenerativeAI(geminiKey!);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
+    // Função para sanitizar JSON
     function sanitizeJsonString(str: string): string {
       let result = "";
       let inString = false;
@@ -265,7 +269,10 @@ async function processarGeracaoBackground(
       let lastError: any = null;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
+          if (attempt > 0) {
+            console.log(`[Categorias] Retry ${attempt}/${maxRetries}...`);
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+          }
           const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
@@ -288,6 +295,7 @@ async function processarGeracaoBackground(
         /^Futuro\s+colega,?\s*/gi, /^Prezad[oa]\s+[^.]*,?\s*/gi, /^Car[oa]\s+[^.]*,?\s*/gi,
         /^Coleg[ao],?\s*/gi, /^E aí,?\s*[^.]*[!,.\s]*/gi, /^Olá[!,.\s]*/gi,
         /^Bem-vind[oa][!,.\s]*/gi, /^Galera,?\s*/gi, /^Pessoal,?\s*/gi, /^Oi[!,.\s]*/gi,
+        /^Tá preparad[oa][?!.\s]*/gi, /^Beleza[?!,.\s]*/gi, /^Partiu[!,.\s]*/gi,
       ];
       let resultado = texto;
       for (const regex of saudacoes) resultado = resultado.replace(regex, '');
@@ -296,7 +304,9 @@ async function processarGeracaoBackground(
       return resultado.trim();
     };
 
-    // PROMPT BASE - Adaptado para estudo genérico (sem OAB)
+    // ============================================
+    // PROMPT BASE (IDÊNTICO AO OAB TRILHAS, adaptado sem referências OAB)
+    // ============================================
     const promptBase = `Você é um professor experiente explicando Direito para uma pessoa LEIGA.
 Seu estilo é como uma CONVERSA DE CAFÉ - descontraído, acolhedor e didático.
 
@@ -308,6 +318,7 @@ Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
 - Use expressões naturais: "Olha só...", "Percebeu?", "Faz sentido, né?", "Na prática..."
 - Perguntas guiadas: "E por que isso importa?", "Percebeu a diferença?"
 - Seguro e correto tecnicamente
+- Próximo, como conversa entre amigos reais
 - NUNCA infantilizado ou condescendente
 
 ═══ ESTRUTURA DIDÁTICA OBRIGATÓRIA ═══
@@ -316,25 +327,43 @@ Pessoas que NUNCA estudaram o tema. Assuma ZERO conhecimento prévio.
    ❌ ERRADO: "A jurisdição voluntária caracteriza-se por..."
    ✅ CERTO: "Sabe quando duas pessoas concordam com tudo, mas ainda precisam do juiz para oficializar? Isso é o que o Direito chama de 'jurisdição voluntária'."
 
-2. **TRADUÇÃO IMEDIATA de termos técnicos e latim**
+2. **TRADUÇÃO IMEDIATA de termos técnicos e latim:**
+   - "O 'pacta sunt servanda' (significa 'os pactos devem ser cumpridos' - ou seja, combinado é combinado!)"
+   - "Isso é o que chamamos de 'trânsito em julgado' (quando não dá mais para recorrer de uma decisão)"
 
-3. **ANALOGIAS DO COTIDIANO**
+3. **DESMEMBRE conceitos difíceis:**
+   Divida em partes menores, explicando passo a passo.
 
-═══ CUIDADOS ═══
-- NÃO use emojis no texto corrido
-- NÃO mencione "PDF", "material", "documento"
+4. **ANALOGIAS DO COTIDIANO:**
+   - "Pense na competência como o território de cada juiz..."
+   - "É tipo quando você pede um lanche: se vier errado, você pode reclamar..."
+
+5. **ANTECIPE DÚVIDAS:**
+   "Você pode estar pensando: 'Mas isso não seria injusto?' Veja bem..."
+
+═══ CUIDADOS IMPORTANTES ═══
+- NÃO use emojis no texto corrido (a interface já adiciona os ícones visuais)
+- NÃO mencione "PDF", "material", "documento" - escreva como conhecimento SEU
 - NÃO mencione "OAB", "prova da OAB" ou "exame de ordem" - foque no ESTUDO da área
-- Slides tipo "caso" JÁ SÃO exemplo prático
+- NÃO comece slides com saudações (exceto introdução da primeira seção)
+- Slides tipo "caso" JÁ SÃO exemplo prático - não adicione outro dentro
 
 ═══ GRIFO E ÊNFASE (OBRIGATÓRIO) ═══
-Termos-chave em NEGRITO + ASPAS: **'competência absoluta'**, **'Art. 5º da CF'**, **'30 dias'**
+Para destacar termos-chave, use NEGRITO + ASPAS SIMPLES:
+• TERMOS TÉCNICOS: **'competência absoluta'**, **'litispendência'**
+• LEIS E ARTIGOS: **'Art. 5º da CF'**, **'Lei 9.504/97'**
+• PRAZOS: **'30 dias'**, **'prazo de 15 dias'**
+• VALORES: **'R$ 5.000'**, **'10 salários mínimos'**
 
-═══ CITAÇÕES DE ARTIGOS ═══
-Use BLOCKQUOTE: > "Art. 5º - Todos são iguais perante a lei..." (CF/88)
+═══ CITAÇÕES DE ARTIGOS (OBRIGATÓRIO) ═══
+Sempre que citar um artigo de lei, use BLOCKQUOTE:
+> "Art. 5º - Todos são iguais perante a lei..." (CF/88)
 
-═══ PROFUNDIDADE ═══
+═══ PROFUNDIDADE E DETALHAMENTO ═══
 - Mínimo 250-400 palavras em slides tipo "texto"
+- SEMPRE que usar um termo jurídico, explique-o INLINE imediatamente
 - Cite artigos de lei de forma acessível
+- Estruture com hierarquias claras: parágrafos curtos, conexões entre conceitos
 - Termos-chave em negrito + aspas
 
 **Categoria:** ${categoriaNome}
@@ -345,14 +374,19 @@ Use BLOCKQUOTE: > "Art. 5º - Todos são iguais perante a lei..." (CF/88)
 ${conteudoPDF || "Conteúdo não disponível - gere com base no seu conhecimento sobre o tema"}
 ═══════════════════════`;
 
-    // ETAPA 1: Estrutura
+    // ============================================
+    // ETAPA 1: GERAR ESTRUTURA/ESQUELETO
+    // ============================================
+    console.log(`[Categorias] ETAPA 1: Gerando estrutura/esqueleto...`);
     await updateProgress(30);
+
     const promptEstrutura = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Crie a ESTRUTURA do conteúdo interativo. NÃO gere conteúdo completo, apenas títulos e tipos.
+Crie APENAS a ESTRUTURA/ESQUELETO do conteúdo interativo.
+NÃO gere o conteúdo completo agora, apenas títulos e tipos de página.
 
-Retorne JSON:
+Retorne um JSON com esta estrutura EXATA:
 {
   "titulo": "${topicoTitulo}",
   "tempoEstimado": "25 min",
@@ -363,79 +397,160 @@ Retorne JSON:
       "titulo": "Nome da Seção",
       "paginas": [
         {"tipo": "introducao", "titulo": "O que você vai aprender"},
-        {"tipo": "texto", "titulo": "Conceito X"},
-        {"tipo": "quickcheck", "titulo": "Verificação"}
+        {"tipo": "texto", "titulo": "Conceito Principal X"},
+        {"tipo": "texto", "titulo": "Detalhamento de Y"},
+        {"tipo": "termos", "titulo": "Termos Importantes"},
+        {"tipo": "quickcheck", "titulo": "Verificação Rápida"}
       ]
+    },
+    {
+      "id": 2,
+      "titulo": "Segunda Seção",
+      "paginas": [...]
     }
   ]
 }
 
-REGRAS:
-1. 6-8 seções (40-55 páginas totais)
-2. Cada seção: 6-9 páginas
-3. TIPOS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck, correspondencias
-4. "introducao" APENAS na primeira seção
-5. DISTRIBUIÇÃO: 15-20 texto, 4-5 atencao, 3-4 dica, 4-5 caso, 2-3 tabela, 5-6 quickcheck, 1 correspondencias
-6. Em vez de "ISSO CAI NA PROVA", use "ATENÇÃO: Conceito fundamental!" ou "PONTO CRUCIAL para entender a área!"
-7. MANTENHA o título: "${topicoTitulo}"
+REGRAS OBRIGATÓRIAS:
+1. Gere entre 6-8 seções (para alcançar 40-55 páginas totais)
+2. Cada seção deve ter 6-9 páginas
+3. TIPOS DISPONÍVEIS: introducao, texto, termos, linha_tempo, tabela, atencao, dica, caso, resumo, quickcheck, correspondencias
 
-Retorne APENAS o JSON.`;
+DISTRIBUIÇÃO MÍNIMA OBRIGATÓRIA:
+- "introducao": 1 slide (APENAS na primeira seção)
+- "texto": 15-20 slides (conteúdo principal detalhado)
+- "atencao": 4-5 slides com "⚠️ Conceito Fundamental!" ou "ATENÇÃO: Ponto crucial!"
+- "dica": 3-4 slides com técnicas de memorização e macetes
+- "caso": 4-5 slides com exemplos práticos do cotidiano
+- "tabela": 2-3 slides comparativos
+- "quickcheck": 5-6 slides (pelo menos 1 por seção)
+- "correspondencias": 1 slide no meio (entre páginas 25-30)
+- "termos": 2-3 slides com vocabulário jurídico
+- "resumo": 1 slide ao final de cada seção
+
+4. NUNCA repita o slide "introducao" após a primeira seção
+5. Cada seção deve ter MIX de tipos - não apenas "texto"
+6. INCLUA exatamente 1 slide "correspondencias" NA SEÇÃO DO MEIO
+7. Use títulos descritivos para cada página
+8. MANTENHA o título original: "${topicoTitulo}" (não altere)
+9. Cubra TODO o conteúdo do material
+
+Retorne APENAS o JSON, sem texto adicional.`;
 
     let estrutura = await gerarJSON(promptEstrutura);
     if (!estrutura?.secoes || estrutura.secoes.length < 3) throw new Error("Estrutura inválida");
 
+    const totalPaginasEstrutura = estrutura.secoes.reduce(
+      (acc: number, s: any) => acc + (s.paginas?.length || 0), 0
+    );
+    console.log(`[Categorias] ✓ Estrutura: ${estrutura.secoes.length} seções, ${totalPaginasEstrutura} páginas planejadas`);
+
     await updateProgress(35);
 
-    // ETAPA 2: Gerar conteúdo por seção
+    // ============================================
+    // ETAPA 2: GERAR CONTEÚDO POR SEÇÃO
+    // ============================================
+    console.log(`[Categorias] ETAPA 2: Gerando conteúdo seção por seção...`);
     const secoesCompletas: any[] = [];
     const totalSecoes = estrutura.secoes.length;
 
     for (let i = 0; i < totalSecoes; i++) {
       const secaoEstrutura = estrutura.secoes[i];
       const progressoSecao = Math.round(35 + (i / totalSecoes) * 40);
+      console.log(`[Categorias] Gerando seção ${i + 1}/${totalSecoes}: ${secaoEstrutura.titulo}`);
       await updateProgress(progressoSecao);
 
       const promptSecao = `${promptBase}
 
 ═══ SUA TAREFA ═══
-Gere CONTEÚDO COMPLETO para a SEÇÃO ${i + 1}: "${secaoEstrutura.titulo}"
+Gere o CONTEÚDO COMPLETO para a SEÇÃO ${i + 1}:
+Título: "${secaoEstrutura.titulo}"
 
-PÁGINAS: ${JSON.stringify(secaoEstrutura.paginas, null, 2)}
+PÁGINAS A GERAR (com seus tipos):
+${JSON.stringify(secaoEstrutura.paginas, null, 2)}
 
-Para cada página:
-1. "introducao": {"tipo": "introducao", "titulo": "${topicoTitulo}", "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em ${topicoTitulo}!\\n\\nNesta aula vamos estudar de forma clara e prática..."}
-2. "texto" (MÍNIMO 250 PALAVRAS): {"tipo": "texto", "titulo": "...", "conteudo": "Explicação detalhada..."}
-3. "correspondencias": {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte:", "correspondencias": [{"termo": "T1", "definicao": "D1"}]}
-4. "termos": {"tipo": "termos", "titulo": "...", "conteudo": "...", "termos": [{"termo": "T", "definicao": "D"}]}
-5. "linha_tempo": {"tipo": "linha_tempo", "titulo": "...", "conteudo": "...", "etapas": [{"titulo": "E", "descricao": "D"}]}
-6. "tabela": {"tipo": "tabela", "titulo": "...", "conteudo": "...", "tabela": {"cabecalhos": [...], "linhas": [...]}}
-7. "atencao": {"tipo": "atencao", "titulo": "⚠️ Conceito Fundamental!", "conteudo": "**Atenção redobrada aqui!**..."}
-8. "dica": {"tipo": "dica", "titulo": "💡 Macete para Memorizar", "conteudo": "**Técnica:**..."}
-9. "caso": {"tipo": "caso", "titulo": "📋 Na Prática", "conteudo": "**Situação Real:**..."}
-10. "quickcheck": {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "...", "pergunta": "?", "opcoes": ["A)", "B)", "C)", "D)"], "resposta": 0, "feedback": "..."}
-11. "resumo": {"tipo": "resumo", "titulo": "...", "conteudo": "...", "pontos": ["..."]}
+Para CADA página, retorne o objeto completo com TOM CONVERSACIONAL (como café com professor):
 
-Retorne JSON: {"id": ${secaoEstrutura.id}, "titulo": "${secaoEstrutura.titulo}", "slides": [...]}
+1. Para tipo "introducao" (APENAS NA PRIMEIRA SEÇÃO - ENGAJAMENTO OBRIGATÓRIO):
+   {"tipo": "introducao", "titulo": "${topicoTitulo}", "conteudo": "☕ Prepare seu café, pois vamos mergulhar juntos em um tema muito importante!\\n\\nNesta aula sobre **${topicoTitulo}**, vamos estudar de forma clara e prática. Ao final, você vai dominar:\\n\\n• **Conceito principal**: O que é e para que serve\\n• **Requisitos legais**: O que a lei exige\\n• **Casos práticos**: Como se aplica na realidade\\n• **Pontos de atenção**: O que mais importa\\n• **Dicas de memorização**: Macetes para não esquecer\\n\\nVamos juntos? Bora começar! 🎯"}
+   ⚠️ ATENÇÃO: O slide "introducao" SÓ aparece na PRIMEIRA seção.
+   IMPORTANTE: MANTENHA o título original "${topicoTitulo}" - NÃO altere!
 
-REGRAS:
-- TOM CONVERSACIONAL
+2. Para tipo "texto" (MÍNIMO 250 PALAVRAS - BEM DETALHADO):
+   {"tipo": "texto", "titulo": "...", "conteudo": "Explicação EXTENSA e HIERÁRQUICA. Sempre use **'negrito + aspas'** para termos-chave: A **'competência absoluta'** (ou seja, regras que não podem ser mudadas pelas partes) determina...\\n\\nQuando citar artigos, use blockquote:\\n\\n> \\"Art. XX - Texto do artigo...\\" (Lei X)\\n\\nUse parágrafos curtos. Crie conexões: 'Agora que você entendeu X, vamos ver como isso se aplica em Y...'"}
+
+3. Para tipo "correspondencias" (GAMIFICAÇÃO - COLOCAR NO MEIO DA AULA):
+   {"tipo": "correspondencias", "titulo": "Vamos praticar?", "conteudo": "Conecte cada termo à sua definição correta:", "correspondencias": [
+     {"termo": "Termo técnico 1", "definicao": "Definição simples 1"},
+     {"termo": "Termo técnico 2", "definicao": "Definição simples 2"},
+     {"termo": "Termo técnico 3", "definicao": "Definição simples 3"},
+     {"termo": "Termo técnico 4", "definicao": "Definição simples 4"}
+   ]}
+
+4. Para tipo "termos":
+   {"tipo": "termos", "titulo": "...", "conteudo": "Vamos conhecer os termos importantes:", "termos": [{"termo": "Termo Técnico", "definicao": "Explicação em linguagem simples"}]}
+
+5. Para tipo "linha_tempo":
+   {"tipo": "linha_tempo", "titulo": "...", "conteudo": "Passo a passo:", "etapas": [{"titulo": "1ª Etapa", "descricao": "Descrição clara"}]}
+
+6. Para tipo "tabela":
+   {"tipo": "tabela", "titulo": "...", "conteudo": "Veja a comparação lado a lado:", "tabela": {"cabecalhos": [...], "linhas": [[...], [...]]}}
+
+7. Para tipo "atencao" (ALERTA IMPORTANTE):
+   {"tipo": "atencao", "titulo": "⚠️ Conceito Fundamental!", "conteudo": "**Atenção redobrada aqui!**\\n\\nEsse é um dos pontos mais importantes. Veja:\\n\\n> \\"Art. XX - [texto do artigo relevante]\\" (Lei X)\\n\\nMuita gente confunde [conceito A] com [conceito B], mas a diferença é crucial:\\n\\n• **'Conceito A'**: significa X\\n• **'Conceito B'**: significa Y\\n\\n💡 **Dica para não errar**: Lembre-se que [macete de memorização]."}
+   ⚠️ Obrigatório: 4-5 slides "atencao" por aula!
+
+8. Para tipo "dica" (TÉCNICA DE MEMORIZAÇÃO):
+   {"tipo": "dica", "titulo": "💡 Macete para Memorizar", "conteudo": "**Técnica de Memorização: [Nome da técnica]**\\n\\nPara lembrar de **'[termo técnico]'**, use esta associação:\\n\\n📌 **Mnemônico**: [frase ou acrônimo]\\n\\n**Por que funciona?**\\nQuando você [explicação simples da associação]...\\n\\n✅ **Teste agora**: Feche os olhos e repita o mnemônico 3 vezes!"}
+   ⚠️ Obrigatório: 3-4 slides "dica" por aula!
+
+9. Para tipo "caso" (EXEMPLO PRÁTICO DO COTIDIANO):
+   {"tipo": "caso", "titulo": "📋 Na Prática: Caso de [Contexto]", "conteudo": "**Situação Real:**\\n\\nImagine que João, um [profissão/situação], está enfrentando [problema concreto do dia-a-dia]...\\n\\n**Análise Jurídica:**\\n\\nAqui, aplica-se o **'[termo jurídico]'** (ou seja, [explicação simples]). Conforme:\\n\\n> \\"Art. XX - [citação do artigo]\\" ([Lei])\\n\\n**Conclusão Prática:**\\n\\nJoão [resultado/solução]. Isso mostra que sempre que aparecer [situação similar], você deve pensar em [conceito-chave]."}
+   ⚠️ Obrigatório: 4-5 slides "caso" por aula!
+
+10. Para tipo "quickcheck" (FORMATO OBRIGATÓRIO - UMA PERGUNTA POR SLIDE):
+    {"tipo": "quickcheck", "titulo": "Verificação Rápida", "conteudo": "Vamos testar se ficou claro:", "pergunta": "Qual é o prazo para interposição de recurso?", "opcoes": ["A) 5 dias", "B) 10 dias", "C) 15 dias", "D) 30 dias"], "resposta": 2, "feedback": "Correto! O prazo é de **'15 dias'** conforme o Art. X..."}
+    ⚠️ ATENÇÃO: Use "pergunta" (singular), NÃO "perguntas" (plural). Cada slide quickcheck tem UMA pergunta só.
+
+11. Para tipo "resumo":
+    {"tipo": "resumo", "titulo": "...", "conteudo": "Recapitulando:", "pontos": ["Ponto 1", "Ponto 2", "..."]}
+
+Retorne um JSON com a seção COMPLETA:
+{
+  "id": ${secaoEstrutura.id},
+  "titulo": "${secaoEstrutura.titulo}",
+  "slides": [...]
+}
+
+REGRAS CRÍTICAS:
+- Use TOM CONVERSACIONAL: "Olha só...", "Percebeu?", "Faz sentido, né?"
 - SIMPLES PRIMEIRO → TÉCNICO DEPOIS
-- NÃO mencione OAB ou prova - foque no estudo aprofundado da área
-- ${i === 0 ? 'INCLUA slide introducao' : 'NÃO inclua introducao'}
+- EXPLICAÇÃO INLINE: Todo termo jurídico deve ser explicado entre parênteses imediatamente
+- Páginas "texto" devem ter 250-400 palavras - BEM DETALHADAS
+- Use HIERARQUIA clara: conceito principal → detalhes → aplicação prática
+- NÃO mencione OAB ou prova - foque no estudo aprofundado
+- ${i === 0 ? 'INCLUA slide introducao' : 'NÃO inclua introducao, vá direto ao conteúdo'}
+- USE BLOCKQUOTE (>) para citações de artigos de lei
 - USE **'negrito + aspas'** para termos-chave
-- USE BLOCKQUOTE (>) para artigos de lei
 
-Retorne APENAS o JSON.`;
+Retorne APENAS o JSON da seção, sem texto adicional.`;
 
       try {
         const secaoCompleta = await gerarJSON(promptSecao);
         if (!secaoCompleta?.slides || secaoCompleta.slides.length < 3) throw new Error("Poucos slides");
-        
-        if (i > 0) secaoCompleta.slides = secaoCompleta.slides.filter((s: any) => s.tipo !== 'introducao');
-        
+
+        // Remover introducao duplicada
+        if (i > 0) {
+          secaoCompleta.slides = secaoCompleta.slides.filter((s: any) => s.tipo !== 'introducao');
+        }
+
+        // Pós-processamento
         for (const slide of secaoCompleta.slides) {
-          if (!(i === 0 && slide.tipo === 'introducao') && slide.conteudo)
+          const isPrimeiraSecaoIntro = i === 0 && slide.tipo === 'introducao';
+          if (!isPrimeiraSecaoIntro && slide.conteudo) {
             slide.conteudo = limparSaudacoesProibidas(slide.conteudo);
+          }
+          // Normalizar quickcheck
           if (slide.tipo === 'quickcheck' && !slide.pergunta && slide.perguntas?.length > 0) {
             const q = slide.perguntas[0];
             slide.pergunta = q.texto || q.pergunta || '';
@@ -445,9 +560,9 @@ Retorne APENAS o JSON.`;
             delete slide.perguntas;
           }
         }
-        
+
         secoesCompletas.push(secaoCompleta);
-        console.log(`[Categorias] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} slides`);
+        console.log(`[Categorias] ✓ Seção ${i + 1}: ${secaoCompleta.slides.length} páginas`);
       } catch (err) {
         console.error(`[Categorias] ❌ Erro seção ${i + 1}:`, err);
         secoesCompletas.push({
@@ -459,85 +574,147 @@ Retorne APENAS o JSON.`;
 
     await updateProgress(80);
 
-    // ETAPA 3: Extras (gamificação + flashcards + questões)
+    // ============================================
+    // ETAPA 3: GERAR EXTRAS (gamificação + flashcards + questões)
+    // ============================================
+    console.log(`[Categorias] ETAPA 3: Gerando extras...`);
+
     const promptGamificacao = `${promptBase}
 
-Gere elementos de GAMIFICAÇÃO para "${topicoTitulo}". Retorne JSON:
-{
-  "correspondencias": [{"termo": "T", "definicao": "D (máx 50 chars)"}],
-  "ligar_termos": [{"conceito": "Descrição simples", "termo": "Nome técnico"}],
-  "explique_com_palavras": [{"conceito": "C", "dica": "D"}],
-  "termos": [{"termo": "T", "definicao": "D"}],
-  "exemplos": [{"titulo": "T", "situacao": "S", "analise": "A", "conclusao": "C"}]
-}
-Quantidades: 8 correspondencias, 6 ligar_termos, 4 explique, 10 termos, 5 exemplos.
-APENAS JSON.`;
+═══ SUA TAREFA ═══
+Gere elementos de GAMIFICAÇÃO para estudo interativo sobre "${topicoTitulo}".
 
-    const promptFlash = `${promptBase}
-
-Gere FLASHCARDS e QUESTÕES sobre "${topicoTitulo}" (foco em estudo aprofundado, NÃO OAB). Retorne JSON:
+Retorne JSON com EXATAMENTE esta estrutura:
 {
-  "flashcards": [{"frente": "Pergunta", "verso": "Resposta", "exemplo": "Exemplo prático"}],
-  "questoes": [{"pergunta": "Enunciado", "alternativas": ["A)", "B)", "C)", "D)"], "correta": 0, "explicacao": "Explicação"}]
+  "correspondencias": [{"termo": "Termo técnico", "definicao": "Definição curta (máx 50 chars)"}],
+  "ligar_termos": [{"conceito": "Descrição em linguagem simples", "termo": "Nome técnico"}],
+  "explique_com_palavras": [{"conceito": "Conceito a explicar", "dica": "Dica para ajudar"}],
+  "termos": [{"termo": "Termo jurídico", "definicao": "Explicação para leigo"}],
+  "exemplos": [{"titulo": "Título do caso", "situacao": "Situação", "analise": "Análise", "conclusao": "Conclusão"}]
 }
-EXATAMENTE 22 flashcards e 17 questões. APENAS JSON.`;
+
+QUANTIDADES EXATAS:
+- correspondencias: 8 pares
+- ligar_termos: 6 pares
+- explique_com_palavras: 4 desafios
+- termos: 10 termos
+- exemplos: 5 casos
+
+IMPORTANTE: Definições curtas, máximo 50 caracteres cada. NÃO mencione OAB.
+Retorne APENAS o JSON.`;
+
+    const promptFlashQuestoes = `${promptBase}
+
+═══ SUA TAREFA ═══
+Gere FLASHCARDS e QUESTÕES sobre "${topicoTitulo}" (foco em estudo aprofundado, NÃO OAB).
+
+Retorne JSON:
+{
+  "flashcards": [{"frente": "Pergunta direta sobre conceito-chave", "verso": "Resposta clara e objetiva", "exemplo": "Exemplo prático"}],
+  "questoes": [{"pergunta": "Enunciado completo da questão", "alternativas": ["A) ...", "B) ...", "C) ...", "D) ..."], "correta": 0, "explicacao": "Explicação detalhada"}]
+}
+
+QUANTIDADES EXATAS (OBRIGATÓRIO):
+- flashcards: EXATAMENTE 22 cards
+- questoes: EXATAMENTE 17 questões
+
+REGRAS PARA FLASHCARDS:
+- Frente: Pergunta direta e objetiva
+- Verso: Resposta clara (máx 100 palavras)
+- Exemplo: Situação prática que ilustra
+
+REGRAS PARA QUESTÕES:
+- Enunciado claro e contextualizado
+- 4 alternativas plausíveis
+- Explicação que justifique a correta E refute as incorretas
+
+Retorne APENAS o JSON.`;
 
     let extras: any = { correspondencias: [], ligar_termos: [], explique_com_palavras: [], exemplos: [], termos: [], flashcards: [], questoes: [] };
 
     try {
       const [gam, fq] = await Promise.all([
-        gerarJSON(promptGamificacao, 2, 4096).catch(() => ({})),
-        gerarJSON(promptFlash, 2, 6144).catch(() => ({})),
+        gerarJSON(promptGamificacao, 2, 4096).catch(e => { console.error(`[Categorias] ⚠️ Erro gamificação:`, e.message); return {}; }),
+        gerarJSON(promptFlashQuestoes, 2, 6144).catch(e => { console.error(`[Categorias] ⚠️ Erro flash/questões:`, e.message); return {}; }),
       ]);
       extras = {
         correspondencias: gam.correspondencias || [], ligar_termos: gam.ligar_termos || [],
         explique_com_palavras: gam.explique_com_palavras || [], termos: gam.termos || [],
         exemplos: gam.exemplos || [], flashcards: fq.flashcards || [], questoes: fq.questoes || [],
       };
+      console.log(`[Categorias] ✓ Gamificação: ${extras.correspondencias.length} corresp, ${extras.ligar_termos.length} ligar`);
+      console.log(`[Categorias] ✓ Estudo: ${extras.flashcards.length} flashcards, ${extras.questoes.length} questões`);
     } catch (err) { console.error("[Categorias] Extras error:", err); }
 
     await updateProgress(85);
 
-    // Validar páginas
+    // ============================================
+    // VALIDAR PÁGINAS MÍNIMAS
+    // ============================================
     const totalPaginas = secoesCompletas.reduce((acc, s) => acc + (s.slides?.length || 0), 0);
+    console.log(`[Categorias] Total de páginas geradas: ${totalPaginas}`);
+
     if (totalPaginas < MIN_PAGINAS) {
+      console.log(`[Categorias] ⚠️ Apenas ${totalPaginas} páginas (mínimo: ${MIN_PAGINAS})`);
       const novasTentativas = tentativasAtuais + 1;
       if (novasTentativas >= MAX_TENTATIVAS) {
         await supabase.from("categorias_topicos").update({ status: "erro", tentativas: novasTentativas, progresso: 0 }).eq("id", topico_id);
       } else {
         await supabase.from("categorias_topicos").update({ status: "pendente", tentativas: novasTentativas, progresso: 0 }).eq("id", topico_id);
       }
-      // Encadear próximo mesmo com páginas insuficientes
       await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey, topico.materia_id);
       return;
     }
 
-    // Síntese final
+    // ============================================
+    // ETAPA 4: GERAR SÍNTESE FINAL COMPLETA
+    // ============================================
+    console.log(`[Categorias] ETAPA 4: Gerando síntese final...`);
+
     const promptSintese = `${promptBase}
 
-Crie SÍNTESE FINAL de "${topicoTitulo}" para revisão rápida. JSON:
+═══ SUA TAREFA ═══
+Com base em TODO o conteúdo gerado sobre "${topicoTitulo}", crie uma SÍNTESE FINAL COMPLETA.
+
+Retorne JSON:
 {
-  "resumo_texto": "150-200 palavras de resumo",
-  "termos_chave": [{"termo": "T", "definicao": "D curta"}],
-  "dicas_memorizacao": ["Dica 1", "Dica 2"],
-  "tabela_comparativa": {"cabecalhos": ["A", "B", "C"], "linhas": [["1", "2", "3"]]}
+  "resumo_texto": "Texto 150-200 palavras de resumo conversacional",
+  "termos_chave": [{"termo": "Termo 1", "definicao": "Definição curta"}],
+  "dicas_memorizacao": ["Dica 1: macete", "Dica 2: associação"],
+  "tabela_comparativa": {"cabecalhos": ["Aspecto", "A", "B"], "linhas": [["Caract.", "V1", "V2"]]}
 }
+
 8-12 termos, 4-6 dicas. NÃO mencione OAB. APENAS JSON.`;
 
-    let sintese: any = { resumo_texto: "", termos_chave: [], dicas_memorizacao: [], tabela_comparativa: null };
+    let sinteseFinal: any = { resumo_texto: "", termos_chave: [], dicas_memorizacao: [], tabela_comparativa: null };
     try {
       const s = await gerarJSON(promptSintese, 3, 8192);
-      sintese = { resumo_texto: s?.resumo_texto || "", termos_chave: s?.termos_chave || [], dicas_memorizacao: s?.dicas_memorizacao || [], tabela_comparativa: s?.tabela_comparativa || null };
-    } catch { sintese.resumo_texto = `Você completou o estudo de ${topicoTitulo}.`; }
+      sinteseFinal = {
+        resumo_texto: s?.resumo_texto || "",
+        termos_chave: Array.isArray(s?.termos_chave) ? s.termos_chave.slice(0, 12) : [],
+        dicas_memorizacao: Array.isArray(s?.dicas_memorizacao) ? s.dicas_memorizacao.slice(0, 6) : [],
+        tabela_comparativa: s?.tabela_comparativa || null,
+      };
+      console.log(`[Categorias] ✓ Síntese: ${sinteseFinal.termos_chave.length} termos, ${sinteseFinal.dicas_memorizacao.length} dicas`);
+    } catch { sinteseFinal.resumo_texto = `Você completou o estudo de ${topicoTitulo}.`; }
 
-    // Slides de síntese
-    const slidesSintese: any[] = [
-      { tipo: "texto", titulo: "📚 Resumo Geral", conteudo: sintese.resumo_texto || `Estudo de **${topicoTitulo}** completo!` },
-    ];
-    if (sintese.termos_chave?.length) slidesSintese.push({ tipo: "termos", titulo: "🔑 Termos-Chave", conteudo: "Termos essenciais:", termos: sintese.termos_chave });
-    if (sintese.dicas_memorizacao?.length) slidesSintese.push({ tipo: "dica", titulo: "💡 Dicas de Memorização", conteudo: sintese.dicas_memorizacao.map((d: string, i: number) => `**${i + 1}.** ${d}`).join('\n\n') });
-    if (sintese.tabela_comparativa?.cabecalhos) slidesSintese.push({ tipo: "tabela", titulo: "📊 Comparativo", conteudo: "Revisão:", tabela: sintese.tabela_comparativa });
-    slidesSintese.push({ tipo: "resumo", titulo: "✅ Síntese Final", conteudo: `Parabéns! Estudo de **${topicoTitulo}** completo!\n\nAgora teste com flashcards!`, pontos: ["Revise termos-chave", "Use dicas de memorização", "Pratique com flashcards", "Faça as questões"] });
+    // Criar slides de Síntese Final
+    const slidesSintese: any[] = [];
+    slidesSintese.push({ tipo: "texto", titulo: "📚 Resumo Geral", conteudo: sinteseFinal.resumo_texto || `Estudo de **${topicoTitulo}** completo!` });
+    if (sinteseFinal.termos_chave?.length) {
+      slidesSintese.push({ tipo: "termos", titulo: "🔑 Termos-Chave para Memorizar", conteudo: "Estes são os termos que você DEVE dominar:", termos: sinteseFinal.termos_chave.map((t: any) => ({ termo: t.termo || t, definicao: t.definicao || "" })) });
+    }
+    if (sinteseFinal.dicas_memorizacao?.length) {
+      slidesSintese.push({ tipo: "dica", titulo: "💡 Dicas de Memorização", conteudo: sinteseFinal.dicas_memorizacao.map((d: string, i: number) => `**${i + 1}.** ${d}`).join('\n\n') });
+    }
+    if (sinteseFinal.tabela_comparativa?.cabecalhos) {
+      slidesSintese.push({ tipo: "tabela", titulo: "📊 Comparativo Rápido", conteudo: "Revisão lado a lado:", tabela: sinteseFinal.tabela_comparativa });
+    }
+    slidesSintese.push({
+      tipo: "resumo", titulo: "✅ Síntese Final",
+      conteudo: `Parabéns! Você completou o estudo de **${topicoTitulo}**.\n\nAgora é hora de testar com flashcards!`,
+      pontos: ["Revise os termos-chave", "Use as dicas de memorização", "Pratique com flashcards", "Faça as questões"]
+    });
 
     secoesCompletas.push({ id: secoesCompletas.length + 1, titulo: "Síntese Final", slides: slidesSintese });
 
@@ -556,7 +733,8 @@ Crie SÍNTESE FINAL de "${topicoTitulo}" para revisão rápida. JSON:
 
     const termosComGamificacao = {
       glossario: extras.termos || [], correspondencias: correspondenciasValidas,
-      ligar_termos: extras.ligar_termos || [], explique_com_palavras: extras.explique_com_palavras || [],
+      ligar_termos: Array.isArray(extras.ligar_termos) ? extras.ligar_termos : [],
+      explique_com_palavras: Array.isArray(extras.explique_com_palavras) ? extras.explique_com_palavras : [],
     };
 
     const { error: updateError } = await supabase
@@ -571,7 +749,9 @@ Crie SÍNTESE FINAL de "${topicoTitulo}" para revisão rápida. JSON:
 
     if (updateError) throw updateError;
 
-    console.log(`[Categorias] ✅ Concluído: ${topicoTitulo} (${totalPaginas} páginas)`);
+    console.log(`[Categorias] ✅ Concluído: ${topicoTitulo} (${totalPaginas} páginas, ${secoesCompletas.length} seções)`);
+
+    await updateProgress(95);
 
     // Gerar capa
     try {
@@ -593,7 +773,6 @@ Crie SÍNTESE FINAL de "${topicoTitulo}" para revisão rápida. JSON:
       } else {
         await supabase.from("categorias_topicos").update({ status: "erro", tentativas: tent, progresso: 0 }).eq("id", topico_id);
       }
-      // === ENCADEAMENTO no erro também ===
       if (t?.materia_id) {
         await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey, t.materia_id);
       }
