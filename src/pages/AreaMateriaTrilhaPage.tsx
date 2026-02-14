@@ -284,17 +284,6 @@ const AreaMateriaTrilhaPage = () => {
         </div>
       )}
 
-      {/* Admin: Add PDF */}
-      {isAdmin && (
-        <div className="px-4 py-2">
-          <div className="max-w-lg mx-auto">
-            <Button onClick={handleAddPdf} size="sm" className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800">
-              <Plus className="w-4 h-4 mr-2" />
-              {categoriaMateria ? "Reprocessar PDF" : "Adicionar PDF"}
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Label Conteúdo */}
       <div className="px-4 py-3">
