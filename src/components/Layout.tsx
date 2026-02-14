@@ -126,6 +126,7 @@ const HIDE_HEADER_PREFIXES = [
   "/faculdade/disciplina",
   "/faculdade/topico",
   "/conceitos/area",
+  "/aulas/area",
   "/conceitos/materia",
   "/conceitos/topico",
   "/conceitos/trilhante",
