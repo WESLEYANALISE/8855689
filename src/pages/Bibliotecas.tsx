@@ -295,14 +295,14 @@ const Bibliotecas = () => {
         <BibliotecaTopNav activeTab="acervo" />
         
         {/* Hero section */}
-        <div className="pt-14 pb-2 px-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="pt-14 pb-2 px-4 lg:px-8">
+          <div className="max-w-4xl lg:max-w-6xl mx-auto">
             <div className="flex items-center gap-4 animate-fade-in">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/30">
                 <Library className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+                <h1 className="text-xl lg:text-2xl font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                   <span className="bg-gradient-to-br from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent">
                     Biblioteca Jurídica
                   </span>
@@ -328,8 +328,8 @@ const Bibliotecas = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="px-4 pb-4">
-          <div className="max-w-4xl mx-auto relative">
+        <div className="px-4 lg:px-8 pb-4">
+          <div className="max-w-4xl lg:max-w-6xl mx-auto relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               value={searchQuery}
@@ -341,8 +341,8 @@ const Bibliotecas = () => {
         </div>
 
         {/* Grid Estante de Livros */}
-        <div className="px-3 pb-8 pt-1">
-          <div className="max-w-4xl mx-auto grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="px-3 lg:px-8 pb-8 pt-1">
+          <div className="max-w-4xl lg:max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 lg:gap-5">
             {filteredItems.map((item, index) => (
               <BibliotecaGridCard
                 key={item.id}
