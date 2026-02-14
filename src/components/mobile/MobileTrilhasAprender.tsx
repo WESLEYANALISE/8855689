@@ -355,9 +355,17 @@ export const MobileTrilhasAprender = memo(() => {
       {/* ========== 4. ÁREAS DO DIREITO - ADMIN ONLY ========== */}
       {isAdmin && (
         <div className="w-full mb-6">
-          <div className="flex items-center gap-2 px-4 mb-1">
-            <Scale className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Áreas do Direito</h3>
+          <div className="flex items-center justify-between px-4 mb-1">
+            <div className="flex items-center gap-2">
+              <Scale className="w-4 h-4 text-amber-400" />
+              <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Áreas do Direito</h3>
+            </div>
+            <button
+              onClick={() => navigate("/conceitos/trilhante")}
+              className="flex items-center gap-1 text-amber-400 text-xs font-medium hover:text-amber-300 transition-colors"
+            >
+              Ver tudo <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
           <p className="text-white/40 text-[10px] px-4 mb-3">Explore as matérias</p>
           <div 
