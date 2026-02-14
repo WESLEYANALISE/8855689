@@ -1,61 +1,50 @@
 
 
-## Plano: Transicoes fluidas entre abas da Home
+# Corrigir Tela Cinza e Melhorar Trilha de Conceitos
 
-### Objetivo
-Adicionar animacoes suaves e engajantes ao alternar entre as abas (Jornada, Estudos, Leis, Explorar), cobrindo:
-- Troca da imagem hero (crossfade)
-- Troca do titulo/saudacao (fade + slide)
-- Troca do conteudo principal (fade-in)
+## Problema 1: Tela cinza ao voltar
+O botao "Voltar" na pagina de materia (`ConceitosMateria.tsx`) navega para `/?tab=iniciante`, que nao e uma aba valida. As abas validas sao: `jornada`, `estudos`, `leis`, `explorar`. Isso causa a tela cinza/vazia que aparece na segunda screenshot.
 
-### Mudancas
+**Correcao:** Trocar `/?tab=iniciante` por `/?tab=jornada` no botao Voltar de `ConceitosMateria.tsx`.
 
-**1. Crossfade na imagem hero (`src/pages/Index.tsx`, linhas 270-305)**
+---
 
-Substituir a tag `<img>` unica por duas imagens sobrepostas com transicao CSS de opacidade. Uma mostra a imagem atual, outra faz o fade-in da nova imagem.
+## Problema 2: Legenda de cores na barra de progresso
+A pagina OAB Trilhas Topicos possui uma legenda de cores abaixo da barra de progresso geral (Leitura em laranja, Flashcards em roxo, Praticar em verde). A pagina de Conceitos nao tem essa legenda.
 
-- Guardar a imagem anterior em um `useRef` (ou `useState`)
-- Quando `heroImage` mudar, a nova imagem entra com `opacity: 0 -> 1` (400ms ease) enquanto a anterior sai com `opacity: 1 -> 0`
-- Usar `transition-opacity duration-500 ease-in-out` nas duas imagens empilhadas com `absolute inset-0`
+**Correcao:** Adicionar a mesma legenda de cores abaixo da barra de progresso geral no header de `ConceitosMateria.tsx`, identica a da OAB.
 
-**2. Animacao no titulo/saudacao (linhas 286-303)**
+---
 
-Aplicar uma animacao CSS de fade + translate sutil no bloco de texto ao trocar de aba:
+## Problema 3: Tres botoes ao clicar em uma aula (Ler, Flashcards, Questoes)
+Atualmente, ao clicar em um topico da lista, o usuario e levado diretamente para a pagina de estudo. O usuario quer que, ao clicar, apareca uma expansao inline (ou drawer) com tres botoes de acao: **Ler**, **Flashcards** e **Questoes**, igual ao comportamento das trilhas diarias.
 
-- Usar uma `key={mainTab}` no container do titulo para forcar remontagem
-- Adicionar classe `animate-fade-in` (ja existe no projeto) para o efeito de entrada
-- O texto fara um fade-in suave (300ms) a cada troca
+**Implementacao:** Ao clicar em um topico na lista, em vez de navegar diretamente, expandir o card selecionado mostrando tres botoes de acao:
+- **Ler** - navega para `/conceitos/topico/:id` (modo leitura)
+- **Flashcards** - navega para `/conceitos/topico/:id/flashcards`
+- **Questoes** - navega para `/conceitos/topico/:id/questoes`
 
-**3. Animacao no conteudo principal (linhas 325-420)**
+Cada botao tera um icone e a porcentagem de progresso correspondente. O card expandido tera animacao suave de abertura.
 
-Adicionar transicao de entrada no conteudo de cada aba:
+---
 
-- Usar `key={mainTab}` no container principal do conteudo mobile
-- Aplicar `animate-fade-in` para entrada suave do conteudo
-- Isso cria uma sensacao de fluidez ao navegar entre abas
+## Detalhes Tecnicos
 
-**4. Animacao nos botoes de tab (linhas 213-246)**
+### Arquivo: `src/pages/ConceitosMateria.tsx`
 
-Adicionar `transition-all duration-300` nos botoes (ja tem `transition-all`) para garantir que a troca do estado ativo/inativo seja suave.
+1. **Linha 184** - Trocar `'/?tab=iniciante'` por `'/?tab=jornada'`
 
-### Detalhes tecnicos
+2. **Apos linha 254** (depois da barra Progress do header) - Adicionar legenda de cores:
+   ```
+   Leitura (laranja) | Flashcards (roxo) | Praticar (verde)
+   ```
 
-```text
-Imagem Hero (crossfade):
-  - Novo state: prevHeroImage (useRef)
-  - Duas <img> empilhadas com position absolute
-  - Imagem anterior: opacity 1 -> 0 (500ms)
-  - Imagem nova: opacity 0 -> 1 (500ms)
-  - onTransitionEnd limpa a imagem anterior
+3. **Novo estado** - Adicionar `const [topicoExpandido, setTopicoExpandido] = useState<number | null>(null)` para controlar qual topico esta expandido
 
-Titulo (fade-in):
-  - key={mainTab} no container de texto
-  - className="animate-fade-in"
+4. **Lista de topicos (linhas 291-407)** - Modificar o `onClick` do `motion.button` para alternar a expansao do card em vez de navegar diretamente. Abaixo do conteudo existente do card, adicionar uma secao animada (AnimatePresence) com tres botoes:
+   - Botao "Ler" com icone BookOpen e progresso de leitura
+   - Botao "Flashcards" com icone Layers e progresso de flashcards  
+   - Botao "Questoes" com icone Target e progresso de questoes
 
-Conteudo (fade-in):
-  - key={mainTab} no container de conteudo
-  - className="animate-fade-in"
-```
+   Cada botao navega para a rota correspondente ao ser clicado.
 
-### Resultado esperado
-Ao trocar de aba, a imagem de fundo faz um crossfade elegante, o titulo desliza suavemente e o conteudo aparece com fade, criando uma experiencia visual premium e fluida.
