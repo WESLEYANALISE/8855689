@@ -1,45 +1,61 @@
 
 
-# Conectar Nós da Trilha ao Pipeline de PDF (igual OAB Trilhas)
+# Alinhar Geracaoo de Categorias com OAB Trilhas
 
-## Problema Atual
-Ao clicar num nó da trilha serpentina (ex: "Noções gerais de direito penal"), o app navega para `/biblioteca/estudos/119` que resulta em 404. Falta uma página dedicada para cada matéria com o botão de upload de PDF e listagem de tópicos.
+## Problema
+A Edge Function `gerar-conteudo-categorias` nao encadeia a geracao do proximo topico apos concluir um. No OAB Trilhas, apos finalizar um topico, a funcao chama `processarProximoDaFila()` que busca o proximo pendente e dispara automaticamente. Nas Categorias, depende do frontend (hook) para disparar o proximo -- se o usuario sai da pagina, para tudo.
+
+## Diferencas Identificadas
+
+| Aspecto | OAB Trilhas | Categorias (atual) |
+|---------|------------|-------------------|
+| Fila com encadeamento | Sim (`processarProximoDaFila`) | Nao |
+| Watchdog (30min timeout) | Sim | Nao |
+| Status "na_fila" com posicao | Sim | Nao (so "pendente") |
+| Contexto adicional (RESUMO + Base OAB) | Sim | Nao |
 
 ## Solucao
 
-Criar uma nova pagina `AreaMateriaTrilhaPage` que replica a mecanica do `OABTrilhasMateria`, mas usando as tabelas `categorias_materias` e `categorias_topicos`.
+### 1. Adicionar sistema de fila na Edge Function `gerar-conteudo-categorias`
 
-### Fluxo
+Ao receber um `topico_id`:
+- Verificar se ja existe uma geracao ativa (status "gerando") para a mesma materia
+- Se sim, colocar na fila (status "na_fila" com posicao)
+- Se nao, marcar como "gerando" e processar
+- Ao concluir (sucesso ou erro), chamar `processarProximoDaFila()` que busca o proximo "na_fila" da mesma materia e dispara a funcao novamente
 
-1. Usuario clica num no da trilha (ex: "Nocoes gerais de direito penal")
-2. Navega para `/aulas/area/:area/materia/:livroId`
-3. A nova pagina verifica se ja existe um registro em `categorias_materias` para esse livro
-4. Se nao existe, admin ve o botao "Adicionar PDF" para criar o registro e extrair topicos
-5. Se ja existe, mostra a lista de topicos com status de geracao e progresso
-6. Ao clicar num topico, navega para `/categorias/topico/:id` (pagina ja existente)
+Adicionar watchdog: se um topico esta "gerando" ha mais de 30 minutos, marcar como "erro" e seguir para o proximo.
 
-### Arquivos a Criar
+### 2. Ajustar `processarGeracaoBackground` para encadear
 
-**`src/pages/AreaMateriaTrilhaPage.tsx`** -- Nova pagina que:
-- Recebe `area` e `livroId` da URL
-- Busca o livro em `BIBLIOTECA-ESTUDOS` para pegar nome e capa
-- Busca/cria registro em `categorias_materias` vinculado a esse livro (usando campo `categoria = area`)
-- Mostra botao "Adicionar PDF" para admin (usando `OABPdfProcessorModal`)
-- Lista topicos de `categorias_topicos` com status de geracao
-- Usa `useCategoriasAutoGeneration` para gerar conteudo automaticamente
-- Layout similar ao `OABTrilhasMateria` (timeline com cards de topicos)
+Ao final do `try` (sucesso) e no `catch` (erro), adicionar chamada a `processarProximoDaFila()` que:
+- Busca proximo topico com `status = 'na_fila'` ordenado por `posicao_fila`
+- Faz fetch para `gerar-conteudo-categorias` com o `topico_id` encontrado
 
-### Arquivos a Modificar
+### 3. Manter o hook frontend como backup
 
-**`src/components/mobile/MobileAreaTrilha.tsx`**:
-- Mudar navegacao de `/biblioteca/estudos/${livro.id}` para `/aulas/area/${area}/materia/${livro.id}`
+O hook `useCategoriasAutoGeneration` continua funcionando como fallback, mas agora a geracao sequencial e garantida pelo backend.
 
-**`src/App.tsx`**:
-- Adicionar rota `/aulas/area/:area/materia/:livroId` apontando para `AreaMateriaTrilhaPage`
+## Arquivos a Modificar
 
-### Detalhes Tecnicos
+- `supabase/functions/gerar-conteudo-categorias/index.ts`: Adicionar logica de fila, watchdog e encadeamento (igual OAB)
 
-- A `OABPdfProcessorModal` recebe um `materiaId` (de `oab_trilhas_materias`). Para as Areas, ao processar o PDF, primeiro criaremos um registro em `categorias_materias` com `categoria = nome_da_area` e `nome = titulo_do_livro`, e passaremos esse ID para o modal
-- As Edge Functions `processar-pdf-oab-materia`, `identificar-temas-oab`, `confirmar-temas-oab` trabalham com `oab_trilhas_materias` e `oab_trilhas_topicos`. Para as Areas, precisamos adaptar o `handlePdfProcessed` para salvar em `categorias_materias` e `categorias_topicos` (mesmo padrao usado em `CategoriasMateriasPage`)
-- A geracao automatica de conteudo usa `useCategoriasAutoGeneration` que chama `gerar-conteudo-categorias`
-- Usuarios comuns veem apenas topicos ja gerados; admin ve tudo + botao de PDF
+## Detalhes Tecnicos
+
+A funcao `processarProximoDaFila` sera adicionada ao final do arquivo e chamada tanto no sucesso quanto no erro:
+
+```text
+processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey)
+  -> busca proximo com status "na_fila" e menor posicao_fila
+  -> faz fetch POST para gerar-conteudo-categorias com topico_id
+```
+
+A logica de enfileiramento no inicio da funcao:
+```text
+1. Recebe topico_id
+2. Busca topico ativo (status "gerando") na mesma materia
+3. Se encontrar ativo:
+   a. Se ativo > 30min, marcar como erro
+   b. Senao, enfileirar o novo topico (status "na_fila", posicao = max+1)
+4. Se nao encontrar ativo, processar normalmente
+```
