@@ -362,7 +362,7 @@ const Index = () => {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       {/* Spacer para revelar a imagem hero */}
-      <div className="md:hidden h-20" style={{ zIndex: 1 }} />
+      <div className={`md:hidden ${mainTab === 'jornada' ? 'h-20' : 'h-36'}`} style={{ zIndex: 1 }} />
 
       {/* Jornada selector - above tabs, only when on Jornada tab */}
       {mainTab === 'jornada' && (
