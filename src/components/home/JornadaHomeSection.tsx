@@ -88,14 +88,19 @@ export const JornadaHomeSection = memo(() => {
 
   return (
     <div className="space-y-3 relative min-h-[60vh] rounded-t-[32px] overflow-hidden">
-      <InstantBackground
-        src={themisBackground}
-        alt="Themis"
-        blurCategory="estudos"
-        fixed={false}
-        gradientClassName="bg-gradient-to-b from-black/60 via-black/70 to-[#0d0d14]"
-        className="rounded-t-[32px]"
-      />
+      {/* Background image - fixed height to prevent stretching */}
+      <div className="absolute inset-x-0 top-0 h-[80vh] rounded-t-[32px] overflow-hidden pointer-events-none" aria-hidden="true">
+        <InstantBackground
+          src={themisBackground}
+          alt="Themis"
+          blurCategory="estudos"
+          fixed={false}
+          showGradient={false}
+          className="rounded-t-[32px]"
+        />
+      </div>
+      {/* Gradient overlay - covers full content */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-[#0d0d14] rounded-t-[32px] pointer-events-none" />
       {/* Journey Selector */}
       <div className="px-2 pt-6 relative z-10">
         <button
