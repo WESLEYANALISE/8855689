@@ -1,76 +1,85 @@
 
-# Corrigir Conteudo Zerado nas Categorias
 
-## Problemas Identificados
+# Sistema de Niveis estilo Duolingo para Areas
 
-### Problema 1: Parametro da rota incorreto (causa principal do "zerado")
-A rota no `App.tsx` define o parametro como `:id`:
-```
-/categorias/topico/:id
-```
-Mas o componente `CategoriasTopicoEstudo.tsx` tenta ler `topicoId`:
-```
-const { topicoId } = useParams();
-```
-Como `topicoId` e sempre `undefined`, a query nunca encontra o topico e tudo aparece zerado (0 paginas, 0 flashcards, 0 questoes), apesar dos dados existirem no banco (confirmado: topico 31 tem 51 slides, 22 flashcards, 17 questoes).
+## Conceito
 
-### Problema 2: Reprocessar PDF apaga todo o conteudo gerado
-No `confirmar-temas-categorias/index.ts` (linha 85), ao reprocessar:
-```
-await supabase.from('categorias_topicos').delete().eq('materia_id', materiaId);
-```
-Isso deleta TODOS os topicos (incluindo conteudo ja gerado), diferente do OAB que preserva conteudo existente.
+Dividir as materias de cada area em **10 niveis** (ou menos, se houver poucas materias). Cada nivel tera:
+- Um **banner/header** colorido (ex: "Nivel 1", "Nivel 2") com cor distinta
+- As materias daquele nivel em layout serpentina abaixo do banner
+- Uma **linha separadora** entre niveis com cor temática
+- A materia atual permanece maior que as outras
 
-## Solucao
+## Distribuicao
 
-### Correcao 1 - Parametro da rota
-No arquivo `src/pages/CategoriasTopicoEstudo.tsx`, mudar:
+Se uma area tem 20 materias e 10 niveis, cada nivel tera 2 materias. Se tem 15 materias, os primeiros niveis terao 2 e os ultimos 1. A logica e: `Math.ceil(totalMaterias / 10)` materias por nivel.
+
+## Visual por Nivel
+
+Cada nivel tera uma cor propria seguindo uma progressao:
+
+| Nivel | Cor do Banner | Tema |
+|-------|--------------|------|
+| 1 | Verde | Iniciante |
+| 2 | Verde-agua | Basico |
+| 3 | Azul | Fundamentos |
+| 4 | Azul-indigo | Intermediario |
+| 5 | Roxo | Avancando |
+| 6 | Rosa | Aprofundando |
+| 7 | Vermelho | Avancado |
+| 8 | Laranja | Expert |
+| 9 | Amber | Especialista |
+| 10 | Dourado | Mestre |
+
+## Layout
+
+```text
+  [====== Nivel 1 ======]  (banner verde arredondado)
+       (o)               materia 1 (grande se atual)
+      /
+    (o)                  materia 2
+      \
+  [====== Nivel 2 ======]  (banner azul)
+       (o)
+      /
+    (o)
 ```
-const { topicoId } = useParams();
-```
-Para:
-```
-const { id: topicoId } = useParams();
-```
-Isso resolve o problema do conteudo zerado. Todas as referencias a `topicoId` no componente continuam funcionando sem outras alteracoes.
 
-Tambem corrigir as rotas de flashcards e questoes que provavelmente tem o mesmo problema (parametro `:id` na rota vs leitura diferente no componente).
-
-### Correcao 2 - Preservar conteudo ao reprocessar PDF
-No `confirmar-temas-categorias/index.ts`, em vez de deletar todos os topicos e recriar:
-- Comparar os temas novos com os existentes
-- Atualizar os que ja existem (preservando `conteudo_gerado`, `flashcards`, `questoes`)
-- Adicionar apenas os novos
-- Remover apenas os que nao estao mais na lista
-
-## Arquivos a Modificar
-
-1. `src/pages/CategoriasTopicoEstudo.tsx` - corrigir `useParams`
-2. `src/pages/CategoriasTopicoFlashcards.tsx` - verificar e corrigir `useParams` (se necessario)
-3. `src/pages/CategoriasTopicoQuestoes.tsx` - verificar e corrigir `useParams` (se necessario)
-4. `supabase/functions/confirmar-temas-categorias/index.ts` - preservar conteudo existente ao reprocessar
+- O banner de nivel e um retangulo arredondado centralizado com o texto "Nivel X"
+- As materias continuam em serpentina dentro de cada nivel
+- A linha conectora muda de cor conforme o nivel
+- Barra de progresso geral aparece no topo (progresso linear, como no print)
 
 ## Detalhes Tecnicos
 
-### useParams fix
-A mudanca e minima - apenas renomear a desestruturacao:
-```typescript
-// ANTES
-const { topicoId } = useParams();
+### Arquivo a modificar
+- `src/pages/AreaTrilhaPage.tsx` - refatorar o componente `SerpentineMaterias`
 
-// DEPOIS  
-const { id: topicoId } = useParams();
-```
-
-### Preservar conteudo no reprocessamento
-Em vez de `DELETE + INSERT`, usar logica de merge:
-
+### Logica de agrupamento
 ```text
-1. Buscar topicos existentes com conteudo
-2. Para cada tema novo:
-   a. Se ja existe (por titulo normalizado) -> UPDATE (manter conteudo_gerado, flashcards, questoes)
-   b. Se nao existe -> INSERT como pendente
-3. Topicos existentes que nao estao na nova lista -> DELETE (ou manter como inativos)
+const TOTAL_NIVEIS = 10;
+const materiasPorNivel = Math.ceil(livros.length / TOTAL_NIVEIS);
+
+// Agrupar materias em niveis
+const niveis = [];
+for (let i = 0; i < TOTAL_NIVEIS; i++) {
+  const start = i * materiasPorNivel;
+  const end = Math.min(start + materiasPorNivel, livros.length);
+  if (start < livros.length) {
+    niveis.push({ nivel: i + 1, materias: livros.slice(start, end) });
+  }
+}
 ```
 
-Isso garante que o conteudo ja gerado pela IA nao seja perdido ao reprocessar o PDF.
+### Componente NivelBanner
+Um componente inline que renderiza o banner colorido entre grupos de materias, com:
+- Fundo com gradiente da cor do nivel
+- Texto "Nivel X" centralizado em branco
+- Icone de cadeado se o nivel estiver bloqueado (todos os anteriores nao completos)
+
+### Serpentina por nivel
+Cada nivel reinicia a serpentina com posicoes X do zero, mas o indice global e mantido para o efeito visual. A linha SVG conectora usa a cor do nivel correspondente.
+
+### Barra de progresso no topo
+Uma barra de progresso linear (fina, verde) abaixo do header mostrando progresso geral da area (0% por enquanto, placeholder).
+
