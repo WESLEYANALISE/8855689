@@ -1,61 +1,71 @@
 
 
-# Alinhar Geracaoo de Categorias com OAB Trilhas
+# Corrigir Flashcards e Questoes Vazios nas Categorias
 
-## Problema
-A Edge Function `gerar-conteudo-categorias` nao encadeia a geracao do proximo topico apos concluir um. No OAB Trilhas, apos finalizar um topico, a funcao chama `processarProximoDaFila()` que busca o proximo pendente e dispara automaticamente. Nas Categorias, depende do frontend (hook) para disparar o proximo -- se o usuario sai da pagina, para tudo.
+## Problema Identificado
 
-## Diferencas Identificadas
+A geracao de flashcards e questoes esta falhando silenciosamente em TODOS os topicos recentes. Os logs confirmam:
 
-| Aspecto | OAB Trilhas | Categorias (atual) |
-|---------|------------|-------------------|
-| Fila com encadeamento | Sim (`processarProximoDaFila`) | Nao |
-| Watchdog (30min timeout) | Sim | Nao |
-| Status "na_fila" com posicao | Sim | Nao (so "pendente") |
-| Contexto adicional (RESUMO + Base OAB) | Sim | Nao |
+```
+Erro flash/questoes: Unterminated string in JSON at position 24098
+```
+
+O `maxOutputTokens: 6144` e insuficiente para gerar 22 flashcards + 17 questoes em um unico JSON. A resposta da IA e cortada no meio, o JSON fica invalido, o parse falha, e arrays vazios sao salvos.
+
+Dados no banco confirmam:
+- Topicos 31, 34-37: **0 flashcards, 0 questoes** (todos falharam)
+- Topicos 32-33: **22 flashcards, 17 questoes** (os unicos que geraram antes da mudanca de prompt)
 
 ## Solucao
 
-### 1. Adicionar sistema de fila na Edge Function `gerar-conteudo-categorias`
+### 1. Aumentar maxOutputTokens para flashcards/questoes
 
-Ao receber um `topico_id`:
-- Verificar se ja existe uma geracao ativa (status "gerando") para a mesma materia
-- Se sim, colocar na fila (status "na_fila" com posicao)
-- Se nao, marcar como "gerando" e processar
-- Ao concluir (sucesso ou erro), chamar `processarProximoDaFila()` que busca o proximo "na_fila" da mesma materia e dispara a funcao novamente
+Mudar de `6144` para `16384` na chamada `gerarJSON(promptFlashQuestoes, ...)` para dar espaco suficiente ao JSON completo.
 
-Adicionar watchdog: se um topico esta "gerando" ha mais de 30 minutos, marcar como "erro" e seguir para o proximo.
+### 2. Separar geracao de flashcards e questoes em 2 chamadas
 
-### 2. Ajustar `processarGeracaoBackground` para encadear
+Em vez de pedir tudo em uma unica chamada (que gera JSONs enormes), dividir em:
+- Chamada 1: 22 flashcards (maxTokens: 8192)
+- Chamada 2: 17 questoes (maxTokens: 8192)
 
-Ao final do `try` (sucesso) e no `catch` (erro), adicionar chamada a `processarProximoDaFila()` que:
-- Busca proximo topico com `status = 'na_fila'` ordenado por `posicao_fila`
-- Faz fetch para `gerar-conteudo-categorias` com o `topico_id` encontrado
+Isso reduz o risco de truncamento e melhora a confiabilidade.
 
-### 3. Manter o hook frontend como backup
+### 3. Adicionar fallback com reparo de JSON truncado
 
-O hook `useCategoriasAutoGeneration` continua funcionando como fallback, mas agora a geracao sequencial e garantida pelo backend.
+Se o JSON terminar com string nao fechada, tentar fechar automaticamente antes de desistir (adicionar `"}]}`).
 
-## Arquivos a Modificar
+### 4. Regenerar topicos com flashcards/questoes vazios
 
-- `supabase/functions/gerar-conteudo-categorias/index.ts`: Adicionar logica de fila, watchdog e encadeamento (igual OAB)
+Marcar topicos concluidos mas com flashcards/questoes vazios como "pendente" para regerar apenas os extras.
+
+## Arquivo a Modificar
+
+- `supabase/functions/gerar-conteudo-categorias/index.ts`
 
 ## Detalhes Tecnicos
 
-A funcao `processarProximoDaFila` sera adicionada ao final do arquivo e chamada tanto no sucesso quanto no erro:
+Na funcao de geracao de extras (Etapa 3), substituir a chamada unica:
 
 ```text
-processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey)
-  -> busca proximo com status "na_fila" e menor posicao_fila
-  -> faz fetch POST para gerar-conteudo-categorias com topico_id
+// ANTES (falha por truncamento)
+gerarJSON(promptFlashQuestoes, 2, 6144)
+
+// DEPOIS (separado e com mais tokens)
+Promise.all([
+  gerarJSON(promptFlashcards, 3, 8192),
+  gerarJSON(promptQuestoes, 3, 8192),
+])
 ```
 
-A logica de enfileiramento no inicio da funcao:
+Tambem adicionar na funcao `gerarJSON` um reparo extra para JSONs truncados:
+
 ```text
-1. Recebe topico_id
-2. Busca topico ativo (status "gerando") na mesma materia
-3. Se encontrar ativo:
-   a. Se ativo > 30min, marcar como erro
-   b. Senao, enfileirar o novo topico (status "na_fila", posicao = max+1)
-4. Se nao encontrar ativo, processar normalmente
+// Se o parse falhar por truncamento, tentar fechar arrays/objetos abertos
+if (error.message.includes("Unterminated")) {
+  text += '"}]}';
+  return JSON.parse(text);
+}
 ```
+
+Para os topicos ja gerados com extras vazios, adicionar logica no inicio da funcao que detecta status "concluido" + flashcards vazio e regera apenas os extras (sem reprocessar slides).
+
