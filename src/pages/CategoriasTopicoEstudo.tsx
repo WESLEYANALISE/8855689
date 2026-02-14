@@ -26,9 +26,7 @@ const CategoriasTopicoEstudo = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('intro');
   const [isGeracaoTravada, setIsGeracaoTravada] = useState(false);
 
-  useEffect(() => {
-    if (user && !isAdmin) navigate("/", { replace: true });
-  }, [user, isAdmin]);
+  // Removed admin-only restriction - all users can access topic study
 
   const { data: topico, isLoading, refetch } = useQuery({
     queryKey: ["categorias-topico-estudo", topicoId],
@@ -117,9 +115,7 @@ const CategoriasTopicoEstudo = () => {
   const objetivos = conteudoGerado?.objetivos || [];
 
   const handleBack = () => {
-    if (topico?.materia?.categoria) {
-      navigate(`/categorias/${encodeURIComponent(topico.materia.categoria)}`);
-    } else navigate(-1);
+    navigate(-1);
   };
 
   const handleSlidesComplete = async () => {

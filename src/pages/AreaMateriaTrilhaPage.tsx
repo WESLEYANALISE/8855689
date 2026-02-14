@@ -75,10 +75,10 @@ const AreaMateriaTrilhaPage = () => {
       return data || [];
     },
     enabled: !!categoriaMateria?.id,
-    staleTime: Infinity,
+    staleTime: 5000,
     refetchInterval: (query) => {
       const data = query.state.data;
-      const hasGenerating = data?.some((t: any) => t.status === "gerando" || t.status === "na_fila");
+      const hasGenerating = data?.some((t: any) => t.status === "gerando" || t.status === "na_fila" || t.status === "pendente");
       return hasGenerating ? 5000 : false;
     },
   });
@@ -161,11 +161,8 @@ const AreaMateriaTrilhaPage = () => {
     return topicos.filter(t => t.titulo.toLowerCase().includes(term));
   }, [topicos, searchTerm]);
 
-  // For non-admin: only show completed topics
-  const visibleTopicos = useMemo(() => {
-    if (isAdmin) return filteredTopicos;
-    return filteredTopicos.filter(t => t.status === "concluido");
-  }, [filteredTopicos, isAdmin]);
+  // Show all topics for everyone (like OAB Trilhas)
+  const visibleTopicos = filteredTopicos;
 
   return (
     <div className="min-h-screen bg-[#0d0d14] relative overflow-hidden">
@@ -318,9 +315,7 @@ const AreaMateriaTrilhaPage = () => {
                       <motion.div
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
-                          if (topico.status === "concluido") {
-                            navigate(`/categorias/topico/${topico.id}`);
-                          }
+                          navigate(`/categorias/topico/${topico.id}`);
                         }}
                         className={`cursor-pointer rounded-2xl bg-[#12121a]/90 backdrop-blur-sm border transition-all overflow-hidden min-h-[140px] flex flex-col ${
                           topico.status === "concluido" ? "border-white/10 hover:border-red-500/50" : "border-white/5 opacity-70"
