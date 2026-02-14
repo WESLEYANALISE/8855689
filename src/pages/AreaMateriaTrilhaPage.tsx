@@ -386,13 +386,23 @@ const AreaMateriaTrilhaPage = () => {
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <FileText className="w-16 h-16 text-red-500/30 mb-4" />
               <p className="text-gray-400 mb-2">Nenhum conteúdo disponível</p>
-              {isAdmin && <p className="text-sm text-gray-500">Use o botão acima para adicionar um PDF</p>}
+              {isAdmin && (
+                <Button onClick={handleAddPdf} className="mt-4 bg-red-600 hover:bg-red-700 gap-2">
+                  <Plus className="w-4 h-4" />
+                  Adicionar PDF
+                </Button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Scale className="w-16 h-16 text-red-500/30 mb-4" />
               <p className="text-gray-400 mb-2">Nenhum tópico encontrado</p>
-              {isAdmin && <p className="text-sm text-gray-500">Reprocesse o PDF para extrair os tópicos</p>}
+              {isAdmin && (
+                <Button onClick={() => setShowPdfModal(true)} className="mt-4 bg-red-600 hover:bg-red-700 gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Reprocessar PDF
+                </Button>
+              )}
             </div>
           )}
         </div>
