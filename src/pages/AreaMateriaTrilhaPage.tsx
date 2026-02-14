@@ -1,12 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Scale, Footprints, Sparkles, Search, X, FileText, RefreshCw, Plus } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Scale, ChevronRight, CheckCircle, Search, X, FileText, RefreshCw, Plus, ImageIcon, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { useCategoriasAutoGeneration } from "@/hooks/useCategoriasAutoGeneration";
 import { CategoriasPdfProcessorModal } from "@/components/categorias/CategoriasPdfProcessorModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +22,6 @@ const AreaMateriaTrilhaPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
   const [showPdfModal, setShowPdfModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [createdMateriaId, setCreatedMateriaId] = useState<number | null>(null);
   const [createdMateriaNome, setCreatedMateriaNome] = useState<string>("");
 
@@ -47,7 +45,6 @@ const AreaMateriaTrilhaPage = () => {
   const { data: categoriaMateria, isLoading: loadingMateria } = useQuery({
     queryKey: ["area-categoria-materia", areaDecoded, parsedLivroId],
     queryFn: async () => {
-      // Buscar pelo nome do livro + categoria = area
       const nomeMateria = livro?.Tema || "";
       const { data, error } = await supabase
         .from("categorias_materias")
@@ -83,6 +80,32 @@ const AreaMateriaTrilhaPage = () => {
     },
   });
 
+  // Buscar progresso do usuário para cada tópico
+  const { data: progressoUsuario } = useQuery({
+    queryKey: ["categorias-progresso-all", categoriaMateria?.id, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !topicos) return {};
+      const topicoIds = topicos.map(t => t.id);
+      const { data, error } = await supabase
+        .from("categorias_progresso")
+        .select("topico_id, leitura_concluida, flashcards_concluidos, questoes_concluidas")
+        .eq("user_id", user.id)
+        .in("topico_id", topicoIds);
+      if (error) return {};
+      const map: Record<number, { leitura: boolean; flashcards: boolean; questoes: boolean }> = {};
+      data?.forEach(p => {
+        map[p.topico_id] = {
+          leitura: p.leitura_concluida || false,
+          flashcards: p.flashcards_concluidos || false,
+          questoes: p.questoes_concluidas || false,
+        };
+      });
+      return map;
+    },
+    enabled: !!user?.id && !!topicos && topicos.length > 0,
+    staleTime: 1000 * 30,
+  });
+
   // Auto-generation
   const {
     isGenerating,
@@ -91,7 +114,6 @@ const AreaMateriaTrilhaPage = () => {
     totalTopicos: totalTopicosGerados,
     concluidos,
     pendentes,
-    percentualGeral,
     getTopicoStatus,
   } = useCategoriasAutoGeneration({
     materiaId: categoriaMateria?.id || null,
@@ -154,90 +176,119 @@ const AreaMateriaTrilhaPage = () => {
   const totalTopicos = topicos?.length || 0;
   const isLoading = loadingLivro || loadingMateria;
 
-  const filteredTopicos = useMemo(() => {
-    if (!topicos) return [];
-    if (!searchTerm.trim()) return topicos;
-    const term = searchTerm.toLowerCase().trim();
-    return topicos.filter(t => t.titulo.toLowerCase().includes(term));
-  }, [topicos, searchTerm]);
+  // Calcular totais de progresso
+  const totalPaginas = topicos?.reduce((acc, t) => {
+    if (!t.conteudo_gerado) return acc;
+    const conteudo = typeof t.conteudo_gerado === 'string' ? JSON.parse(t.conteudo_gerado) : t.conteudo_gerado;
+    return acc + (conteudo?.secoes?.reduce((a: number, s: any) => a + (s.slides?.length || 0), 0) || 0);
+  }, 0) || 0;
 
-  // Show all topics for everyone (like OAB Trilhas)
-  const visibleTopicos = filteredTopicos;
+  const topicosConcluidosUsuario = Object.values(progressoUsuario || {}).filter(p => p.leitura).length;
+
+  if (isLoading && !livro) {
+    return (
+      <div className="min-h-screen bg-[#0d0d14] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#0d0d14] relative overflow-hidden">
-      {/* Header */}
-      <div className="pt-6 pb-4 px-4">
-        <div className="max-w-lg mx-auto">
+    <div className="min-h-screen bg-[#0d0d14]">
+      {/* Header sticky */}
+      <div className="sticky top-0 z-20 bg-[#0d0d14]/90 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-lg mx-auto px-4 py-3">
           <button
             onClick={() => navigate(`/aulas/area/${encodeURIComponent(areaDecoded)}`)}
-            className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mb-6"
+            className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium">Voltar</span>
           </button>
+        </div>
+      </div>
 
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-start gap-4">
-              {capaUrl ? (
-                <img src={capaUrl} alt={titulo} className="w-14 h-14 rounded-xl object-cover shadow-lg flex-shrink-0" />
-              ) : (
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Scale className="w-7 h-7 text-white" />
-                </div>
-              )}
-              <div>
+      {/* Header com Capa de Fundo */}
+      <div className="relative">
+        <div className="absolute inset-0 h-48 overflow-hidden">
+          {capaUrl ? (
+            <img src={capaUrl} alt={titulo} className="w-full h-full object-cover" loading="eager" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-red-900 to-red-950" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0d0d14]/60 via-[#0d0d14]/80 to-[#0d0d14]" />
+        </div>
+
+        <div className="relative z-10 px-4 pt-6 pb-4">
+          <div className="max-w-lg mx-auto">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-red-500/30 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                <BookOpen className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
                 <span className="text-xs font-mono text-red-400">{areaDecoded}</span>
-                <h1 className="text-xl font-bold text-white mt-1" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+                <h1 className="text-xl font-bold text-white" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                   {titulo}
                 </h1>
-                <p className="text-sm text-gray-400 mt-1">
-                  {totalTopicos} tópico{totalTopicos !== 1 ? 's' : ''}
-                </p>
+                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                  <span>{totalTopicos} aulas</span>
+                  <span className="text-gray-600">•</span>
+                  <div className="flex items-center gap-1">
+                    <Scale className="w-3 h-3" />
+                    <span>{totalPaginas} páginas</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </motion.div>
+
+            {/* Info - Progresso */}
+            <div className="rounded-xl p-3 bg-neutral-800/80 backdrop-blur-sm border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4 text-sm text-gray-300">
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-red-400" />
+                    <span>{totalTopicos} aulas</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>{topicosConcluidosUsuario} concluídos</span>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">{totalTopicos - topicosConcluidosUsuario} restantes</span>
+              </div>
+
+              <Progress
+                value={totalTopicos > 0 ? (topicosConcluidosUsuario / totalTopicos) * 100 : 0}
+                className="h-2 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-rose-500"
+              />
+
+              <div className="flex items-center gap-4 mt-2 text-[10px]">
+                <span className="text-orange-400">● Leitura</span>
+                <span className="text-purple-400">● Flashcards</span>
+                <span className="text-emerald-400">● Praticar</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-center gap-6 text-sm text-white/80">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-red-400" />
-            <span>{totalTopicos} tópicos</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Footprints className="w-4 h-4 text-yellow-400" />
-            <span>{concluidos} concluídos</span>
-          </div>
-        </div>
-
-        {/* Generation banner */}
-        {isGenerating && currentGeneratingTitle && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 bg-gradient-to-r from-amber-900/40 to-amber-800/30 border border-amber-500/30 rounded-xl p-3"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span className="text-sm text-white truncate">Gerando: {currentGeneratingTitle}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Progress value={currentProgress} className="h-2 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500" />
-              <span className="text-sm font-bold text-amber-400 min-w-[40px] text-right">{currentProgress}%</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1.5">{concluidos} de {totalTopicosGerados} concluídos • {pendentes} pendentes</p>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Admin: Add PDF button */}
-      {isAdmin && (
-        <div className="px-4 pb-4">
+      {/* Banner de geração */}
+      {isGenerating && currentGeneratingTitle && (
+        <div className="px-4 py-2">
           <div className="max-w-lg mx-auto">
-            <Button onClick={handleAddPdf} className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-900/30 border border-red-500/30">
+              <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+              <span className="text-xs text-gray-300 truncate">Gerando: {currentGeneratingTitle}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin: Add PDF */}
+      {isAdmin && (
+        <div className="px-4 py-2">
+          <div className="max-w-lg mx-auto">
+            <Button onClick={handleAddPdf} size="sm" className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800">
               <Plus className="w-4 h-4 mr-2" />
               {categoriaMateria ? "Reprocessar PDF" : "Adicionar PDF"}
             </Button>
@@ -245,144 +296,126 @@ const AreaMateriaTrilhaPage = () => {
         </div>
       )}
 
-      {/* Search */}
-      {totalTopicos > 0 && (
-        <div className="px-4 pb-4">
-          <div className="max-w-lg mx-auto relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Buscar tópico..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-red-500/50"
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+      {/* Label Conteúdo */}
+      <div className="px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center gap-2 text-gray-400">
+          <BookOpen className="w-4 h-4" />
+          <span className="text-sm font-medium">Conteúdo Programático</span>
         </div>
-      )}
+      </div>
 
-      {/* Timeline */}
-      {isLoading || loadingTopicos ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-        </div>
-      ) : visibleTopicos.length > 0 ? (
-        <div className="px-4 pb-32 pt-4">
-          <div className="max-w-lg mx-auto relative">
-            {/* Timeline line */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
-              <div className="w-full h-full bg-gradient-to-b from-red-500/80 via-red-600/60 to-red-700/40 rounded-full" />
-              <motion.div
-                className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-red-300/30 to-transparent rounded-full"
-                animate={{ y: ["0%", "300%"] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              />
+      {/* Lista de Tópicos */}
+      <div className="px-4 pb-24">
+        <div className="max-w-lg mx-auto space-y-3">
+          {loadingTopicos ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
             </div>
+          ) : topicos && topicos.length > 0 ? (
+            topicos.map((topico, index) => {
+              const status = getTopicoStatus(topico.id);
+              const progresso = progressoUsuario?.[topico.id];
+              const leituraCompleta = progresso?.leitura || false;
+              const hasConteudo = status.status === "concluido";
+              const isGerando = status.status === "gerando";
 
-            <div className="space-y-6">
-              {visibleTopicos.map((topico, index) => {
-                const isLeft = index % 2 === 0;
-                const status = getTopicoStatus(topico.id);
-
-                return (
-                  <motion.div
-                    key={topico.id}
-                    initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`relative flex items-center ${isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'}`}
-                  >
-                    {/* Center marker */}
-                    <div className="absolute left-1/2 -translate-x-1/2 z-10">
-                      <motion.div
-                        animate={{
-                          scale: [1, 1.15, 1],
-                          boxShadow: ["0 0 0 0 rgba(239, 68, 68, 0.4)", "0 0 0 10px rgba(239, 68, 68, 0)", "0 0 0 0 rgba(239, 68, 68, 0.4)"]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity, delay: index * 0.2 }}
-                        className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/40"
-                      >
-                        <Footprints className="w-5 h-5 text-white" />
-                      </motion.div>
+              return (
+                <motion.button
+                  key={topico.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  onClick={() => navigate(`/categorias/topico/${topico.id}`)}
+                  className={`w-full text-left bg-neutral-800 rounded-xl border overflow-hidden transition-all group ${
+                    isGerando
+                      ? "border-red-500/50 bg-red-900/20"
+                      : "border-white/10 hover:border-red-500/30"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    {/* Capa */}
+                    <div className="w-20 h-20 flex-shrink-0 relative bg-neutral-900 overflow-hidden rounded-l-xl">
+                      {topico.capa_url ? (
+                        <img src={topico.capa_url} alt={topico.titulo} className="absolute inset-[-10%] w-[120%] h-[120%] object-cover" loading="eager" />
+                      ) : capaUrl ? (
+                        <img src={capaUrl} alt={topico.titulo} className="absolute inset-[-10%] w-[120%] h-[120%] object-cover" loading="eager" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-900/50 to-rose-900/50">
+                          <ImageIcon className="w-6 h-6 text-red-500/50" />
+                        </div>
+                      )}
+                      {/* Badge do número */}
+                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+                        {String(index + 1).padStart(2, '0')}
+                      </div>
+                      {/* Indicador de geração */}
+                      {isGerando && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-red-400" />
+                        </div>
+                      )}
                     </div>
 
-                    {/* Card */}
-                    <div className="w-full">
-                      <motion.div
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          navigate(`/categorias/topico/${topico.id}`);
-                        }}
-                        className={`cursor-pointer rounded-2xl bg-[#12121a]/90 backdrop-blur-sm border transition-all overflow-hidden min-h-[140px] flex flex-col ${
-                          topico.status === "concluido" ? "border-white/10 hover:border-red-500/50" : "border-white/5 opacity-70"
-                        }`}
-                      >
-                        {/* Cover */}
-                        <div className="h-16 w-full overflow-hidden relative flex-shrink-0">
-                          {topico.capa_url ? (
-                            <>
-                              <img src={topico.capa_url} alt={topico.titulo} className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                            </>
-                          ) : capaUrl ? (
-                            <>
-                              <img src={capaUrl} alt={topico.titulo} className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                            </>
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-red-800 to-red-900 flex items-center justify-center">
-                              <Scale className="w-6 h-6 text-white/30" />
-                            </div>
-                          )}
-                          {/* Status badge */}
-                          {status.status === "gerando" && (
-                            <div className="absolute top-1 right-1 px-2 py-0.5 bg-amber-500/80 rounded-full text-[9px] font-bold text-white">
-                              Gerando {status.progresso}%
-                            </div>
-                          )}
-                          {status.status === "concluido" && (
-                            <div className="absolute top-1 right-1 px-2 py-0.5 bg-green-500/80 rounded-full text-[9px] font-bold text-white">
-                              ✓ Pronto
-                            </div>
-                          )}
-                          {status.status === "pendente" && (
-                            <div className="absolute top-1 right-1 px-2 py-0.5 bg-gray-500/60 rounded-full text-[9px] font-bold text-white">
-                              Pendente
-                            </div>
-                          )}
-                          <div className="absolute bottom-1 left-2">
-                            <p className="text-[10px] text-red-400 font-semibold drop-shadow-lg">Tópico {topico.ordem}</p>
+                    {/* Conteúdo */}
+                    <div className="flex-1 p-3 flex flex-col justify-center min-h-[80px] relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-white transition-colors text-sm flex-1 pr-2 line-clamp-2 group-hover:text-red-400">
+                          {topico.titulo?.toLowerCase().replace(/(?:^|\s)\S/g, (l) => l.toUpperCase())}
+                        </h3>
+                        {leituraCompleta ? (
+                          <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-400" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 flex-shrink-0 text-red-500/50" />
+                        )}
+                      </div>
+
+                      {/* Progresso por tipo */}
+                      {hasConteudo && (
+                        <div className="mt-1">
+                          <div className="flex items-center gap-3 text-[10px]">
+                            <span className={progresso?.leitura ? "text-green-400" : "text-orange-400"}>
+                              leitura {progresso?.leitura ? "100" : "0"}%
+                            </span>
+                            <span className={progresso?.flashcards ? "text-green-400" : "text-purple-400"}>
+                              flashcards {progresso?.flashcards ? "100" : "0"}%
+                            </span>
+                            <span className={progresso?.questoes ? "text-green-400" : "text-emerald-400"}>
+                              praticar {progresso?.questoes ? "100" : "0"}%
+                            </span>
                           </div>
                         </div>
+                      )}
 
-                        <div className="p-2.5 flex-1 flex flex-col">
-                          <h3 className="font-medium text-xs leading-snug text-white line-clamp-2">{topico.titulo}</h3>
+                      {/* Status de geração */}
+                      {isGerando && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+                          <span className="text-[10px] text-amber-400">Gerando {status.progresso}%</span>
                         </div>
-                      </motion.div>
+                      )}
+                      {status.status === "pendente" && (
+                        <span className="text-[10px] text-gray-500 mt-1">Pendente</span>
+                      )}
                     </div>
-                  </motion.div>
-                );
-              })}
+                  </div>
+                </motion.button>
+              );
+            })
+          ) : !categoriaMateria ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <FileText className="w-16 h-16 text-red-500/30 mb-4" />
+              <p className="text-gray-400 mb-2">Nenhum conteúdo disponível</p>
+              {isAdmin && <p className="text-sm text-gray-500">Use o botão acima para adicionar um PDF</p>}
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Scale className="w-16 h-16 text-red-500/30 mb-4" />
+              <p className="text-gray-400 mb-2">Nenhum tópico encontrado</p>
+              {isAdmin && <p className="text-sm text-gray-500">Reprocesse o PDF para extrair os tópicos</p>}
+            </div>
+          )}
         </div>
-      ) : !categoriaMateria ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <FileText className="w-16 h-16 text-red-500/30 mb-4" />
-          <p className="text-gray-400 mb-2">Nenhum conteúdo disponível</p>
-          {isAdmin && <p className="text-sm text-gray-500">Use o botão acima para adicionar um PDF</p>}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <Scale className="w-16 h-16 text-red-500/30 mb-4" />
-          <p className="text-gray-400 mb-2">Nenhum tópico encontrado</p>
-          {isAdmin && <p className="text-sm text-gray-500">Reprocesse o PDF para extrair os tópicos</p>}
-        </div>
-      )}
+      </div>
 
       {/* Floating reprocess button */}
       {isAdmin && categoriaMateria && topicos && topicos.length > 0 && (
