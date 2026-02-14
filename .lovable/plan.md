@@ -1,85 +1,57 @@
 
 
-# Sistema de Niveis estilo Duolingo para Areas
+# Aplicar Sistema de Niveis nas Trilhas OAB e Conceitos
 
-## Conceito
+## Resumo
 
-Dividir as materias de cada area em **10 niveis** (ou menos, se houver poucas materias). Cada nivel tera:
-- Um **banner/header** colorido (ex: "Nivel 1", "Nivel 2") com cor distinta
-- As materias daquele nivel em layout serpentina abaixo do banner
-- Uma **linha separadora** entre niveis com cor temática
-- A materia atual permanece maior que as outras
+Aplicar a mesma mecanica de niveis (serpentina circular com banners coloridos, barra de progresso, porcentagem na capa) que ja existe em `AreaTrilhaPage.tsx` nas paginas **TrilhasAprovacao** (OAB) e **ConceitosTrilhante** (Conceitos).
 
-## Distribuicao
+## Paginas a modificar
 
-Se uma area tem 20 materias e 10 niveis, cada nivel tera 2 materias. Se tem 15 materias, os primeiros niveis terao 2 e os ultimos 1. A logica e: `Math.ceil(totalMaterias / 10)` materias por nivel.
+### 1. TrilhasAprovacao (`src/pages/oab/TrilhasAprovacao.tsx`)
+- **Atual**: Timeline alternada esquerda/direita com cards retangulares
+- **Novo**: Serpentina circular com niveis, identica a AreaTrilhaPage
+- As materias (areas da OAB como Administrativo, Trabalho, etc.) serao divididas em ate 10 niveis
+- Cada nivel tera banner colorido com linhas laterais
+- Cada materia sera um circulo com capa, badge de ordem, porcentagem dentro, e animacao pulsante no atual
+- Barra de progresso geral no topo com indicadores de nivel
+- Manter paleta vermelha (tema OAB)
 
-## Visual por Nivel
-
-Cada nivel tera uma cor propria seguindo uma progressao:
-
-| Nivel | Cor do Banner | Tema |
-|-------|--------------|------|
-| 1 | Verde | Iniciante |
-| 2 | Verde-agua | Basico |
-| 3 | Azul | Fundamentos |
-| 4 | Azul-indigo | Intermediario |
-| 5 | Roxo | Avancando |
-| 6 | Rosa | Aprofundando |
-| 7 | Vermelho | Avancado |
-| 8 | Laranja | Expert |
-| 9 | Amber | Especialista |
-| 10 | Dourado | Mestre |
-
-## Layout
-
-```text
-  [====== Nivel 1 ======]  (banner verde arredondado)
-       (o)               materia 1 (grande se atual)
-      /
-    (o)                  materia 2
-      \
-  [====== Nivel 2 ======]  (banner azul)
-       (o)
-      /
-    (o)
-```
-
-- O banner de nivel e um retangulo arredondado centralizado com o texto "Nivel X"
-- As materias continuam em serpentina dentro de cada nivel
-- A linha conectora muda de cor conforme o nivel
-- Barra de progresso geral aparece no topo (progresso linear, como no print)
+### 2. ConceitosTrilhante (`src/pages/ConceitosTrilhante.tsx`)
+- **Atual**: Timeline alternada esquerda/direita com cards retangulares
+- **Novo**: Serpentina circular com niveis, identica a AreaTrilhaPage
+- As materias de Conceitos serao divididas em ate 10 niveis
+- Mesma mecanica visual: circulos, banners, progresso, animacao
+- Manter paleta ambar/laranja (tema Conceitos)
 
 ## Detalhes Tecnicos
 
-### Arquivo a modificar
-- `src/pages/AreaTrilhaPage.tsx` - refatorar o componente `SerpentineMaterias`
+### Componente reutilizavel
+Extrair a logica de serpentina com niveis de `AreaTrilhaPage.tsx` para um componente compartilhado `SerpentineNiveis` que receba:
+- `items`: lista de itens (materias)
+- `getItemCapa(item)`: funcao para obter URL da capa
+- `getItemTitulo(item)`: funcao para obter titulo
+- `getItemOrdem(item)`: funcao para obter ordem
+- `getItemAulas(item)`: funcao para obter contagem de aulas
+- `getItemProgresso(item)`: funcao para obter progresso (%)
+- `onItemClick(item)`: callback de navegacao
+- `colorTheme`: "red" | "amber" | "green" (para adaptar cores por modulo)
 
-### Logica de agrupamento
-```text
-const TOTAL_NIVEIS = 10;
-const materiasPorNivel = Math.ceil(livros.length / TOTAL_NIVEIS);
+### Constantes compartilhadas
+- `SERPENTINE_X`, `NODE_SIZE`, `CURRENT_NODE_SIZE`, `VERTICAL_SPACING`, `CONTAINER_WIDTH`, `TOTAL_NIVEIS`
+- `NIVEL_COLORS` (mesma paleta de 10 cores para todos os modulos)
+- `NivelBanner` (componente de banner com linhas laterais)
 
-// Agrupar materias em niveis
-const niveis = [];
-for (let i = 0; i < TOTAL_NIVEIS; i++) {
-  const start = i * materiasPorNivel;
-  const end = Math.min(start + materiasPorNivel, livros.length);
-  if (start < livros.length) {
-    niveis.push({ nivel: i + 1, materias: livros.slice(start, end) });
-  }
-}
-```
+### Arquivos a criar/modificar
+1. **Criar** `src/components/shared/SerpentineNiveis.tsx` - Componente reutilizavel extraido de AreaTrilhaPage
+2. **Modificar** `src/pages/AreaTrilhaPage.tsx` - Importar e usar o componente compartilhado
+3. **Modificar** `src/pages/oab/TrilhasAprovacao.tsx` - Substituir timeline por SerpentineNiveis
+4. **Modificar** `src/pages/ConceitosTrilhante.tsx` - Substituir timeline por SerpentineNiveis
 
-### Componente NivelBanner
-Um componente inline que renderiza o banner colorido entre grupos de materias, com:
-- Fundo com gradiente da cor do nivel
-- Texto "Nivel X" centralizado em branco
-- Icone de cadeado se o nivel estiver bloqueado (todos os anteriores nao completos)
+### Correcao de build
+Tambem corrigir o erro de build existente no AreaTrilhaPage.tsx (se houver).
 
-### Serpentina por nivel
-Cada nivel reinicia a serpentina com posicoes X do zero, mas o indice global e mantido para o efeito visual. A linha SVG conectora usa a cor do nivel correspondente.
-
-### Barra de progresso no topo
-Uma barra de progresso linear (fina, verde) abaixo do header mostrando progresso geral da area (0% por enquanto, placeholder).
+### Tratamento Premium
+- Em TrilhasAprovacao: manter verificacao Premium antes de navegar
+- Em ConceitosTrilhante: materias gratuitas ficam normais, premium ficam com icone de cadeado no circulo e overlay escurecido
 
