@@ -92,11 +92,12 @@ export const JornadaHomeSection = memo(() => {
         src={themisBackground}
         alt="Themis"
         blurCategory="estudos"
+        fixed={false}
         gradientClassName="bg-gradient-to-b from-black/60 via-black/70 to-[#0d0d14]"
         className="rounded-t-[32px]"
       />
       {/* Journey Selector */}
-      <div className="px-2 relative z-10">
+      <div className="px-2 pt-6 relative z-10">
         <button
           onClick={() => setShowSelector(!showSelector)}
           className="flex items-center gap-3 w-full p-3 rounded-2xl bg-card border border-border/50 hover:border-amber-500/30 transition-all group"
