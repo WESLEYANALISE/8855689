@@ -204,6 +204,25 @@ const Index = () => {
   
   const heroImage = mainTab === 'leis' ? '/hero-banner-tribunal.webp' : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.jornada);
 
+  // Crossfade: track previous hero image
+  const prevHeroRef = useRef(heroImage);
+  const [displayedHero, setDisplayedHero] = useState(heroImage);
+  const [heroOpacity, setHeroOpacity] = useState(1);
+
+  useEffect(() => {
+    if (heroImage !== displayedHero) {
+      // Keep old image visible, start fade
+      prevHeroRef.current = displayedHero;
+      setHeroOpacity(0);
+      // Small delay to allow opacity-0 to render, then switch and fade in
+      const t = requestAnimationFrame(() => {
+        setDisplayedHero(heroImage);
+        setHeroOpacity(1);
+      });
+      return () => cancelAnimationFrame(t);
+    }
+  }, [heroImage]);
+
   const {
     featuredNews,
     loading: loadingNews,
@@ -269,21 +288,35 @@ const Index = () => {
       {/* Hero Banner Mobile - fixo, cobre do topo até incluir os tabs */}
       <div className="md:hidden fixed top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 1, height: '18rem' }}>
         <div className="w-full h-full overflow-hidden rounded-b-[32px]" style={{ position: 'relative' }}>
+          {/* Previous hero image (fading out) */}
+          {prevHeroRef.current !== displayedHero && (
+            <img 
+              src={prevHeroRef.current}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-500 ease-in-out opacity-0"
+              style={{
+                transform: `translateY(${scrollY * 0.25}px) scale(1.1)`,
+                willChange: 'transform',
+              }}
+            />
+          )}
+          {/* Current hero image (fading in) */}
           <img 
-            src={heroImage}
+            src={displayedHero}
             alt="Juridiquê"
-            className="absolute inset-0 w-full h-full object-cover object-top"
+            className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-500 ease-in-out"
             loading="eager"
             fetchPriority="high"
             decoding="sync"
             style={{
+              opacity: heroOpacity,
               transform: `translateY(${scrollY * 0.25}px) scale(1.1)`,
-              willChange: 'transform',
+              willChange: 'transform, opacity',
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
-          {/* Saudação personalizada ou título da aba */}
-            <div className="absolute bottom-24 left-0 right-0 text-center pointer-events-auto" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
+          {/* Saudação personalizada ou título da aba - com fade-in */}
+          <div key={mainTab} className="absolute bottom-24 left-0 right-0 text-center pointer-events-auto animate-fade-in" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
             {(mainTab === 'jornada' || mainTab === 'estudos') && userName ? (
               <>
                 <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()},</p>
@@ -323,7 +356,7 @@ const Index = () => {
 
 
       {/* Conteúdo principal - Mobile */}
-      <div className={`md:hidden relative min-h-screen pb-20 rounded-t-[32px] ${mainTab === 'jornada' ? 'bg-[#0d0d14] overflow-hidden' : 'bg-muted'}`} style={{ zIndex: 2 }}>
+      <div key={mainTab} className={`md:hidden relative min-h-screen pb-20 rounded-t-[32px] animate-fade-in ${mainTab === 'jornada' ? 'bg-[#0d0d14] overflow-hidden' : 'bg-muted'}`} style={{ zIndex: 2 }}>
         {/* Cards de acesso rápido - Aulas e Biblioteca */}
         {mainTab === 'estudos' && (
           <div className="px-4 pt-6 pb-2">
