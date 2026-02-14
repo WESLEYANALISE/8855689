@@ -1,46 +1,61 @@
 
 
-## Plano: Corrigir fundo fixo e remover margens cinzas na aba Jornada
+## Plano: Transicoes fluidas entre abas da Home
 
-### Problemas atuais
-1. A imagem de fundo se move junto com o conteudo (sticky nao funciona bem neste contexto)
-2. Bordas/fundo cinza (`bg-muted`) aparecem ao redor do conteudo da Jornada, quando deveria ser todo escuro
+### Objetivo
+Adicionar animacoes suaves e engajantes ao alternar entre as abas (Jornada, Estudos, Leis, Explorar), cobrindo:
+- Troca da imagem hero (crossfade)
+- Troca do titulo/saudacao (fade + slide)
+- Troca do conteudo principal (fade-in)
 
 ### Mudancas
 
-**1. `src/pages/Index.tsx` (linha 331)**
-- Usar `bg-transparent` quando a aba ativa for `jornada`, mantendo `bg-muted` para as demais abas
-- Isso remove o fundo cinza que aparece nas laterais e bordas
+**1. Crossfade na imagem hero (`src/pages/Index.tsx`, linhas 270-305)**
 
-**2. `src/components/home/JornadaHomeSection.tsx`**
-- Remover o wrapper sticky/h-0 que nao funciona corretamente
-- Usar o `InstantBackground` com `fixed={false}` dentro de um container com `position: absolute`, `inset-0` e `rounded-t-[32px]` + `overflow-hidden`
-- A diferenca e que o container do background tera `position: fixed` simulada via CSS: usar `position: sticky; top: 0; height: 100vh` dentro de um wrapper absoluto, OU simplesmente usar `fixed={true}` no InstantBackground mas clipar com `clip-path` no container pai
-- Abordagem mais simples: usar CSS `background-attachment: fixed` via estilo inline na imagem, mas o InstantBackground usa `<img>`, entao a melhor solucao e:
-  - Manter `fixed={false}` (absolute)
-  - O container da imagem tera altura fixa (`h-screen`) e `top-0` fixo
-  - O container pai tera `overflow: hidden` apenas nas bordas superiores via `clip-path: inset(0 round 32px 32px 0 0)`
+Substituir a tag `<img>` unica por duas imagens sobrepostas com transicao CSS de opacidade. Uma mostra a imagem atual, outra faz o fade-in da nova imagem.
 
-**Solucao final simplificada:**
+- Guardar a imagem anterior em um `useRef` (ou `useState`)
+- Quando `heroImage` mudar, a nova imagem entra com `opacity: 0 -> 1` (400ms ease) enquanto a anterior sai com `opacity: 1 -> 0`
+- Usar `transition-opacity duration-500 ease-in-out` nas duas imagens empilhadas com `absolute inset-0`
 
-- No `Index.tsx`: mudar para `bg-[#0d0d14]` (fundo escuro) quando `mainTab === 'jornada'`, em vez de `bg-muted`
-- No `JornadaHomeSection.tsx`:
-  - Container principal: `relative min-h-[60vh]` (sem rounded/overflow - deixar o pai do Index cuidar)
-  - Background: usar `fixed={true}` no InstantBackground (volta a ser fixo na tela) 
-  - No `Index.tsx`, adicionar `overflow-hidden` ao container principal para que o `rounded-t-[32px]` corte a imagem fixa
+**2. Animacao no titulo/saudacao (linhas 286-303)**
+
+Aplicar uma animacao CSS de fade + translate sutil no bloco de texto ao trocar de aba:
+
+- Usar uma `key={mainTab}` no container do titulo para forcar remontagem
+- Adicionar classe `animate-fade-in` (ja existe no projeto) para o efeito de entrada
+- O texto fara um fade-in suave (300ms) a cada troca
+
+**3. Animacao no conteudo principal (linhas 325-420)**
+
+Adicionar transicao de entrada no conteudo de cada aba:
+
+- Usar `key={mainTab}` no container principal do conteudo mobile
+- Aplicar `animate-fade-in` para entrada suave do conteudo
+- Isso cria uma sensacao de fluidez ao navegar entre abas
+
+**4. Animacao nos botoes de tab (linhas 213-246)**
+
+Adicionar `transition-all duration-300` nos botoes (ja tem `transition-all`) para garantir que a troca do estado ativo/inativo seja suave.
 
 ### Detalhes tecnicos
 
 ```text
-Index.tsx container:
-  - jornada: bg-[#0d0d14] rounded-t-[32px] overflow-hidden
-  - outras abas: bg-muted rounded-t-[32px]
+Imagem Hero (crossfade):
+  - Novo state: prevHeroImage (useRef)
+  - Duas <img> empilhadas com position absolute
+  - Imagem anterior: opacity 1 -> 0 (500ms)
+  - Imagem nova: opacity 0 -> 1 (500ms)
+  - onTransitionEnd limpa a imagem anterior
 
-JornadaHomeSection.tsx:
-  - InstantBackground fixed={true} (imagem fixa na viewport)
-  - O overflow-hidden + rounded-t-[32px] do container pai corta a imagem
-  - Gradient overlay de-black/50 via-black/60 to-[#0d0d14]
-  - Conteudo com z-10 relativo por cima
+Titulo (fade-in):
+  - key={mainTab} no container de texto
+  - className="animate-fade-in"
+
+Conteudo (fade-in):
+  - key={mainTab} no container de conteudo
+  - className="animate-fade-in"
 ```
 
-O `overflow: hidden` combinado com `border-radius` no container pai cria um "clip" natural que restringe a imagem fixa ao formato arredondado. A imagem fica parada enquanto o conteudo (niveis serpentina) rola por cima.
+### Resultado esperado
+Ao trocar de aba, a imagem de fundo faz um crossfade elegante, o titulo desliza suavemente e o conteudo aparece com fade, criando uma experiencia visual premium e fluida.
