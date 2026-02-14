@@ -31,9 +31,9 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
     staleTime: 1000 * 60 * 10,
   });
 
-  const NODE_SIZE = 90;
-  const VERTICAL_SPACING = 140;
-  const CONTAINER_WIDTH = 320;
+  const NODE_SIZE = 110;
+  const VERTICAL_SPACING = 160;
+  const CONTAINER_WIDTH = 340;
 
   const nodes = useMemo(() => {
     if (!livros) return [];
@@ -154,7 +154,7 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
 
                   {/* Main circle */}
                   <div
-                    className={`w-[86px] h-[86px] rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                    className={`w-[100px] h-[100px] rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                       isLocked
                         ? "bg-gray-700/80 border-2 border-gray-600"
                         : isCompleted
