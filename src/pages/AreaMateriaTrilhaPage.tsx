@@ -262,11 +262,6 @@ const AreaMateriaTrilhaPage = () => {
                 className="h-2 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-rose-500"
               />
 
-              <div className="flex items-center gap-4 mt-2 text-[10px]">
-                <span className="text-orange-400">● Leitura</span>
-                <span className="text-purple-400">● Flashcards</span>
-                <span className="text-emerald-400">● Praticar</span>
-              </div>
             </div>
           </div>
         </div>
@@ -358,30 +353,17 @@ const AreaMateriaTrilhaPage = () => {
                         )}
                       </div>
 
-                      {/* Progresso por tipo - barras coloridas */}
+                      {/* Progresso geral */}
                       {hasConteudo && (
                         <div className="mt-1.5 flex items-center gap-2">
-                          <div className="flex items-center gap-1 flex-1">
-                            <span className="text-[9px] text-orange-400 font-medium whitespace-nowrap">leitura</span>
-                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${progresso?.leitura ? 'bg-green-400 w-full' : 'bg-orange-500/60 w-0'}`} />
-                            </div>
-                            <span className="text-[9px] text-orange-400/70">{progresso?.leitura ? "100" : "0"}%</span>
+                          <span className="text-[10px] text-gray-400 whitespace-nowrap">progresso</span>
+                          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all bg-gradient-to-r from-red-500 to-rose-500"
+                              style={{ width: `${Math.round(((progresso?.leitura ? 1 : 0) + (progresso?.flashcards ? 1 : 0) + (progresso?.questoes ? 1 : 0)) / 3 * 100)}%` }}
+                            />
                           </div>
-                          <div className="flex items-center gap-1 flex-1">
-                            <span className="text-[9px] text-purple-400 font-medium whitespace-nowrap">flashcards</span>
-                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${progresso?.flashcards ? 'bg-green-400 w-full' : 'bg-purple-500/60 w-0'}`} />
-                            </div>
-                            <span className="text-[9px] text-purple-400/70">{progresso?.flashcards ? "100" : "0"}%</span>
-                          </div>
-                          <div className="flex items-center gap-1 flex-1">
-                            <span className="text-[9px] text-emerald-400 font-medium whitespace-nowrap">praticar</span>
-                            <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${progresso?.questoes ? 'bg-green-400 w-full' : 'bg-emerald-500/60 w-0'}`} />
-                            </div>
-                            <span className="text-[9px] text-emerald-400/70">{progresso?.questoes ? "100" : "0"}%</span>
-                          </div>
+                          <span className="text-[10px] text-gray-500">{Math.round(((progresso?.leitura ? 1 : 0) + (progresso?.flashcards ? 1 : 0) + (progresso?.questoes ? 1 : 0)) / 3 * 100)}%</span>
                         </div>
                       )}
 

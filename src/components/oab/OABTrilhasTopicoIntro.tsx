@@ -227,46 +227,69 @@ export const OABTrilhasTopicoIntro = ({
             </motion.div>
           )}
 
-          {/* Modules - Compact responsive design */}
-          <div className="space-y-2">
-            {/* Module 1: Leitura - Always unlocked */}
+          {/* Serpentine Study Path */}
+          <div className="flex flex-col items-center relative py-4">
+            {/* SVG connector line */}
+            <svg className="absolute left-1/2 top-0 -translate-x-1/2 w-1 h-full pointer-events-none" viewBox="0 0 4 600" preserveAspectRatio="none">
+              <line x1="2" y1="40" x2="2" y2="560" stroke="rgba(255,255,255,0.1)" strokeWidth="3" strokeLinecap="round" />
+              <line x1="2" y1="40" x2="2" y2={leituraCompleta ? (flashcardsCompletos ? "560" : "300") : "40"} stroke="url(#progressGrad)" strokeWidth="3" strokeLinecap="round" />
+              <defs>
+                <linearGradient id="progressGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(239,68,68,0.8)" />
+                  <stop offset="50%" stopColor="rgba(168,85,247,0.8)" />
+                  <stop offset="100%" stopColor="rgba(16,185,129,0.8)" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            {/* Node 1: Leitura */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 180, damping: 15 }}
+              className="relative z-10 flex flex-col items-center mb-8"
             >
-              <button
-                onClick={onStartPaginas}
-                className="w-full bg-gradient-to-r from-red-500/20 to-orange-500/10 hover:from-red-500/30 hover:to-orange-500/20 border border-red-500/30 rounded-xl p-3 sm:p-4 transition-all"
-              >
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold text-sm">
-                    1
+              <button onClick={onStartPaginas} className="relative group">
+                {/* Pulse ring for current step */}
+                {!leituraCompleta && (
+                  <>
+                    <motion.div
+                      className="absolute -inset-3 rounded-full border-2 border-red-500"
+                      animate={{ scale: [1, 1.18, 1], opacity: [0.7, 0, 0.7] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <motion.div
+                      className="absolute -inset-5 rounded-full border border-red-500"
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0, 0.3] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                    />
+                  </>
+                )}
+                <div className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                  !leituraCompleta ? "border-[3px] border-red-500 shadow-red-500/40" : leituraCompleta ? "border-[3px] border-green-500 shadow-green-500/30" : "border-2 border-white/20"
+                }`}>
+                  <div className="w-full h-full bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
+                    <Play className="w-10 h-10 text-white" />
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-2">
-                      <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
-                      <span className="text-sm sm:text-base font-semibold text-white">Começar Leitura</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Progress 
-                        value={progressoLeitura} 
-                        className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
-                      />
-                      <span className="text-xs text-gray-400 w-10 text-right">{progressoLeitura}%</span>
-                    </div>
+                  <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-full">
+                    <span className="text-white font-bold text-xs mb-2 drop-shadow-lg">{progressoLeitura}%</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                </div>
+                <div className="absolute -top-1 -left-1 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center border-2 border-[#0a0a0f] font-bold text-white text-xs shadow-lg">
+                  1
                 </div>
               </button>
+              <p className="mt-2 text-sm font-semibold text-white">Começar Leitura</p>
+              <p className="text-[10px] text-gray-500">{totalPaginas} páginas</p>
             </motion.div>
 
-            {/* Module 2: Flashcards */}
+            {/* Node 2: Flashcards */}
             {hasFlashcards && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.45, type: "spring", stiffness: 180, damping: 15 }}
+                className="relative z-10 flex flex-col items-center mb-8"
               >
                 <button
                   onClick={() => {
@@ -276,49 +299,57 @@ export const OABTrilhasTopicoIntro = ({
                       setShowFlashcardsBlockedModal(true);
                     }
                   }}
-                  className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
-                    leituraCompleta 
-                      ? 'bg-gradient-to-r from-purple-500/20 to-violet-500/10 hover:from-purple-500/30 hover:to-violet-500/20 border border-purple-500/30' 
-                      : 'bg-purple-500/10 border border-purple-500/20 opacity-60'
-                  }`}
+                  className="relative group"
                 >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                      leituraCompleta ? 'bg-purple-500 text-white' : 'bg-purple-500/30 text-purple-300'
-                    }`}>
-                      2
+                  {leituraCompleta && !flashcardsCompletos && (
+                    <>
+                      <motion.div
+                        className="absolute -inset-3 rounded-full border-2 border-purple-500"
+                        animate={{ scale: [1, 1.18, 1], opacity: [0.7, 0, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <motion.div
+                        className="absolute -inset-5 rounded-full border border-purple-500"
+                        animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0, 0.3] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                      />
+                    </>
+                  )}
+                  <div className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                    leituraCompleta && !flashcardsCompletos ? "border-[3px] border-purple-500 shadow-purple-500/40" : flashcardsCompletos ? "border-[3px] border-green-500 shadow-green-500/30" : "border-2 border-white/20 opacity-60"
+                  }`}>
+                    <div className={`w-full h-full flex items-center justify-center ${leituraCompleta ? "bg-gradient-to-br from-purple-500 to-violet-600" : "bg-gradient-to-br from-purple-500/40 to-violet-600/40"}`}>
+                      <Sparkles className="w-10 h-10 text-white" />
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
-                        <span className={`text-sm sm:text-base font-semibold ${leituraCompleta ? 'text-white' : 'text-purple-300'}`}>
-                          Flashcards
-                        </span>
+                    {!leituraCompleta && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                        <Lock className="w-6 h-6 text-white/80" />
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Progress 
-                          value={progressoFlashcards} 
-                          className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-violet-500"
-                        />
-                        <span className="text-xs text-purple-400 w-10 text-right">{progressoFlashcards}%</span>
+                    )}
+                    {leituraCompleta && (
+                      <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-full">
+                        <span className="text-white font-bold text-xs mb-2 drop-shadow-lg">{progressoFlashcards}%</span>
                       </div>
-                    </div>
-                    {leituraCompleta ? (
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
-                    ) : (
-                      <Lock className="w-4 h-4 text-purple-400" />
                     )}
                   </div>
+                  <div className={`absolute -top-1 -left-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[#0a0a0f] font-bold text-white text-xs shadow-lg ${
+                    leituraCompleta ? "bg-purple-600" : "bg-purple-600/50"
+                  }`}>
+                    2
+                  </div>
                 </button>
+                <p className={`mt-2 text-sm font-semibold ${leituraCompleta ? "text-white" : "text-purple-300/60"}`}>Flashcards</p>
+                {!leituraCompleta && <p className="text-[10px] text-gray-600">Conclua a leitura</p>}
               </motion.div>
             )}
 
-            {/* Module 3: Praticar */}
+            {/* Node 3: Praticar */}
             {hasQuestoes && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, type: "spring", stiffness: 180, damping: 15 }}
+                className="relative z-10 flex flex-col items-center"
               >
                 <button
                   onClick={() => {
@@ -328,40 +359,47 @@ export const OABTrilhasTopicoIntro = ({
                       setShowPraticarBlockedModal(true);
                     }
                   }}
-                  className={`w-full rounded-xl p-3 sm:p-4 transition-all ${
-                    flashcardsCompletos 
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/10 hover:from-emerald-500/30 hover:to-green-500/20 border border-emerald-500/30' 
-                      : 'bg-emerald-500/10 border border-emerald-500/20 opacity-60'
-                  }`}
+                  className="relative group"
                 >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                      flashcardsCompletos ? 'bg-emerald-500 text-white' : 'bg-emerald-500/30 text-emerald-300'
-                    }`}>
-                      3
+                  {flashcardsCompletos && (
+                    <>
+                      <motion.div
+                        className="absolute -inset-3 rounded-full border-2 border-emerald-500"
+                        animate={{ scale: [1, 1.18, 1], opacity: [0.7, 0, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <motion.div
+                        className="absolute -inset-5 rounded-full border border-emerald-500"
+                        animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0, 0.3] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                      />
+                    </>
+                  )}
+                  <div className={`relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                    flashcardsCompletos ? "border-[3px] border-emerald-500 shadow-emerald-500/40" : "border-2 border-white/20 opacity-60"
+                  }`}>
+                    <div className={`w-full h-full flex items-center justify-center ${flashcardsCompletos ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-emerald-500/40 to-green-600/40"}`}>
+                      <Target className="w-10 h-10 text-white" />
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2">
-                        <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                        <span className={`text-sm sm:text-base font-semibold ${flashcardsCompletos ? 'text-white' : 'text-emerald-300'}`}>
-                          Praticar
-                        </span>
+                    {!flashcardsCompletos && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                        <Lock className="w-6 h-6 text-white/80" />
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Progress 
-                          value={progressoQuestoes} 
-                          className="h-1 sm:h-1.5 flex-1 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-green-500"
-                        />
-                        <span className="text-xs text-emerald-400 w-10 text-right">{progressoQuestoes}%</span>
+                    )}
+                    {flashcardsCompletos && (
+                      <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-full">
+                        <span className="text-white font-bold text-xs mb-2 drop-shadow-lg">{progressoQuestoes}%</span>
                       </div>
-                    </div>
-                    {flashcardsCompletos ? (
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-                    ) : (
-                      <Lock className="w-4 h-4 text-emerald-400" />
                     )}
                   </div>
+                  <div className={`absolute -top-1 -left-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[#0a0a0f] font-bold text-white text-xs shadow-lg ${
+                    flashcardsCompletos ? "bg-emerald-600" : "bg-emerald-600/50"
+                  }`}>
+                    3
+                  </div>
                 </button>
+                <p className={`mt-2 text-sm font-semibold ${flashcardsCompletos ? "text-white" : "text-emerald-300/60"}`}>Praticar</p>
+                {!flashcardsCompletos && <p className="text-[10px] text-gray-600">Conclua os flashcards</p>}
               </motion.div>
             )}
           </div>
