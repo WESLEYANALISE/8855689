@@ -134,12 +134,37 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
     return paths;
   }, [allNodes, niveis]);
 
+  // Current level (placeholder - nivel 1 for now)
+  const currentNivel = 1;
+  const progressPercent = 0; // placeholder
+
   return (
-    <div className="pb-24 pt-2 flex justify-center">
-      {/* Progress bar at top */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <div className="h-1 bg-white/10">
-          <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style={{ width: "0%" }} />
+    <div className="pb-24 pt-2 flex flex-col items-center">
+      {/* Level progress bar */}
+      <div className="w-full max-w-sm px-4 mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-white/60 font-medium">Progresso geral</span>
+          <span className="text-xs text-white/80 font-bold">{progressPercent}%</span>
+        </div>
+        <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-green-500 via-teal-400 to-blue-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPercent}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+        </div>
+        <div className="flex justify-between mt-1.5">
+          {niveis.map((g) => {
+            const c = NIVEL_COLORS[(g.nivel - 1) % NIVEL_COLORS.length];
+            const isActive = g.nivel === currentNivel;
+            return (
+              <div key={g.nivel} className="flex flex-col items-center">
+                <div className={`w-2 h-2 rounded-full ${isActive ? `bg-gradient-to-r ${c.bg} ring-2 ring-white/30` : 'bg-white/20'}`} />
+                {isActive && <span className="text-[8px] text-white/70 mt-0.5">{g.nivel}</span>}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -170,6 +195,7 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
           const isCurrent = globalIndex === 0;
           const size = isCurrent ? CURRENT_NODE_SIZE : NODE_SIZE;
           const circleSize = isCurrent ? 130 : 100;
+          const materiaProgress = 0; // placeholder
 
           return (
             <motion.div
@@ -184,14 +210,22 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
                 onClick={() => onNavigate(`/aulas/area/${encodeURIComponent(area)}/materia/${livro.id}`)}
                 className="relative group"
               >
+                {/* Animated pulse ring for current */}
                 {isCurrent && (
-                  <motion.div
-                    className={`absolute -inset-3 rounded-full border-2 ${color.border} opacity-60`}
-                    animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0, 0.6] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
+                  <>
+                    <motion.div
+                      className={`absolute -inset-3 rounded-full border-2 ${color.border}`}
+                      animate={{ scale: [1, 1.18, 1], opacity: [0.7, 0, 0.7] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <motion.div
+                      className={`absolute -inset-5 rounded-full border ${color.border}`}
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0, 0.3] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                    />
+                  </>
                 )}
-                <div className={`rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                <div className={`relative rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                   isCurrent ? `border-[3px] ${color.border} ${color.shadow}` : "border-2 border-white/20"
                 }`} style={{ width: circleSize, height: circleSize }}>
                   {capaUrl ? (
@@ -201,6 +235,10 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
                       <span className="text-white font-bold text-xl">{ordem}</span>
                     </div>
                   )}
+                  {/* Percentage overlay inside the circle */}
+                  <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-full">
+                    <span className="text-white font-bold text-xs mb-2 drop-shadow-lg">{materiaProgress}%</span>
+                  </div>
                 </div>
                 <div className={`absolute -top-1 -left-1 rounded-full ${color.badge} flex items-center justify-center border-2 border-[#0a0a12] font-bold text-white shadow-lg ${
                   isCurrent ? "w-8 h-8 text-sm" : "w-7 h-7 text-xs"
@@ -208,8 +246,7 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
                   {ordem}
                 </div>
               </button>
-              <p className="mt-2 text-[10px] text-gray-500 text-center">0% concluído</p>
-              <p className={`mt-0.5 text-center leading-tight line-clamp-2 font-medium ${
+              <p className={`mt-2 text-center leading-tight line-clamp-2 font-medium ${
                 isCurrent ? "text-sm text-white w-36" : "text-xs text-white/80 w-28"
               }`}>
                 {titulo}
