@@ -366,7 +366,7 @@ const Index = () => {
 
       {/* Jornada selector - above tabs, only when on Jornada tab */}
       {mainTab === 'jornada' && (
-        <div className="md:hidden relative px-4 mb-5" style={{ zIndex: 4 }}>
+        <div className="md:hidden relative px-4 mb-8" style={{ zIndex: 4 }}>
           <button
             onClick={() => setShowJornadaSelector(!showJornadaSelector)}
             className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
