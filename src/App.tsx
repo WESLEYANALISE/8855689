@@ -406,6 +406,7 @@ import ConceitosLivro from "./pages/ConceitosLivro";
 import ConceitosLivroTema from "./pages/ConceitosLivroTema";
 import ConceitosArea from "./pages/ConceitosArea";
 const AreaTrilhaPage = lazy(() => import("./pages/AreaTrilhaPage"));
+const AreaMateriaTrilhaPage = lazy(() => import("./pages/AreaMateriaTrilhaPage"));
 import ConceitosMateria from "./pages/ConceitosMateria";
 import ConceitosTopicoEstudo from "./pages/ConceitosTopicoEstudo";
 import ConceitosTopicoFlashcards from "./pages/ConceitosTopicoFlashcards";
@@ -901,6 +902,7 @@ const App = () => {
               <Route path="/conceitos/livro/tema/:id" element={<ConceitosLivroTema />} />
               <Route path="/conceitos/area/:areaOrdem" element={<ConceitosArea />} />
               <Route path="/aulas/area/:area" element={<Suspense fallback={<div className="min-h-screen bg-[#0a0a12] flex items-center justify-center"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div>}><AreaTrilhaPage /></Suspense>} />
+              <Route path="/aulas/area/:area/materia/:livroId" element={<Suspense fallback={<div className="min-h-screen bg-[#0a0a12] flex items-center justify-center"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div>}><AreaMateriaTrilhaPage /></Suspense>} />
               <Route path="/conceitos/materia/:id" element={<ConceitosMateria />} />
               <Route path="/conceitos/topico/:id" element={<ConceitosTopicoEstudo />} />
               <Route path="/conceitos/topico/:id/flashcards" element={<ConceitosTopicoFlashcards />} />
