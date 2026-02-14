@@ -15,7 +15,8 @@ const SCROLL_KEY = "area-trilha-scroll";
 const SERPENTINE_X = [50, 78, 50, 22, 50, 78, 50, 22];
 const getNodeX = (idx: number) => SERPENTINE_X[idx % SERPENTINE_X.length];
 const NODE_SIZE = 110;
-const VERTICAL_SPACING = 160;
+const CURRENT_NODE_SIZE = 140;
+const VERTICAL_SPACING = 180;
 const CONTAINER_WIDTH = 340;
 
 interface SerpentineMateriasProps {
@@ -61,6 +62,8 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
           const ordem = livro["Ordem"] || index + 1;
           const aulasCount = topicosCount[titulo] || 0;
           const isCurrent = index === 0;
+          const size = isCurrent ? CURRENT_NODE_SIZE : NODE_SIZE;
+          const circleSize = isCurrent ? 130 : 100;
 
           return (
             <motion.div
@@ -69,7 +72,7 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.08, type: "spring", stiffness: 180, damping: 15 }}
               className="absolute flex flex-col items-center"
-              style={{ left: x - NODE_SIZE / 2, top: y - NODE_SIZE / 2, width: NODE_SIZE }}
+              style={{ left: x - size / 2, top: y - size / 2, width: size }}
             >
               <button
                 onClick={() => onNavigate(`/aulas/area/${encodeURIComponent(area)}/materia/${livro.id}`)}
@@ -77,14 +80,14 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
               >
                 {isCurrent && (
                   <motion.div
-                    className="absolute -inset-2.5 rounded-full border-2 border-red-500/60"
-                    animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
+                    className="absolute -inset-3 rounded-full border-2 border-red-500/60"
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 )}
-                <div className={`w-[100px] h-[100px] rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                <div className={`rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                   isCurrent ? "border-[3px] border-red-500 shadow-red-500/50" : "border-2 border-white/20"
-                }`}>
+                }`} style={{ width: circleSize, height: circleSize }}>
                   {capaUrl ? (
                     <img src={capaUrl} alt={titulo} className="w-full h-full object-cover" />
                   ) : (
@@ -93,11 +96,19 @@ const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: Serpenti
                     </div>
                   )}
                 </div>
-                <div className="absolute -top-1 -left-1 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center border-2 border-[#0a0a12] text-xs font-bold text-white shadow-lg">
+                <div className={`absolute -top-1 -left-1 rounded-full bg-red-600 flex items-center justify-center border-2 border-[#0a0a12] font-bold text-white shadow-lg ${
+                  isCurrent ? "w-8 h-8 text-sm" : "w-7 h-7 text-xs"
+                }`}>
                   {ordem}
                 </div>
               </button>
-              <p className="mt-2.5 text-xs text-white/80 text-center leading-tight line-clamp-2 w-28 font-medium">
+              {/* Progresso acima do título */}
+              <p className="mt-2 text-[10px] text-gray-500 text-center">
+                0% concluído
+              </p>
+              <p className={`mt-0.5 text-center leading-tight line-clamp-2 font-medium ${
+                isCurrent ? "text-sm text-white w-36" : "text-xs text-white/80 w-28"
+              }`}>
                 {titulo}
               </p>
               <p className="text-[10px] text-gray-500 text-center">
