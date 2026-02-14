@@ -118,7 +118,12 @@ const CategoriasTopicoEstudo = () => {
   const objetivos = conteudoGerado?.objetivos || [];
 
   const handleBack = () => {
-    navigate(-1);
+    const categoriaSlug = topico?.materia?.categoria?.toLowerCase().replace(/\s+/g, '-');
+    if (categoriaSlug) {
+      navigate(`/categorias/${categoriaSlug}`);
+    } else {
+      navigate('/?tab=jornada');
+    }
   };
 
   const handleSlidesComplete = async () => {
