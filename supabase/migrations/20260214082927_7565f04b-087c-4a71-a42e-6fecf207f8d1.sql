@@ -1,0 +1,1 @@
+UPDATE categorias_topicos SET status = 'concluido', posicao_fila = NULL WHERE id IN (31, 34, 35, 36, 37) AND (flashcards IS NULL OR flashcards::text = '[]' OR questoes IS NULL OR questoes::text = '[]');
