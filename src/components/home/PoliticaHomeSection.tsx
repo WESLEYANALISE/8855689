@@ -63,9 +63,9 @@ const OrientacaoMenu = ({ active, onChange }: { active: OrientacaoType; onChange
 );
 
 export const PoliticaHomeSection = memo(({ isDesktop, navigate, handleLinkHover }: PoliticaHomeSectionProps) => {
-  const [artigosOrientacao, setArtigosOrientacao] = useState<OrientacaoType>('esquerda');
+  const [artigosOrientacao, setArtigosOrientacao] = useState<OrientacaoType>('direita');
   const [livrosOrientacao, setLivrosOrientacao] = useState<OrientacaoType>('esquerda');
-  const [docsOrientacao, setDocsOrientacao] = useState<OrientacaoType>('esquerda');
+  const [docsOrientacao, setDocsOrientacao] = useState<OrientacaoType>('centro');
 
   const { data: livros = [], isLoading: loadingLivros } = useQuery({
     queryKey: ['politica-livros-home'],
