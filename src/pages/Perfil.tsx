@@ -269,7 +269,7 @@ export default function Perfil() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <main className="max-w-lg mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-lg lg:max-w-4xl mx-auto px-4 lg:px-8 py-8 space-y-6">
         {/* Page Title */}
         <div className="text-center">
           <h1 className="text-2xl font-bold">Meu Perfil</h1>
@@ -278,7 +278,7 @@ export default function Perfil() {
 
         {/* Tabs */}
         <Tabs defaultValue="perfil" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6 lg:max-w-md">
             <TabsTrigger value="perfil">Perfil</TabsTrigger>
             <TabsTrigger value="plano">Plano</TabsTrigger>
             <TabsTrigger value="suporte">Suporte</TabsTrigger>
@@ -286,8 +286,10 @@ export default function Perfil() {
 
           {/* Perfil Tab */}
           <TabsContent value="perfil" className="space-y-8">
+            {/* Avatar + Form - 2 columns on desktop */}
+            <div className="lg:grid lg:grid-cols-[auto_1fr] lg:gap-12 lg:items-start">
             {/* Avatar Section */}
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-4 lg:sticky lg:top-24">
               <div className="relative">
                 <div className="w-28 h-28 rounded-full bg-muted border-4 border-background shadow-xl overflow-hidden">
                   {profile.avatar_url ? (
@@ -329,6 +331,8 @@ export default function Perfil() {
               </p>
             </div>
 
+            {/* Form fields column */}
+            <div className="space-y-6 lg:space-y-8">
             {/* Name Field */}
             <div className="space-y-2">
               <Label htmlFor="nome">Nome</Label>
@@ -444,6 +448,8 @@ export default function Perfil() {
               <LogOut className="mr-2 h-4 w-4" />
               Sair da conta
             </Button>
+            </div>{/* end form fields column */}
+            </div>{/* end 2-column grid */}
           </TabsContent>
 
 

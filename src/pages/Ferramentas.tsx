@@ -184,7 +184,7 @@ const CategoryList = ({ categorias, keyPrefix }: { categorias: FerramentaCard[],
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {categorias.map((card, index) => {
         const Icon = card.icon;
         return (
@@ -223,7 +223,7 @@ const LinksUteisList = ({ links }: { links: LinkUtilCard[] }) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {links.map((card, index) => {
         const Icon = card.icon;
         return (
@@ -305,9 +305,9 @@ const Ferramentas = () => {
         />
 
         {/* Sistema de Tabs - 2 abas apenas */}
-        <div className="px-4 pt-2 pb-24">
+        <div className="px-4 lg:px-8 pt-2 pb-24 max-w-6xl mx-auto">
           <Tabs value={abaAtiva} onValueChange={setAbaAtiva} className="w-full">
-            <TabsList className="grid grid-cols-2 w-full bg-card/80 backdrop-blur-md border border-border/50 h-auto p-1">
+            <TabsList className="grid grid-cols-2 w-full lg:max-w-md bg-card/80 backdrop-blur-md border border-border/50 h-auto p-1">
               <TabsTrigger 
                 value="ferramentas" 
                 className="flex items-center gap-1.5 py-2.5 text-xs sm:text-sm data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400"

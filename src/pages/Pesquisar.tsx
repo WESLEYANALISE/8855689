@@ -37,7 +37,7 @@ const Pesquisar = () => {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
-        <div className="px-4 py-4 max-w-4xl mx-auto">
+        <div className="px-4 lg:px-8 py-4 max-w-4xl lg:max-w-6xl mx-auto">
           <div className="mb-4">
             <h1 className="text-xl md:text-2xl font-bold mb-1 flex items-center gap-2">
               <Search className="w-6 h-6 text-primary" />
@@ -85,7 +85,7 @@ const Pesquisar = () => {
       </div>
 
       {/* Content */}
-      <div className="px-4 py-6 max-w-4xl mx-auto">
+      <div className="px-4 lg:px-8 py-6 max-w-4xl lg:max-w-6xl mx-auto">
         {/* Initial State - Search Suggestions */}
         {showInitial && (
           <div className="space-y-6">
@@ -143,7 +143,7 @@ const Pesquisar = () => {
 
         {/* Results - Category Cards */}
         {showResults && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {resultados.map((categoria) => (
               <CategoriaCard 
                 key={categoria.id} 
