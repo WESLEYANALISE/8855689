@@ -362,36 +362,36 @@ const Index = () => {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none h-96" />
 
       {/* Spacer para revelar a imagem hero */}
-      <div className="md:hidden h-36" style={{ zIndex: 1 }} />
+      <div className="md:hidden h-28" style={{ zIndex: 1 }} />
 
       {/* Jornada selector - above tabs, only when on Jornada tab */}
       {mainTab === 'jornada' && (
-        <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 4 }}>
+        <div className="md:hidden relative px-4 mb-3" style={{ zIndex: 4 }}>
           <button
             onClick={() => setShowJornadaSelector(!showJornadaSelector)}
-            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
+            className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
           >
-            <div className="p-1.5 bg-red-500/20 rounded-xl">
-              <jornadaInfo.icon className="w-4 h-4 text-red-400" />
+            <div className="p-2 bg-red-500/20 rounded-xl">
+              <jornadaInfo.icon className="w-5 h-5 text-red-400" />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="font-playfair text-base font-bold text-foreground tracking-tight leading-tight">
+              <h3 className="font-playfair text-lg font-bold text-foreground tracking-tight leading-tight">
                 {jornadaInfo.label}
               </h3>
-              <p className="text-[10px] text-muted-foreground leading-tight">
+              <p className="text-xs text-muted-foreground leading-tight">
                 {jornadaInfo.sublabel}
               </p>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Settings className="w-3.5 h-3.5" />
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showJornadaSelector ? 'rotate-180' : ''}`} />
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Settings className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showJornadaSelector ? 'rotate-180' : ''}`} />
             </div>
           </button>
 
           {/* Floating card dropdown */}
           {showJornadaSelector && (
-            <div className="absolute left-4 right-4 top-full mt-1.5 z-50 bg-card border border-border rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
-              <p className="px-4 pt-3 pb-1 text-xs text-muted-foreground font-medium">Escolha sua jornada</p>
+            <div className="absolute left-4 right-4 top-full mt-2 z-50 bg-card border border-border rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
+              <p className="px-4 pt-3.5 pb-1.5 text-sm text-muted-foreground font-medium">Escolha sua jornada</p>
               {JORNADAS_OPTIONS.map((jornada) => {
                 const Icon = jornada.icon;
                 const isActive = jornadaAtiva === jornada.id;
@@ -399,21 +399,21 @@ const Index = () => {
                   <button
                     key={jornada.id}
                     onClick={() => handleSelectJornada(jornada.id)}
-                    className={`w-full flex items-center gap-3 p-3 transition-colors ${
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors ${
                       isActive 
                         ? 'bg-red-500/10 text-foreground' 
                         : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <div className={`p-2 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
+                    <div className={`p-2.5 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-semibold">{jornada.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{jornada.sublabel}</p>
+                      <p className="text-base font-semibold">{jornada.label}</p>
+                      <p className="text-xs text-muted-foreground">{jornada.sublabel}</p>
                     </div>
                     {isActive && (
-                      <div className="ml-auto w-2 h-2 rounded-full bg-red-500" />
+                      <div className="ml-auto w-2.5 h-2.5 rounded-full bg-red-500" />
                     )}
                   </button>
                 );
