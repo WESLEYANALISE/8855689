@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import jornadaHeroBackground from "@/assets/jornada-hero-background.webp";
+import leisHeroBackground from "@/assets/leis-hero-background.webp";
 import destaquesHeroBackground from "@/assets/destaques-hero-background.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
@@ -73,7 +74,7 @@ const CARREIRAS_IMAGES = [
 ];
 
 const HERO_IMAGES_STATIC: Record<string, string> = {
-  jornada: jornadaHeroBackground,
+  jornada: '/hero-banner-tribunal.webp',
   estudos: '/hero-banner-themis-advogado-v2.webp',
   explorar: destaquesHeroBackground,
 };
@@ -225,7 +226,7 @@ const Index = () => {
     };
   }, [isDesktop, mainTab]);
   
-  const heroImage = mainTab === 'leis' ? '/hero-banner-tribunal.webp' : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.jornada);
+  const heroImage = mainTab === 'leis' ? leisHeroBackground : (HERO_IMAGES_STATIC[mainTab] || HERO_IMAGES_STATIC.jornada);
 
   // Crossfade: track previous hero image
   const prevHeroRef = useRef(heroImage);
