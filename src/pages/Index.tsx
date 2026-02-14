@@ -365,70 +365,6 @@ const Index = () => {
       {/* Spacer para revelar a imagem hero */}
       <div className="md:hidden h-36" style={{ zIndex: 1 }} />
 
-      {/* Jornada selector - above tabs, only when on Jornada tab */}
-      {mainTab === 'jornada' && (
-        <div className="md:hidden relative px-4 mb-8" style={{ zIndex: 4 }}>
-          <button
-            onClick={() => setShowJornadaSelector(!showJornadaSelector)}
-            className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
-          >
-            <div className="relative">
-              {/* Pulse rings like serpentine active node */}
-              <div className="absolute -inset-1.5 rounded-xl border-2 border-red-500/50 animate-[pulse_2s_ease-in-out_infinite]" />
-              <div className="absolute -inset-3 rounded-xl border border-red-500/20 animate-[pulse_2.5s_ease-in-out_infinite_0.3s]" />
-              <div className="relative p-2 bg-red-500/20 rounded-xl">
-                <jornadaInfo.icon className="w-5 h-5 text-red-400" />
-              </div>
-            </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-playfair text-lg font-bold text-foreground tracking-tight leading-tight">
-                {jornadaInfo.label}
-              </h3>
-              <p className="text-xs text-muted-foreground leading-tight">
-                {jornadaInfo.sublabel}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Settings className="w-4 h-4" />
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showJornadaSelector ? 'rotate-180' : ''}`} />
-            </div>
-          </button>
-
-          {/* Floating card dropdown */}
-          {showJornadaSelector && (
-            <div className="absolute left-4 right-4 top-full mt-2 z-50 bg-card border border-border rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
-              <p className="px-4 pt-3.5 pb-1.5 text-sm text-muted-foreground font-medium">Escolha sua jornada</p>
-              {JORNADAS_OPTIONS.map((jornada) => {
-                const Icon = jornada.icon;
-                const isActive = jornadaAtiva === jornada.id;
-                return (
-                  <button
-                    key={jornada.id}
-                    onClick={() => handleSelectJornada(jornada.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors ${
-                      isActive 
-                        ? 'bg-red-500/10 text-foreground' 
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <div className={`p-2.5 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-base font-semibold">{jornada.label}</p>
-                      <p className="text-xs text-muted-foreground">{jornada.sublabel}</p>
-                    </div>
-                    {isActive && (
-                      <div className="ml-auto w-2.5 h-2.5 rounded-full bg-red-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Tabs dentro da imagem hero, na parte inferior */}
       <div className="md:hidden relative px-4 mb-2" style={{ zIndex: 3 }}>
         <div className="flex gap-1.5 h-[44px]">
@@ -442,6 +378,68 @@ const Index = () => {
 
       {/* Conteúdo principal - Mobile */}
       <div key={mainTab} className="md:hidden relative min-h-screen pb-20 rounded-t-[32px] animate-fade-in bg-muted" style={{ zIndex: 2 }}>
+
+        {/* Jornada selector - inside content area */}
+        {mainTab === 'jornada' && (
+          <div className="relative px-4 pt-4 pb-2" style={{ zIndex: 4 }}>
+            <button
+              onClick={() => setShowJornadaSelector(!showJornadaSelector)}
+              className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
+            >
+              <div className="relative">
+                <div className="absolute -inset-1.5 rounded-xl border-2 border-red-500/50 animate-[pulse_2s_ease-in-out_infinite]" />
+                <div className="absolute -inset-3 rounded-xl border border-red-500/20 animate-[pulse_2.5s_ease-in-out_infinite_0.3s]" />
+                <div className="relative p-2 bg-red-500/20 rounded-xl">
+                  <jornadaInfo.icon className="w-5 h-5 text-red-400" />
+                </div>
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="font-playfair text-lg font-bold text-foreground tracking-tight leading-tight">
+                  {jornadaInfo.label}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-tight">
+                  {jornadaInfo.sublabel}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Settings className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showJornadaSelector ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {showJornadaSelector && (
+              <div className="absolute left-4 right-4 top-full mt-2 z-50 bg-card border border-border rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
+                <p className="px-4 pt-3.5 pb-1.5 text-sm text-muted-foreground font-medium">Escolha sua jornada</p>
+                {JORNADAS_OPTIONS.map((jornada) => {
+                  const Icon = jornada.icon;
+                  const isActive = jornadaAtiva === jornada.id;
+                  return (
+                    <button
+                      key={jornada.id}
+                      onClick={() => handleSelectJornada(jornada.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors ${
+                        isActive 
+                          ? 'bg-red-500/10 text-foreground' 
+                          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <div className={`p-2.5 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
+                        <Icon className={`w-5 h-5 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-base font-semibold">{jornada.label}</p>
+                        <p className="text-xs text-muted-foreground">{jornada.sublabel}</p>
+                      </div>
+                      {isActive && (
+                        <div className="ml-auto w-2.5 h-2.5 rounded-full bg-red-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         {/* Cards de acesso rápido - Aulas e Biblioteca */}
         {mainTab === 'estudos' && (
           <div className="px-4 pt-6 pb-2">
