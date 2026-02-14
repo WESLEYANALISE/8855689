@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowLeft, Loader2, Scale, Footprints, Search, X } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Scale, Footprints, Search, X, Check, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { UniversalImage } from "@/components/ui/universal-image";
@@ -10,6 +10,106 @@ import bgAreasOab from "@/assets/bg-areas-oab.webp";
 import { InstantBackground } from "@/components/ui/instant-background";
 
 const SCROLL_KEY = "area-trilha-scroll";
+
+// Serpentine positions: zigzag left-center-right
+const SERPENTINE_X = [50, 78, 50, 22, 50, 78, 50, 22];
+const getNodeX = (idx: number) => SERPENTINE_X[idx % SERPENTINE_X.length];
+const NODE_SIZE = 110;
+const VERTICAL_SPACING = 160;
+const CONTAINER_WIDTH = 340;
+
+interface SerpentineMateriasProps {
+  livros: any[];
+  area: string;
+  topicosCount: Record<string, number>;
+  onNavigate: (path: string) => void;
+}
+
+const SerpentineMaterias = ({ livros, area, topicosCount, onNavigate }: SerpentineMateriasProps) => {
+  const nodes = useMemo(() => {
+    return livros.map((livro, index) => ({
+      x: (getNodeX(index) / 100) * CONTAINER_WIDTH,
+      y: index * VERTICAL_SPACING + NODE_SIZE / 2 + 30,
+      livro,
+      index,
+    }));
+  }, [livros]);
+
+  const svgPath = useMemo(() => {
+    if (nodes.length < 2) return "";
+    let d = `M ${nodes[0].x} ${nodes[0].y}`;
+    for (let i = 1; i < nodes.length; i++) {
+      d += ` L ${nodes[i].x} ${nodes[i].y}`;
+    }
+    return d;
+  }, [nodes]);
+
+  const totalHeight = nodes.length * VERTICAL_SPACING + 60;
+
+  return (
+    <div className="pb-24 pt-4 flex justify-center">
+      <div className="relative" style={{ width: CONTAINER_WIDTH, height: totalHeight }}>
+        {/* SVG connector lines */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${CONTAINER_WIDTH} ${totalHeight}`} fill="none">
+          <motion.path d={svgPath} stroke="rgba(239, 68, 68, 0.4)" strokeWidth="3" strokeLinecap="round" fill="none" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5, ease: "easeOut" }} />
+          <motion.path d={svgPath} stroke="rgba(239, 68, 68, 0.15)" strokeWidth="8" strokeLinecap="round" fill="none" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5, ease: "easeOut" }} />
+        </svg>
+
+        {nodes.map(({ x, y, livro, index }) => {
+          const capaUrl = livro["Capa-livro"];
+          const titulo = livro["Tema"] || "Sem título";
+          const ordem = livro["Ordem"] || index + 1;
+          const aulasCount = topicosCount[titulo] || 0;
+          const isCurrent = index === 0;
+
+          return (
+            <motion.div
+              key={livro.id}
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.08, type: "spring", stiffness: 180, damping: 15 }}
+              className="absolute flex flex-col items-center"
+              style={{ left: x - NODE_SIZE / 2, top: y - NODE_SIZE / 2, width: NODE_SIZE }}
+            >
+              <button
+                onClick={() => onNavigate(`/aulas/area/${encodeURIComponent(area)}/materia/${livro.id}`)}
+                className="relative group"
+              >
+                {isCurrent && (
+                  <motion.div
+                    className="absolute -inset-2.5 rounded-full border-2 border-red-500/60"
+                    animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                )}
+                <div className={`w-[100px] h-[100px] rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
+                  isCurrent ? "border-[3px] border-red-500 shadow-red-500/50" : "border-2 border-white/20"
+                }`}>
+                  {capaUrl ? (
+                    <img src={capaUrl} alt={titulo} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
+                      <span className="text-white font-bold text-xl">{ordem}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -top-1 -left-1 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center border-2 border-[#0a0a12] text-xs font-bold text-white shadow-lg">
+                  {ordem}
+                </div>
+              </button>
+              <p className="mt-2.5 text-xs text-white/80 text-center leading-tight line-clamp-2 w-28 font-medium">
+                {titulo}
+              </p>
+              <p className="text-[10px] text-gray-500 text-center">
+                {aulasCount} aulas
+              </p>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const AreaTrilhaPage = () => {
   const { area } = useParams<{ area: string }>();
@@ -176,95 +276,18 @@ const AreaTrilhaPage = () => {
           </div>
         </div>
 
-        {/* Timeline de Matérias */}
+        {/* Serpentine de Matérias (círculos) */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-red-500" />
           </div>
         ) : filteredLivros.length > 0 ? (
-          <div className="px-4 pb-24 pt-4">
-            <div className="max-w-lg mx-auto relative">
-              {/* Linha central da timeline */}
-              <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
-                <div className="w-full h-full bg-gradient-to-b from-red-500/80 via-red-600/60 to-red-700/40 rounded-full" />
-                <motion.div
-                  className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-red-300/30 to-transparent rounded-full"
-                  animate={{ y: ["0%", "300%"] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                />
-              </div>
-
-              <div className="space-y-6">
-                {filteredLivros.map((livro, index) => {
-                  const isLeft = index % 2 === 0;
-                  const capaUrl = livro["Capa-livro"];
-                  const titulo = livro["Tema"] || "Sem título";
-                  const aulasCount = topicosCount?.[titulo] || 0;
-
-                  return (
-                    <motion.div
-                      key={livro.id}
-                      initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`relative flex items-center ${isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'}`}
-                    >
-                      {/* Marcador central */}
-                      <div className="absolute left-1/2 -translate-x-1/2 z-10">
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.15, 1],
-                            boxShadow: ["0 0 0 0 rgba(239, 68, 68, 0.4)", "0 0 0 10px rgba(239, 68, 68, 0)", "0 0 0 0 rgba(239, 68, 68, 0.4)"]
-                          }}
-                          transition={{ duration: 2, repeat: Infinity, delay: index * 0.2 }}
-                          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-red-500 to-red-700 shadow-red-500/40"
-                        >
-                          <Footprints className="w-5 h-5 text-white" />
-                        </motion.div>
-                      </div>
-
-                      {/* Card da Matéria */}
-                      <div className="w-full">
-                        <motion.div
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => navigateWithScroll(`/aulas/area/${encodeURIComponent(decodedArea)}/materia/${livro.id}`)}
-                          className="cursor-pointer rounded-2xl backdrop-blur-sm border transition-all overflow-hidden min-h-[180px] flex flex-col bg-[#12121a]/90 border-white/10 hover:border-red-500/50"
-                        >
-                          {/* Capa */}
-                          <div className="h-20 w-full overflow-hidden relative flex-shrink-0">
-                            {capaUrl ? (
-                              <>
-                                <img src={capaUrl} alt={titulo} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                              </>
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-red-800 to-red-900 flex items-center justify-center">
-                                <Scale className="w-6 h-6 text-white/30" />
-                              </div>
-                            )}
-                            <div className="absolute bottom-1 left-2">
-                              <p className="text-[10px] text-red-400 font-semibold drop-shadow-lg">Matéria {index + 1}</p>
-                            </div>
-                          </div>
-
-                          <div className="p-3 flex-1 flex flex-col">
-                            <h3 className="font-semibold text-sm text-white leading-snug line-clamp-2 mb-1">
-                              {titulo}
-                            </h3>
-                            <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-auto">
-                              <BookOpen className="w-3.5 h-3.5 text-red-400" />
-                              <span>{aulasCount} aulas</span>
-                            </div>
-                            <p className="text-[10px] text-gray-500 mt-1">0% concluído</p>
-                          </div>
-                        </motion.div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <SerpentineMaterias
+            livros={filteredLivros}
+            area={decodedArea}
+            topicosCount={topicosCount || {}}
+            onNavigate={navigateWithScroll}
+          />
         ) : (
           <div className="text-center py-10 text-white/50 text-sm">
             Nenhuma matéria encontrada.
