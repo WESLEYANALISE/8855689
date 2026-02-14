@@ -31,34 +31,34 @@ const FREE_MATERIA_NAMES = [
 ];
 
 // label curto para exibição, value completo para query no banco
-const AREAS_ORDEM: { label: string; value: string }[] = [
-  { label: "Constitucional", value: "Direito Constitucional" },
-  { label: "Civil", value: "Direito Civil" },
-  { label: "Penal", value: "Direito Penal" },
-  { label: "Proc. Civil", value: "Direito Processual Civil" },
-  { label: "Proc. Penal", value: "Direito Processual Penal" },
-  { label: "Administrativo", value: "Direito Administrativo" },
-  { label: "Trabalho", value: "Direito Do Trabalho" },
-  { label: "Proc. Trabalho", value: "Direito Processual Do Trabalho" },
-  { label: "Tributário", value: "Direito Tributario" },
-  { label: "Empresarial", value: "Direito Empresarial" },
-  { label: "Financeiro", value: "Direito Financeiro" },
-  { label: "Previdenciário", value: "Direito Previndenciario" },
-  { label: "Ambiental", value: "Direito Ambiental" },
-  { label: "Int. Público", value: "Direito Internacional Público" },
-  { label: "Int. Privado", value: "Direito Internacional Privado" },
-  { label: "Concorrencial", value: "Direito Concorrencial" },
-  { label: "Desportivo", value: "Direito Desportivo" },
-  { label: "Urbanístico", value: "Direito Urbanistico" },
-  { label: "Dir. Humanos", value: "Direitos Humanos" },
-  { label: "Lei Penal Esp.", value: "Lei Penal Especial" },
-  { label: "Filosofia", value: "Teoria E Filosofia Do Direito" },
-  { label: "Políticas Púb.", value: "Politicas Publicas" },
-  { label: "Prática Prof.", value: "Pratica Profissional" },
-  { label: "Português", value: "Portugues" },
-  { label: "Pesq. Científica", value: "Pesquisa Científica" },
-  { label: "Form. Compl.", value: "Formação Complementar" },
-  { label: "Revisão OAB", value: "Revisão Oab" },
+const AREAS_ORDEM: { label: string; value: string; emoji: string; bg: string; accent: string }[] = [
+  { label: "Constitucional", value: "Direito Constitucional", emoji: "🏛️", bg: "from-amber-500 to-orange-600", accent: "bg-amber-400/30" },
+  { label: "Civil", value: "Direito Civil", emoji: "📜", bg: "from-red-500 to-rose-700", accent: "bg-red-400/30" },
+  { label: "Penal", value: "Direito Penal", emoji: "⚖️", bg: "from-slate-700 to-slate-900", accent: "bg-slate-400/30" },
+  { label: "Proc. Civil", value: "Direito Processual Civil", emoji: "📋", bg: "from-blue-500 to-indigo-600", accent: "bg-blue-400/30" },
+  { label: "Proc. Penal", value: "Direito Processual Penal", emoji: "🔍", bg: "from-purple-600 to-violet-800", accent: "bg-purple-400/30" },
+  { label: "Administrativo", value: "Direito Administrativo", emoji: "🏢", bg: "from-teal-500 to-emerald-700", accent: "bg-teal-400/30" },
+  { label: "Trabalho", value: "Direito Do Trabalho", emoji: "👷", bg: "from-yellow-500 to-amber-600", accent: "bg-yellow-400/30" },
+  { label: "Proc. Trabalho", value: "Direito Processual Do Trabalho", emoji: "⚙️", bg: "from-orange-500 to-red-600", accent: "bg-orange-400/30" },
+  { label: "Tributário", value: "Direito Tributario", emoji: "💰", bg: "from-green-600 to-emerald-800", accent: "bg-green-400/30" },
+  { label: "Empresarial", value: "Direito Empresarial", emoji: "💼", bg: "from-cyan-600 to-blue-700", accent: "bg-cyan-400/30" },
+  { label: "Financeiro", value: "Direito Financeiro", emoji: "🏦", bg: "from-emerald-500 to-green-700", accent: "bg-emerald-400/30" },
+  { label: "Previdenciário", value: "Direito Previndenciario", emoji: "👴", bg: "from-pink-500 to-rose-600", accent: "bg-pink-400/30" },
+  { label: "Ambiental", value: "Direito Ambiental", emoji: "🌳", bg: "from-lime-600 to-green-700", accent: "bg-lime-400/30" },
+  { label: "Int. Público", value: "Direito Internacional Público", emoji: "🌍", bg: "from-sky-500 to-blue-600", accent: "bg-sky-400/30" },
+  { label: "Int. Privado", value: "Direito Internacional Privado", emoji: "🤝", bg: "from-indigo-500 to-purple-600", accent: "bg-indigo-400/30" },
+  { label: "Concorrencial", value: "Direito Concorrencial", emoji: "🏆", bg: "from-fuchsia-500 to-pink-600", accent: "bg-fuchsia-400/30" },
+  { label: "Desportivo", value: "Direito Desportivo", emoji: "⚽", bg: "from-green-500 to-teal-600", accent: "bg-green-400/30" },
+  { label: "Urbanístico", value: "Direito Urbanistico", emoji: "🏙️", bg: "from-stone-500 to-stone-700", accent: "bg-stone-400/30" },
+  { label: "Dir. Humanos", value: "Direitos Humanos", emoji: "✊", bg: "from-rose-500 to-red-600", accent: "bg-rose-400/30" },
+  { label: "Lei Penal Esp.", value: "Lei Penal Especial", emoji: "🚨", bg: "from-red-600 to-red-800", accent: "bg-red-400/30" },
+  { label: "Filosofia", value: "Teoria E Filosofia Do Direito", emoji: "🧠", bg: "from-violet-500 to-purple-700", accent: "bg-violet-400/30" },
+  { label: "Políticas Púb.", value: "Politicas Publicas", emoji: "🗳️", bg: "from-blue-600 to-indigo-700", accent: "bg-blue-400/30" },
+  { label: "Prática Prof.", value: "Pratica Profissional", emoji: "👔", bg: "from-amber-600 to-yellow-700", accent: "bg-amber-400/30" },
+  { label: "Português", value: "Portugues", emoji: "📖", bg: "from-red-500 to-orange-600", accent: "bg-red-400/30" },
+  { label: "Pesq. Científica", value: "Pesquisa Científica", emoji: "🔬", bg: "from-cyan-500 to-teal-600", accent: "bg-cyan-400/30" },
+  { label: "Form. Compl.", value: "Formação Complementar", emoji: "🎓", bg: "from-indigo-600 to-blue-800", accent: "bg-indigo-400/30" },
+  { label: "Revisão OAB", value: "Revisão Oab", emoji: "📝", bg: "from-red-700 to-rose-900", accent: "bg-red-400/30" },
 ];
 
 export const MobileTrilhasAprender = memo(() => {
@@ -368,11 +368,8 @@ export const MobileTrilhasAprender = memo(() => {
             </button>
           </div>
           <p className="text-white/40 text-[10px] px-4 mb-3">Explore as matérias</p>
-          <div 
-            className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {AREAS_ORDEM.map((area) => {
+          <div className="grid grid-cols-2 gap-3 px-4">
+            {AREAS_ORDEM.slice(0, 8).map((area) => {
               const isActive = activeArea === area.value && activeCategory === "areas";
               return (
                 <button
@@ -381,14 +378,20 @@ export const MobileTrilhasAprender = memo(() => {
                     setActiveArea(area.value);
                     setActiveCategory("areas");
                   }}
-                  className={`flex-shrink-0 w-[150px] relative overflow-hidden rounded-2xl text-left transition-all shadow-[0_8px_30px_-4px_rgba(0,0,0,0.5)] h-[120px] ${
-                    isActive ? 'ring-2 ring-amber-400/60 scale-[1.03]' : 'hover:scale-[1.02]'
+                  className={`relative overflow-hidden rounded-2xl text-left transition-all h-[130px] bg-gradient-to-br ${area.bg} ${
+                    isActive ? 'ring-2 ring-white/60 scale-[1.03]' : 'hover:scale-[1.02]'
                   }`}
                 >
-                  <img src={areasThumb} alt={area.label} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                  {/* Decorative circles */}
+                  <div className={`absolute -top-4 -right-4 w-20 h-20 rounded-full ${area.accent}`} />
+                  <div className={`absolute -bottom-6 -left-6 w-16 h-16 rounded-full ${area.accent}`} />
+                  {/* Emoji icon */}
+                  <div className="absolute top-3 right-3 text-4xl opacity-90 drop-shadow-lg">
+                    {area.emoji}
+                  </div>
+                  {/* Label */}
                   <div className="relative z-10 p-3 h-full flex flex-col justify-end">
-                    <h4 className="font-semibold text-white text-xs leading-tight">{area.label}</h4>
+                    <h4 className="font-bold text-white text-sm leading-tight drop-shadow-md">{area.label}</h4>
                   </div>
                 </button>
               );
