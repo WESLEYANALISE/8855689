@@ -340,7 +340,12 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
           {/* Saudação personalizada ou título da aba - com fade-in */}
           <div key={mainTab} className="absolute bottom-24 left-0 right-0 text-center pointer-events-auto animate-fade-in" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
-            {(mainTab === 'jornada' || mainTab === 'estudos') && userName ? (
+            {mainTab === 'jornada' ? (
+              <>
+                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">Conquiste o</p>
+                <p className="font-playfair text-4xl font-bold text-white leading-tight">Seu objetivo</p>
+              </>
+            ) : mainTab === 'estudos' && userName ? (
               <>
                 <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()},</p>
                 <p className="font-playfair text-4xl font-bold text-white leading-tight">{userName}</p>
@@ -352,8 +357,8 @@ const Index = () => {
               </>
             ) : mainTab === 'explorar' ? (
               <>
-                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">Fique por dentro</p>
-                <p className="font-playfair text-4xl font-bold text-white leading-tight">Explorar</p>
+                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">Notícias, política</p>
+                <p className="font-playfair text-4xl font-bold text-white leading-tight">e análises</p>
               </>
             ) : null}
           </div>
