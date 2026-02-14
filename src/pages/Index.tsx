@@ -140,7 +140,7 @@ const Index = () => {
   
   // Ler tab da URL para navegação de volta (default agora é 'ferramentas' / Estudos)
   const tabFromUrl = searchParams.get('tab') as MainTab | null;
-  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'jornada');
+  const [mainTab, setMainTab] = useState<MainTab>(tabFromUrl || 'estudos');
   const [faculdadeSubTab, setFaculdadeSubTab] = useState<FaculdadeSubTab>('estudos');
 
   // Função para mudar tab e notificar o header
@@ -179,7 +179,7 @@ const Index = () => {
   useEffect(() => {
     const bottomNav = document.querySelector('[data-bottom-nav]');
     if (bottomNav) {
-      (bottomNav as HTMLElement).style.display = mainTab === 'jornada' ? '' : 'none';
+      (bottomNav as HTMLElement).style.display = (mainTab === 'jornada' || mainTab === 'estudos') ? '' : 'none';
     }
     return () => {
       if (bottomNav) {
