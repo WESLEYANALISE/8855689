@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BookOpen, Footprints, Scale, Loader2, ImagePlus, Search, X } from "lucide-react";
-import { FileText, Layers, Crown } from "lucide-react";
-import { Lock } from "lucide-react";
+import { ArrowLeft, BookOpen, Loader2, Scale, Search, X } from "lucide-react";
+import { FileText, Layers } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import bgAreasOab from "@/assets/bg-areas-oab.webp";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { PremiumUpgradeModal } from "@/components/PremiumUpgradeModal";
-import { PremiumBadge } from "@/components/PremiumBadge";
+import { SerpentineNiveis } from "@/components/shared/SerpentineNiveis";
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -21,36 +20,20 @@ const CACHE_KEYS = {
   topicosCount: 'oab-trilhas-topicos-count-cache',
 };
 
-// Helper to get cached data from localStorage
 const getCachedData = <T,>(key: string): T | null => {
   try {
     const cached = localStorage.getItem(key);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (e) {
-    console.warn('Cache read error:', e);
-  }
+    if (cached) return JSON.parse(cached);
+  } catch (e) { console.warn('Cache read error:', e); }
   return null;
 };
 
-// Helper to save data to localStorage
 const setCachedData = <T,>(key: string, data: T): void => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.warn('Cache write error:', e);
-  }
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.warn('Cache write error:', e); }
 };
 
-// Função de preload local para capas do Supabase
 const preloadImages = (urls: string[]) => {
-  urls.forEach(url => {
-    if (url) {
-      const img = new Image();
-      img.src = getOptimizedImageUrl(url, 'card-lg');
-    }
-  });
+  urls.forEach(url => { if (url) { const img = new Image(); img.src = getOptimizedImageUrl(url, 'card-lg'); } });
 };
 
 export default function TrilhasAprovacao() {
@@ -58,12 +41,9 @@ export default function TrilhasAprovacao() {
   const queryClient = useQueryClient();
   const { isPremium, loading: loadingSubscription } = useSubscription();
   const { user } = useAuth();
-  const isAdmin = user?.email === 'wn7corporation@gmail.com';
-  const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
-  // Buscar todas as matérias da OAB - CACHE INFINITO para navegação instantânea
   const { data: materias, isLoading } = useQuery({
     queryKey: ["oab-trilhas-materias"],
     queryFn: async () => {
@@ -72,65 +52,37 @@ export default function TrilhasAprovacao() {
         .select("*")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
-      
       if (error) throw error;
-      
-      // Salvar no cache persistente
-      if (data) {
-        setCachedData(CACHE_KEYS.materias, data);
-      }
-      
+      if (data) setCachedData(CACHE_KEYS.materias, data);
       return data || [];
     },
-    staleTime: Infinity, // Cache infinito - NUNCA refetch automático
-    gcTime: Infinity,    // Manter em cache para sempre durante a sessão
-    placeholderData: (getCachedData<any[]>(CACHE_KEYS.materias) || []) as any, // Dados do localStorage
+    staleTime: Infinity,
+    gcTime: Infinity,
+    placeholderData: (getCachedData<any[]>(CACHE_KEYS.materias) || []) as any,
   });
 
-  // Buscar contagem de tópicos por matéria - CACHE INFINITO
   const { data: topicosCount } = useQuery({
     queryKey: ["oab-trilhas-topicos-count"],
     queryFn: async () => {
       const aulaCounts: Record<number, number> = {};
       let totalAulas = 0;
       
-      // Buscar contagem da tabela unificada
-      const { data: topicos } = await supabase
-        .from("oab_trilhas_topicos")
-        .select("materia_id");
-      
+      const { data: topicos } = await supabase.from("oab_trilhas_topicos").select("materia_id");
       if (topicos) {
-        // Contar aulas por área (materia_id)
-        topicos.forEach(t => {
-          aulaCounts[t.materia_id] = (aulaCounts[t.materia_id] || 0) + 1;
-        });
+        topicos.forEach(t => { aulaCounts[t.materia_id] = (aulaCounts[t.materia_id] || 0) + 1; });
         totalAulas = topicos.length;
       }
       
-      // Ética Profissional também pode vir de oab_etica_topicos (legado)
-      const { data: eticaTopicos } = await supabase
-        .from("oab_etica_topicos")
-        .select("tema_id");
-      
-      // Buscar ID da matéria Ética Profissional
-      const { data: eticaMateria } = await supabase
-        .from("oab_trilhas_materias")
-        .select("id")
-        .ilike("nome", "%ética%")
-        .maybeSingle();
-      
+      const { data: eticaTopicos } = await supabase.from("oab_etica_topicos").select("tema_id");
+      const { data: eticaMateria } = await supabase.from("oab_trilhas_materias").select("id").ilike("nome", "%ética%").maybeSingle();
       if (eticaTopicos && eticaMateria) {
         aulaCounts[eticaMateria.id] = (aulaCounts[eticaMateria.id] || 0) + eticaTopicos.length;
         totalAulas += eticaTopicos.length;
       }
       
-      // Contar quantas áreas têm aulas (= matérias com conteúdo)
       const totalMaterias = Object.keys(aulaCounts).length;
-      
-      // Salvar no cache persistente
       const result = { aulaCounts, totalAulas, totalMaterias };
       setCachedData(CACHE_KEYS.topicosCount, result);
-      
       return result;
     },
     staleTime: Infinity,
@@ -138,86 +90,36 @@ export default function TrilhasAprovacao() {
     placeholderData: getCachedData<{ aulaCounts: Record<number, number>; totalAulas: number; totalMaterias: number }>(CACHE_KEYS.topicosCount) || { aulaCounts: {}, totalAulas: 0, totalMaterias: 0 },
   });
 
-  const handleGerarCapa = async (materiaId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setGeneratingId(materiaId);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('gerar-capa-oab-materia', {
-        body: { materiaId }
-      });
-      
-      if (error) throw error;
-      
-      toast.success("Capa gerada com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["oab-trilhas-materias"] });
-    } catch (err: any) {
-      console.error("Erro ao gerar capa:", err);
-      toast.error("Erro ao gerar capa: " + (err.message || "Tente novamente"));
-    } finally {
-      setGeneratingId(null);
-    }
-  };
-
-  // Handler para navegação - Verificar Premium antes de acessar
-  const handleNavigate = (materia: { id: number; nome: string }) => {
-    // Verificar se é Premium
-    if (!isPremium) {
-      setShowPremiumModal(true);
-      return;
-    }
-    
-    // Ética Profissional vai para página especial (ainda mantém legado por enquanto)
+  const handleNavigate = useCallback((materia: { id: number; nome: string }) => {
+    if (!isPremium) { setShowPremiumModal(true); return; }
     if (materia.nome.toLowerCase().includes("ética")) {
       navigate('/oab/trilhas-etica');
     } else {
-      // Navegar para nova página de matéria
       navigate(`/oab/trilhas-aprovacao/materia/${materia.id}`);
     }
-  };
+  }, [isPremium, navigate]);
 
   const totalAreas = materias?.length || 0;
-  const totalMaterias = topicosCount?.totalMaterias || 0;
+  const totalMateriasCount = topicosCount?.totalMaterias || 0;
   const totalAulas = topicosCount?.totalAulas || 0;
-  
-  // Flag para mostrar dados - mostra imediatamente se temos cache
   const hasData = totalAreas > 0 || getCachedData(CACHE_KEYS.materias);
 
-  // Filtrar matérias baseado na pesquisa
   const filteredMaterias = useMemo(() => {
     if (!materias) return [];
     if (!searchTerm.trim()) return materias;
-    
     const term = searchTerm.toLowerCase().trim();
-    return materias.filter(m => 
-      m.nome.toLowerCase().includes(term)
-    );
+    return materias.filter(m => m.nome.toLowerCase().includes(term));
   }, [materias, searchTerm]);
 
-  // Agora todas as áreas são mostradas, mas são Premium
-  // O usuário pode ver mas não acessar sem ser Premium
-
-  // Preload das capas + PREFETCH de todas as matérias para navegação instantânea
   useEffect(() => {
     if (materias && materias.length > 0) {
-      // Preload imagens
-      const capaUrls = materias
-        .map(m => m.capa_url)
-        .filter(Boolean) as string[];
-      if (capaUrls.length > 0) {
-        preloadImages(capaUrls);
-      }
-      
-      // Prefetch de todas as matérias de cada área em background
+      const capaUrls = materias.map(m => m.capa_url).filter(Boolean) as string[];
+      if (capaUrls.length > 0) preloadImages(capaUrls);
       materias.forEach(materia => {
         queryClient.prefetchQuery({
           queryKey: ["oab-trilha-materias-da-area", materia.id],
           queryFn: async () => {
-            const { data, error } = await supabase
-              .from("oab_trilhas_topicos")
-              .select("*")
-              .eq("materia_id", materia.id)
-              .order("ordem");
+            const { data, error } = await supabase.from("oab_trilhas_topicos").select("*").eq("materia_id", materia.id).order("ordem");
             if (error) throw error;
             return data;
           },
@@ -227,7 +129,6 @@ export default function TrilhasAprovacao() {
     }
   }, [materias, queryClient]);
 
-  // Só mostra loading se não tem NENHUM dado (nem cache localStorage)
   if (isLoading && !hasData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d14]">
@@ -238,39 +139,21 @@ export default function TrilhasAprovacao() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background Image - Otimizado para carregamento instantâneo */}
       <div className="fixed inset-0">
-        <img 
-          src={bgAreasOab}
-          alt="Background Trilhas"
-          className="w-full h-full object-cover object-center"
-          loading="eager"
-          fetchPriority="high"
-          decoding="sync"
-        />
+        <img src={bgAreasOab} alt="Background Trilhas" className="w-full h-full object-cover object-center" loading="eager" fetchPriority="high" decoding="sync" />
       </div>
-      
-      {/* Dark gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-black/80 to-[#0d0d14]" />
       
-      {/* Content */}
       <div className="relative z-10">
         {/* Header */}
         <div className="pt-6 pb-4 px-4">
           <div className="max-w-lg mx-auto">
-            <button
-              onClick={() => navigate('/oab/primeira-fase')}
-              className="flex items-center gap-2 text-red-400 hover:text-red-300 mb-6 transition-colors"
-            >
+            <button onClick={() => navigate('/oab/primeira-fase')} className="flex items-center gap-2 text-red-400 hover:text-red-300 mb-6 transition-colors">
               <ArrowLeft className="w-5 h-5" />
               <span className="text-sm font-medium">Voltar</span>
             </button>
             
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-4"
-            >
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/30">
                 <Scale className="w-7 h-7 text-white" />
               </div>
@@ -278,15 +161,13 @@ export default function TrilhasAprovacao() {
                 <h1 className="text-xl font-bold text-white" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                   Trilhas da Aprovação
                 </h1>
-                <p className="text-sm text-gray-400">
-                  OAB 1ª Fase
-                </p>
+                <p className="text-sm text-gray-400">OAB 1ª Fase</p>
               </div>
             </motion.div>
           </div>
         </div>
 
-        {/* Info Stats */}
+        {/* Stats */}
         <div className="px-4 py-4">
           <div className="flex items-center justify-center gap-6 text-sm text-white/80">
             <div className="flex items-center gap-2">
@@ -295,7 +176,7 @@ export default function TrilhasAprovacao() {
             </div>
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-yellow-400" />
-              <span>{totalMaterias} matérias</span>
+              <span>{totalMateriasCount} matérias</span>
             </div>
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-400" />
@@ -304,7 +185,7 @@ export default function TrilhasAprovacao() {
           </div>
         </div>
 
-        {/* Barra de Pesquisa */}
+        {/* Search */}
         <div className="px-4 pb-4">
           <div className="max-w-lg mx-auto">
             <div className="relative">
@@ -317,10 +198,7 @@ export default function TrilhasAprovacao() {
                 className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-red-500/50"
               />
               {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                >
+                <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -333,190 +211,22 @@ export default function TrilhasAprovacao() {
           </div>
         </div>
 
-        {/* Timeline de Matérias */}
-        {materias && (
-          <div className="px-4 pb-24 pt-4">
-            <div className="max-w-lg mx-auto relative">
-              {/* Linha central da timeline */}
-              <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
-                <div className="w-full h-full bg-gradient-to-b from-red-500/80 via-red-600/60 to-red-700/40 rounded-full" />
-                {/* Animação de fluxo elétrico */}
-                <motion.div
-                  className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 via-red-300/30 to-transparent rounded-full"
-                  animate={{ y: ["0%", "300%"] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                />
-              </div>
-              
-              <div className="space-y-6">
-                 {/* Todas as matérias - Com selo Premium quando não é assinante */}
-                 {filteredMaterias.map((materia, index) => {
-                  const isLeft = index % 2 === 0;
-                  const aulaCount = topicosCount?.aulaCounts?.[materia.id] || 0;
-                  const temCapa = !!materia.capa_url;
-                  const isGenerating = generatingId === materia.id;
-                  
-                  // Simular progresso (em produção, isso viria do banco de dados)
-                  const progressoPercentual = 0; // TODO: buscar progresso real do usuário
-                  
-                  return (
-                    <motion.div
-                      key={materia.id}
-                      initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`relative flex items-center ${
-                        isLeft ? 'justify-start pr-[52%]' : 'justify-end pl-[52%]'
-                      }`}
-                    >
-                      {/* Marcador Pegada no centro - SEMPRE VERMELHO */}
-                      <div className="absolute left-1/2 -translate-x-1/2 z-10">
-                        <motion.div
-                          animate={{ 
-                            scale: [1, 1.15, 1],
-                            boxShadow: [
-                              "0 0 0 0 rgba(239, 68, 68, 0.4)",
-                              "0 0 0 10px rgba(239, 68, 68, 0)",
-                              "0 0 0 0 rgba(239, 68, 68, 0.4)"
-                            ]
-                          }}
-                          transition={{ 
-                            duration: 2, 
-                            repeat: Infinity,
-                            delay: index * 0.3
-                          }}
-                          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-red-500 to-red-700 shadow-red-500/40"
-                        >
-                          <Footprints className="w-5 h-5 text-white" />
-                        </motion.div>
-                      </div>
-                      
-                      {/* Card da Matéria - Altura fixa - SEMPRE VERMELHO */}
-                      <div className="w-full">
-                        <motion.div 
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="rounded-2xl backdrop-blur-sm border transition-all overflow-hidden min-h-[200px] flex flex-col bg-[#12121a]/90 border-white/10 hover:border-red-500/50"
-                        >
-                          {/* Capa da matéria com Tema dentro */}
-                          <div className="h-20 w-full overflow-hidden relative flex-shrink-0">
-                            {temCapa ? (
-                              <>
-                                <img 
-                                  src={materia.capa_url!} 
-                                  alt={materia.nome}
-                                  className="w-full h-full object-cover"
-                                  loading="eager"
-                                  fetchPriority="high"
-                                  decoding="sync"
-                                />
-                                {/* Gradiente escuro para destaque do texto */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                                
-                                {/* Selo Premium - visível apenas para não-assinantes */}
-                                {!isPremium && !loadingSubscription && (
-                                  <PremiumBadge position="top-right" size="md" />
-                                )}
-                                
-                                {/* Botão Regenerar Capa - apenas para admin */}
-                                {isAdmin && (
-                                  <button
-                                    onClick={(e) => handleGerarCapa(materia.id, e)}
-                                    disabled={isGenerating}
-                                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-500/80 transition-colors z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Regenerar capa da área"
-                                  >
-                                    {isGenerating ? (
-                                      <Loader2 className="w-4 h-4 text-white animate-spin" />
-                                    ) : (
-                                      <ImagePlus className="w-4 h-4 text-white" />
-                                    )}
-                                  </button>
-                                )}
-                              </>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                                {isAdmin ? (
-                                  <button
-                                    onClick={(e) => handleGerarCapa(materia.id, e)}
-                                    disabled={isGenerating}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-50 bg-red-600/80 hover:bg-red-600"
-                                  >
-                                    {isGenerating ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Gerando...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ImagePlus className="w-4 h-4" />
-                                        Gerar Capa
-                                      </>
-                                    )}
-                                  </button>
-                                ) : (
-                                  <Scale className="w-8 h-8 text-gray-600" />
-                                )}
-                              </div>
-                            )}
-                            
-                            {/* Área dentro da capa */}
-                            <div className="absolute bottom-2 left-3">
-                              <p className="text-xs font-semibold drop-shadow-lg text-red-400">
-                                Área {materia.ordem}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Conteúdo clicável */}
-                          <button
-                            onClick={() => handleNavigate(materia)}
-                            className="flex-1 p-3 text-left flex flex-col"
-                          >
-                            <div className="flex-1">
-                              <h3 className="font-medium text-[13px] leading-snug text-white">
-                                {materia.nome}
-                              </h3>
-                              
-                              {/* Contagem de matérias */}
-                              {aulaCount > 0 && (
-                                <div className="flex items-center gap-1 mt-2">
-                                  <FileText className="w-3 h-3 text-yellow-400" />
-                                  <span className="text-xs text-yellow-400 font-medium">{aulaCount} {aulaCount === 1 ? 'aula' : 'aulas'}</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Barra de progresso */}
-                            <div className="mt-3">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] text-gray-500">Progresso</span>
-                                <span className="text-[10px] text-green-400 font-medium">{progressoPercentual}%</span>
-                              </div>
-                              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all"
-                                  style={{ width: `${progressoPercentual}%` }}
-                                />
-                              </div>
-                            </div>
-                          </button>
-                        </motion.div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+        {/* Serpentine */}
+        {filteredMaterias.length > 0 ? (
+          <SerpentineNiveis
+            items={filteredMaterias}
+            getItemCapa={(item) => item.capa_url}
+            getItemTitulo={(item) => item.nome}
+            getItemOrdem={(item) => item.ordem || 0}
+            getItemAulas={(item) => topicosCount?.aulaCounts?.[item.id] || 0}
+            getItemProgresso={() => 0}
+            onItemClick={(item) => handleNavigate(item)}
+          />
+        ) : (
+          <div className="text-center py-10 text-white/50 text-sm">Nenhuma área encontrada.</div>
         )}
-         
-         {/* Modal Premium */}
-         <PremiumUpgradeModal
-           open={showPremiumModal}
-           onOpenChange={setShowPremiumModal}
-           featureName="Todas as áreas"
-         />
+
+        <PremiumUpgradeModal open={showPremiumModal} onOpenChange={setShowPremiumModal} featureName="Todas as áreas" />
       </div>
     </div>
   );
