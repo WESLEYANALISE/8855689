@@ -558,10 +558,11 @@ export const Header = () => {
   const location = useLocation();
   const isHome = location.pathname === "/";
   const isResumosPage = location.pathname.startsWith("/resumos-juridicos");
+  const isCategoriasTopicoPage = location.pathname.startsWith("/categorias/topico");
   const pageTitle = getPageTitle(location.pathname);
 
-  // Hide header on resumos pages (they have their own navigation)
-  if (isResumosPage) return null;
+  // Hide header on pages that have their own navigation
+  if (isResumosPage || isCategoriasTopicoPage) return null;
 
   // HOME LAYOUT
   if (isHome) {
