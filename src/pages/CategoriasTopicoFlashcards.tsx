@@ -15,7 +15,7 @@ interface Flashcard { frente: string; verso: string; exemplo?: string; }
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 const CategoriasTopicoFlashcards = () => {
-  const { topicoId } = useParams();
+  const { id: topicoId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;

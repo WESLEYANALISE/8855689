@@ -17,7 +17,7 @@ const ADMIN_EMAIL = "wn7corporation@gmail.com";
 type ViewMode = 'intro' | 'slides';
 
 const CategoriasTopicoEstudo = () => {
-  const { topicoId } = useParams();
+  const { id: topicoId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
