@@ -87,154 +87,159 @@ export const JornadaHomeSection = memo(() => {
   }
 
   return (
-    <div className="space-y-3 relative min-h-[60vh] rounded-t-[32px] overflow-hidden">
-      {/* Background image - fixed height to prevent stretching */}
-      <div className="absolute inset-x-0 top-0 h-[80vh] rounded-t-[32px] overflow-hidden pointer-events-none" aria-hidden="true">
-        <InstantBackground
-          src={themisBackground}
-          alt="Themis"
-          blurCategory="estudos"
-          fixed={false}
-          showGradient={false}
-          className="rounded-t-[32px]"
-        />
-      </div>
-      {/* Gradient overlay - covers full content */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-[#0d0d14] rounded-t-[32px] pointer-events-none" />
-      {/* Journey Selector */}
-      <div className="px-2 pt-6 relative z-10">
-        <button
-          onClick={() => setShowSelector(!showSelector)}
-          className="flex items-center gap-3 w-full p-3 rounded-2xl bg-card border border-border/50 hover:border-amber-500/30 transition-all group"
-        >
-          <div className="p-2 bg-red-500/20 rounded-xl">
-            <jornadaInfo.icon className="w-5 h-5 text-red-400" />
-          </div>
-          <div className="flex-1 text-left">
-            <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">
-              {jornadaInfo.label}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {jornadaInfo.sublabel}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-amber-500 transition-colors">
-            <Settings className="w-4 h-4" />
-            <ChevronDown className={`w-4 h-4 transition-transform ${showSelector ? 'rotate-180' : ''}`} />
-          </div>
-        </button>
-
-        {/* Dropdown selector */}
-        <AnimatePresence>
-          {showSelector && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="absolute left-2 right-2 top-full mt-1 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
-            >
-              <p className="px-4 pt-3 pb-1 text-xs text-muted-foreground font-medium">Escolha sua jornada</p>
-              {JORNADAS.map((jornada) => {
-                const Icon = jornada.icon;
-                const isActive = jornadaAtiva === jornada.id;
-                return (
-                  <button
-                    key={jornada.id}
-                    onClick={() => handleSelectJornada(jornada.id)}
-                    className={`w-full flex items-center gap-3 p-3 transition-colors ${
-                      isActive 
-                        ? 'bg-red-500/10 text-foreground' 
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold">{jornada.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{jornada.sublabel}</p>
-                    </div>
-                    {isActive && (
-                      <div className="ml-auto w-2 h-2 rounded-full bg-red-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div className="relative min-h-[60vh] rounded-t-[32px] overflow-hidden">
+      {/* Background image - sticky so it stays visible while content scrolls */}
+      <div className="sticky top-0 h-0 z-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute inset-x-0 top-0 h-screen rounded-t-[32px] overflow-hidden">
+          <InstantBackground
+            src={themisBackground}
+            alt="Themis"
+            blurCategory="estudos"
+            fixed={false}
+            showGradient={false}
+            className="rounded-t-[32px]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/60 to-[#0d0d14]" />
+        </div>
       </div>
 
-      {/* Conceitos Content */}
-      {jornadaAtiva === 'conceitos' && (
-        <div className="relative z-10">
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-2">
-            <div className="flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-red-400" />
-              <span>{totalMaterias} matérias</span>
+      {/* Content */}
+      <div className="relative z-10 space-y-3">
+        {/* Journey Selector */}
+        <div className="px-4 pt-6 relative">
+          <button
+            onClick={() => setShowSelector(!showSelector)}
+            className="flex items-center gap-3 w-full p-3 rounded-2xl bg-card border border-border/50 hover:border-amber-500/30 transition-all group"
+          >
+            <div className="p-2 bg-red-500/20 rounded-xl">
+              <jornadaInfo.icon className="w-5 h-5 text-red-400" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <Footprints className="w-3.5 h-3.5 text-yellow-400" />
-              <span>{totalTopicos} aulas</span>
+            <div className="flex-1 text-left">
+              <h3 className="font-playfair text-xl font-bold text-foreground tracking-tight">
+                {jornadaInfo.label}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {jornadaInfo.sublabel}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-amber-500 transition-colors">
+              <Settings className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform ${showSelector ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {/* Dropdown selector */}
+          <AnimatePresence>
+            {showSelector && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="absolute left-4 right-4 top-full mt-1 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
+              >
+                <p className="px-4 pt-3 pb-1 text-xs text-muted-foreground font-medium">Escolha sua jornada</p>
+                {JORNADAS.map((jornada) => {
+                  const Icon = jornada.icon;
+                  const isActive = jornadaAtiva === jornada.id;
+                  return (
+                    <button
+                      key={jornada.id}
+                      onClick={() => handleSelectJornada(jornada.id)}
+                      className={`w-full flex items-center gap-3 p-3 transition-colors ${
+                        isActive 
+                          ? 'bg-red-500/10 text-foreground' 
+                          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-xl ${isActive ? 'bg-red-500/20' : 'bg-muted'}`}>
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-red-400' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold">{jornada.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{jornada.sublabel}</p>
+                      </div>
+                      {isActive && (
+                        <div className="ml-auto w-2 h-2 rounded-full bg-red-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Conceitos Content */}
+        {jornadaAtiva === 'conceitos' && (
+          <div>
+            {/* Stats */}
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground px-4">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-red-400" />
+                <span>{totalMaterias} matérias</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Footprints className="w-3.5 h-3.5 text-yellow-400" />
+                <span>{totalTopicos} aulas</span>
+              </div>
+            </div>
+
+            {/* Serpentine */}
+            {materias && materias.length > 0 ? (
+              <SerpentineNiveis
+                items={materias}
+                getItemCapa={(item) => item.capa_url}
+                getItemTitulo={(item) => item.nome}
+                getItemOrdem={(item) => item.area_ordem || 0}
+                getItemAulas={(item) => topicosCount?.[item.id] || 0}
+                getItemProgresso={() => 0}
+                onItemClick={(item) => {
+                  if (isItemLocked(item)) {
+                    navigate('/assinatura');
+                    return;
+                  }
+                  navigate(`/conceitos/materia/${item.id}`);
+                }}
+                isItemLocked={isItemLocked}
+              />
+            ) : (
+              <div className="text-center py-10 text-muted-foreground text-sm">Nenhuma matéria encontrada.</div>
+            )}
+          </div>
+        )}
+
+        {/* OAB Content */}
+        {jornadaAtiva === 'oab' && (
+          <div className="px-4 space-y-3">
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+              <span>Selecione a fase do exame</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate('/trilhas-oab')}
+                className="group bg-card border border-border/50 rounded-2xl p-4 text-left hover:border-red-500/30 transition-all"
+              >
+                <div className="p-2.5 bg-red-500/20 rounded-xl w-fit mb-3">
+                  <Target className="w-5 h-5 text-red-400" />
+                </div>
+                <h4 className="font-playfair font-bold text-foreground text-sm">1ª Fase</h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Prova objetiva</p>
+              </button>
+              <button
+                onClick={() => navigate('/trilhas-oab-2fase')}
+                className="group bg-card border border-border/50 rounded-2xl p-4 text-left hover:border-red-500/30 transition-all"
+              >
+                <div className="p-2.5 bg-amber-500/20 rounded-xl w-fit mb-3">
+                  <Scale className="w-5 h-5 text-amber-400" />
+                </div>
+                <h4 className="font-playfair font-bold text-foreground text-sm">2ª Fase</h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Prova prática</p>
+              </button>
             </div>
           </div>
-
-          {/* Serpentine */}
-          {materias && materias.length > 0 ? (
-            <SerpentineNiveis
-              items={materias}
-              getItemCapa={(item) => item.capa_url}
-              getItemTitulo={(item) => item.nome}
-              getItemOrdem={(item) => item.area_ordem || 0}
-              getItemAulas={(item) => topicosCount?.[item.id] || 0}
-              getItemProgresso={() => 0}
-              onItemClick={(item) => {
-                if (isItemLocked(item)) {
-                  navigate('/assinatura');
-                  return;
-                }
-                navigate(`/conceitos/materia/${item.id}`);
-              }}
-              isItemLocked={isItemLocked}
-            />
-          ) : (
-            <div className="text-center py-10 text-muted-foreground text-sm">Nenhuma matéria encontrada.</div>
-          )}
-        </div>
-      )}
-
-      {/* OAB Content - redirects to OAB selection */}
-      {jornadaAtiva === 'oab' && (
-        <div className="px-2 space-y-3 relative z-10">
-          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-            <span>Selecione a fase do exame</span>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate('/trilhas-oab')}
-              className="group bg-card border border-border/50 rounded-2xl p-4 text-left hover:border-red-500/30 transition-all"
-            >
-              <div className="p-2.5 bg-red-500/20 rounded-xl w-fit mb-3">
-                <Target className="w-5 h-5 text-red-400" />
-              </div>
-              <h4 className="font-playfair font-bold text-foreground text-sm">1ª Fase</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Prova objetiva</p>
-            </button>
-            <button
-              onClick={() => navigate('/trilhas-oab-2fase')}
-              className="group bg-card border border-border/50 rounded-2xl p-4 text-left hover:border-red-500/30 transition-all"
-            >
-              <div className="p-2.5 bg-amber-500/20 rounded-xl w-fit mb-3">
-                <Scale className="w-5 h-5 text-amber-400" />
-              </div>
-              <h4 className="font-playfair font-bold text-foreground text-sm">2ª Fase</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Prova prática</p>
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 });
