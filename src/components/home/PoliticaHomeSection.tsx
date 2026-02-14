@@ -40,20 +40,20 @@ interface Documentario {
 }
 
 const ORIENTACAO_TABS = [
-  { key: 'esquerda' as OrientacaoType, label: 'Esquerda', activeColor: 'bg-red-500 text-white' },
-  { key: 'centro' as OrientacaoType, label: 'Centro', activeColor: 'bg-yellow-500 text-black' },
-  { key: 'direita' as OrientacaoType, label: 'Direita', activeColor: 'bg-blue-500 text-white' },
+  { key: 'esquerda' as OrientacaoType, label: 'Esquerda' },
+  { key: 'centro' as OrientacaoType, label: 'Centro' },
+  { key: 'direita' as OrientacaoType, label: 'Direita' },
 ];
 
 const OrientacaoMenu = ({ active, onChange }: { active: OrientacaoType; onChange: (o: OrientacaoType) => void }) => (
-  <div className="flex items-center gap-1 bg-black/30 rounded-full p-1 w-fit mb-3">
+  <div className="flex items-center bg-black/30 rounded-full p-1 mb-3">
     {ORIENTACAO_TABS.map(tab => (
       <button
         key={tab.key}
         onClick={() => onChange(tab.key)}
         className={cn(
-          "px-3 py-1.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap",
-          active === tab.key ? tab.activeColor + " shadow-md" : "text-white/70 hover:text-white hover:bg-white/10"
+          "flex-1 py-1.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap text-center",
+          active === tab.key ? "bg-white text-black shadow-md" : "text-white/70 hover:text-white hover:bg-white/10"
         )}
       >
         {tab.label}
