@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trophy } from "lucide-react";
 import { MobileAreaTrilha } from "@/components/mobile/MobileAreaTrilha";
 
 const AreaTrilhaPage = () => {
@@ -18,15 +18,42 @@ const AreaTrilhaPage = () => {
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-base font-bold text-white">{decodedArea}</h1>
             <p className="text-[10px] text-white/50">Trilha de estudos</p>
           </div>
         </div>
       </div>
 
+      {/* Progress Level Bar */}
+      <div className="px-4 pt-4 pb-2 max-w-lg mx-auto">
+        <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white font-semibold text-sm">Nível 1</p>
+                <p className="text-white/40 text-[10px]">Iniciante</p>
+              </div>
+            </div>
+            <span className="text-white/50 text-xs">0%</span>
+          </div>
+          <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-500"
+              style={{ width: "0%" }}
+            />
+          </div>
+          <p className="text-white/30 text-[10px] mt-1.5 text-center">
+            Complete temas para avançar de nível
+          </p>
+        </div>
+      </div>
+
       {/* Trilha */}
-      <div className="pb-24 pt-4">
+      <div className="pb-24 pt-2">
         <MobileAreaTrilha area={decodedArea} />
       </div>
     </div>
