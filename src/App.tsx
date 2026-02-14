@@ -900,7 +900,7 @@ const App = () => {
               <Route path="/conceitos/livro/:trilha" element={<ConceitosLivro />} />
               <Route path="/conceitos/livro/tema/:id" element={<ConceitosLivroTema />} />
               <Route path="/conceitos/area/:areaOrdem" element={<ConceitosArea />} />
-              <Route path="/aulas/area/:area" element={<AreaTrilhaPage />} />
+              <Route path="/aulas/area/:area" element={<Suspense fallback={<div className="min-h-screen bg-[#0a0a12] flex items-center justify-center"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div>}><AreaTrilhaPage /></Suspense>} />
               <Route path="/conceitos/materia/:id" element={<ConceitosMateria />} />
               <Route path="/conceitos/topico/:id" element={<ConceitosTopicoEstudo />} />
               <Route path="/conceitos/topico/:id/flashcards" element={<ConceitosTopicoFlashcards />} />
