@@ -387,10 +387,12 @@ const AreaMateriaTrilhaPage = () => {
               <FileText className="w-16 h-16 text-red-500/30 mb-4" />
               <p className="text-gray-400 mb-2">Nenhum conteúdo disponível</p>
               {isAdmin && (
-                <Button onClick={handleAddPdf} className="mt-4 bg-red-600 hover:bg-red-700 gap-2">
-                  <Plus className="w-4 h-4" />
-                  Adicionar PDF
-                </Button>
+                <div className="flex items-center gap-3 mt-4">
+                  <Button onClick={handleAddPdf} className="bg-red-600 hover:bg-red-700 gap-2">
+                    <Plus className="w-4 h-4" />
+                    Adicionar PDF
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
@@ -398,10 +400,16 @@ const AreaMateriaTrilhaPage = () => {
               <Scale className="w-16 h-16 text-red-500/30 mb-4" />
               <p className="text-gray-400 mb-2">Nenhum tópico encontrado</p>
               {isAdmin && (
-                <Button onClick={() => setShowPdfModal(true)} className="mt-4 bg-red-600 hover:bg-red-700 gap-2">
-                  <RefreshCw className="w-4 h-4" />
-                  Reprocessar PDF
-                </Button>
+                <div className="flex items-center gap-3 mt-4">
+                  <Button onClick={() => setShowPdfModal(true)} className="bg-red-600 hover:bg-red-700 gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    Reprocessar PDF
+                  </Button>
+                  <Button onClick={handleAddPdf} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-2">
+                    <Plus className="w-4 h-4" />
+                    Novo PDF
+                  </Button>
+                </div>
               )}
             </div>
           )}
