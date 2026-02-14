@@ -13,7 +13,7 @@ interface Questao { pergunta: string; alternativas: string[]; correta: number; e
 const ADMIN_EMAIL = "wn7corporation@gmail.com";
 
 const CategoriasTopicoQuestoes = () => {
-  const { topicoId } = useParams();
+  const { id: topicoId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
