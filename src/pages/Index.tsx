@@ -299,7 +299,7 @@ const Index = () => {
       <WelcomeAudioPlayer />
       
       {/* Ícone de busca flutuante - independente do hero para funcionar sempre */}
-      {mainTab === 'jornada' && (
+      {mainTab === 'estudos' && (
         <button
           onClick={() => navigate('/pesquisar')}
           className="md:hidden fixed top-4 right-5 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors active:scale-95"
