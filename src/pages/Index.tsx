@@ -283,10 +283,10 @@ const Index = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/80" />
           {/* Saudação personalizada ou título da aba */}
-            <div className={`absolute bottom-24 pointer-events-auto ${(mainTab === 'jornada' || mainTab === 'estudos') ? 'left-5 text-left' : 'left-0 right-0 text-center'}`} style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
+            <div className="absolute bottom-24 left-0 right-0 text-center pointer-events-auto" style={{ textShadow: '0 4px 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)' }}>
             {(mainTab === 'jornada' || mainTab === 'estudos') && userName ? (
               <>
-                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()}</p>
+                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()},</p>
                 <p className="font-playfair text-4xl font-bold text-white leading-tight">{userName}</p>
               </>
             ) : mainTab === 'leis' ? (
