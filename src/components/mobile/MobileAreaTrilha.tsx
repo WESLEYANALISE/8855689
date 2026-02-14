@@ -139,7 +139,7 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
               >
                 {/* Circle button */}
                 <button
-                  onClick={() => !isLocked && navigate(`/biblioteca/estudos/${livro.id}`)}
+                  onClick={() => !isLocked && navigate(`/aulas/area/${encodeURIComponent(area)}/materia/${livro.id}`)}
                   disabled={isLocked}
                   className="relative group"
                 >

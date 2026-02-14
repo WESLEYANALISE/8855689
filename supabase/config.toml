@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.admin-daily-feedback]
 verify_jwt = false
+
+[functions.processar-pdf-categorias]
+verify_jwt = false
+
+[functions.identificar-temas-categorias]
+verify_jwt = false
+
+[functions.confirmar-temas-categorias]
+verify_jwt = false

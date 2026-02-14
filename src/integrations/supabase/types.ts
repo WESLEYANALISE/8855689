@@ -2809,6 +2809,38 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_materia_paginas: {
+        Row: {
+          conteudo: string | null
+          created_at: string | null
+          id: number
+          materia_id: number
+          pagina: number
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: number
+          materia_id: number
+          pagina: number
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: number
+          materia_id?: number
+          pagina?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_materia_paginas_materia_id_fkey"
+            columns: ["materia_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_materias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_materias: {
         Row: {
           ativo: boolean | null
