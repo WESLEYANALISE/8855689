@@ -207,6 +207,9 @@ const CategoriasTopicoEstudo = () => {
         onStartFlashcards={() => navigate(`/categorias/topico/${topicoId}/flashcards`)}
         onStartQuestoes={() => navigate(`/categorias/topico/${topicoId}/questoes`)}
         onBack={handleBack}
+        subtituloMateria={topico?.materia?.categoria || ""}
+        textoMotivacional="Prepare-se para dominar este tema!"
+        textoFooter="As páginas são interativas e ideais para memorização"
       />
     </div>
   );

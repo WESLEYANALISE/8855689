@@ -22,6 +22,9 @@ interface OABTrilhasTopicoIntroProps {
   onStartFlashcards?: () => void;
   onStartQuestoes?: () => void;
   onBack?: () => void;
+  subtituloMateria?: string;
+  textoMotivacional?: string;
+  textoFooter?: string;
 }
 
 export const OABTrilhasTopicoIntro = ({
@@ -40,7 +43,10 @@ export const OABTrilhasTopicoIntro = ({
   onStartPaginas,
   onStartFlashcards,
   onStartQuestoes,
-  onBack
+  onBack,
+  subtituloMateria,
+  textoMotivacional,
+  textoFooter,
 }: OABTrilhasTopicoIntroProps) => {
   // Ruído marrom
   const [brownNoiseEnabled, setBrownNoiseEnabled] = useState(false);
@@ -130,7 +136,7 @@ export const OABTrilhasTopicoIntro = ({
           >
             {materiaName && (
               <p className="text-xs text-red-400 uppercase tracking-widest font-medium mb-2">
-                {materiaName} • OAB 1ª Fase
+                {subtituloMateria || (materiaName ? `${materiaName} • OAB 1ª Fase` : '')}
               </p>
             )}
             <h1 
@@ -140,7 +146,7 @@ export const OABTrilhasTopicoIntro = ({
               {titulo}
             </h1>
             <p className="text-sm text-gray-400 mt-2">
-              Prepare-se para dominar este tema da OAB!
+              {textoMotivacional || "Prepare-se para dominar este tema da OAB!"}
             </p>
           </motion.div>
 
@@ -367,7 +373,7 @@ export const OABTrilhasTopicoIntro = ({
             transition={{ delay: 0.7 }}
             className="text-center text-xs text-gray-600 mt-8"
           >
-            As páginas são interativas e ideais para memorização da OAB
+            {textoFooter || "As páginas são interativas e ideais para memorização da OAB"}
           </motion.p>
         </div>
       </div>
