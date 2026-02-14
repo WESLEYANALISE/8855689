@@ -370,17 +370,11 @@ export const MobileTrilhasAprender = memo(() => {
           <p className="text-white/40 text-[10px] px-4 mb-3">Explore as matérias</p>
           <div className="grid grid-cols-2 gap-3 px-4">
             {AREAS_ORDEM.slice(0, 8).map((area) => {
-              const isActive = activeArea === area.value && activeCategory === "areas";
               return (
                 <button
                   key={area.value}
-                  onClick={() => {
-                    setActiveArea(area.value);
-                    setActiveCategory("areas");
-                  }}
-                  className={`relative overflow-hidden rounded-2xl text-left transition-all h-[130px] bg-gradient-to-br ${area.bg} ${
-                    isActive ? 'ring-2 ring-white/60 scale-[1.03]' : 'hover:scale-[1.02]'
-                  }`}
+                  onClick={() => navigate(`/aulas/area/${encodeURIComponent(area.value)}`)}
+                  className={`relative overflow-hidden rounded-2xl text-left transition-all h-[130px] bg-gradient-to-br ${area.bg} hover:scale-[1.02]`}
                 >
                   {/* Decorative circles */}
                   <div className={`absolute -top-4 -right-4 w-20 h-20 rounded-full ${area.accent}`} />

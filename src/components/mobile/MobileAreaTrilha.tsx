@@ -9,10 +9,9 @@ interface MobileAreaTrilhaProps {
   area: string;
 }
 
-// Serpentine X offsets pattern (percentage of container width)
-const SERPENTINE_PATTERN = [50, 75, 50, 25, 50, 75, 50, 25];
-
-const getNodeX = (index: number) => SERPENTINE_PATTERN[index % SERPENTINE_PATTERN.length];
+// Serpentine X positions: alternates left-center-right creating a zigzag
+const SERPENTINE_X = [50, 78, 50, 22, 50, 78, 50, 22];
+const getNodeX = (index: number) => SERPENTINE_X[index % SERPENTINE_X.length];
 
 export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
   const navigate = useNavigate();
@@ -32,28 +31,26 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
     staleTime: 1000 * 60 * 10,
   });
 
-  const NODE_SIZE = 76;
-  const VERTICAL_SPACING = 120;
-  const CONTAINER_WIDTH = 300;
+  const NODE_SIZE = 90;
+  const VERTICAL_SPACING = 140;
+  const CONTAINER_WIDTH = 320;
 
   const nodes = useMemo(() => {
     if (!livros) return [];
     return livros.map((livro, index) => ({
       x: (getNodeX(index) / 100) * CONTAINER_WIDTH,
-      y: index * VERTICAL_SPACING + NODE_SIZE / 2 + 20,
+      y: index * VERTICAL_SPACING + NODE_SIZE / 2 + 30,
       livro,
       index,
     }));
   }, [livros]);
 
+  // Build SVG path with straight diagonal lines between nodes
   const svgPath = useMemo(() => {
     if (nodes.length < 2) return "";
     let d = `M ${nodes[0].x} ${nodes[0].y}`;
     for (let i = 1; i < nodes.length; i++) {
-      const prev = nodes[i - 1];
-      const curr = nodes[i];
-      const cpY = (prev.y + curr.y) / 2;
-      d += ` C ${prev.x} ${cpY}, ${curr.x} ${cpY}, ${curr.x} ${curr.y}`;
+      d += ` L ${nodes[i].x} ${nodes[i].y}`;
     }
     return d;
   }, [nodes]);
@@ -79,7 +76,7 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
   return (
     <div className="relative">
       {/* Info */}
-      <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-4">
+      <div className="flex items-center justify-center gap-4 text-xs text-white/80 mb-6">
         <div className="flex items-center gap-1.5">
           <BookOpen className="w-3.5 h-3.5 text-red-400" />
           <span>{livros.length} temas</span>
@@ -89,7 +86,7 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
       {/* Serpentine Path */}
       <div className="flex justify-center">
         <div className="relative" style={{ width: CONTAINER_WIDTH, height: totalHeight }}>
-          {/* SVG connector line */}
+          {/* SVG diagonal connector lines */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
             viewBox={`0 0 ${CONTAINER_WIDTH} ${totalHeight}`}
@@ -97,11 +94,21 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
           >
             <motion.path
               d={svgPath}
-              stroke="rgba(239, 68, 68, 0.3)"
-              strokeWidth="4"
+              stroke="rgba(239, 68, 68, 0.4)"
+              strokeWidth="3"
               strokeLinecap="round"
               fill="none"
-              strokeDasharray="10 6"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+            />
+            {/* Glow line on top */}
+            <motion.path
+              d={svgPath}
+              stroke="rgba(239, 68, 68, 0.15)"
+              strokeWidth="8"
+              strokeLinecap="round"
+              fill="none"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{ duration: 1.5, ease: "easeOut" }}
@@ -113,7 +120,6 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
             const capaUrl = livro["Capa-livro"];
             const titulo = livro["Tema"] || "Sem título";
             const ordem = livro["Ordem"] || index + 1;
-            // TODO: integrate real progress
             const isCompleted = false;
             const isLocked = false;
             const isCurrent = index === 0;
@@ -121,9 +127,9 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
             return (
               <motion.div
                 key={livro.id}
-                initial={{ opacity: 0, scale: 0.5 }}
+                initial={{ opacity: 0, scale: 0.3 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.07, type: "spring", stiffness: 200 }}
+                transition={{ delay: index * 0.08, type: "spring", stiffness: 180, damping: 15 }}
                 className="absolute flex flex-col items-center"
                 style={{
                   left: x - NODE_SIZE / 2,
@@ -140,52 +146,52 @@ export const MobileAreaTrilha = ({ area }: MobileAreaTrilhaProps) => {
                   {/* Pulse ring for current */}
                   {isCurrent && (
                     <motion.div
-                      className="absolute -inset-2 rounded-full border-2 border-red-500/50"
-                      animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+                      className="absolute -inset-2.5 rounded-full border-2 border-red-500/60"
+                      animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
                   )}
 
                   {/* Main circle */}
                   <div
-                    className={`w-[72px] h-[72px] rounded-full overflow-hidden flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
+                    className={`w-[86px] h-[86px] rounded-full overflow-hidden flex items-center justify-center shadow-xl transition-transform active:scale-95 ${
                       isLocked
                         ? "bg-gray-700/80 border-2 border-gray-600"
                         : isCompleted
                         ? "border-[3px] border-green-500 shadow-green-500/30"
                         : isCurrent
-                        ? "border-[3px] border-red-500 shadow-red-500/40"
+                        ? "border-[3px] border-red-500 shadow-red-500/50"
                         : "border-2 border-white/20"
                     }`}
                   >
                     {isLocked ? (
-                      <Lock className="w-6 h-6 text-gray-500" />
+                      <Lock className="w-7 h-7 text-gray-500" />
                     ) : capaUrl ? (
                       <img src={capaUrl} alt={titulo} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">{ordem}</span>
+                        <span className="text-white font-bold text-xl">{ordem}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Completion badge */}
                   {isCompleted && (
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center border-2 border-[#0a0a12]">
-                      <Check className="w-3.5 h-3.5 text-white" />
+                    <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center border-2 border-[#0a0a12]">
+                      <Check className="w-4 h-4 text-white" />
                     </div>
                   )}
 
                   {/* Order badge */}
                   {!isCompleted && !isLocked && (
-                    <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-red-600 flex items-center justify-center border-2 border-[#0a0a12] text-[10px] font-bold text-white">
+                    <div className="absolute -top-1 -left-1 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center border-2 border-[#0a0a12] text-xs font-bold text-white shadow-lg">
                       {ordem}
                     </div>
                   )}
                 </button>
 
                 {/* Title below */}
-                <p className="mt-2 text-[11px] text-white/80 text-center leading-tight line-clamp-2 w-24">
+                <p className="mt-2.5 text-xs text-white/80 text-center leading-tight line-clamp-2 w-28 font-medium">
                   {titulo}
                 </p>
               </motion.div>

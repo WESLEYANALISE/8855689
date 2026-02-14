@@ -405,6 +405,7 @@ import ConceitosTrilhante from "./pages/ConceitosTrilhante";
 import ConceitosLivro from "./pages/ConceitosLivro";
 import ConceitosLivroTema from "./pages/ConceitosLivroTema";
 import ConceitosArea from "./pages/ConceitosArea";
+const AreaTrilhaPage = lazy(() => import("./pages/AreaTrilhaPage"));
 import ConceitosMateria from "./pages/ConceitosMateria";
 import ConceitosTopicoEstudo from "./pages/ConceitosTopicoEstudo";
 import ConceitosTopicoFlashcards from "./pages/ConceitosTopicoFlashcards";
@@ -899,6 +900,7 @@ const App = () => {
               <Route path="/conceitos/livro/:trilha" element={<ConceitosLivro />} />
               <Route path="/conceitos/livro/tema/:id" element={<ConceitosLivroTema />} />
               <Route path="/conceitos/area/:areaOrdem" element={<ConceitosArea />} />
+              <Route path="/aulas/area/:area" element={<AreaTrilhaPage />} />
               <Route path="/conceitos/materia/:id" element={<ConceitosMateria />} />
               <Route path="/conceitos/topico/:id" element={<ConceitosTopicoEstudo />} />
               <Route path="/conceitos/topico/:id/flashcards" element={<ConceitosTopicoFlashcards />} />
