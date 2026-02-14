@@ -366,13 +366,18 @@ const Index = () => {
 
       {/* Jornada selector - above tabs, only when on Jornada tab */}
       {mainTab === 'jornada' && (
-        <div className="md:hidden relative px-4 mb-3" style={{ zIndex: 4 }}>
+        <div className="md:hidden relative px-4 mb-5" style={{ zIndex: 4 }}>
           <button
             onClick={() => setShowJornadaSelector(!showJornadaSelector)}
             className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-card/90 backdrop-blur-md border border-border/50 hover:border-amber-500/30 transition-all"
           >
-            <div className="p-2 bg-red-500/20 rounded-xl">
-              <jornadaInfo.icon className="w-5 h-5 text-red-400" />
+            <div className="relative">
+              {/* Pulse rings like serpentine active node */}
+              <div className="absolute -inset-1.5 rounded-xl border-2 border-red-500/50 animate-[pulse_2s_ease-in-out_infinite]" />
+              <div className="absolute -inset-3 rounded-xl border border-red-500/20 animate-[pulse_2.5s_ease-in-out_infinite_0.3s]" />
+              <div className="relative p-2 bg-red-500/20 rounded-xl">
+                <jornadaInfo.icon className="w-5 h-5 text-red-400" />
+              </div>
             </div>
             <div className="flex-1 text-left">
               <h3 className="font-playfair text-lg font-bold text-foreground tracking-tight leading-tight">
