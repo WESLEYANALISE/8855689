@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import heroVadeMecumPlanalto from "@/assets/hero-vademecum-planalto.webp";
 import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import jornadaHeroBackground from "@/assets/jornada-hero-background.webp";
+import destaquesHeroBackground from "@/assets/destaques-hero-background.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -74,7 +75,7 @@ const CARREIRAS_IMAGES = [
 const HERO_IMAGES_STATIC: Record<string, string> = {
   jornada: jornadaHeroBackground,
   estudos: '/hero-banner-themis-advogado-v2.webp',
-  explorar: '/hero-banner-themis-chorando.webp',
+  explorar: destaquesHeroBackground,
 };
 
 type JornadaTipo = 'conceitos' | 'oab';
