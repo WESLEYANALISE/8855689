@@ -51,6 +51,72 @@ serve(async (req) => {
       );
     }
 
+    const materiaId = topico.materia_id;
+
+    // === SISTEMA DE FILA (igual OAB Trilhas) ===
+    // Verificar se já existe geração ativa na mesma matéria
+    const { data: topicoAtivo } = await supabase
+      .from("categorias_topicos")
+      .select("id, updated_at")
+      .eq("materia_id", materiaId)
+      .eq("status", "gerando")
+      .neq("id", topico_id)
+      .limit(1)
+      .single();
+
+    if (topicoAtivo && !force_restart) {
+      // Watchdog: se o ativo está há mais de 30 minutos, marcar como erro
+      const updatedAt = new Date(topicoAtivo.updated_at).getTime();
+      const agora = Date.now();
+      const WATCHDOG_MS = 30 * 60 * 1000; // 30 minutos
+
+      if (agora - updatedAt > WATCHDOG_MS) {
+        console.log(`[Categorias] ⏰ Watchdog: tópico ${topicoAtivo.id} travado há +30min, marcando como erro`);
+        await supabase
+          .from("categorias_topicos")
+          .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
+          .eq("id", topicoAtivo.id);
+        // Continua para processar o novo tópico normalmente
+      } else {
+        // Enfileirar: colocar na fila com posição
+        const { data: maxFila } = await supabase
+          .from("categorias_topicos")
+          .select("posicao_fila")
+          .eq("materia_id", materiaId)
+          .eq("status", "na_fila")
+          .order("posicao_fila", { ascending: false })
+          .limit(1)
+          .single();
+
+        const novaPosicao = (maxFila?.posicao_fila || 0) + 1;
+
+        await supabase
+          .from("categorias_topicos")
+          .update({
+            status: "na_fila",
+            posicao_fila: novaPosicao,
+            progresso: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", topico_id);
+
+        console.log(`[Categorias] 📋 Enfileirado: ${topico.titulo} (posição ${novaPosicao})`);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "na_fila",
+            posicao_fila: novaPosicao,
+            message: `Tópico enfileirado na posição ${novaPosicao}`,
+            topico_id,
+            titulo: topico.titulo,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Se o próprio tópico já está gerando e não é force_restart, ignorar
     if (topico.status === "gerando" && !force_restart) {
       return new Response(
         JSON.stringify({ message: "Geração já em andamento", background: true }),
@@ -438,9 +504,11 @@ EXATAMENTE 22 flashcards e 17 questões. APENAS JSON.`;
       const novasTentativas = tentativasAtuais + 1;
       if (novasTentativas >= MAX_TENTATIVAS) {
         await supabase.from("categorias_topicos").update({ status: "erro", tentativas: novasTentativas, progresso: 0 }).eq("id", topico_id);
-        return;
+      } else {
+        await supabase.from("categorias_topicos").update({ status: "pendente", tentativas: novasTentativas, progresso: 0 }).eq("id", topico_id);
       }
-      await supabase.from("categorias_topicos").update({ status: "pendente", tentativas: novasTentativas, progresso: 0 }).eq("id", topico_id);
+      // Encadear próximo mesmo com páginas insuficientes
+      await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey, topico.materia_id);
       return;
     }
 
@@ -512,16 +580,88 @@ Crie SÍNTESE FINAL de "${topicoTitulo}" para revisão rápida. JSON:
       });
     } catch { console.log("[Categorias] Capa não gerada"); }
 
+    // === ENCADEAMENTO: processar próximo da fila ===
+    await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey, topico.materia_id);
+
   } catch (error: any) {
     console.error("[Categorias] ❌ Erro background:", error);
     try {
-      const { data: t } = await supabase.from("categorias_topicos").select("tentativas").eq("id", topico_id).single();
+      const { data: t } = await supabase.from("categorias_topicos").select("tentativas, materia_id").eq("id", topico_id).single();
       const tent = (t?.tentativas || 0) + 1;
       if (tent < MAX_TENTATIVAS) {
         await supabase.from("categorias_topicos").update({ status: "pendente", tentativas: tent, progresso: 0 }).eq("id", topico_id);
       } else {
         await supabase.from("categorias_topicos").update({ status: "erro", tentativas: tent, progresso: 0 }).eq("id", topico_id);
       }
+      // === ENCADEAMENTO no erro também ===
+      if (t?.materia_id) {
+        await processarProximoDaFila(supabase, supabaseUrl, supabaseServiceKey, t.materia_id);
+      }
     } catch (e) { console.error("[Categorias] Erro retry:", e); }
+  }
+}
+
+// === PROCESSAR PRÓXIMO DA FILA (igual OAB Trilhas) ===
+async function processarProximoDaFila(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  materiaId: number
+) {
+  try {
+    // Buscar próximo tópico na fila
+    const { data: proximo } = await supabase
+      .from("categorias_topicos")
+      .select("id, titulo")
+      .eq("materia_id", materiaId)
+      .eq("status", "na_fila")
+      .order("posicao_fila", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!proximo) {
+      // Se não tem na fila, buscar pendentes
+      const { data: pendente } = await supabase
+        .from("categorias_topicos")
+        .select("id, titulo")
+        .eq("materia_id", materiaId)
+        .in("status", ["pendente"])
+        .is("conteudo_gerado", null)
+        .order("ordem", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (!pendente) {
+        console.log(`[Categorias] ✅ Fila vazia para matéria ${materiaId}`);
+        return;
+      }
+
+      console.log(`[Categorias] 🔄 Próximo pendente: ${pendente.titulo}`);
+      
+      // Disparar geração do próximo
+      await fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-categorias`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ topico_id: pendente.id }),
+      });
+      return;
+    }
+
+    console.log(`[Categorias] 🔄 Próximo da fila: ${proximo.titulo}`);
+
+    // Disparar geração do próximo
+    await fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-categorias`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({ topico_id: proximo.id }),
+    });
+  } catch (err) {
+    console.error("[Categorias] Erro ao processar próximo da fila:", err);
   }
 }
