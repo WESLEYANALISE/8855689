@@ -348,7 +348,7 @@ const Index = () => {
               </>
             ) : mainTab === 'estudos' && userName ? (
               <>
-                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()},</p>
+                <p className="font-playfair text-2xl font-semibold text-white/90 leading-tight">{getGreeting()}</p>
                 <p className="font-playfair text-4xl font-bold text-white leading-tight">{userName}</p>
               </>
             ) : mainTab === 'leis' ? (
