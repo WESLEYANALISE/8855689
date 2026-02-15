@@ -67,6 +67,22 @@ const CategoriasTopicoEstudo = () => {
     enabled: !!user?.id && !!topicoId,
   });
 
+  // Buscar livro_id da BIBLIOTECA-ESTUDOS para navegação de volta
+  const { data: livroId } = useQuery({
+    queryKey: ["categorias-livro-id", topico?.materia?.categoria, topico?.materia?.nome],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("BIBLIOTECA-ESTUDOS")
+        .select("id")
+        .eq("Área", topico!.materia!.categoria)
+        .eq("Tema", topico!.materia!.nome)
+        .maybeSingle();
+      return data?.id || null;
+    },
+    enabled: !!topico?.materia?.categoria && !!topico?.materia?.nome,
+    staleTime: Infinity,
+  });
+
   const gerarConteudoMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("gerar-conteudo-categorias", {
@@ -118,9 +134,12 @@ const CategoriasTopicoEstudo = () => {
   const objetivos = conteudoGerado?.objetivos || [];
 
   const handleBack = () => {
-    if (topico?.materia) {
-      const areaNome = topico.materia.categoria || topico.materia.nome || '';
-      navigate(`/aulas/area/${encodeURIComponent(areaNome)}/materia/${topico.materia_id}`);
+    if (topico?.materia && livroId) {
+      const areaNome = topico.materia.categoria || '';
+      navigate(`/aulas/area/${encodeURIComponent(areaNome)}/materia/${livroId}`);
+    } else if (topico?.materia) {
+      const areaNome = topico.materia.categoria || '';
+      navigate(`/aulas/area/${encodeURIComponent(areaNome)}`);
     } else {
       navigate('/?tab=jornada');
     }
