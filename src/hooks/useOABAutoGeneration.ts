@@ -54,7 +54,7 @@ export const useOABAutoGeneration = ({
   const percentualGeral = totalSubtemas > 0 ? Math.round((concluidos / totalSubtemas) * 100) : 0;
 
   // Número de gerações simultâneas
-  const CONCURRENT_GENERATIONS = 5;
+  const CONCURRENT_GENERATIONS = 10;
 
   // Encontrar próximos subtemas pendentes (até 5)
   const findNextPendingBatch = useCallback(() => {
