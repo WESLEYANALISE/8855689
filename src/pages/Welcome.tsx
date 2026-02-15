@@ -5,7 +5,9 @@ import { ChevronRight } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
 
+// Desktop (landscape) images
 import estudosSection from '@/assets/landing/estudos-section.webp';
 import vadeMecumSection from '@/assets/landing/vade-mecum-section.webp';
 import bibliotecaSection from '@/assets/landing/biblioteca-section-opt.webp';
@@ -13,41 +15,56 @@ import evelynSection from '@/assets/landing/evelyn-ai-section.webp';
 import oabSection from '@/assets/landing/oab-section.webp';
 import themisFull from '@/assets/themis-full.webp';
 
+// Mobile (portrait) images
+import mobileSlide1 from '@/assets/landing/mobile-slide-1.webp';
+import mobileSlide2 from '@/assets/landing/mobile-slide-2.webp';
+import mobileSlide3 from '@/assets/landing/mobile-slide-3.webp';
+import mobileSlide4 from '@/assets/landing/mobile-slide-4.webp';
+import mobileSlide5 from '@/assets/landing/mobile-slide-5.webp';
+import mobileSlide6 from '@/assets/landing/mobile-slide-6.webp';
+
 const slides = [
   {
-    image: estudosSection,
+    desktopImage: estudosSection,
+    mobileImage: mobileSlide1,
     title: 'Domine todas as matérias do Direito',
     subtitle: 'Videoaulas completas, trilhas personalizadas e aulas interativas para você estudar no seu ritmo.',
   },
   {
-    image: vadeMecumSection,
+    desktopImage: vadeMecumSection,
+    mobileImage: mobileSlide2,
     title: 'Vade Mecum Inteligente e Comentado',
-    subtitle: 'Todas as leis com narração, destaques, anotações e comentários para facilitar seus estudos.',
+    subtitle: 'Todas as leis com narração por voz, destaques coloridos, anotações pessoais e comentários de especialistas.',
   },
   {
-    image: bibliotecaSection,
-    title: 'Mais de 1.200 livros jurídicos',
-    subtitle: 'A maior biblioteca digital de Direito ao seu alcance: doutrina, legislação, concursos e muito mais.',
+    desktopImage: bibliotecaSection,
+    mobileImage: mobileSlide3,
+    title: 'A maior Biblioteca Jurídica Digital',
+    subtitle: 'Mais de 1.200 livros de doutrina, legislação, OAB e concursos na palma da sua mão.',
   },
   {
-    image: evelynSection,
-    title: 'Evelyn — Sua IA Jurídica no WhatsApp',
-    subtitle: 'Tire dúvidas por áudio, texto, imagem ou PDF com a assistente que entende de Direito.',
+    desktopImage: evelynSection,
+    mobileImage: mobileSlide4,
+    title: 'Evelyn: Sua Professora Particular 24h',
+    subtitle: 'Tire dúvidas por áudio, texto, imagem ou PDF com a assistente que entende de Direito como ninguém.',
   },
   {
-    image: oabSection,
-    title: 'Preparação Completa para OAB e Concursos',
-    subtitle: 'Simulados, questões comentadas, 1ª e 2ª fase da OAB e concursos públicos em um só lugar.',
+    desktopImage: oabSection,
+    mobileImage: mobileSlide5,
+    title: 'Aprovação na OAB e Concursos Públicos',
+    subtitle: 'Simulados cronometrados, questões comentadas, 1ª e 2ª fase da OAB e concursos — tudo em um só lugar.',
   },
   {
-    image: themisFull,
-    title: 'Tudo para sua aprovação',
-    subtitle: 'Flashcards, mapas mentais, resumos, questões e muito mais — a plataforma completa do Direito.',
+    desktopImage: themisFull,
+    mobileImage: mobileSlide6,
+    title: 'Tudo para a sua aprovação',
+    subtitle: 'Flashcards, mapas mentais, resumos inteligentes e mais de 10.000 questões para você dominar o Direito.',
   },
 ];
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const autoplayRef = useRef(Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true }));
 
@@ -92,9 +109,9 @@ const Welcome = () => {
           {slides.map((slide, i) => (
             <div key={i} className="flex-[0_0_100%] min-w-0 relative h-full">
               <img
-                src={slide.image}
+                src={isMobile ? slide.mobileImage : slide.desktopImage}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20" />
 

@@ -67,7 +67,10 @@ const Auth: React.FC = () => {
 
   // Detectar modo de recuperação de senha SINCRONAMENTE na inicialização
   const isRecoveryFromUrl = searchParams.get('type') === 'recovery';
-  const [mode, setMode] = useState<AuthMode>(isRecoveryFromUrl ? 'reset' : 'login');
+  const urlMode = searchParams.get('mode');
+  const initialMode: AuthMode = isRecoveryFromUrl ? 'reset' : (urlMode === 'signup' ? 'signup' : 'login');
+  const [mode, setMode] = useState<AuthMode>(initialMode);
+  const hideToggle = !!urlMode && (urlMode === 'login' || urlMode === 'signup');
 
   // Pré-carregar vídeo do onboarding quando estiver no modo signup
   useEffect(() => {
@@ -399,8 +402,8 @@ const Auth: React.FC = () => {
           </div>
         </div>
 
-        {/* Toggle menu for login/signup */}
-        {(mode === 'login' || mode === 'signup') && (
+        {/* Toggle menu for login/signup - hidden when URL mode forces a specific view */}
+        {(mode === 'login' || mode === 'signup') && !hideToggle && (
           <div className="flex rounded-lg bg-muted/50 p-1 mb-4">
             <button
               type="button"
@@ -408,7 +411,7 @@ const Auth: React.FC = () => {
               disabled={isLoading}
               className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
                 mode === 'login'
-                  ? 'bg-red-600 text-white shadow-sm'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -420,12 +423,41 @@ const Auth: React.FC = () => {
               disabled={isLoading}
               className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
                 mode === 'signup'
-                  ? 'bg-red-600 text-white shadow-sm'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Cadastrar
             </button>
+          </div>
+        )}
+
+        {/* Discrete switch link when toggle is hidden */}
+        {(mode === 'login' || mode === 'signup') && hideToggle && (
+          <div className="text-center mb-4">
+            {mode === 'signup' ? (
+              <p className="text-sm text-muted-foreground">
+                Já tem conta?{' '}
+                <button
+                  type="button"
+                  onClick={() => { switchMode('login'); navigate('/auth?mode=login', { replace: true }); }}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Entre aqui
+                </button>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Não tem conta?{' '}
+                <button
+                  type="button"
+                  onClick={() => { switchMode('signup'); navigate('/auth?mode=signup', { replace: true }); }}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Cadastre-se
+                </button>
+              </p>
+            )}
           </div>
         )}
         
