@@ -52,7 +52,7 @@ export const useOABTrilhasAutoGeneration = ({
   const percentualGeral = totalTopicos > 0 ? Math.round((concluidos / totalTopicos) * 100) : 0;
 
   // Número de gerações simultâneas
-  const CONCURRENT_GENERATIONS = 10;
+  const CONCURRENT_GENERATIONS = 5;
 
   // Encontrar próximos tópicos pendentes (ordenados do menor para o maior)
   // Retorna até 5 tópicos para geração simultânea
