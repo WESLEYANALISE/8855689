@@ -1024,59 +1024,66 @@ async function processarProximoDaFila(
   supabaseServiceKey: string,
   materiaId: number
 ) {
+  const MAX_CONCURRENT = 5;
   try {
-    // Buscar próximo tópico na fila
-    const { data: proximo } = await supabase
+    // Contar quantos estão gerando atualmente
+    const { data: ativosAtual } = await supabase
+      .from("categorias_topicos")
+      .select("id")
+      .eq("materia_id", materiaId)
+      .eq("status", "gerando");
+
+    const ativosCount = ativosAtual?.length || 0;
+    const slotsDisponiveis = MAX_CONCURRENT - ativosCount;
+
+    if (slotsDisponiveis <= 0) {
+      console.log(`[Categorias] Fila: ${ativosCount} ativos, sem slots disponíveis`);
+      return;
+    }
+
+    // Buscar próximos da fila (até preencher slots)
+    const { data: proximosFila } = await supabase
       .from("categorias_topicos")
       .select("id, titulo")
       .eq("materia_id", materiaId)
       .eq("status", "na_fila")
       .order("posicao_fila", { ascending: true })
-      .limit(1)
-      .single();
+      .limit(slotsDisponiveis);
 
-    if (!proximo) {
-      // Se não tem na fila, buscar pendentes
-      const { data: pendente } = await supabase
+    let itensParaDisparar = proximosFila || [];
+
+    // Se fila vazia, buscar pendentes
+    if (itensParaDisparar.length === 0) {
+      const { data: pendentes } = await supabase
         .from("categorias_topicos")
         .select("id, titulo")
         .eq("materia_id", materiaId)
         .in("status", ["pendente"])
         .is("conteudo_gerado", null)
         .order("ordem", { ascending: true })
-        .limit(1)
-        .single();
+        .limit(slotsDisponiveis);
 
-      if (!pendente) {
-        console.log(`[Categorias] ✅ Fila vazia para matéria ${materiaId}`);
-        return;
-      }
+      itensParaDisparar = pendentes || [];
+    }
 
-      console.log(`[Categorias] 🔄 Próximo pendente: ${pendente.titulo}`);
-      
-      // Disparar geração do próximo
-      await fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-categorias`, {
+    if (itensParaDisparar.length === 0) {
+      console.log(`[Categorias] ✅ Fila vazia para matéria ${materiaId}`);
+      return;
+    }
+
+    console.log(`[Categorias] 🔄 Disparando ${itensParaDisparar.length} próximos (${ativosCount} ativos, ${slotsDisponiveis} slots)`);
+
+    // Disparar todos em paralelo
+    for (const item of itensParaDisparar) {
+      fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-categorias`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${supabaseServiceKey}`,
         },
-        body: JSON.stringify({ topico_id: pendente.id }),
-      });
-      return;
+        body: JSON.stringify({ topico_id: item.id }),
+      }).catch(err => console.error("[Categorias] Erro ao disparar:", err));
     }
-
-    console.log(`[Categorias] 🔄 Próximo da fila: ${proximo.titulo}`);
-
-    // Disparar geração do próximo
-    await fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-categorias`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({ topico_id: proximo.id }),
-    });
   } catch (err) {
     console.error("[Categorias] Erro ao processar próximo da fila:", err);
   }

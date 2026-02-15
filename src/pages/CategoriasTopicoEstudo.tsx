@@ -118,7 +118,12 @@ const CategoriasTopicoEstudo = () => {
   const objetivos = conteudoGerado?.objetivos || [];
 
   const handleBack = () => {
-    navigate('/?tab=jornada');
+    if (topico?.materia) {
+      const areaNome = topico.materia.categoria || topico.materia.nome || '';
+      navigate(`/aulas/area/${encodeURIComponent(areaNome)}/materia/${topico.materia_id}`);
+    } else {
+      navigate('/?tab=jornada');
+    }
   };
 
   const handleSlidesComplete = async () => {
