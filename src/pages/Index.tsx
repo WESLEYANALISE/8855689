@@ -4,6 +4,7 @@ import heroThemisCrying from "@/assets/hero-themis-crying-realistic.webp";
 import jornadaHeroBackground from "@/assets/jornada-hero-background.webp";
 import leisHeroBackground from "@/assets/leis-hero-background.webp";
 import destaquesHeroBackground from "@/assets/destaques-hero-background.webp";
+import heroBannerThemisAdvogado from "@/assets/hero-banner-themis-advogado-v2.webp";
 import { DesktopVadeMecumHome } from "@/components/desktop/DesktopVadeMecumHome";
 import themisEstudosDesktop from "@/assets/themis-estudos-desktop.webp";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -74,8 +75,8 @@ const CARREIRAS_IMAGES = [
 ];
 
 const HERO_IMAGES_STATIC: Record<string, string> = {
-  jornada: '/hero-banner-tribunal.webp',
-  estudos: '/hero-banner-themis-advogado-v2.webp',
+  jornada: jornadaHeroBackground,
+  estudos: heroBannerThemisAdvogado,
   explorar: destaquesHeroBackground,
 };
 

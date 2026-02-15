@@ -11,6 +11,11 @@ import themisFull from '@/assets/themis-full.webp';
 import heroBibliotecas from '@/assets/hero-bibliotecas-office.webp';
 import heroNoticias from '@/assets/hero-noticias.webp';
 
+// Imagens hero das 4 abas principais
+import jornadaHeroBackground from '@/assets/jornada-hero-background.webp';
+import leisHeroBackground from '@/assets/leis-hero-background.webp';
+import destaquesHeroBackground from '@/assets/destaques-hero-background.webp';
+
 // Imagens dos cards de orientação política
 import politicoEsquerda from '@/assets/politico-esquerda.webp';
 import politicoCentro from '@/assets/politico-centro.webp';
@@ -228,6 +233,10 @@ const LOCAL_HERO_IMAGES = [
   themisFull,
   heroBibliotecas,
   heroNoticias,
+  // Hero backgrounds das 4 abas principais
+  jornadaHeroBackground,
+  leisHeroBackground,
+  destaquesHeroBackground,
   // Cards de orientação política
   politicoEsquerda,
   politicoCentro,
