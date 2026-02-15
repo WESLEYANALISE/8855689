@@ -216,6 +216,13 @@ const getHierarchicalDestination = (pathname: string, search: string): string =>
   if (pathname.match(/^\/faculdade\/disciplina\/[^/]+$/)) return "/faculdade";
   if (pathname === "/faculdade") return "/?tab=iniciante";
 
+  // ===== AULAS / ÁREAS DO DIREITO =====
+  if (pathname.match(/^\/aulas\/area\/[^/]+\/materia\/[^/]+$/)) {
+    const parts = pathname.split("/");
+    return `/aulas/area/${parts[3]}`;
+  }
+  if (pathname.match(/^\/aulas\/area\/[^/]+$/)) return "/?tab=jornada";
+
   // ===== OAB =====
   // OAB está dentro da aba 'jornada' (Estudos), não é aba separada
   if (pathname.match(/^\/oab\/o-que-estudar\/[^/]+$/)) return "/oab/o-que-estudar";
