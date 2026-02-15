@@ -98,41 +98,39 @@ serve(async (req) => {
     // ============================================
     // MODO TÓPICO: Fluxo original com fila
     // ============================================
+    // === SISTEMA DE FILA - Permitir até 5 gerações simultâneas ===
+    const MAX_CONCURRENT = 5;
     const STALE_GENERATION_MINUTES = 30;
     const staleCutoff = new Date(Date.now() - STALE_GENERATION_MINUTES * 60 * 1000).toISOString();
 
-    const { data: gerandoAtivo, error: checkError } = await supabase
+    const { data: gerandoAtivos, error: checkError } = await supabase
       .from("oab_trilhas_topicos")
       .select("id, titulo, updated_at, progresso")
       .eq("status", "gerando")
-      .neq("id", topico_id)
-      .order("updated_at", { ascending: false })
-      .limit(1);
+      .neq("id", topico_id);
 
-    // Se existir uma geração ativa muito antiga, provavelmente travou. Nesse caso, marcamos como erro e seguimos.
-    if (!checkError && gerandoAtivo && gerandoAtivo.length > 0) {
-      const ativo = gerandoAtivo[0];
-      const updatedAt = ativo.updated_at as string | null;
-      const isStale = !!updatedAt && updatedAt < staleCutoff;
+    // Watchdog: marcar gerações travadas como erro
+    let ativosValidos = 0;
+    if (!checkError && gerandoAtivos && gerandoAtivos.length > 0) {
+      for (const ativo of gerandoAtivos) {
+        const updatedAt = ativo.updated_at as string | null;
+        const isStale = !!updatedAt && updatedAt < staleCutoff;
 
-      if (isStale) {
-        console.log(
-          `[OAB Watchdog] Geração travada detectada (>${STALE_GENERATION_MINUTES}min). Marcando como erro: ${ativo.titulo} (ID: ${ativo.id}) updated_at=${updatedAt} progresso=${ativo.progresso}`
-        );
+        if (isStale) {
+          console.log(`[OAB Watchdog] Geração travada (>${STALE_GENERATION_MINUTES}min). Marcando como erro: ${ativo.titulo} (ID: ${ativo.id})`);
+          await supabase
+            .from("oab_trilhas_topicos")
+            .update({ status: "erro", progresso: 0, posicao_fila: null, updated_at: new Date().toISOString() })
+            .eq("id", ativo.id);
+        } else {
+          ativosValidos++;
+        }
+      }
+    }
 
-        await supabase
-          .from("oab_trilhas_topicos")
-          .update({
-            status: "erro",
-            progresso: 0,
-            posicao_fila: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", ativo.id);
-
-        // continua a execução normalmente (não enfileira)
-      } else {
-        console.log(`[OAB Fila] Geração ativa detectada: ${ativo.titulo} (ID: ${ativo.id})`);
+    // Se já tem 5 ou mais ativos válidos, enfileirar
+    if (ativosValidos >= MAX_CONCURRENT) {
+      console.log(`[OAB Fila] ${ativosValidos} gerações ativas, enfileirando tópico ${topico_id}`);
       
       const { data: maxPosicao } = await supabase
         .from("oab_trilhas_topicos")
@@ -151,48 +149,21 @@ serve(async (req) => {
         .single();
       
       if (jaEnfileirado?.status === "na_fila") {
-        const { count: totalFila } = await supabase
-          .from("oab_trilhas_topicos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "na_fila");
-        
         return new Response(
-          JSON.stringify({ 
-            queued: true, 
-            position: jaEnfileirado.posicao_fila,
-            total: totalFila || 1,
-            message: `Já está na fila na posição ${jaEnfileirado.posicao_fila}`
-          }),
+          JSON.stringify({ queued: true, position: jaEnfileirado.posicao_fila, message: `Já está na fila` }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
       await supabase
         .from("oab_trilhas_topicos")
-        .update({ 
-          status: "na_fila", 
-          posicao_fila: novaPosicao,
-          updated_at: new Date().toISOString() 
-        })
+        .update({ status: "na_fila", posicao_fila: novaPosicao, updated_at: new Date().toISOString() })
         .eq("id", topico_id);
       
-      const { count: totalFila } = await supabase
-        .from("oab_trilhas_topicos")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "na_fila");
-      
-      console.log(`[OAB Fila] Tópico ${topico_id} adicionado na posição ${novaPosicao} (total: ${totalFila})`);
-      
       return new Response(
-        JSON.stringify({ 
-          queued: true, 
-          position: novaPosicao,
-          total: totalFila || 1,
-          message: `Adicionado à fila na posição ${novaPosicao}`
-        }),
+        JSON.stringify({ queued: true, position: novaPosicao, message: `Adicionado à fila na posição ${novaPosicao}` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-      }
     }
 
     // ============================================

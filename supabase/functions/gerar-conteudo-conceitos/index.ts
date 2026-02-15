@@ -32,17 +32,20 @@ serve(async (req) => {
     supabaseForCatch = supabase;
 
     // ============================================
-    // SISTEMA DE FILA
+    // SISTEMA DE FILA - Permitir até 5 simultâneas
     // ============================================
-    const { data: gerandoAtivo } = await supabase
+    const MAX_CONCURRENT = 5;
+
+    const { data: gerandoAtivos } = await supabase
       .from("conceitos_topicos")
       .select("id, titulo")
       .eq("status", "gerando")
-      .neq("id", topico_id)
-      .limit(1);
+      .neq("id", topico_id);
 
-    if (gerandoAtivo && gerandoAtivo.length > 0) {
-      console.log(`[Conceitos Fila] Geração ativa: ${gerandoAtivo[0].titulo}`);
+    const ativosCount = gerandoAtivos?.length || 0;
+
+    if (ativosCount >= MAX_CONCURRENT) {
+      console.log(`[Conceitos Fila] ${ativosCount} gerações ativas, enfileirando`);
       
       const { data: maxPosicao } = await supabase
         .from("conceitos_topicos")

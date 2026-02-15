@@ -24,7 +24,7 @@ export const useCategoriasAutoGeneration = ({
 }: UseCategoriasAutoGenerationProps) => {
   const [currentProgress, setCurrentProgress] = useState(0);
   const isGeneratingRef = useRef(false);
-  const CONCURRENT_GENERATIONS = 10;
+  const CONCURRENT_GENERATIONS = 5;
 
   const totalTopicos = topicos?.length || 0;
   const concluidos = topicos?.filter(t => t.status === "concluido").length || 0;

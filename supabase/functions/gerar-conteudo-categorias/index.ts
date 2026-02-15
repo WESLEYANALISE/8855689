@@ -76,67 +76,72 @@ serve(async (req) => {
       );
     }
 
-    // === SISTEMA DE FILA (igual OAB Trilhas) ===
-    // Verificar se já existe geração ativa na mesma matéria
-    const { data: topicoAtivo } = await supabase
+    // === SISTEMA DE FILA - Permitir até 5 gerações simultâneas ===
+    const MAX_CONCURRENT = 5;
+    const WATCHDOG_MS = 30 * 60 * 1000; // 30 minutos
+
+    // Buscar todos os tópicos gerando na mesma matéria (exceto o atual)
+    const { data: topicosAtivos } = await supabase
       .from("categorias_topicos")
       .select("id, updated_at")
       .eq("materia_id", materiaId)
       .eq("status", "gerando")
-      .neq("id", topico_id)
-      .limit(1)
-      .single();
+      .neq("id", topico_id);
 
-    if (topicoAtivo && !force_restart) {
-      // Watchdog: se o ativo está há mais de 30 minutos, marcar como erro
-      const updatedAt = new Date(topicoAtivo.updated_at).getTime();
+    // Watchdog: marcar como erro os que estão travados há +30min
+    let ativosValidos = 0;
+    if (topicosAtivos && topicosAtivos.length > 0) {
       const agora = Date.now();
-      const WATCHDOG_MS = 30 * 60 * 1000; // 30 minutos
-
-      if (agora - updatedAt > WATCHDOG_MS) {
-        console.log(`[Categorias] ⏰ Watchdog: tópico ${topicoAtivo.id} travado há +30min, marcando como erro`);
-        await supabase
-          .from("categorias_topicos")
-          .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
-          .eq("id", topicoAtivo.id);
-        // Continua para processar o novo tópico normalmente
-      } else {
-        // Enfileirar: colocar na fila com posição
-        const { data: maxFila } = await supabase
-          .from("categorias_topicos")
-          .select("posicao_fila")
-          .eq("materia_id", materiaId)
-          .eq("status", "na_fila")
-          .order("posicao_fila", { ascending: false })
-          .limit(1)
-          .single();
-
-        const novaPosicao = (maxFila?.posicao_fila || 0) + 1;
-
-        await supabase
-          .from("categorias_topicos")
-          .update({
-            status: "na_fila",
-            posicao_fila: novaPosicao,
-            progresso: 0,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", topico_id);
-
-        console.log(`[Categorias] 📋 Enfileirado: ${topico.titulo} (posição ${novaPosicao})`);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            status: "na_fila",
-            posicao_fila: novaPosicao,
-            message: `Tópico enfileirado na posição ${novaPosicao}`,
-            topico_id,
-            titulo: topico.titulo,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      for (const ativo of topicosAtivos) {
+        const updatedAt = new Date(ativo.updated_at).getTime();
+        if (agora - updatedAt > WATCHDOG_MS) {
+          console.log(`[Categorias] ⏰ Watchdog: tópico ${ativo.id} travado há +30min, marcando como erro`);
+          await supabase
+            .from("categorias_topicos")
+            .update({ status: "erro", progresso: 0, updated_at: new Date().toISOString() })
+            .eq("id", ativo.id);
+        } else {
+          ativosValidos++;
+        }
       }
+    }
+
+    // Se já tem 5 ou mais ativos, enfileirar
+    if (ativosValidos >= MAX_CONCURRENT && !force_restart) {
+      const { data: maxFila } = await supabase
+        .from("categorias_topicos")
+        .select("posicao_fila")
+        .eq("materia_id", materiaId)
+        .eq("status", "na_fila")
+        .order("posicao_fila", { ascending: false })
+        .limit(1)
+        .single();
+
+      const novaPosicao = (maxFila?.posicao_fila || 0) + 1;
+
+      await supabase
+        .from("categorias_topicos")
+        .update({
+          status: "na_fila",
+          posicao_fila: novaPosicao,
+          progresso: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", topico_id);
+
+      console.log(`[Categorias] 📋 Enfileirado: ${topico.titulo} (posição ${novaPosicao}, ${ativosValidos} ativos)`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "na_fila",
+          posicao_fila: novaPosicao,
+          message: `Tópico enfileirado na posição ${novaPosicao}`,
+          topico_id,
+          titulo: topico.titulo,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Se o próprio tópico já está gerando e não é force_restart, ignorar
