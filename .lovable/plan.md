@@ -1,91 +1,98 @@
 
 
-# Melhorias Completas na Serpentina das Trilhas
+# Tela de Boas-Vindas com Carrossel + Tela da Evelyn
 
-Todas as mudancas sao no componente compartilhado `SerpentineNiveis.tsx`, afetando automaticamente Conceitos, OAB e Areas.
+## Resumo
 
----
-
-## 1. Animacoes de Scroll (whileInView)
-
-Trocar `animate` por `whileInView` nos nos e banners. Cada elemento so anima quando entra no viewport do usuario, criando efeito de revelacao progressiva.
-
-- Nos: `whileInView={{ opacity: 1, scale: 1 }}` com `viewport={{ once: true, margin: "-40px" }}`
-- SVG paths: `whileInView={{ pathLength: 1 }}` com `viewport={{ once: true }}`
-- Delay escalonado resetado por nivel (nao global)
+Criar um novo fluxo de entrada antes da autenticacao. Ao acessar o app, o usuario vera um carrossel fullscreen com slides sobre os beneficios do Direito Premium (imagens juridicas + frases impactantes), seguido de dois botoes: "Quero ser Aluno" e "Ja sou Aluno". Apos isso, uma tela intermediaria apresenta a Evelyn (assistente IA via WhatsApp) com opcao de fornecer o numero de telefone.
 
 ---
 
-## 2. Curvas Bezier nos Conectores SVG
+## Fluxo Completo
 
-Substituir linhas retas (`L x y`) por curvas quadraticas (`Q cx cy, x y`) para criar um caminho organico e fluido entre os nos. O ponto de controle sera calculado no ponto medio horizontal entre dois nos consecutivos.
-
----
-
-## 3. Efeito de Energia nos Conectores
-
-Adicionar um `motion.circle` com `animateMotion` que percorre cada path SVG, criando um ponto luminoso viajando pela trilha. Usar `fill` com a cor do nivel e um filtro de glow (`filter: blur`).
+```text
+[Carrossel de Boas-Vindas]  -->  "Quero ser Aluno"  -->  [Tela Evelyn]  -->  "Sim" (coleta telefone)  -->  /auth (modo signup)
+                                                                          -->  "Nao"                   -->  /auth (modo signup)
+                             -->  "Ja sou Aluno"     -->  /auth (modo login)
+```
 
 ---
 
-## 4. Anel de Progresso Circular
+## Parte 1: Novo Carrossel de Boas-Vindas (substituir Welcome.tsx)
 
-Envolver cada no circular com um anel SVG (`circle` com `stroke-dasharray` e `stroke-dashoffset` animado). O anel preenche proporcionalmente ao progresso do item, com a cor do nivel.
+A pagina `/welcome` sera totalmente reescrita como um carrossel fullscreen swipavel com 5-6 slides. Cada slide tera:
 
----
+- Imagem de fundo fullscreen (reutilizando assets existentes como `themis-full.webp`, `estudos-section.webp`, `biblioteca-section-opt.webp`, `evelyn-ai-section.webp`, `oab-section.webp`, `vade-mecum-section.webp`)
+- Frase principal em negrito sobre o beneficio
+- Subtitulo explicativo
+- Barra de progresso no topo (indicando qual slide esta ativo, como na imagem de referencia)
 
-## 5. Indicador de Conclusao
+### Slides planejados:
 
-Nos com progresso = 100% recebem:
-- Borda dourada/verde
-- Icone de checkmark sobreposto no canto
-- Leve brilho (box-shadow animado)
+1. **Videoaulas e Trilhas de Estudo** - "Domine todas as materias do Direito com videoaulas e trilhas personalizadas" (fundo: estudos-section)
+2. **Vade Mecum Inteligente** - "Acesse todas as leis comentadas, com narracao e destaques" (fundo: vade-mecum-section)
+3. **Biblioteca Juridica** - "Mais de 1.200 livros juridicos ao seu alcance" (fundo: biblioteca-section-opt)
+4. **Evelyn - IA Assistente** - "Tire duvidas por audio, texto, imagem ou PDF com nossa IA no WhatsApp" (fundo: evelyn-ai-section)
+5. **OAB e Concursos** - "Preparacao completa para OAB 1a e 2a fase e concursos publicos" (fundo: oab-section)
+6. **Tudo em um so lugar** - "Flashcards, questoes, mapas mentais e muito mais para sua aprovacao" (fundo: themis-full)
 
----
+Na parte inferior de todos os slides, aparecerao os dois botoes fixos:
+- **"Quero ser Aluno(a)!"** - botao primario (vermelho/primary)
+- **"Ja sou Aluno(a)"** - botao outline/secundario
 
-## 6. Feedback Tatil (Hover/Tap)
-
-Adicionar nos nos desbloqueados:
-- `whileHover={{ scale: 1.06 }}` 
-- `whileTap={{ scale: 0.94 }}`
-- `cursor: pointer` explicito
-
----
-
-## 7. Banners com Entrada Lateral
-
-Banners de niveis pares entram com `initial={{ opacity: 0, x: -30 }}` e impares com `x: 30`, usando `whileInView`. Adicionar um glow sutil com `box-shadow` animado.
+O carrossel tera auto-play (5 segundos por slide) e swipe manual.
 
 ---
 
-## 8. Stats por Nivel
+## Parte 2: Tela da Evelyn (nova pagina intermediaria)
 
-Abaixo de cada banner, exibir um texto pequeno como "2/5 concluidas" calculado a partir do progresso dos itens daquele nivel. Requer passar `getItemProgresso` para o calculo.
+Quando o usuario clica "Quero ser Aluno(a)!", ele sera direcionado para uma nova tela intermediaria (`/bem-vindo-evelyn`) antes de ir para `/auth`.
+
+Esta tela tera:
+- Video da Evelyn (YouTube embed: `HlE9u1c_MPQ`, ja usado no app)
+- Texto explicativo: "Conheca a Evelyn, sua assistente pessoal juridica no WhatsApp. Ela entende audio, texto, imagem e PDF!"
+- Pergunta: "Quer que a Evelyn te envie uma mensagem para voce interagir com ela?"
+- Botao **"Sim, quero!"**: expande um formulario de telefone com:
+  - Input de telefone (usando o componente `PhoneInput` ja existente)
+  - Botao de confirmar
+  - Mensagem: "A Evelyn vai te enviar uma mensagem em breve!"
+  - Apos confirmacao, salva o telefone temporariamente (localStorage) e redireciona para `/auth` (modo signup)
+- Botao **"Nao, obrigado"**: redireciona direto para `/auth` (modo signup)
 
 ---
 
-## 9. Progresso Geral Funcional
+## Parte 3: Corrigir build error existente
 
-Calcular o progresso real: media de `getItemProgresso` de todos os itens dividido pelo total. Remover o valor hardcoded `0`.
+O build error atual precisa ser corrigido primeiro. Vou verificar e corrigir qualquer erro de compilacao no `SerpentineNiveis.tsx` que foi editado na mensagem anterior.
 
 ---
 
 ## Detalhes Tecnicos
 
-### Arquivo modificado
-`src/components/shared/SerpentineNiveis.tsx`
+### Arquivos a criar:
+- `src/pages/BemVindoEvelyn.tsx` - Tela intermediaria com video da Evelyn e coleta de telefone
 
-### Mudancas principais
+### Arquivos a modificar:
+- `src/pages/Welcome.tsx` - Reescrever como carrossel fullscreen com slides de beneficios e botoes "Quero ser Aluno" / "Ja sou Aluno"
+- `src/App.tsx` - Adicionar rota `/bem-vindo-evelyn` e ajustar rota `/welcome` para nao redirecionar mais para `/auth`
+- `src/components/shared/SerpentineNiveis.tsx` - Corrigir build error existente
 
-1. **SVG paths (linha 128-141)**: Trocar logica de `L` para curvas `Q` calculando ponto de controle medio. Adicionar `motion.circle` com `animateMotion` por path.
+### Logica de navegacao:
+- `/welcome` agora mostra o carrossel (nao redireciona mais para `/auth`)
+- "Quero ser Aluno(a)!" -> `/bem-vindo-evelyn`
+- "Ja sou Aluno(a)" -> `/auth` (modo login)
+- Na tela Evelyn, "Sim" -> coleta telefone -> salva em localStorage -> `/auth?mode=signup`
+- Na tela Evelyn, "Nao" -> `/auth?mode=signup`
+- No fluxo de cadastro, se houver telefone no localStorage, sera associado ao perfil apos o signup
 
-2. **Nos (linhas 207-269)**: Trocar `animate` por `whileInView`. Adicionar anel SVG de progresso ao redor do circulo. Adicionar `whileHover`/`whileTap`. Adicionar checkmark para nos 100%.
+### Componentes reutilizados:
+- `PhoneInput` - ja existe no projeto para input de telefone
+- `framer-motion` - para animacoes de transicao entre slides
+- `embla-carousel-react` - ja instalado, usado para o carrossel swipavel
+- Imagens da pasta `src/assets/landing/` e `src/assets/`
 
-3. **Banners (linhas 34-55)**: Trocar `animate` por `whileInView` com direcao alternada. Adicionar contagem "X/Y concluidas".
-
-4. **Progresso geral (linhas 143-144)**: Calcular `progressPercent` como media real dos progressos.
-
-5. **Importacoes**: Adicionar `AnimatePresence`, `Check` do lucide-react e `useInView` se necessario.
-
-Nenhum outro arquivo precisa ser modificado — todas as trilhas (Conceitos, OAB, Areas) usam este componente.
+### Seguranca do telefone:
+- Telefone armazenado temporariamente em localStorage
+- Limpo apos associacao ao perfil ou apos 24h
+- Validacao de formato antes de salvar
 
