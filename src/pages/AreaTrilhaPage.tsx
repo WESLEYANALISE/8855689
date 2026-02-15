@@ -48,29 +48,37 @@ const AreaTrilhaPage = () => {
     staleTime: 1000 * 60 * 10,
   });
 
-  // Buscar contagem de tópicos por matéria
+  // Buscar contagem de tópicos por matéria (query única eficiente)
   const { data: topicosCount } = useQuery({
     queryKey: ["area-trilha-topicos-count", decodedArea],
     queryFn: async () => {
-      if (!livros) return {};
       const { data: materias } = await supabase
         .from("categorias_materias")
         .select("id, nome")
         .eq("categoria", decodedArea);
-      if (!materias) return {};
+      if (!materias || materias.length === 0) return {};
       
+      const materiaIds = materias.map(m => m.id);
+      const { data: topicos } = await supabase
+        .from("categorias_topicos")
+        .select("materia_id")
+        .in("materia_id", materiaIds);
+      
+      // Contar por materia_id
+      const countById: Record<number, number> = {};
+      topicos?.forEach(t => {
+        countById[t.materia_id] = (countById[t.materia_id] || 0) + 1;
+      });
+      
+      // Mapear para nome da matéria
       const counts: Record<string, number> = {};
-      for (const m of materias) {
-        const { count } = await supabase
-          .from("categorias_topicos")
-          .select("*", { count: "exact", head: true })
-          .eq("materia_id", m.id);
-        counts[m.nome] = count || 0;
-      }
+      materias.forEach(m => {
+        counts[m.nome] = countById[m.id] || 0;
+      });
       return counts;
     },
-    enabled: !!livros && livros.length > 0,
-    staleTime: 1000 * 60 * 5,
+    enabled: !!decodedArea,
+    staleTime: 1000 * 30,
   });
 
   const totalMaterias = livros?.length || 0;
