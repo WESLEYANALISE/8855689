@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Mic, FileText, BookOpen, Video, Brain, Scale, Sparkles, Check, User, ArrowRight, ExternalLink, Play, Settings, Edit, RefreshCw, Calendar, GraduationCap, Trophy, Crown, Lock } from "lucide-react";
+import { MessageCircle, Mic, FileText, BookOpen, Video, Brain, Scale, Sparkles, Check, User, ArrowRight, ExternalLink, Play, Settings, Edit, RefreshCw, Calendar, GraduationCap, Trophy, Crown, Lock, Clock, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -114,6 +114,8 @@ const atualizacoesEvelyn = [
   }
 ];
 
+type TrialState = 'loading' | 'premium' | 'trial_active' | 'trial_not_started' | 'trial_expired';
+
 const Evelyn = () => {
   const { user } = useAuth();
   const { isPremium, hasEvelynAccess } = useSubscription();
@@ -128,12 +130,16 @@ const Evelyn = () => {
   const [hasProfilePhone, setHasProfilePhone] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const [trialState, setTrialState] = useState<TrialState>('loading');
+  const [trialDaysLeft, setTrialDaysLeft] = useState(0);
+  const [showTrialForm, setShowTrialForm] = useState(false);
 
-  // Fetch profile data if user is logged in
+  // Fetch profile data and trial status
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) {
         setProfileLoaded(true);
+        setTrialState('trial_not_started');
         return;
       }
       
@@ -160,6 +166,59 @@ const Evelyn = () => {
     
     fetchProfile();
   }, [user]);
+
+  // Determine trial state after profile loaded
+  useEffect(() => {
+    if (!profileLoaded) return;
+    
+    if (hasEvelynAccess) {
+      setTrialState('premium');
+      return;
+    }
+    
+    // Check if user has an existing Evelyn registration
+    const checkTrial = async () => {
+      if (!telefone || telefone.replace(/\D/g, '').length < 10) {
+        setTrialState('trial_not_started');
+        return;
+      }
+      
+      const phoneClean = telefone.replace(/\D/g, '');
+      const phoneWithCountry = phoneClean.startsWith('55') ? phoneClean : `55${phoneClean}`;
+      
+      const { data } = await supabase
+        .from('evelyn_usuarios')
+        .select('id, autorizado, data_primeiro_contato, periodo_teste_expirado')
+        .eq('telefone', phoneWithCountry)
+        .maybeSingle();
+      
+      if (!data || !data.autorizado) {
+        setTrialState('trial_not_started');
+        return;
+      }
+      
+      // Check trial dates
+      const primeiroContato = data.data_primeiro_contato ? new Date(data.data_primeiro_contato) : null;
+      if (!primeiroContato) {
+        setTrialState('trial_active');
+        setTrialDaysLeft(3);
+        return;
+      }
+      
+      const now = new Date();
+      const diffMs = now.getTime() - primeiroContato.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      
+      if (diffDays > 3 && !isPremium) {
+        setTrialState('trial_expired');
+      } else {
+        setTrialState('trial_active');
+        setTrialDaysLeft(Math.max(0, Math.ceil(3 - diffDays)));
+      }
+    };
+    
+    checkTrial();
+  }, [profileLoaded, hasEvelynAccess, telefone, isPremium]);
 
   // Carrossel infinito de funções - mais lento (5s)
   useEffect(() => {
@@ -194,6 +253,63 @@ const Evelyn = () => {
       const resultado = await cadastrarUsuarioEvelyn(nome.trim(), telefone, perfil);
       toast.success(resultado.message);
       setCadastrado(true);
+      
+      // Send first welcome message via edge function
+      const phoneClean = telefone.replace(/\D/g, '');
+      const phoneWithCountry = phoneClean.startsWith('55') ? phoneClean : `55${phoneClean}`;
+      
+      try {
+        // Get the instance name from evelyn config
+        const { data: instanceData } = await supabase
+          .from('evelyn_conversas')
+          .select('instance_name')
+          .eq('telefone', phoneWithCountry)
+          .maybeSingle();
+        
+        const instanceName = instanceData?.instance_name || 'direitopremium';
+        
+        // Create conversation if doesn't exist
+        let conversaId = null;
+        const { data: conversa } = await supabase
+          .from('evelyn_conversas')
+          .select('id')
+          .eq('telefone', phoneWithCountry)
+          .maybeSingle();
+        
+        if (conversa) {
+          conversaId = conversa.id;
+        } else {
+          const { data: novaConversa } = await supabase
+            .from('evelyn_conversas')
+            .insert({
+              telefone: phoneWithCountry,
+              instance_name: instanceName,
+            })
+            .select('id')
+            .single();
+          conversaId = novaConversa?.id;
+        }
+        
+        const mensagemBoasVindas = `Olá, ${nome.trim()}! 😊 Sou a *Evelyn*, sua assistente jurídica no WhatsApp.\n\nVocê tem um *teste gratuito de 3 dias*! 🎉\n\nMe pergunte qualquer coisa sobre Direito — posso analisar documentos, tirar dúvidas, enviar vídeo-aulas e muito mais!`;
+        
+        await supabase.functions.invoke('evelyn-enviar-mensagem', {
+          body: {
+            instanceName,
+            telefone: phoneWithCountry,
+            mensagem: mensagemBoasVindas,
+            conversaId,
+          }
+        });
+        
+        toast.success("A Evelyn vai te enviar uma mensagem no WhatsApp! 🎉");
+      } catch (msgError) {
+        console.error('Erro ao enviar mensagem de boas-vindas:', msgError);
+        // Don't block the flow if message fails
+      }
+      
+      setTrialState('trial_active');
+      setTrialDaysLeft(3);
+      setShowTrialForm(false);
     } catch (error: any) {
       toast.error(error.message || "Erro ao cadastrar");
     } finally {
@@ -292,7 +408,7 @@ const Evelyn = () => {
                 Tudo pelo WhatsApp, 24 horas por dia!
               </p>
               
-              {hasEvelynAccess ? (
+              {trialState === 'premium' || hasEvelynAccess ? (
                 <Button 
                   onClick={abrirWhatsApp}
                   className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-6 py-3 h-12"
@@ -301,18 +417,121 @@ const Evelyn = () => {
                   Acessar agora
                   <ExternalLink className="w-4 h-4 ml-2" />
                 </Button>
-              ) : (
+              ) : trialState === 'trial_active' ? (
                 <div className="space-y-3">
+                  <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-1.5 rounded-full text-sm font-medium">
+                    <Clock className="w-4 h-4" />
+                    Teste ativo — {trialDaysLeft} {trialDaysLeft === 1 ? 'dia restante' : 'dias restantes'}
+                  </div>
+                  <div>
+                    <Button 
+                      onClick={abrirWhatsApp}
+                      className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-6 py-3 h-12"
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Acessar agora
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              ) : trialState === 'trial_expired' ? (
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-1.5 rounded-full text-sm font-medium">
+                    <AlertCircle className="w-4 h-4" />
+                    Teste gratuito expirado
+                  </div>
                   <Button 
                     onClick={() => navigate('/assinatura')}
                     className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg px-6 py-3 h-12"
                   >
                     <Crown className="w-5 h-5 mr-2" />
-                    {isPremium ? 'Upgrade para Vitalício' : 'Seja Premium para acessar'}
-                    <Lock className="w-4 h-4 ml-2" />
+                    Assinar para continuar
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    {isPremium ? 'Evelyn é exclusiva do plano Vitalício' : 'Funcionalidade exclusiva para assinantes Premium'}
+                    Assine o Direito Premium para ter acesso ilimitado à Evelyn
+                  </p>
+                </div>
+              ) : showTrialForm ? (
+                <div className="w-full max-w-md mx-auto space-y-4 text-left">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Configure seu número para a Evelyn te enviar uma mensagem:
+                  </p>
+                  <form onSubmit={handleCadastro} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome-trial" className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Nome completo
+                      </Label>
+                      <Input
+                        id="nome-trial"
+                        placeholder="Digite seu nome"
+                        value={nome}
+                        onChange={(e) => setNome(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4" />
+                        Telefone (WhatsApp)
+                      </Label>
+                      <PhoneInput
+                        value={telefone}
+                        onChange={(_, fullNumber) => setTelefone(fullNumber)}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Seu perfil
+                      </Label>
+                      <RadioGroup 
+                        value={perfil || ''} 
+                        onValueChange={(v) => setPerfil(v as PerfilEvelyn)}
+                        className="grid grid-cols-1 gap-2"
+                      >
+                        {opcoesPerfil.map((op) => (
+                          <div 
+                            key={op.value}
+                            className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                              perfil === op.value 
+                                ? 'border-green-500 bg-green-500/10' 
+                                : 'border-border hover:border-green-500/30 hover:bg-green-500/5'
+                            }`}
+                            onClick={() => setPerfil(op.value)}
+                          >
+                            <RadioGroupItem value={op.value} id={`trial-${op.value}`} />
+                            <op.icon className={`w-5 h-5 ${perfil === op.value ? 'text-green-400' : 'text-muted-foreground'}`} />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{op.label}</p>
+                              <p className="text-xs text-muted-foreground">{op.descricao}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      disabled={loading}
+                    >
+                      {loading ? "Configurando..." : "Ativar teste grátis"}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => setShowTrialForm(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-6 py-3 h-12"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Teste grátis por 3 dias
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Experimente a Evelyn gratuitamente! Ela entende áudio, texto, imagem e PDF.
                   </p>
                 </div>
               )}

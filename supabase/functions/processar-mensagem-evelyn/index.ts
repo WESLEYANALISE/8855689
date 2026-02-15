@@ -1,11 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Versão 9.0 - Acesso livre sem período de teste ou bloqueio
-const VERSION = "9.0";
+// Versão 10.0 - Teste gratuito de 3 dias para novos usuários
+const VERSION = "10.0";
 
-// Período de teste DESATIVADO - todos têm acesso livre
-const ACESSO_LIVRE = true;
+// Data de corte: usuários com primeiro contato a partir desta data terão limite de 3 dias
+const DATA_CORTE_TESTE = '2026-02-15';
+const DIAS_TESTE = 3;
+
+// Acesso livre apenas para usuários antigos (antes da data de corte)
+const ACESSO_LIVRE = false;
 
 // Função para converter URL do Google Drive para formato de download direto
 function converterUrlGoogleDrive(url: string): string {
@@ -2844,9 +2848,62 @@ serve(async (req) => {
       }
     }
     
-    // ==== ACESSO LIVRE - SEM PERÍODO DE TESTE OU BLOQUEIO ====
-    // Todos os usuários têm acesso completo à Evelyn
-    console.log(`[processar-mensagem-evelyn] Acesso livre habilitado para: ${telefoneNormalizado}`);
+    // ==== VERIFICAÇÃO DE ACESSO: TESTE GRATUITO OU PREMIUM ====
+    const dataPrimeiroContato = usuario.data_primeiro_contato ? new Date(usuario.data_primeiro_contato) : null;
+    const dataCorte = new Date(DATA_CORTE_TESTE);
+    
+    // Usuários antigos (antes da data de corte) mantêm acesso livre
+    if (!dataPrimeiroContato || dataPrimeiroContato < dataCorte) {
+      console.log(`[processar-mensagem-evelyn] Usuário antigo (antes de ${DATA_CORTE_TESTE}) - acesso livre: ${telefoneNormalizado}`);
+    } else if (!isPremiumUser) {
+      // Usuário novo: verificar se ainda está no período de teste
+      const agora = new Date();
+      const diffMs = agora.getTime() - dataPrimeiroContato.getTime();
+      const diasUsados = diffMs / (1000 * 60 * 60 * 24);
+      
+      if (diasUsados > DIAS_TESTE) {
+        console.log(`[processar-mensagem-evelyn] Teste expirado para: ${telefoneNormalizado} (${diasUsados.toFixed(1)} dias)`);
+        
+        // Marcar como expirado
+        await supabase.from('evelyn_usuarios').update({ 
+          periodo_teste_expirado: true 
+        }).eq('id', usuario.id);
+        
+        // Enviar mensagem de expiração
+        const mensagemExpiracao = `⏳ Seu período de teste gratuito da Evelyn expirou.\n\nPara continuar usando todos os recursos da sua assistente jurídica, assine o Direito Premium:\n\n👉 https://www.direitopremium.com.br/assinatura\n\nEsperamos você de volta! 💜`;
+        
+        const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
+        const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+        
+        if (evolutionUrl && evolutionKey) {
+          const whatsappNumber = telefoneNormalizado.endsWith('@s.whatsapp.net') 
+            ? telefoneNormalizado 
+            : `${telefoneNormalizado}@s.whatsapp.net`;
+          
+          await fetch(`${evolutionUrl}/message/sendText/${instanceName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evolutionKey,
+            },
+            body: JSON.stringify({
+              number: whatsappNumber,
+              text: mensagemExpiracao,
+            }),
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, message: 'Teste expirado - mensagem de expiração enviada' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const diasRestantes = Math.ceil(DIAS_TESTE - diasUsados);
+        console.log(`[processar-mensagem-evelyn] Teste ativo para: ${telefoneNormalizado} (${diasRestantes} dias restantes)`);
+      }
+    } else {
+      console.log(`[processar-mensagem-evelyn] Usuário Premium: ${telefoneNormalizado}`);
+    }
     
     // ==== FLUXO DE CONFIRMAÇÃO DE NOME ====
     // Detectar se é uma pergunta REAL (não saudação simples)
