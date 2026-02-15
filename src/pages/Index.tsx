@@ -33,6 +33,7 @@ import BlogInicianteCarousel from "@/components/BlogInicianteCarousel";
 import BussolaCarreiraCarousel from "@/components/BussolaCarreiraCarousel";
 import { OabCarreiraBlogList } from "@/components/oab/OabCarreiraBlogList";
 import { EmAltaSection } from "@/components/EmAltaSection";
+import { EmAltaCarousel } from "@/components/EmAltaCarousel";
 import { CarreirasSection } from "@/components/CarreirasSection";
 import { PoliticaHomeSection } from "@/components/home/PoliticaHomeSection";
 import { RecomendacaoHomeSection } from "@/components/home/RecomendacaoHomeSection";
@@ -460,45 +461,7 @@ const Index = () => {
                 <p className="text-xs text-muted-foreground">Aprofunde os estudos</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate('/aulas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/30 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.6)] transition-all group bg-card"
-            >
-              <div className="relative h-[70px] overflow-hidden">
-                <img src={cardAulasThumb} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-3 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-sm font-bold text-foreground">Aulas</h3>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Jornada de estudos</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/bibliotecas')}
-              className="overflow-hidden rounded-2xl text-left border border-border/30 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.6)] transition-all group bg-card"
-            >
-              <div className="relative h-[70px] overflow-hidden">
-                <img src={bibliotecaThumb} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-3 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Library className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-sm font-bold text-foreground">Biblioteca</h3>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Acervo completo</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              </div>
-            </button>
-            </div>
+            <EmAltaCarousel navigate={navigate} />
           </div>
         )}
 
