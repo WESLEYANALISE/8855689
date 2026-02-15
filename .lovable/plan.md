@@ -1,50 +1,91 @@
 
 
-# Corrigir Tela Cinza e Melhorar Trilha de Conceitos
+# Melhorias Completas na Serpentina das Trilhas
 
-## Problema 1: Tela cinza ao voltar
-O botao "Voltar" na pagina de materia (`ConceitosMateria.tsx`) navega para `/?tab=iniciante`, que nao e uma aba valida. As abas validas sao: `jornada`, `estudos`, `leis`, `explorar`. Isso causa a tela cinza/vazia que aparece na segunda screenshot.
-
-**Correcao:** Trocar `/?tab=iniciante` por `/?tab=jornada` no botao Voltar de `ConceitosMateria.tsx`.
+Todas as mudancas sao no componente compartilhado `SerpentineNiveis.tsx`, afetando automaticamente Conceitos, OAB e Areas.
 
 ---
 
-## Problema 2: Legenda de cores na barra de progresso
-A pagina OAB Trilhas Topicos possui uma legenda de cores abaixo da barra de progresso geral (Leitura em laranja, Flashcards em roxo, Praticar em verde). A pagina de Conceitos nao tem essa legenda.
+## 1. Animacoes de Scroll (whileInView)
 
-**Correcao:** Adicionar a mesma legenda de cores abaixo da barra de progresso geral no header de `ConceitosMateria.tsx`, identica a da OAB.
+Trocar `animate` por `whileInView` nos nos e banners. Cada elemento so anima quando entra no viewport do usuario, criando efeito de revelacao progressiva.
+
+- Nos: `whileInView={{ opacity: 1, scale: 1 }}` com `viewport={{ once: true, margin: "-40px" }}`
+- SVG paths: `whileInView={{ pathLength: 1 }}` com `viewport={{ once: true }}`
+- Delay escalonado resetado por nivel (nao global)
 
 ---
 
-## Problema 3: Tres botoes ao clicar em uma aula (Ler, Flashcards, Questoes)
-Atualmente, ao clicar em um topico da lista, o usuario e levado diretamente para a pagina de estudo. O usuario quer que, ao clicar, apareca uma expansao inline (ou drawer) com tres botoes de acao: **Ler**, **Flashcards** e **Questoes**, igual ao comportamento das trilhas diarias.
+## 2. Curvas Bezier nos Conectores SVG
 
-**Implementacao:** Ao clicar em um topico na lista, em vez de navegar diretamente, expandir o card selecionado mostrando tres botoes de acao:
-- **Ler** - navega para `/conceitos/topico/:id` (modo leitura)
-- **Flashcards** - navega para `/conceitos/topico/:id/flashcards`
-- **Questoes** - navega para `/conceitos/topico/:id/questoes`
+Substituir linhas retas (`L x y`) por curvas quadraticas (`Q cx cy, x y`) para criar um caminho organico e fluido entre os nos. O ponto de controle sera calculado no ponto medio horizontal entre dois nos consecutivos.
 
-Cada botao tera um icone e a porcentagem de progresso correspondente. O card expandido tera animacao suave de abertura.
+---
+
+## 3. Efeito de Energia nos Conectores
+
+Adicionar um `motion.circle` com `animateMotion` que percorre cada path SVG, criando um ponto luminoso viajando pela trilha. Usar `fill` com a cor do nivel e um filtro de glow (`filter: blur`).
+
+---
+
+## 4. Anel de Progresso Circular
+
+Envolver cada no circular com um anel SVG (`circle` com `stroke-dasharray` e `stroke-dashoffset` animado). O anel preenche proporcionalmente ao progresso do item, com a cor do nivel.
+
+---
+
+## 5. Indicador de Conclusao
+
+Nos com progresso = 100% recebem:
+- Borda dourada/verde
+- Icone de checkmark sobreposto no canto
+- Leve brilho (box-shadow animado)
+
+---
+
+## 6. Feedback Tatil (Hover/Tap)
+
+Adicionar nos nos desbloqueados:
+- `whileHover={{ scale: 1.06 }}` 
+- `whileTap={{ scale: 0.94 }}`
+- `cursor: pointer` explicito
+
+---
+
+## 7. Banners com Entrada Lateral
+
+Banners de niveis pares entram com `initial={{ opacity: 0, x: -30 }}` e impares com `x: 30`, usando `whileInView`. Adicionar um glow sutil com `box-shadow` animado.
+
+---
+
+## 8. Stats por Nivel
+
+Abaixo de cada banner, exibir um texto pequeno como "2/5 concluidas" calculado a partir do progresso dos itens daquele nivel. Requer passar `getItemProgresso` para o calculo.
+
+---
+
+## 9. Progresso Geral Funcional
+
+Calcular o progresso real: media de `getItemProgresso` de todos os itens dividido pelo total. Remover o valor hardcoded `0`.
 
 ---
 
 ## Detalhes Tecnicos
 
-### Arquivo: `src/pages/ConceitosMateria.tsx`
+### Arquivo modificado
+`src/components/shared/SerpentineNiveis.tsx`
 
-1. **Linha 184** - Trocar `'/?tab=iniciante'` por `'/?tab=jornada'`
+### Mudancas principais
 
-2. **Apos linha 254** (depois da barra Progress do header) - Adicionar legenda de cores:
-   ```
-   Leitura (laranja) | Flashcards (roxo) | Praticar (verde)
-   ```
+1. **SVG paths (linha 128-141)**: Trocar logica de `L` para curvas `Q` calculando ponto de controle medio. Adicionar `motion.circle` com `animateMotion` por path.
 
-3. **Novo estado** - Adicionar `const [topicoExpandido, setTopicoExpandido] = useState<number | null>(null)` para controlar qual topico esta expandido
+2. **Nos (linhas 207-269)**: Trocar `animate` por `whileInView`. Adicionar anel SVG de progresso ao redor do circulo. Adicionar `whileHover`/`whileTap`. Adicionar checkmark para nos 100%.
 
-4. **Lista de topicos (linhas 291-407)** - Modificar o `onClick` do `motion.button` para alternar a expansao do card em vez de navegar diretamente. Abaixo do conteudo existente do card, adicionar uma secao animada (AnimatePresence) com tres botoes:
-   - Botao "Ler" com icone BookOpen e progresso de leitura
-   - Botao "Flashcards" com icone Layers e progresso de flashcards  
-   - Botao "Questoes" com icone Target e progresso de questoes
+3. **Banners (linhas 34-55)**: Trocar `animate` por `whileInView` com direcao alternada. Adicionar contagem "X/Y concluidas".
 
-   Cada botao navega para a rota correspondente ao ser clicado.
+4. **Progresso geral (linhas 143-144)**: Calcular `progressPercent` como media real dos progressos.
+
+5. **Importacoes**: Adicionar `AnimatePresence`, `Check` do lucide-react e `useInView` se necessario.
+
+Nenhum outro arquivo precisa ser modificado — todas as trilhas (Conceitos, OAB, Areas) usam este componente.
 
