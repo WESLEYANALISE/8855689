@@ -1,68 +1,121 @@
 
 
-# Ajustes no Carrossel de Boas-Vindas e Tela de Autenticacao
+# Teste Gratuito de 3 Dias da Evelyn + Coleta de Telefone na Primeira Visita
 
-## 1. Imagens proprias para mobile no carrossel
+## Resumo
 
-As imagens atuais (`estudos-section.webp`, `vade-mecum-section.webp`, etc.) sao horizontais/paisagem e ficam esticadas ou cortadas no mobile. O carrossel precisa usar imagens no formato vertical (retrato) otimizadas para mobile.
-
-O projeto ja possui imagens verticais na pasta `src/assets/landing/`: `welcome-1.webp`, `welcome-2.png` ate `welcome-8.png`. Alem disso, existem imagens como `themis-full.webp`, `advogado-discursando-vertical.webp`, e assets de onboarding que sao verticais.
-
-**Solucao**: Cada slide tera duas imagens - uma para mobile (vertical, usando assets existentes ou os welcome-*.png) e outra para desktop (horizontal, mantendo as atuais). O componente usara `object-position: center` para garantir foco central nas imagens.
+Remover a coleta de telefone do onboarding (tela BemVindoEvelyn) e mover toda a logica para a pagina da Evelyn no menu de rodape. Usuarios gratuitos verao "Teste gratis por 3 dias" em vez de "Seja Premium para acessar". Ao clicar, configuram o numero e a Evelyn envia a primeira mensagem. No backend, a Evelyn identifica usuarios em teste e, apos 3 dias, avisa que o teste expirou e envia o link da assinatura.
 
 ---
 
-## 2. Melhorar textos e frases dos slides
+## Fluxo do Usuario
 
-Tornar as frases mais impactantes e focadas nos beneficios concretos para o usuario, com linguagem persuasiva e juridica.
-
-Novos textos planejados:
-
-| Slide | Titulo | Subtitulo |
-|-------|--------|-----------|
-| 1 | Domine todas as materias do Direito | Videoaulas completas, trilhas personalizadas e aulas interativas para voce estudar no seu ritmo. |
-| 2 | Vade Mecum Inteligente e Comentado | Todas as leis com narracao por voz, destaques coloridos, anotacoes pessoais e comentarios de especialistas. |
-| 3 | A maior Biblioteca Juridica Digital | Mais de 1.200 livros de doutrina, legislacao, OAB e concursos na palma da sua mao. |
-| 4 | Evelyn: Sua Professora Particular 24h | Tire duvidas por audio, texto, imagem ou PDF com a assistente que entende de Direito como ninguem. |
-| 5 | Aprovacao na OAB e Concursos Publicos | Simulados cronometrados, questoes comentadas, 1a e 2a fase da OAB e concursos — tudo em um so lugar. |
-| 6 | Tudo para a sua aprovacao | Flashcards, mapas mentais, resumos inteligentes e mais de 10.000 questoes para voce dominar o Direito. |
+```text
+[Menu Rodape] -> Clica "Evelyn"
+  -> Se Premium: botao "Acessar agora" (como hoje)
+  -> Se Gratuito:
+     -> Primeira vez: Tela explicativa + coleta de telefone + cadastro
+     -> Ja cadastrado (em teste): botao "Acessar agora" 
+     -> Teste expirado: mensagem de expirado + link assinatura
+```
 
 ---
 
-## 3. Tela de autenticacao: separar "Cadastrar" e "Entrar"
+## Parte 1: Tela da Evelyn (src/pages/Evelyn.tsx)
 
-Atualmente, a pagina `/auth` sempre abre no modo login. O parametro `?mode=` na URL nao e lido pelo componente.
+### Substituir o botao "Seja Premium" por "Teste gratis por 3 dias"
 
-**Correcoes**:
+Para usuarios gratuitos sem Evelyn:
+- Em vez do botao dourado "Seja Premium para acessar", mostrar um botao verde "Teste gratis por 3 dias"
+- Abaixo, texto explicativo: "Experimente a Evelyn gratuitamente! Ela entende audio, texto, imagem e PDF."
+- Ao clicar, expandir o formulario de configuracao de numero (nome, telefone, perfil) -- ja existe na aba "Configuracoes"
+- Apos cadastrar, chamar a edge function `evelyn-enviar-mensagem` para enviar a primeira mensagem automatica da Evelyn para o usuario
+- Mostrar confirmacao e botao "Acessar agora" para abrir o WhatsApp
 
-- Fazer `Auth.tsx` ler o parametro `mode` da URL: se `?mode=login`, abre em modo login. Se `?mode=signup`, abre em modo cadastro.
-- Quando vem de "Quero ser Aluno" (via `/bem-vindo-evelyn` -> `/auth?mode=signup`): mostrar **apenas** o formulario de cadastro, sem a aba "Entrar".
-- Quando vem de "Ja sou Aluno" (`/auth?mode=login`): mostrar **apenas** o formulario de login, sem a aba "Cadastrar".
-- Adicionar um link discreto embaixo para quem quer trocar ("Ja tem conta? Entre aqui" / "Nao tem conta? Cadastre-se").
+### Verificar status do teste
+
+- Ao carregar a pagina, verificar na tabela `evelyn_usuarios` se o usuario ja tem cadastro pelo telefone do profile
+- Se tem cadastro e `data_primeiro_contato` + 3 dias > agora: mostrar "Acessar agora" com badge "Teste ativo - X dias restantes"
+- Se tem cadastro e teste expirou: mostrar "Teste expirado" com link para /assinatura
+
+---
+
+## Parte 2: Tela BemVindoEvelyn (src/pages/BemVindoEvelyn.tsx)
+
+- Remover a coleta de telefone desta pagina
+- Manter o video e a explicacao sobre a Evelyn
+- Simplificar: apos assistir/ver, botao unico "Continuar" que vai para `/auth?mode=signup`
+- A pergunta "Quer que a Evelyn te envie mensagem?" sera removida daqui (movida para a pagina Evelyn)
+
+---
+
+## Parte 3: Backend - Edge Function processar-mensagem-evelyn
+
+### Reativar periodo de teste de 3 dias
+
+No arquivo `supabase/functions/processar-mensagem-evelyn/index.ts`:
+
+1. **Mudar `ACESSO_LIVRE = true` para `false`** (ou criar logica condicional)
+2. **Adicionar verificacao de teste gratuito**: 
+   - Se `data_primeiro_contato` >= 15/02/2026 (hoje): aplicar regra de 3 dias
+   - Se `data_primeiro_contato` < 15/02/2026: manter acesso livre (usuarios antigos)
+3. **Quando teste expira**: 
+   - Se usuario manda mensagem apos 3 dias e nao e Premium:
+   - Enviar mensagem: "Seu periodo de teste gratuito da Evelyn expirou. Para continuar usando, assine o Direito Premium: https://www.direitopremium.com.br/assinatura"
+   - Marcar `periodo_teste_expirado = true`
+   - Nao processar mais mensagens ate virar Premium
+
+### Logica de data
+
+```text
+Se data_primeiro_contato >= '2026-02-15':
+  diasUsados = (agora - data_primeiro_contato) em dias
+  Se diasUsados > 3 E nao e Premium:
+    -> Enviar aviso de expiracao + link assinatura
+    -> Nao responder mensagem
+  Senao:
+    -> Responder normalmente
+Senao:
+  -> Acesso livre (usuarios antigos)
+```
+
+---
+
+## Parte 4: Edge Function para Enviar Primeira Mensagem
+
+Reutilizar a edge function `evelyn-enviar-mensagem` ja existente para enviar a mensagem de boas-vindas automatica quando o usuario se cadastra na pagina da Evelyn.
+
+Mensagem automatica: "Ola, [nome]! Sou a Evelyn, sua assistente juridica. Voce tem um teste gratuito de 3 dias! Me pergunte qualquer coisa sobre Direito."
 
 ---
 
 ## Detalhes Tecnicos
 
-### Arquivo: `src/pages/Welcome.tsx`
+### Arquivos a modificar:
 
-1. Adicionar import de imagens verticais existentes (welcome-1.webp e outros assets verticais do projeto)
-2. Atualizar array `slides` para incluir campo `mobileImage` com imagens verticais
-3. Usar `useIsMobile()` ou media query para selecionar imagem correta
-4. Melhorar `object-position: center` nas imagens para centralizar o foco
-5. Atualizar textos dos slides com frases mais impactantes
+1. **`src/pages/Evelyn.tsx`** (linhas 295-317):
+   - Substituir bloco `hasEvelynAccess ? ... : ...` por logica com 3 estados: Premium, Teste Ativo, Teste Nao Iniciado, Teste Expirado
+   - Adicionar estado `trialStatus` com useEffect que consulta `evelyn_usuarios` pelo telefone do profile
+   - Adicionar formulario inline (similar ao da aba Configuracoes) para coleta de numero na primeira vez
+   - Apos cadastro, chamar edge function para enviar primeira mensagem
 
-### Arquivo: `src/pages/Auth.tsx`
+2. **`src/pages/BemVindoEvelyn.tsx`**:
+   - Remover estados `showPhoneForm`, `phoneNumber`, `fullNumber`, `confirmed`
+   - Remover pergunta sobre Evelyn enviar mensagem
+   - Simplificar para: video + explicacao + botao "Continuar" -> `/auth?mode=signup`
 
-1. **Linha 70**: Alterar inicializacao do `mode` para ler `searchParams.get('mode')`:
-   ```
-   const urlMode = searchParams.get('mode');
-   const initialMode = isRecoveryFromUrl ? 'reset' : (urlMode === 'signup' ? 'signup' : 'login');
-   ```
+3. **`supabase/functions/processar-mensagem-evelyn/index.ts`** (linhas 4-8, 2847-2849):
+   - Adicionar constante `DATA_CORTE_TESTE = '2026-02-15'`
+   - Adicionar `DIAS_TESTE = 3`
+   - Na secao "ACESSO LIVRE" (linha 2847), adicionar verificacao:
+     - Se `data_primeiro_contato >= DATA_CORTE_TESTE` e `diasUsados > DIAS_TESTE` e `!isPremiumUser`:
+       - Enviar mensagem de expiracao com link
+       - Retornar sem processar
+     - Se ainda no teste: continuar normalmente
 
-2. **Linhas 402-429**: Adicionar variavel `hideToggle` que esconde o toggle de abas quando `urlMode` esta definido. Substituir o toggle por um link discreto:
-   - Se modo signup: "Ja tem conta? Entre aqui" (link para `/auth?mode=login`)
-   - Se modo login: "Nao tem conta? Cadastre-se" (link para `/auth?mode=signup`)
+4. **`supabase/functions/mercadopago-webhook/index.ts`** (linhas 110-116):
+   - Manter logica existente que marca `periodo_teste_expirado = false` quando usuario assina (ja existe)
 
-### Nenhum outro arquivo precisa ser modificado.
+### Nenhuma tabela nova necessaria
+A tabela `evelyn_usuarios` ja possui os campos: `data_primeiro_contato`, `periodo_teste_expirado`, `aviso_teste_enviado`, `autorizado`.
 
