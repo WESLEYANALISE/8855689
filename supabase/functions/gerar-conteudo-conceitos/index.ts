@@ -693,30 +693,46 @@ Retorne APENAS o JSON.`;
 
 // Função auxiliar para processar próximo da fila
 async function processarProximoDaFila(supabase: any, supabaseUrl: string, supabaseServiceKey: string) {
+  const MAX_CONCURRENT = 5;
   try {
-    const { data: proximo, error } = await supabase
+    // Contar quantos estão gerando
+    const { data: ativos } = await supabase
+      .from("conceitos_topicos")
+      .select("id")
+      .eq("status", "gerando");
+
+    const ativosCount = ativos?.length || 0;
+    const slotsDisponiveis = MAX_CONCURRENT - ativosCount;
+
+    if (slotsDisponiveis <= 0) {
+      console.log(`[Conceitos Fila] ${ativosCount} ativos, sem slots`);
+      return;
+    }
+
+    const { data: proximos } = await supabase
       .from("conceitos_topicos")
       .select("id, titulo")
       .eq("status", "na_fila")
       .order("posicao_fila", { ascending: true })
-      .limit(1)
-      .single();
+      .limit(slotsDisponiveis);
 
-    if (error || !proximo) {
+    if (!proximos || proximos.length === 0) {
       console.log("[Conceitos Fila] Fila vazia");
       return;
     }
 
-    console.log(`[Conceitos Fila] Próximo: ${proximo.titulo}`);
+    console.log(`[Conceitos Fila] Disparando ${proximos.length} próximos (${ativosCount} ativos)`);
 
-    fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-conceitos`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({ topico_id: proximo.id }),
-    }).catch(err => console.error("[Conceitos Fila] Erro:", err));
+    for (const proximo of proximos) {
+      fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-conceitos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ topico_id: proximo.id }),
+      }).catch(err => console.error("[Conceitos Fila] Erro:", err));
+    }
   } catch (err) {
     console.error("[Conceitos Fila] Erro:", err);
   }

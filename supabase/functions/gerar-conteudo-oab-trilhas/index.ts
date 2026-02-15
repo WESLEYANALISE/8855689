@@ -1290,35 +1290,46 @@ Retorne APENAS o JSON, sem texto adicional.`;
 
 // Função auxiliar para processar próximo item da fila
 async function processarProximoDaFila(supabase: any, supabaseUrl: string, supabaseServiceKey: string) {
+  const MAX_CONCURRENT = 5;
   try {
-    const { data: proximo, error } = await supabase
+    // Contar quantos estão gerando
+    const { data: ativos } = await supabase
+      .from("oab_trilhas_topicos")
+      .select("id")
+      .eq("status", "gerando");
+
+    const ativosCount = ativos?.length || 0;
+    const slotsDisponiveis = MAX_CONCURRENT - ativosCount;
+
+    if (slotsDisponiveis <= 0) {
+      console.log(`[OAB Fila] ${ativosCount} ativos, sem slots`);
+      return;
+    }
+
+    const { data: proximos } = await supabase
       .from("oab_trilhas_topicos")
       .select("id, titulo")
       .eq("status", "na_fila")
       .order("posicao_fila", { ascending: true })
-      .limit(1)
-      .single();
+      .limit(slotsDisponiveis);
 
-    if (error || !proximo) {
-      console.log("[OAB Fila] Nenhum item na fila para processar");
+    if (!proximos || proximos.length === 0) {
+      console.log("[OAB Fila] Fila vazia");
       return;
     }
 
-    console.log(`[OAB Fila] Iniciando próximo da fila: ${proximo.titulo} (ID: ${proximo.id})`);
+    console.log(`[OAB Fila] Disparando ${proximos.length} próximos (${ativosCount} ativos)`);
 
-    const functionUrl = `${supabaseUrl}/functions/v1/gerar-conteudo-oab-trilhas`;
-    
-    fetch(functionUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({ topico_id: proximo.id }),
-    }).catch(err => {
-      console.error("[OAB Fila] Erro ao iniciar próximo:", err);
-    });
-    
+    for (const proximo of proximos) {
+      fetch(`${supabaseUrl}/functions/v1/gerar-conteudo-oab-trilhas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ topico_id: proximo.id }),
+      }).catch(err => console.error("[OAB Fila] Erro:", err));
+    }
   } catch (err) {
     console.error("[OAB Fila] Erro ao buscar próximo da fila:", err);
   }
