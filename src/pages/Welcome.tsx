@@ -1,166 +1,149 @@
 import { useNavigate } from 'react-router-dom';
-import { 
-  BookOpen, Video, Brain, Library, Scale, FileText, Globe, 
-  ChevronRight
-} from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { useCallback } from 'react';
+import { ChevronRight } from 'lucide-react';
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
+import { motion, AnimatePresence } from 'framer-motion';
 
+import estudosSection from '@/assets/landing/estudos-section.webp';
+import vadeMecumSection from '@/assets/landing/vade-mecum-section.webp';
+import bibliotecaSection from '@/assets/landing/biblioteca-section-opt.webp';
+import evelynSection from '@/assets/landing/evelyn-ai-section.webp';
+import oabSection from '@/assets/landing/oab-section.webp';
 import themisFull from '@/assets/themis-full.webp';
-import welcome1 from '@/assets/landing/welcome-1.webp';
-import welcome2 from '@/assets/landing/welcome-2.png';
-import welcome3 from '@/assets/landing/welcome-3.png';
-import welcome4 from '@/assets/landing/welcome-4.png';
-import welcome5 from '@/assets/landing/welcome-5.png';
-import welcome6 from '@/assets/landing/welcome-6.png';
-import welcome7 from '@/assets/landing/welcome-7.png';
-import welcome8 from '@/assets/landing/welcome-8.png';
 
-const screenshots = [welcome1, welcome2, welcome3, welcome4, welcome5, welcome6, welcome7, welcome8];
-
-const features = [
-  { icon: Video, title: 'Videoaulas', desc: 'Todas as matérias do Direito' },
-  { icon: BookOpen, title: 'Jornada Jurídica', desc: 'Aulas explicativas completas' },
-  { icon: Brain, title: 'Flashcards', desc: 'Memorização inteligente' },
-  { icon: Library, title: 'Biblioteca', desc: '+1200 livros jurídicos' },
-  { icon: Scale, title: 'OAB 1ª e 2ª Fase', desc: 'Preparação completa' },
-  { icon: FileText, title: 'Vade Mecum', desc: 'Comentado e atualizado' },
-  { icon: Globe, title: 'Política', desc: 'Estudos e atualidades' },
+const slides = [
+  {
+    image: estudosSection,
+    title: 'Domine todas as matérias do Direito',
+    subtitle: 'Videoaulas completas, trilhas personalizadas e aulas interativas para você estudar no seu ritmo.',
+  },
+  {
+    image: vadeMecumSection,
+    title: 'Vade Mecum Inteligente e Comentado',
+    subtitle: 'Todas as leis com narração, destaques, anotações e comentários para facilitar seus estudos.',
+  },
+  {
+    image: bibliotecaSection,
+    title: 'Mais de 1.200 livros jurídicos',
+    subtitle: 'A maior biblioteca digital de Direito ao seu alcance: doutrina, legislação, concursos e muito mais.',
+  },
+  {
+    image: evelynSection,
+    title: 'Evelyn — Sua IA Jurídica no WhatsApp',
+    subtitle: 'Tire dúvidas por áudio, texto, imagem ou PDF com a assistente que entende de Direito.',
+  },
+  {
+    image: oabSection,
+    title: 'Preparação Completa para OAB e Concursos',
+    subtitle: 'Simulados, questões comentadas, 1ª e 2ª fase da OAB e concursos públicos em um só lugar.',
+  },
+  {
+    image: themisFull,
+    title: 'Tudo para sua aprovação',
+    subtitle: 'Flashcards, mapas mentais, resumos, questões e muito mais — a plataforma completa do Direito.',
+  },
 ];
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const autoplayRef = useRef(Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true }));
 
-  const handleAcessar = useCallback(() => {
-    navigate('/auth');
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [autoplayRef.current]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on('select', onSelect);
+    onSelect();
+    return () => { emblaApi.off('select', onSelect); };
+  }, [emblaApi]);
+
+  const handleJoin = useCallback(() => {
+    navigate('/bem-vindo-evelyn');
   }, [navigate]);
 
-  // Triple screenshots for seamless infinite loop
-  const tripledScreenshots = [...screenshots, ...screenshots, ...screenshots];
+  const handleLogin = useCallback(() => {
+    navigate('/auth?mode=login');
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Hero Section */}
-      <section className="relative min-h-[65vh] flex flex-col items-center justify-center overflow-hidden pb-4">
-        <div className="absolute inset-0">
-          <img src={themisFull} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-background" />
-        </div>
-        
-        <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
-          <h2 
-            className="text-primary font-serif text-lg md:text-xl mb-4 tracking-widest uppercase opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_forwards]"
-          >
-            Direito Premium
-          </h2>
-          <h1 
-            className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4 opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_0.2s_forwards]"
-          >
-            Tudo que você precisa para{' '}
-            <span className="text-primary">dominar o Direito</span>
-          </h1>
-          <p 
-            className="text-lg md:text-xl text-muted-foreground mb-6 leading-relaxed opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_0.4s_forwards]"
-          >
-            A ferramenta completa para estudar Direito: aulas, leis, flashcards, IA e muito mais.
-          </p>
-          <div className="opacity-0 animate-[welcomeFadeUp_0.8s_ease-out_0.6s_forwards]">
-            <Button 
-              size="lg" 
-              onClick={handleAcessar}
-              className="text-lg px-10 py-6 rounded-full shadow-lg shadow-primary/20 transition-all"
-            >
-              Acessar
-              <ChevronRight className="ml-1 h-5 w-5 animate-[bounce-right_1s_ease-in-out_infinite]" />
-            </Button>
+    <div className="h-[100dvh] w-full relative overflow-hidden bg-black flex flex-col">
+      {/* Progress bars at top */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex gap-1.5 px-4 pt-3">
+        {slides.map((_, i) => (
+          <div key={i} className="flex-1 h-[3px] rounded-full bg-white/20 overflow-hidden">
+            <motion.div
+              className="h-full bg-white rounded-full"
+              initial={{ width: '0%' }}
+              animate={{ width: i === selectedIndex ? '100%' : i < selectedIndex ? '100%' : '0%' }}
+              transition={i === selectedIndex ? { duration: 5, ease: 'linear' } : { duration: 0.3 }}
+              key={`${i}-${selectedIndex}`}
+            />
           </div>
-        </div>
-      </section>
+        ))}
+      </div>
 
-      {/* Carrossel contínuo de Screenshots */}
-      <section className="py-8 bg-card/50">
-        <div className="overflow-hidden">
-          <div
-            className="flex gap-3 w-max"
-            style={{
-              animation: 'scroll-carousel 60s linear infinite',
-              willChange: 'transform',
-              transform: 'translateZ(0)',
-              backfaceVisibility: 'hidden',
-            }}
-          >
-            {tripledScreenshots.map((img, i) => (
+      {/* Carousel */}
+      <div className="flex-1 overflow-hidden" ref={emblaRef}>
+        <div className="flex h-full">
+          {slides.map((slide, i) => (
+            <div key={i} className="flex-[0_0_100%] min-w-0 relative h-full">
               <img
-                key={i}
-                src={img}
-                alt={`Screenshot ${(i % screenshots.length) + 1} do app`}
-                className="rounded-xl border border-border shadow-lg h-[280px] w-auto object-contain flex-shrink-0"
-                fetchPriority="high"
-                decoding="async"
+                src={slide.image}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
               />
-            ))}
-          </div>
-        </div>
-      </section>
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20" />
 
-      {/* Funcionalidades */}
-      <section className="py-16 px-6">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 opacity-0 animate-[welcomeFadeUp_0.6s_ease-out_forwards]">
-            Tudo que você precisa
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {features.map((f, i) => (
-              <div
-                key={f.title}
-                className="flex flex-col items-center text-center p-4 rounded-xl bg-card border border-border opacity-0 animate-[welcomeFadeUp_0.4s_ease-out_forwards]"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <f.icon className="h-8 w-8 text-primary mb-3" />
-                <h3 className="font-semibold text-sm">{f.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+              {/* Text content at bottom */}
+              <AnimatePresence mode="wait">
+                {i === selectedIndex && (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute bottom-44 left-0 right-0 px-6 z-10"
+                  >
+                    <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-3">
+                      {slide.title}
+                    </h1>
+                    <p className="text-sm md:text-base text-white/70 leading-relaxed max-w-md">
+                      {slide.subtitle}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
 
-      {/* CTA Final */}
-      <section className="py-20 px-6 text-center">
-        <div>
+      {/* Fixed bottom buttons */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 px-6 pb-8 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+        <div className="flex flex-col gap-3 max-w-sm mx-auto">
           <Button
             size="lg"
-            onClick={handleAcessar}
-            className="text-xl px-12 py-7 rounded-full shadow-xl animate-pulse shadow-primary/30 transition-all"
+            onClick={handleJoin}
+            className="w-full text-base py-6 rounded-full shadow-lg shadow-primary/30 font-bold"
           >
-            Acessar Gratuitamente <ChevronRight className="ml-2 h-6 w-6" />
+            Quero ser Aluno(a)!
+            <ChevronRight className="ml-1 h-5 w-5" />
           </Button>
-          <p className="text-muted-foreground mt-4 text-sm">
-            Cadastro rápido e gratuito
-          </p>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleLogin}
+            className="w-full text-base py-6 rounded-full border-white/30 text-white hover:bg-white/10 font-medium"
+          >
+            Já sou Aluno(a)
+          </Button>
         </div>
-      </section>
-
-      <style>{`
-        @keyframes bounce-right {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(5px); }
-        }
-        @keyframes scroll-carousel {
-          0% { transform: translateZ(0) translateX(0); }
-          100% { transform: translateZ(0) translateX(-33.333%); }
-        }
-        @keyframes welcomeFadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+      </div>
     </div>
   );
 };

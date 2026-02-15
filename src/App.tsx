@@ -22,6 +22,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Welcome from "./pages/Welcome";
+import BemVindoEvelyn from "./pages/BemVindoEvelyn";
 import EscolherPlano from "./pages/EscolherPlano";
 
 // ALL PAGES - Direct imports for instant loading
@@ -613,7 +614,8 @@ const App = () => {
             
             {/* Auth routes - outside Layout for full-screen experience */}
             <Routes>
-               <Route path="/welcome" element={<Navigate to="/auth" replace />} />
+               <Route path="/welcome" element={<Welcome />} />
+               <Route path="/bem-vindo-evelyn" element={<BemVindoEvelyn />} />
                <Route path="/auth" element={<Auth />} />
               <Route path="/escolher-plano" element={
                 <ProtectedRoute skipOnboardingCheck>
