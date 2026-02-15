@@ -13,16 +13,16 @@ const TOTAL_NIVEIS = 10;
 
 // Level color themes
 const NIVEL_COLORS = [
-  { bg: "from-green-500 to-green-700", border: "border-green-500", stroke: "rgba(34,197,94,0.4)", strokeBg: "rgba(34,197,94,0.15)", badge: "bg-green-600", label: "Iniciante", shadow: "shadow-green-500/40", hex: "#22c55e" },
-  { bg: "from-teal-400 to-teal-600", border: "border-teal-400", stroke: "rgba(45,212,191,0.4)", strokeBg: "rgba(45,212,191,0.15)", badge: "bg-teal-500", label: "Básico", shadow: "shadow-teal-400/40", hex: "#2dd4bf" },
-  { bg: "from-blue-500 to-blue-700", border: "border-blue-500", stroke: "rgba(59,130,246,0.4)", strokeBg: "rgba(59,130,246,0.15)", badge: "bg-blue-600", label: "Fundamentos", shadow: "shadow-blue-500/40", hex: "#3b82f6" },
-  { bg: "from-indigo-500 to-indigo-700", border: "border-indigo-500", stroke: "rgba(99,102,241,0.4)", strokeBg: "rgba(99,102,241,0.15)", badge: "bg-indigo-600", label: "Intermediário", shadow: "shadow-indigo-500/40", hex: "#6366f1" },
-  { bg: "from-purple-500 to-purple-700", border: "border-purple-500", stroke: "rgba(168,85,247,0.4)", strokeBg: "rgba(168,85,247,0.15)", badge: "bg-purple-600", label: "Avançando", shadow: "shadow-purple-500/40", hex: "#a855f7" },
-  { bg: "from-pink-500 to-pink-700", border: "border-pink-500", stroke: "rgba(236,72,153,0.4)", strokeBg: "rgba(236,72,153,0.15)", badge: "bg-pink-600", label: "Aprofundando", shadow: "shadow-pink-500/40", hex: "#ec4899" },
-  { bg: "from-red-500 to-red-700", border: "border-red-500", stroke: "rgba(239,68,68,0.4)", strokeBg: "rgba(239,68,68,0.15)", badge: "bg-red-600", label: "Avançado", shadow: "shadow-red-500/40", hex: "#ef4444" },
-  { bg: "from-orange-500 to-orange-700", border: "border-orange-500", stroke: "rgba(249,115,22,0.4)", strokeBg: "rgba(249,115,22,0.15)", badge: "bg-orange-600", label: "Expert", shadow: "shadow-orange-500/40", hex: "#f97316" },
-  { bg: "from-amber-500 to-amber-700", border: "border-amber-500", stroke: "rgba(245,158,11,0.4)", strokeBg: "rgba(245,158,11,0.15)", badge: "bg-amber-600", label: "Especialista", shadow: "shadow-amber-500/40", hex: "#f59e0b" },
-  { bg: "from-yellow-400 to-yellow-600", border: "border-yellow-400", stroke: "rgba(250,204,21,0.4)", strokeBg: "rgba(250,204,21,0.15)", badge: "bg-yellow-500", label: "Mestre", shadow: "shadow-yellow-400/40", hex: "#facc15" },
+  { bg: "from-green-500 to-green-700", border: "border-green-500", stroke: "rgba(34,197,94,0.4)", strokeBg: "rgba(34,197,94,0.15)", badge: "bg-green-600", label: "", shadow: "shadow-green-500/40", hex: "#22c55e" },
+  { bg: "from-teal-400 to-teal-600", border: "border-teal-400", stroke: "rgba(45,212,191,0.4)", strokeBg: "rgba(45,212,191,0.15)", badge: "bg-teal-500", label: "", shadow: "shadow-teal-400/40", hex: "#2dd4bf" },
+  { bg: "from-blue-500 to-blue-700", border: "border-blue-500", stroke: "rgba(59,130,246,0.4)", strokeBg: "rgba(59,130,246,0.15)", badge: "bg-blue-600", label: "", shadow: "shadow-blue-500/40", hex: "#3b82f6" },
+  { bg: "from-indigo-500 to-indigo-700", border: "border-indigo-500", stroke: "rgba(99,102,241,0.4)", strokeBg: "rgba(99,102,241,0.15)", badge: "bg-indigo-600", label: "", shadow: "shadow-indigo-500/40", hex: "#6366f1" },
+  { bg: "from-purple-500 to-purple-700", border: "border-purple-500", stroke: "rgba(168,85,247,0.4)", strokeBg: "rgba(168,85,247,0.15)", badge: "bg-purple-600", label: "", shadow: "shadow-purple-500/40", hex: "#a855f7" },
+  { bg: "from-pink-500 to-pink-700", border: "border-pink-500", stroke: "rgba(236,72,153,0.4)", strokeBg: "rgba(236,72,153,0.15)", badge: "bg-pink-600", label: "", shadow: "shadow-pink-500/40", hex: "#ec4899" },
+  { bg: "from-red-500 to-red-700", border: "border-red-500", stroke: "rgba(239,68,68,0.4)", strokeBg: "rgba(239,68,68,0.15)", badge: "bg-red-600", label: "", shadow: "shadow-red-500/40", hex: "#ef4444" },
+  { bg: "from-orange-500 to-orange-700", border: "border-orange-500", stroke: "rgba(249,115,22,0.4)", strokeBg: "rgba(249,115,22,0.15)", badge: "bg-orange-600", label: "", shadow: "shadow-orange-500/40", hex: "#f97316" },
+  { bg: "from-amber-500 to-amber-700", border: "border-amber-500", stroke: "rgba(245,158,11,0.4)", strokeBg: "rgba(245,158,11,0.15)", badge: "bg-amber-600", label: "", shadow: "shadow-amber-500/40", hex: "#f59e0b" },
+  { bg: "from-yellow-400 to-yellow-600", border: "border-yellow-400", stroke: "rgba(250,204,21,0.4)", strokeBg: "rgba(250,204,21,0.15)", badge: "bg-yellow-500", label: "", shadow: "shadow-yellow-400/40", hex: "#facc15" },
 ];
 
 interface NivelGroup {
@@ -55,8 +55,7 @@ const NivelBanner = ({ nivel, label, colorBg, isLocked, lineColor, direction, co
         ) : (
           <Star className="w-4 h-4 text-white/90" />
         )}
-        <span className="text-white font-bold text-sm tracking-wide">Nível {nivel}</span>
-        <span className="text-white/70 text-xs">· {label}</span>
+        <span className="text-white font-bold text-sm tracking-wide">Módulo {nivel}</span>
       </motion.div>
       <div className="flex-1 h-px" style={{ background: `linear-gradient(to left, transparent, ${lineColor})` }} />
     </div>
