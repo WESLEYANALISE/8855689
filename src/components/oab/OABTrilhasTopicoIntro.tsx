@@ -188,51 +188,6 @@ export const OABTrilhasTopicoIntro = ({
             </button>
           </motion.div>
 
-          {/* Objectives BEFORE modules */}
-          {objetivos.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mb-6"
-            >
-              <button
-                onClick={() => setShowIndex(!showIndex)}
-                className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  <List className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">O que você vai aprender</span>
-                </div>
-                {showIndex ? (
-                  <ChevronUp className="w-4 h-4 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                )}
-              </button>
-              
-              <AnimatePresence>
-                {showIndex && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <ul className="mt-3 space-y-2 px-2">
-                      {objetivos.slice(0, 5).map((objetivo, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                          {objetivo}
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
           {/* Horizontal Study Path */}
           <div className="flex items-start justify-center gap-4 relative py-4">
             {/* SVG connector line (horizontal) */}
@@ -409,6 +364,51 @@ export const OABTrilhasTopicoIntro = ({
               </motion.div>
             )}
           </div>
+
+          {/* Objectives AFTER modules */}
+          {objetivos.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
+              className="mt-6"
+            >
+              <button
+                onClick={() => setShowIndex(!showIndex)}
+                className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <List className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-300">O que você vai aprender</span>
+                </div>
+                {showIndex ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showIndex && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <ul className="mt-3 space-y-2 px-2">
+                      {objetivos.slice(0, 5).map((objetivo, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                          {objetivo}
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
 
           {/* Footer tip */}
           <motion.p
